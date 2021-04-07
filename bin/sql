@@ -1,0 +1,52 @@
+
+SELECT
+"result1_0_3" as "result1_4",
+"result1_1_3" as "result2_4",
+"result1_2_3" as "result3_4",
+"result1_3_3" as "result4_4",
+"result1_4_3" as "result5_4",
+"result1_5_3" as "result6_4",
+"result1_6_3" as "result7_4",
+"result2_1_3" as "result8_4"
+FROM (SELECT
+      *
+      FROM (SELECT *
+            FROM
+            (SELECT
+             "id0_1" as "result1_0_3",
+             "typename1_1" as "result1_1_3",
+             "user_id2_1" as "result1_2_3",
+             "parent_id3_1" as "result1_3_3",
+             "name4_1" as "result1_4_3",
+             "date5_1" as "result1_5_3",
+             "hyperdata6_1" as "result1_6_3",
+             *
+             FROM (SELECT
+                   *
+                   FROM (SELECT
+                         "id" as "id0_1",
+                         "typename" as "typename1_1",
+                         "user_id" as "user_id2_1",
+                         "parent_id" as "parent_id3_1",
+                         "name" as "name4_1",
+                         "date" as "date5_1",
+                         "hyperdata" as "hyperdata6_1"
+                         FROM "nodes" as "T1") as "T1") as "T1") as "T1"
+            LEFT OUTER JOIN
+            (SELECT
+             "node1_id0_2" as "result2_0_3",
+             "node2_id1_2" as "result2_1_3",
+             "score2_2" as "result2_2_3",
+             "category3_2" as "result2_3_3",
+             *
+             FROM (SELECT
+                   *
+                   FROM (SELECT
+                         "node1_id" as "node1_id0_2",
+                         "node2_id" as "node2_id1_2",
+                         "score" as "score2_2",
+                         "category" as "category3_2"
+                         FROM "nodes_nodes" as "T1") as "T1") as "T1") as "T2"
+            ON
+            ("node1_id0_2") = ("id0_1")) as "T1"
+      WHERE (("result1_1_3") = (CAST(22 AS integer)))) as "T1"
