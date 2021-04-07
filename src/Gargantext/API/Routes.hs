@@ -95,12 +95,10 @@ type GargPrivateAPI' =
                            :> Capture "node_id" NodeId
                            :> NodeAPI HyperdataAny
 
---{-
            -- Corpus endpoints
            :<|> "corpus"   :> Summary "Corpus endpoint"
                            :> Capture "corpus_id" CorpusId
                            :> NodeAPI HyperdataCorpus
---}
 
            :<|> "corpus"   :> Summary "Corpus endpoint"
                            :> Capture "node1_id" NodeId
@@ -154,7 +152,7 @@ type GargPrivateAPI' =
 
            -- :<|> New.Upload
            :<|> New.AddWithForm
-           :<|> New.AddWithFile
+--           :<|> New.AddWithFile
            :<|> New.AddWithQuery
 
            -- :<|> "annuaire" :> Annuaire.AddWithForm
@@ -233,7 +231,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
           <$> PathNode <*> treeAPI
      -- TODO access
      :<|> addCorpusWithForm  (RootId (NodeId uid))
-     :<|> addCorpusWithFile  (RootId (NodeId uid))
+    -- :<|> addCorpusWithFile  (RootId (NodeId uid))
      :<|> addCorpusWithQuery (RootId (NodeId uid))
 
      -- :<|> addAnnuaireWithForm
