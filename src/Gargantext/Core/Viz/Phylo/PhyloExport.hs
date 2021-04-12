@@ -139,6 +139,7 @@ groupToDotNode fdt g bId =
                          , toAttr "branchId" (pack $ unwords (init $ map show $ snd $ g ^. phylo_groupBranchId))
                          , toAttr "bId" (pack $ show bId)
                          , toAttr "support" (pack $ show (g ^. phylo_groupSupport))
+                         , toAttr "weight" (pack $ show (g ^. phylo_groupWeight))
                          , toAttr "lbl" (pack $ show (ngramsToLabel fdt (g ^. phylo_groupNgrams)))
                          , toAttr "foundation" (pack $ show (idxToLabel (g ^. phylo_groupNgrams)))
                          , toAttr "role" (pack $ show (idxToLabel' ((g ^. phylo_groupMeta) ! "dynamics")))

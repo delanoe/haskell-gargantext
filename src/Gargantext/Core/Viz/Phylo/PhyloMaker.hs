@@ -21,7 +21,7 @@ import Gargantext.Core.Viz.Phylo.PhyloTools
 import Gargantext.Core.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching, getNextPeriods, filterDocs, filterDiago, reduceDiagos, toProximity)
 import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
 import Gargantext.Core.Text.Context (TermList)
-import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
+import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, fisWithSizePolyMap', Size(..))
 import Gargantext.Core.Methods.Graph.MaxClique (getMaxCliques)
 import Gargantext.Core.Methods.Distances (Distance(Conditional))
 import Gargantext.Core.Viz.Phylo.PhyloExport (toHorizon)
@@ -128,6 +128,7 @@ appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ co
 cliqueToGroup :: PhyloClique -> PhyloPeriodId -> Level ->  Int -> [Cooc] -> PhyloGroup
 cliqueToGroup fis pId lvl idx coocs = PhyloGroup pId lvl idx ""
                    (fis ^. phyloClique_support)
+                   (fis ^. phyloClique_weight)
                    (fis ^. phyloClique_nodes)
                    (ngramsToCooc (fis ^. phyloClique_nodes) coocs)
                    (1,[0]) -- branchid (lvl,[path in the branching tree])
@@ -217,8 +218,14 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
         phyloClique = case (clique $ getConfig phylo) of 
           Fis _ _     ->  
                       let fis  = map (\(prd,docs) -> 
-                                  let lst = toList $ fisWithSizePolyMap (Segment 1 20) 1 (map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs)
-                                   in (prd, map (\f -> PhyloClique (Set.toList $ fst f) (snd f) prd) lst))
+                                      case (corpusParser $ getConfig phylo) of
+                                        CsvWeighted _  -> let lst = toList 
+                                                                  $ fisWithSizePolyMap' (Segment 1 20) 1 (map (\d -> (ngramsToIdx (text d) (getRoots phylo), weight d)) docs)
+                                                           in (prd, map (\f -> PhyloClique (Set.toList $ fst f) ((fst . snd) f) prd ((snd . snd) f)) lst)
+                                        _  -> let lst = toList 
+                                                      $ fisWithSizePolyMap (Segment 1 20) 1 (map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs)
+                                              in (prd, map (\f -> PhyloClique (Set.toList $ fst f) (snd f) prd Nothing) lst)
+                                      )
                                $ toList phyloDocs
                           fis' = fis `using` parList rdeepseq
                        in fromList fis'
@@ -228,7 +235,7 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
                                              $ foldl sumCooc empty
                                              $ map listToMatrix 
                                              $ map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs
-                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques filterType Conditional thr cooc)) 
+                                     in (prd, map (\cl -> PhyloClique cl 0 prd Nothing) $ getMaxCliques filterType Conditional thr cooc)) 
                                $ toList phyloDocs
                           mcl' = mcl `using` parList rdeepseq                               
                        in fromList mcl' 

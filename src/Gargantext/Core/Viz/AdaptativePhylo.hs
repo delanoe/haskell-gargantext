@@ -52,6 +52,7 @@ import qualified Data.Text.Lazy as TextLazy
 data CorpusParser = 
       Wos {_wos_limit :: Int}
     | Csv {_csv_limit :: Int}
+    | CsvWeighted {_csvw_limit :: Int}
     deriving (Show,Generic,Eq) 
 
 data SeaElevation = 
@@ -231,7 +232,6 @@ defaultPhyloParam =
 -- | Document | --
 ------------------
 
-
 -- | Date : a simple Integer
 type Date = Int
 
@@ -240,8 +240,9 @@ type Ngrams = Text
 
 -- | Document : a piece of Text linked to a Date
 data Document = Document
-      { date :: Date
-      , text :: [Ngrams]
+      { date   :: Date
+      , text   :: [Ngrams]
+      , weight :: Maybe Double
       } deriving (Eq,Show,Generic,NFData)  
 
 
@@ -335,6 +336,7 @@ data PhyloGroup =
                  , _phylo_groupIndex    :: Int
                  , _phylo_groupLabel    :: Text
                  , _phylo_groupSupport  :: Support
+                 , _phylo_groupWeight   :: Maybe Double
                  , _phylo_groupNgrams   :: [Int]
                  , _phylo_groupCooc     :: !(Cooc)
                  , _phylo_groupBranchId :: PhyloBranchId
@@ -368,6 +370,7 @@ data PhyloClique = PhyloClique
   { _phyloClique_nodes   :: [Int]
   , _phyloClique_support :: Support
   , _phyloClique_period  :: (Date,Date)
+  , _phyloClique_weight  :: Maybe Double
   } deriving (Generic,NFData,Show,Eq)
 
 ----------------

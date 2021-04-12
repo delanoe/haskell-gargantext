@@ -395,3 +395,34 @@ parseCsv fp = V.toList <$> V.map csv2doc <$> snd <$> readFile fp
 parseCsv' :: BL.ByteString -> [HyperdataDocument]
 parseCsv' bs = V.toList $ V.map csv2doc $ snd $ readCsvLazyBS bs
 
+------------------------------------------------------------------------
+-- Csv v3 weighted for phylo
+
+data WeightedCsv = WeightedCsv
+      { csv_w_title             :: !Text
+      , csv_w_source            :: !Text
+      , csv_w_publication_year  :: !Int
+      , csv_w_publication_month :: !Int
+      , csv_w_publication_day   :: !Int
+      , csv_w_abstract          :: !Text
+      , csv_w_authors           :: !Text
+      , csv_w_weight            :: !Double } deriving (Show)
+
+
+instance FromNamedRecord WeightedCsv where
+  parseNamedRecord r = WeightedCsv <$> r .: "title"
+                                   <*> r .: "source"
+                                   <*> r .: "publication_year"
+                                   <*> r .: "publication_month"
+                                   <*> r .: "publication_day"
+                                   <*> r .: "abstract"
+                                   <*> r .: "authors"
+                                   <*> r .: "weight"   
+
+readWeightedCsv :: FilePath -> IO (Header, Vector WeightedCsv)
+readWeightedCsv fp = 
+  fmap (\bs -> 
+    case decodeByNameWith csvDecodeOptions bs of
+      Left e       -> panic (pack e)
+      Right corpus -> corpus
+    ) $ BL.readFile fp

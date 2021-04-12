@@ -25,7 +25,7 @@ import Crypto.Hash.SHA256 (hash)
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Core.Text.Context (TermList)
-import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
+import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year, csv_w_title, csv_w_abstract, csv_w_publication_year, csv_w_weight)
 import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)
 import Gargantext.Core.Text.List.Formats.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
@@ -46,10 +46,9 @@ import qualified Data.Vector as Vector
 import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv
 import qualified Data.Text as T
 
+-- import Debug.Trace (trace)
 
-data PhyloStage = PhyloWithCliques | PhyloWithLinks deriving (Show) 
-
-
+data PhyloStage = PhyloWithCliques | PhyloWithLinks deriving (Show)
 
 ---------------
 -- | Tools | --
@@ -62,7 +61,6 @@ getFilesFromPath path = do
   if (isSuffixOf "/" path) 
     then (listDirectory path) 
     else return [path]
-
 
 --------------
 -- | Json | --
@@ -79,18 +77,13 @@ readJson path = Lazy.readFile path
 ----------------
 
 -- | To filter the Ngrams of a document based on the termList
-filterTerms :: Patterns -> (a, Text) -> (a, [Text])
-filterTerms patterns (y,d) = (y,termsInText patterns d)
-  where
-    --------------------------------------
-    termsInText :: Patterns -> Text -> [Text]
-    termsInText pats txt = nub $ concat $ map (map unwords) $ extractTermsWithList pats txt
-    --------------------------------------
+termsInText :: Patterns -> Text -> [Text]
+termsInText pats txt = nub $ concat $ map (map unwords) $ extractTermsWithList pats txt
 
 
--- | To transform a Wos file (or [file]) into a readable corpus
-wosToCorpus :: Int -> FilePath -> IO ([(Int,Text)])
-wosToCorpus limit path = do 
+-- | To transform a Wos file (or [file]) into a list of Docs
+wosToDocs :: Int -> Patterns -> FilePath -> IO ([Document])
+wosToDocs limit patterns path = do 
       files <- getFilesFromPath path
       take limit
         <$> map (\d -> let date' = fromJust $ _hd_publication_year d
@@ -98,7 +91,7 @@ wosToCorpus limit path = do
                            abstr = if (isJust $ _hd_abstract d)
                                    then fromJust $ _hd_abstract d
                                    else ""
-                        in (date', title <> " " <> abstr)) 
+                        in Document date' (termsInText patterns $ title <> " " <> abstr) Nothing) 
         <$> concat 
         <$> mapConcurrently (\file -> 
               filter (\d -> (isJust $ _hd_publication_year d)
@@ -106,27 +99,38 @@ wosToCorpus limit path = do
                 <$> parseFile WOS (path <> file) ) files
 
 
--- | To transform a Csv file into a readable corpus
-csvToCorpus :: Int -> FilePath -> IO ([(Int,Text)])
-csvToCorpus limit path = Vector.toList
-    <$> Vector.take limit
-    <$> Vector.map (\row -> (csv_publication_year row, (csv_title row) <> " " <> (csv_abstract row)))
-    <$> snd <$> Csv.readFile path
+-- To transform a Csv file into a list of Document
+csvToDocs :: CorpusParser -> Patterns -> FilePath -> IO ([Document])
+csvToDocs parser patterns path = 
+  case parser of
+    Wos _ -> undefined
+    Csv limit -> Vector.toList
+      <$> Vector.take limit
+      <$> Vector.map (\row -> Document (csv_publication_year row)
+                                       (termsInText patterns $ (csv_title row) <> " " <> (csv_abstract row))
+                                       Nothing
+                     ) <$> snd <$> Csv.readFile path
+    CsvWeighted limit -> Vector.toList
+      <$> Vector.take limit
+      <$> Vector.map (\row -> Document (csv_w_publication_year row)
+                                       (termsInText patterns $ (csv_w_title row) <> " " <> (csv_w_abstract row))
+                                       (Just $ csv_w_weight row)
+                     ) <$> snd <$> Csv.readWeightedCsv path
 
 
--- | To use the correct parser given a CorpusType
-fileToCorpus :: CorpusParser -> FilePath -> IO ([(Int,Text)])
-fileToCorpus parser path = case parser of 
-  Wos limit -> wosToCorpus limit path
-  Csv limit -> csvToCorpus limit path
-
-
--- | To parse a file into a list of Document
-fileToDocs :: CorpusParser -> FilePath -> TermList -> IO [Document]
-fileToDocs parser path lst = do
-  corpus <- fileToCorpus parser path
+-- To parse a file into a list of Document
+fileToDocs' :: CorpusParser -> FilePath -> TermList -> IO [Document]
+fileToDocs' parser path lst = do
   let patterns = buildPatterns lst
-  pure $ map ( (\(y,t) -> Document y t) . filterTerms patterns) corpus
+  case parser of 
+      Wos limit -> wosToDocs limit patterns path
+      Csv _     -> csvToDocs parser patterns path
+      CsvWeighted _ -> csvToDocs parser patterns path
+
+
+---------------
+-- | Label | --
+---------------
 
 
 -- Config time parameters to label
@@ -235,7 +239,7 @@ main = do
 
             printIOMsg "Parse the corpus"
             mapList <- csvMapTermList (listPath config)
-            corpus  <- fileToDocs (corpusParser config) (corpusPath config) mapList
+            corpus  <- fileToDocs' (corpusParser config) (corpusPath config) mapList
             printIOComment (show (length corpus) <> " parsed docs from the corpus")
 
             printIOMsg "Reconstruct the phylo"

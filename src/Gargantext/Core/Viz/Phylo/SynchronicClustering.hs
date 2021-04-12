@@ -22,6 +22,7 @@ import Data.Map  (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty,
 
 import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
+import Control.Monad (sequence)
 -- import Debug.Trace (trace)
 
 import qualified Data.Map as Map
@@ -36,7 +37,10 @@ mergeGroups :: [Cooc] -> PhyloGroupId -> Map PhyloGroupId PhyloGroupId -> [Phylo
 mergeGroups coocs id mapIds childs = 
     let ngrams = (sort . nub . concat) $ map _phylo_groupNgrams childs
     in PhyloGroup (fst $ fst id) (snd $ fst id) (snd id)  ""
-                  (sum $ map _phylo_groupSupport childs)  ngrams
+                  (sum $ map _phylo_groupSupport childs) 
+                  (fmap sum $ sequence 
+                            $ map _phylo_groupWeight childs)  
+                  ngrams
                   (ngramsToCooc ngrams coocs) 
                   ((snd $ fst id),bId)
                   (mergeMeta bId childs) [] (map (\g -> (getGroupId g, 1)) childs)
