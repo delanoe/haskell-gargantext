@@ -19,9 +19,6 @@ import Gargantext.API.Admin.EnvTypes (DevEnv)
 import Gargantext.API.Dev (withDevEnv, runCmdDev)
 import Gargantext.API.Prelude (GargError)
 import Gargantext.API.Node () -- instances only
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Types.Hyperdata
-import Gargantext.Database.Query.Table.Node.UpdateOpaleye
 import Gargantext.Database.Prelude (Cmd'', )
 import Gargantext.Prelude
 import System.Environment (getArgs)
@@ -29,7 +26,6 @@ import Prelude (getLine)
 
 -- | PosTag
 import Gargantext.Database.Action.Flow (indexAllDocumentsWithPosTag)
-import Gargantext.Database.Query.Table.NgramsPostag (createTable_NgramsPostag)
 
 main :: IO ()
 main = do

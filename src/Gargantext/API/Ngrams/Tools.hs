@@ -142,3 +142,5 @@ getCoocByNgrams' f (Diagonal diag) m =
               ]
 
   where ks = HM.keys m
+
+------------------------------------------

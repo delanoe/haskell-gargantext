@@ -18,15 +18,13 @@ Phylo binaries
 module Main where
 
 import Control.Concurrent.Async as CCA (mapConcurrently)
-import Control.Monad (mapM)
 import Data.Aeson
 import Data.List ((++),concat)
 import Data.Maybe
-import Data.Text (Text, unwords, unlines)
+import Data.Text (Text, unwords)
 import GHC.Generics
 import GHC.IO (FilePath)
 import Gargantext.Database.Admin.Types.Hyperdata
-import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)

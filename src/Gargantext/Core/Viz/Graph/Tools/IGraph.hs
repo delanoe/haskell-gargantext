@@ -24,6 +24,7 @@ import qualified Data.List                   as List
 import qualified IGraph                      as IG
 import qualified IGraph.Algorithms.Clique    as IG
 import qualified IGraph.Algorithms.Community as IG
+import qualified IGraph.Algorithms.Structure as IG
 import qualified IGraph.Random               as IG
 import qualified Data.Map                    as Map
 
@@ -61,11 +62,15 @@ spinglass :: Seed -> Map (Int, Int) Double -> IO [ClusterNode]
 spinglass s g = toClusterNode
              <$> map catMaybes
              <$> map (map (\n -> Map.lookup n fromI))
-             <$> partitions_spinglass' s g''
+             <$> partitions_spinglass' s g'''
   where
-    g'' = mkGraphUfromEdges (Map.keys g')
+    g'   = toIndex toI g
+    g''  = mkGraphUfromEdges (Map.keys g')
+    g''' = case IG.isConnected g'' of
+      True -> g''
+      False -> panic "[G.C.V.G.T.Igraph: not connected graph]"
+
     (toI, fromI) = createIndices g
-    g' = toIndex toI g
 
 -- | Tools to analyze graphs
 partitions_spinglass' :: (Serialize v, Serialize e)

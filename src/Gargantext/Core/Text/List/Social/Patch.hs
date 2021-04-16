@@ -18,6 +18,7 @@ import Data.HashMap.Strict (HashMap)
 import Data.Monoid
 import Data.Semigroup
 import Gargantext.API.Ngrams.Types
+import Gargantext.API.Ngrams.Prelude (unMSet, patchMSet_toList)
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Types (ListId)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
@@ -28,9 +29,9 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Patch.Class    as Patch (Replace(..))
 
 addScorePatches :: NgramsType -> [ListId]
-               -> FlowCont NgramsTerm FlowListScores
-               -> Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])
-               -> FlowCont NgramsTerm FlowListScores
+                -> FlowCont NgramsTerm FlowListScores
+                -> Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])
+                -> FlowCont NgramsTerm FlowListScores
 addScorePatches nt listes fl repo = foldl' (addScorePatchesList nt repo) fl listes
 
 
@@ -136,9 +137,4 @@ score field list n m = (Just mempty <> m)
                      %~ (<> Just n)
 
 ------------------------------------------------------------------------
-patchMSet_toList :: (Ord a, Hashable a) => PatchMSet a -> [(a,AddRem)]
-patchMSet_toList = HashMap.toList . unPatchMapToHashMap . unPatchMSet
-
-unMSet :: MSet a -> [a]
-unMSet (MSet a) = Map.keys a
 

@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.2.8'
+version: '0.0.2.9.2'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -124,7 +124,6 @@ library:
   - cassava
   - cereal     # (IGraph)
   - clock
-  - clustering-louvain
   - conduit
   - conduit-extra
   - containers

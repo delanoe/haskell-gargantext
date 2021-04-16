@@ -26,7 +26,9 @@ REPO_FILEPATH = FILEPATH_TO_CHANGE
 
 # [external]
 # FRAMES (i.e. iframe sources used in various places on the frontend)
+#FRAME_WRITE_URL = http://write.frame.gargantext.org/
 FRAME_WRITE_URL = URL_TO_CHANGE
+#FRAME_CALC_URL = http://calc.frame.gargantext.org/
 FRAME_CALC_URL  = URL_TO_CHANGE
 
 FRAME_SEARX_URL  = URL_TO_CHANGE

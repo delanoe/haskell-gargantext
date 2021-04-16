@@ -17,29 +17,27 @@ module Gargantext.API.Ngrams.List
 
 import Control.Lens hiding (elements)
 import Data.Aeson
-import Data.Map (Map, toList, fromList)
+import Data.Map (toList, fromList)
 import Data.Swagger (ToSchema, declareNamedSchema, genericDeclareNamedSchema)
 import Data.Text (Text, concat, pack)
 import GHC.Generics (Generic)
-import Network.HTTP.Media ((//), (/:))
-import Servant
-import Servant.Job.Async
-import Servant.Job.Utils (jsonOptions)
-import Web.FormUrlEncoded (FromForm)
-
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams (getNgramsTableMap, setListNgrams)
-import Gargantext.API.Ngrams.Types (NgramsTableMap, RepoCmdM, Versioned(..))
+import Gargantext.API.Ngrams.Types (RepoCmdM, Versioned(..), NgramsList)
 import Gargantext.API.Node.Corpus.New.File (FileType(..))
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Schema.Ngrams (NgramsType(..), ngramsTypes)
+import Gargantext.Database.Schema.Ngrams (ngramsTypes)
 import Gargantext.Prelude
-
+import Network.HTTP.Media ((//), (/:))
+import Servant
+import Servant.Job.Async
+import Servant.Job.Utils (jsonOptions)
+import Web.FormUrlEncoded (FromForm)
 ------------------------------------------------------------------------
-type NgramsList = (Map NgramsType (Versioned NgramsTableMap))
+
 ------------------------------------------------------------------------
 type API =  Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
        -- :<|> ReqBody '[JSON] NgramsList :> Post '[JSON] Bool

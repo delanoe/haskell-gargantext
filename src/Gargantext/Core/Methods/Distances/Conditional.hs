@@ -15,24 +15,17 @@ Motivation and definition of the @Conditional@ distance.
 module Gargantext.Core.Methods.Distances.Conditional
   where
 
-import Data.Matrix hiding (identity)
-
 import Data.List (sortOn)
-
 import Data.Map (Map)
+import Data.Matrix hiding (identity)
+import Gargantext.Core.Viz.Graph.Utils
+import Gargantext.Prelude
 import qualified Data.Map as M
-
 import qualified Data.Set as S
-
 import qualified Data.Vector as V
 
-import Gargantext.Prelude
-import Gargantext.Core.Viz.Graph.Utils
-
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 -- | Optimisation issue
-
 toBeOptimized :: (Num a, Fractional a, Ord a) => Matrix a -> Matrix a
 toBeOptimized m = proba Col m
 
@@ -55,7 +48,6 @@ mapOnly Row = mapRow
 
 mapAll :: (a -> a) -> Matrix a -> Matrix a
 mapAll f m = mapOn Col (\_ -> f) m
-
 
 ---------------------------------------------------------------
 -- | Compute a distance from axis

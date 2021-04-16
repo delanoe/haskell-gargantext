@@ -33,6 +33,7 @@ import Gargantext.Core.Viz.AdaptativePhylo
 import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo, toPhyloStep)
 import Gargantext.Core.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment, setConfig)
 import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
+-- import Gargantext.API.Ngrams.Prelude (toTermList)
 
 import GHC.IO (FilePath) 
 import Prelude (Either(Left, Right))
