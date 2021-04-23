@@ -128,17 +128,17 @@ fisWithSizePolyMap n f is =
 isSublistOf :: Ord a => [a] -> [a] -> Bool
 isSublistOf sub lst = all (\i -> elem i lst) sub
 
-reIndexFis :: Ord a => [([a],b)] -> [Fis' a] -> [(Fis' a,[b])]
+reIndexFis :: Ord a => [([a],(b,c))] -> [Fis' a] -> [(Fis' a,([b],[c]))]
 reIndexFis items fis = map (\f -> 
     let docs = filter (\(lst,_) -> isSublistOf (_fisItemSet f) lst) items
-     in (f, map snd docs)) fis
+     in (f, (map (fst . snd) docs,map (snd . snd) docs))) fis
 
 wsum :: [Maybe Double] -> Maybe Double
 wsum lst = fmap sum $ sequence lst  
 
-fisWithSizePolyMap' :: Ord a => Size -> Frequency -> [([a],Maybe Double)] -> Map (Set a) (Int, Maybe Double)
+fisWithSizePolyMap' :: Ord a => Size -> Frequency -> [([a], (Maybe Double,[Int]))] -> Map (Set a) (Int, (Maybe Double,[Int]))
 fisWithSizePolyMap' n f is = Map.fromList
-  $ map (\(fis,ws) -> (Set.fromList (_fisItemSet fis),(_fisCount fis,(wsum ws))))
+  $ map (\(fis,(ws,sources)) -> (Set.fromList (_fisItemSet fis),(_fisCount fis,(wsum ws,concat sources))))
   $ reIndexFis is 
   $ fisWithSizePoly2 n f (map fst is)
 

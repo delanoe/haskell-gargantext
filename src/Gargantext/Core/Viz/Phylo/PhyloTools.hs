@@ -17,9 +17,9 @@ import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tai
 import Data.Set (Set, disjoint)
 import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty, restrictKeys)
 import Data.String (String)
-import Data.Text (Text)
+import Data.Text (Text,unpack)
 
-import Prelude (floor)
+import Prelude (floor,read)
 
 import Gargantext.Prelude
 import Gargantext.Core.Viz.AdaptativePhylo
@@ -115,6 +115,10 @@ isRoots n ns = Vector.elem n ns
 ngramsToIdx :: [Ngrams] -> Vector Ngrams -> [Int]
 ngramsToIdx ns fdt = map (\n -> fromJust $ elemIndex n fdt) ns
 
+-- | To transform a list of sources into a list of sources' index
+sourcesToIdx :: [Text] -> Vector Text -> [Int]
+sourcesToIdx ss ps = nub $ map (\s -> fromJust $ elemIndex s ps) ss
+
 -- | To transform a list of Ngrams Indexes into a Label
 ngramsToLabel :: Vector Ngrams -> [Int] -> Text
 ngramsToLabel ngrams l = Text.unwords $ tail' "ngramsToLabel" $ concat $ map (\n -> ["|",n]) $ ngramsToText ngrams l
@@ -153,6 +157,32 @@ toPeriods dates p s =
      $ chunkAlong p s [start .. end]
 
 
+toFstDate :: [Text] -> Text
+toFstDate ds = snd
+             $ head' "firstDate"
+             $ sortOn fst
+             $ map (\d -> 
+                      let d' = read (filter (\c -> c /= '-') $ unpack d)::Int
+                       in (d',d)) ds
+
+toLstDate :: [Text] -> Text
+toLstDate ds = snd
+             $ head' "firstDate"
+             $ reverse
+             $ sortOn fst
+             $ map (\d -> 
+                      let d' = read (filter (\c -> c /= '-') $ unpack d)::Int
+                       in (d',d)) ds  
+
+
+getTimeScale :: Phylo -> [Char]
+getTimeScale p = case (timeUnit $ getConfig p) of
+    Year  _ _ _ -> "year"
+    Month _ _ _ -> "month"
+    Week  _ _ _ -> "week"  
+    Day   _ _ _ -> "day"      
+
+
 -- | Get a regular & ascendante timeScale from a given list of dates
 toTimeScale :: [Date] -> Int -> [Date]
 toTimeScale dates step = 
@@ -162,15 +192,24 @@ toTimeScale dates step =
 
 getTimeStep :: TimeUnit -> Int
 getTimeStep time = case time of 
-    Year _ s _ -> s
+    Year  _ s _ -> s
+    Month _ s _ -> s  
+    Week  _ s _ -> s  
+    Day   _ s _ -> s  
 
 getTimePeriod :: TimeUnit -> Int
 getTimePeriod time = case time of 
-    Year p _ _ -> p  
+    Year  p _ _ -> p
+    Month p _ _ -> p  
+    Week  p _ _ -> p  
+    Day   p _ _ -> p  
 
 getTimeFrame :: TimeUnit -> Int
 getTimeFrame time = case time of 
-    Year _ _ f -> f
+    Year  _ _ f -> f
+    Month _ _ f -> f
+    Week  _ _ f -> f
+    Day   _ _ f -> f            
 
 -------------
 -- | Fis | --
@@ -359,6 +398,9 @@ setConfig config phylo = phylo
 getRoots :: Phylo -> Vector Ngrams
 getRoots phylo = (phylo ^. phylo_foundations) ^. foundations_roots
 
+getSources :: Phylo -> Vector Text
+getSources phylo = _sources (phylo ^. phylo_sources)
+
 phyloToLastBranches :: Phylo -> [[PhyloGroup]]
 phyloToLastBranches phylo = elems 
     $ fromListWith (++)
@@ -410,6 +452,16 @@ updatePhyloGroups lvl m phylo =
                     if member id m 
                     then m ! id
                     else g ) phylo
+
+updatePeriods :: Map (Date,Date) (Text,Text) -> Phylo -> Phylo
+updatePeriods periods' phylo = 
+    over (phylo_periods . traverse) 
+            (\prd -> 
+                let prd' = periods' ! (prd ^. phylo_periodPeriod)
+                    lvls = map (\lvl -> lvl & phylo_levelPeriod' .~ prd') $ prd ^. phylo_periodLevels
+                 in prd & phylo_periodPeriod' .~ prd'
+                        & phylo_periodLevels  .~ lvls
+                ) phylo
 
 
 traceToPhylo :: Level -> Phylo -> Phylo

@@ -36,10 +36,12 @@ import qualified Data.Map as Map
 mergeGroups :: [Cooc] -> PhyloGroupId -> Map PhyloGroupId PhyloGroupId -> [PhyloGroup] -> PhyloGroup
 mergeGroups coocs id mapIds childs = 
     let ngrams = (sort . nub . concat) $ map _phylo_groupNgrams childs
-    in PhyloGroup (fst $ fst id) (snd $ fst id) (snd id)  ""
+    in PhyloGroup (fst $ fst id) (_phylo_groupPeriod' $ head' "mergeGroups" childs)
+                  (snd $ fst id) (snd id) ""
                   (sum $ map _phylo_groupSupport childs) 
                   (fmap sum $ sequence 
-                            $ map _phylo_groupWeight childs)  
+                            $ map _phylo_groupWeight childs)
+                  (concat $ map _phylo_groupSources childs) 
                   ngrams
                   (ngramsToCooc ngrams coocs) 
                   ((snd $ fst id),bId)
@@ -58,12 +60,12 @@ mergeGroups coocs id mapIds childs =
         mergeAncestors :: [Pointer] -> [Pointer]
         mergeAncestors pointers = Map.toList $ fromListWith max pointers
 
-
 addPhyloLevel :: Level -> Phylo -> Phylo
 addPhyloLevel lvl phylo = 
   over ( phylo_periods .  traverse ) 
        (\phyloPrd -> phyloPrd & phylo_periodLevels 
-                        %~ (insert (phyloPrd ^. phylo_periodPeriod, lvl) (PhyloLevel (phyloPrd ^. phylo_periodPeriod) lvl empty))) phylo
+                        %~ (insert (phyloPrd ^. phylo_periodPeriod, lvl) 
+                                   (PhyloLevel (phyloPrd ^. phylo_periodPeriod) (phyloPrd ^. phylo_periodPeriod') lvl empty))) phylo
 
 
 toNextLevel' :: Phylo -> [PhyloGroup] -> Phylo

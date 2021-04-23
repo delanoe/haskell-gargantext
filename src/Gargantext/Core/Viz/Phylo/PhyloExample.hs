@@ -109,9 +109,11 @@ config =
 
 docs :: [Document]
 docs = map (\(d,t)
-    -> Document d 
+    -> Document d
+                ""
                 (filter (\n -> isRoots n (foundations ^. foundations_roots)) $ monoTexts t) 
                 Nothing
+                []
             ) corpus
 
 

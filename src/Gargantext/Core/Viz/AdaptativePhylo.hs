@@ -50,9 +50,9 @@ import qualified Data.Text.Lazy as TextLazy
 
 
 data CorpusParser = 
-      Wos {_wos_limit :: Int}
-    | Csv {_csv_limit :: Int}
-    | CsvWeighted {_csvw_limit :: Int}
+      Wos  {_wos_limit  :: Int}
+    | Csv  {_csv_limit  :: Int}
+    | Csv' {_csv'_limit :: Int}
     deriving (Show,Generic,Eq) 
 
 data SeaElevation = 
@@ -107,6 +107,18 @@ data TimeUnit =
       { _year_period :: Int
       , _year_step   :: Int
       , _year_matchingFrame :: Int }
+    | Month 
+      { _month_period :: Int
+      , _month_step   :: Int
+      , _month_matchingFrame :: Int }      
+    | Week 
+      { _week_period :: Int
+      , _week_step   :: Int
+      , _week_matchingFrame :: Int }
+    | Day 
+      { _day_period :: Int
+      , _day_step   :: Int
+      , _day_matchingFrame :: Int }      
       deriving (Show,Generic,Eq) 
 
 data CliqueFilter = ByThreshold | ByNeighbours deriving (Show,Generic,Eq)
@@ -238,11 +250,14 @@ type Date = Int
 -- | Ngrams : a contiguous sequence of n terms
 type Ngrams = Text
 
--- | Document : a piece of Text linked to a Date
+-- Document : a piece of Text linked to a Date
+-- date = computational date; date' = original string date yyyy-mm-dd
 data Document = Document
-      { date   :: Date
-      , text   :: [Ngrams]
-      , weight :: Maybe Double
+      { date    :: Date
+      , date'   :: Text
+      , text    :: [Ngrams]
+      , weight  :: Maybe Double
+      , sources :: [Text]
       } deriving (Eq,Show,Generic,NFData)  
 
 
@@ -256,6 +271,10 @@ data PhyloFoundations = PhyloFoundations
       { _foundations_roots   :: !(Vector Ngrams)
       , _foundations_mapList :: TermList
       } deriving (Generic, Show, Eq)
+
+
+data PhyloSources = PhyloSources
+      { _sources :: !(Vector Text) } deriving (Generic, Show, Eq)
 
 
 ---------------------------
@@ -280,6 +299,7 @@ type Cooc =  Map (Int,Int) Double
 --  periods : the temporal steps of a phylomemy
 data Phylo =
      Phylo { _phylo_foundations  :: PhyloFoundations
+           , _phylo_sources      :: PhyloSources
            , _phylo_timeCooc     :: !(Map Date Cooc)
            , _phylo_timeDocs     :: !(Map Date Double)
            , _phylo_termFreq     :: !(Map Int Double)
@@ -299,8 +319,9 @@ type PhyloPeriodId = (Date,Date)
 --  id: tuple (start date, end date) of the temporal step of the phylomemy
 --  levels: levels of granularity
 data PhyloPeriod =
-     PhyloPeriod { _phylo_periodPeriod :: (Date,Date)
-                 , _phylo_periodLevels :: Map PhyloLevelId PhyloLevel
+     PhyloPeriod { _phylo_periodPeriod  :: (Date,Date)
+                 , _phylo_periodPeriod' :: (Text,Text)
+                 , _phylo_periodLevels  :: Map PhyloLevelId PhyloLevel
                  } deriving (Generic, Show, Eq)   
 
 
@@ -316,9 +337,10 @@ type PhyloLevelId  = (PhyloPeriodId,Level)
 -- Level 1: First level of clustering (the Fis)
 -- Level [2..N]: Nth level of synchronic clustering (cluster of Fis)
 data PhyloLevel =
-     PhyloLevel { _phylo_levelPeriod :: (Date,Date)
-                , _phylo_levelLevel  :: Level 
-                , _phylo_levelGroups :: Map PhyloGroupId PhyloGroup
+     PhyloLevel { _phylo_levelPeriod  :: (Date,Date)
+                , _phylo_levelPeriod' :: (Text,Text)
+                , _phylo_levelLevel   :: Level 
+                , _phylo_levelGroups  :: Map PhyloGroupId PhyloGroup
                 } 
                 deriving (Generic, Show, Eq)   
 
@@ -332,11 +354,13 @@ type PhyloBranchId = (Level, [Int])
 -- | PhyloGroup : group of ngrams at each level and period
 data PhyloGroup = 
       PhyloGroup { _phylo_groupPeriod   :: (Date,Date)
+                 , _phylo_groupPeriod'  :: (Text,Text)
                  , _phylo_groupLevel    :: Level
-                 , _phylo_groupIndex    :: Int
+                 , _phylo_groupIndex    :: Int         
                  , _phylo_groupLabel    :: Text
                  , _phylo_groupSupport  :: Support
                  , _phylo_groupWeight   :: Maybe Double
+                 , _phylo_groupSources  :: [Int]                 
                  , _phylo_groupNgrams   :: [Int]
                  , _phylo_groupCooc     :: !(Cooc)
                  , _phylo_groupBranchId :: PhyloBranchId
@@ -371,6 +395,7 @@ data PhyloClique = PhyloClique
   , _phyloClique_support :: Support
   , _phyloClique_period  :: (Date,Date)
   , _phyloClique_weight  :: Maybe Double
+  , _phyloClique_sources :: [Int]
   } deriving (Generic,NFData,Show,Eq)
 
 ----------------
@@ -444,6 +469,8 @@ makeLenses ''PhyloBranch
 
 instance FromJSON Phylo
 instance ToJSON Phylo
+instance FromJSON PhyloSources
+instance ToJSON PhyloSources
 instance FromJSON PhyloParam
 instance ToJSON PhyloParam
 instance FromJSON PhyloPeriod
