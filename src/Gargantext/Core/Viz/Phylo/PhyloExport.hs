@@ -661,8 +661,8 @@ toPhyloExport phylo = exportToDot phylo
         groups = traceExportGroups
                $ processDynamics
                $ getGroupsFromLevel (phyloLevel $ getConfig phylo)
-               $ tracePhyloInfo 
-               $ toHorizon phylo
+               $ tracePhyloInfo phylo
+               -- $ toHorizon phylo
 
 
 traceExportBranches :: [PhyloBranch] -> [PhyloBranch]
@@ -670,12 +670,10 @@ traceExportBranches branches = trace ("\n"
   <> "-- | Export " <> show(length branches) <> " branches") branches
 
 tracePhyloAncestors :: [[PhyloGroup]] -> [[PhyloGroup]]
-tracePhyloAncestors groups = trace ("\n" 
-  <> "-- | Found " <> show(length $ concat $ map _phylo_groupAncestors $ concat groups) <> " ancestors"
-  ) groups
+tracePhyloAncestors groups = trace ( "-- | Found " <> show(length $ concat $ map _phylo_groupAncestors $ concat groups) <> " ancestors") groups
 
 tracePhyloInfo :: Phylo -> Phylo
-tracePhyloInfo phylo = trace ("\n"  <> "##########################" <> "\n\n" <> "-- | Phylo with β = "
+tracePhyloInfo phylo = trace ("\n"  <> "##########################" <> "\n\n" <> "-- | Phylo with λ = "
     <> show(_qua_granularity $ phyloQuality $ getConfig phylo) <> " applied to "
     <> show(length $ Vector.toList $ getRoots phylo) <> " foundations"
   ) phylo

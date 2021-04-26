@@ -14,11 +14,11 @@ Portability : POSIX
 {-# LANGUAGE OverloadedLists    #-}   -- allows to write Map and HashMap as lists
 {-# LANGUAGE TypeOperators      #-}
 
-module Gargantext.Core.Viz.Phylo.API
+module Gargantext.Core.Viz.Phylo.Legacy.LegacyAPI
   where
 
-import Data.Maybe (fromMaybe)
-import Control.Lens ((^.))
+-- import Data.Maybe (fromMaybe)
+-- import Control.Lens ((^.))
 import Data.String.Conversions
 --import Control.Monad.Reader (ask)
 import qualified Data.ByteString as DB
@@ -33,12 +33,12 @@ import Web.HttpApiData (readTextData)
 import Gargantext.API.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
-import Gargantext.Database.Query.Table.Node (insertNodes, node, getNodeWith)
-import Gargantext.Database.Schema.Node (node_hyperdata)
+import Gargantext.Database.Query.Table.Node (insertNodes, node)
+-- import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
-import Gargantext.Core.Viz.Phylo
-import Gargantext.Core.Viz.Phylo.Main
-import Gargantext.Core.Viz.Phylo.Example
+import Gargantext.Core.Viz.LegacyPhylo
+import Gargantext.Core.Viz.Phylo.Legacy.LegacyMain
+-- import Gargantext.Core.Viz.Phylo.Example
 import Gargantext.Core.Types (TODO(..))
 
 ------------------------------------------------------------------------
@@ -96,17 +96,20 @@ type GetPhylo =  QueryParam "listId"      ListId
 -- Add real text processing
 -- Fix Filter parameters
 getPhylo :: PhyloId -> GargServer GetPhylo
-getPhylo phId _lId l msb  = do
-  phNode     <- getNodeWith phId (Proxy :: Proxy HyperdataPhylo)
-  let
-    level = fromMaybe 2 l
-    branc = fromMaybe 2 msb
-    maybePhylo = phNode ^. (node_hyperdata . hp_data)
+getPhylo _ _lId _ _  = undefined 
+-- getPhylo phId _lId l msb  = do 
+  -- phNode     <- getNodeWith phId (Proxy :: Proxy HyperdataPhylo)
+  -- let
+  --   level = fromMaybe 2 l
+  --   branc = fromMaybe 2 msb
+  --   maybePhylo = phNode ^. (node_hyperdata . hp_data)
 
-  p <- liftBase $ viewPhylo2Svg
-                $ viewPhylo level branc
-                $ fromMaybe phyloFromQuery maybePhylo
-  pure (SVG p)
+  -- p <- liftBase $ viewPhylo2Svg
+  --               $ viewPhylo level branc
+  --               $ fromMaybe phyloFromQuery maybePhylo
+  -- pure (SVG p)
+
+
 ------------------------------------------------------------------------
 type PostPhylo =  QueryParam "listId" ListId
                -- :> ReqBody '[JSON] PhyloQueryBuild
@@ -137,9 +140,9 @@ putPhylo = undefined
 
 
 -- | Instances
-instance Arbitrary Phylo             where arbitrary     = elements [phylo]
+-- instance Arbitrary Phylo             where arbitrary     = elements [phylo]
 instance Arbitrary PhyloGroup        where arbitrary     = elements []
-instance Arbitrary PhyloView         where arbitrary     = elements [phyloView]
+-- instance Arbitrary PhyloView         where arbitrary     = elements [phyloView]
 instance FromHttpApiData DisplayMode where parseUrlPiece = readTextData
 instance FromHttpApiData ExportMode  where parseUrlPiece = readTextData
 instance FromHttpApiData Filiation   where parseUrlPiece = readTextData

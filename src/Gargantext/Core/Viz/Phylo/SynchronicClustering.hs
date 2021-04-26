@@ -42,7 +42,7 @@ mergeGroups coocs id mapIds childs =
                   (mergeMeta bId childs) [] (map (\g -> (getGroupId g, 1)) childs)
                   (updatePointers $ concat $ map _phylo_groupPeriodParents childs)
                   (updatePointers $ concat $ map _phylo_groupPeriodChilds  childs)
-                  []
+                  (mergeAncestors $ concat $ map _phylo_groupAncestors childs)
     where
         --------------------
         bId :: [Int]
@@ -50,6 +50,9 @@ mergeGroups coocs id mapIds childs =
         --------------------
         updatePointers :: [Pointer] -> [Pointer]
         updatePointers pointers = map (\(pId,w) -> (mapIds ! pId,w)) pointers
+        --------------------
+        mergeAncestors :: [Pointer] -> [Pointer]
+        mergeAncestors pointers = Map.toList $ fromListWith max pointers
 
 
 addPhyloLevel :: Level -> Phylo -> Phylo
@@ -132,8 +135,12 @@ groupsToEdges prox sync nbDocs diago groups =
         toEdges sens edges = 
             case prox of
                 WeightedLogJaccard _ -> map (\(g,g') -> 
-                                                     ((g,g'), weightedLogJaccard' sens nbDocs diago
+                                                     ((g,g'), weightedLogJaccard' (sens) nbDocs diago
                                                                   (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
+                WeightedLogSim _ -> map (\(g,g') -> 
+                                                     ((g,g'), weightedLogJaccard' (1 / sens) nbDocs diago
+                                                                  (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
+                
                 _ -> undefined  
 
 toParentId :: PhyloGroup -> PhyloGroupId
@@ -169,6 +176,17 @@ adjustClustering sync branches = case sync of
   ByProximityDistribution _ _ -> branches
 
 
+levelUpAncestors :: [PhyloGroup] -> [PhyloGroup]
+levelUpAncestors groups =
+  -- 1) create an associative map of (old,new) ids
+  let ids' = fromList $ map (\g -> (getGroupId g, fst $ head' "levelUpAncestors" ( g ^. phylo_groupLevelParents))) groups 
+   in map (\g -> 
+        let id' = ids' ! (getGroupId g)
+            ancestors  = g ^. phylo_groupAncestors
+            -- 2) level up the ancestors ids and filter the ones that will be merged
+            ancestors' = filter (\(id,_) -> id /= id') $ map (\(id,w) -> (ids' ! id,w)) ancestors 
+         in g & phylo_groupAncestors .~ ancestors'
+      ) groups
 
 synchronicClustering :: Phylo -> Phylo
 synchronicClustering phylo =
@@ -182,7 +200,7 @@ synchronicClustering phylo =
                      $ phyloToLastBranches 
                      $ traceSynchronyStart phylo
         newBranches' = newBranches `using` parList rdeepseq
-     in toNextLevel' phylo $ concat newBranches'
+     in toNextLevel' phylo $ levelUpAncestors $ concat newBranches'
 
 
 -- synchronicDistance :: Phylo -> Level -> String

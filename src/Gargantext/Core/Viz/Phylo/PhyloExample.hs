@@ -49,7 +49,7 @@ phyloDot = toPhyloExport phylo2
 --------------------------------------------------
 
 phylo2 :: Phylo
-phylo2 = synchronicClustering phylo1
+phylo2 = synchronicClustering $ toHorizon phylo1
 
 -----------------------------------------------
 -- | STEP 3 | -- Build the Level 1 of the Phylo
@@ -104,7 +104,7 @@ config =
     defaultConfig { phyloName  = "Cesar et Cleopatre"
                   , phyloLevel = 2
                   , exportFilter = [ByBranchSize 0]
-                  , clique = MaxClique 0 }
+                  , clique = MaxClique 0 15 ByNeighbours }
 
 
 docs :: [Document]

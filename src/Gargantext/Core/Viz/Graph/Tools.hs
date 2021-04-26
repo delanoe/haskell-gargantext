@@ -77,6 +77,37 @@ cooc2graphWith :: PartitionMethod
 cooc2graphWith Louvain   = undefined -- TODO use IGraph bindings
 cooc2graphWith Spinglass = cooc2graphWith' (spinglass 1)
 
+cooc2graph'' :: Ord t => Distance
+                      -> Double
+                      -> Map (t, t) Int
+                      -> Map (Index, Index) Double
+cooc2graph'' distance threshold myCooc = neighbouMap
+  where
+    (ti, _) = createIndices myCooc
+    myCooc' = toIndex ti myCooc
+    matCooc = map2mat Triangular 0 (Map.size ti) $ Map.filter (> 1) myCooc'
+    distanceMat = measure distance matCooc
+    neighbouMap = filterByNeighbours threshold
+                $ mat2map distanceMat
+
+
+-- Quentin
+filterByNeighbours :: Double -> Map (Index, Index) Double -> Map (Index, Index) Double
+filterByNeighbours threshold distanceMap = filteredMap
+  where 
+    indexes :: [Index]
+    indexes = List.nub $ List.concat $ map (\(idx,idx') -> [idx,idx'] ) $ Map.keys distanceMap
+    filteredMap :: Map (Index, Index) Double
+    filteredMap = Map.fromList
+                $ List.concat 
+                $ map (\idx -> 
+                          let selected = List.reverse
+                                       $ List.sortOn snd
+                                       $ Map.toList 
+                                       $ Map.filter (> 0)
+                                       $ Map.filterWithKey (\(from,_) _ -> idx == from) distanceMap
+                           in List.take (round threshold) selected
+                      ) indexes                 
 
 cooc2graphWith' :: ToComId a
                => Partitions a
@@ -134,6 +165,49 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
 
   pure $ data2graph (Map.toList $ Map.mapKeys unNgramsTerm ti)
                     myCooc' bridgeness' confluence' partitions
+
+
+
+-- cooc2graph :: Distance
+--            -> Threshold
+--            -> (Map (Text, Text) Int)
+--            -> IO Graph
+-- cooc2graph distance threshold myCooc = do
+--   printDebug "cooc2graph" distance
+--   let
+--     -- TODO remove below
+--     theMatrix = Map.fromList $ HashMap.toList myCooc
+--     (ti, _) = createIndices theMatrix
+--     myCooc' = toIndex ti theMatrix
+--     matCooc = map2mat 0 (Map.size ti)
+--             $ Map.filterWithKey (\(a,b) _ -> a /= b) 
+--             $ Map.filter (> 1) myCooc'
+--     distanceMat = measure distance matCooc
+--     distanceMap = Map.filter (> threshold) $ mat2map distanceMat
+
+--     nodesApprox :: Int
+--     nodesApprox = n'
+--       where
+--         (as, bs) = List.unzip $ Map.keys distanceMap
+--         n' = Set.size $ Set.fromList $ as <> bs
+--     ClustersParams rivers _level = clustersParams nodesApprox
+
+--   printDebug "Start" ("partitions" :: Text)
+--   partitions <- if (Map.size distanceMap > 0)
+--       -- then iLouvainMap 100 10 distanceMap
+--       -- then hLouvain distanceMap
+--       then doPartitions distanceMap
+--       else panic "Text.Flow: DistanceMap is empty"
+--   printDebug "End" ("partitions" :: Text)
+
+--   let
+--     -- bridgeness' = distanceMap
+--     bridgeness' = trace ("Rivers: " <> show rivers)
+--                 $ bridgeness rivers partitions distanceMap
+--     confluence' = confluence (Map.keys bridgeness') 3 True False
+
+--   pure $ data2graph (Map.toList $ Map.mapKeys unNgramsTerm ti)
+--                     myCooc' bridgeness' confluence' partitions
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
