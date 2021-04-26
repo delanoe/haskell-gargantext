@@ -11,35 +11,37 @@ Portability : POSIX
 
 {-# LANGUAGE ViewPatterns      #-}
 
-module Gargantext.Core.Viz.Phylo.Main
+module Gargantext.Core.Viz.Phylo.Legacy.LegacyMain
   where
 
-import Data.GraphViz
+-- import Data.GraphViz
+-- import qualified Data.ByteString as DB
+import qualified Data.List as List
 import Data.Maybe
 import Data.Text (Text)
 import Debug.Trace (trace)
 import GHC.IO (FilePath)
 import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.API.Ngrams.Types
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Terms.WithList
-import Gargantext.Core.Types
-import Gargantext.Core.Viz.Phylo hiding (Svg, Dot)
-import Gargantext.Core.Viz.Phylo.LevelMaker (toPhylo)
-import Gargantext.Core.Viz.Phylo.Tools
-import Gargantext.Core.Viz.Phylo.View.Export
-import Gargantext.Core.Viz.Phylo.View.ViewMaker    -- TODO Just Maker is fine
-import Gargantext.Database.Action.Flow
-import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Query.Table.Node(defaultList)
-import Gargantext.Database.Query.Table.NodeNode (selectDocs)
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
-import qualified Data.ByteString as DB
-import qualified Data.List as List
-import qualified Data.Map  as Map
-import qualified Data.Text as Text
+import Gargantext.Database.Action.Flow
+import Gargantext.Core.Viz.LegacyPhylo hiding (Svg, Dot)
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+import Gargantext.Database.Query.Table.NodeNode (selectDocs)
+import Gargantext.Core.Types
+
+
+-- import Gargantext.Core.Viz.Phylo.LevelMaker (toPhylo)
+-- import Gargantext.Core.Viz.Phylo.Tools
+-- import Gargantext.Core.Viz.Phylo.View.Export
+-- import Gargantext.Core.Viz.Phylo.View.ViewMaker    -- TODO Just Maker is fine
 import qualified Data.HashMap.Strict as HashMap
+import qualified Data.Text as Text
 
 type MinSizeBranch = Int
 
@@ -91,31 +93,40 @@ flowPhylo' corpus terms l m fp = do
 
 
 defaultQuery :: PhyloQueryBuild
-defaultQuery = defaultQueryBuild'
-  "Default Title"
-  "Default Description"
+defaultQuery = undefined
+-- defaultQuery = defaultQueryBuild'
+--   "Default Title"
+--   "Default Description"
 
 buildPhylo :: [Document] -> TermList -> Phylo
 buildPhylo = trace (show defaultQuery) $ buildPhylo' defaultQuery
 
 buildPhylo' :: PhyloQueryBuild -> [Document] -> TermList -> Phylo
-buildPhylo' q corpus termList = toPhylo q corpus termList Map.empty
+buildPhylo' _ _ _ = undefined
+-- buildPhylo' q corpus termList = toPhylo q corpus termList Map.empty
+
+-- refactor 2021
+-- queryView :: Level -> MinSizeBranch -> PhyloQueryView
+-- queryView level _minSizeBranch = PhyloQueryView level Merge False 2
+--            [BranchAge]
+--            []
+--            -- [SizeBranch $ SBParams minSizeBranch]
+--            [BranchPeakFreq,GroupLabelCooc]
+--            (Just (ByBranchAge,Asc))
+--            Json Flat True
 
 queryView :: Level -> MinSizeBranch -> PhyloQueryView
-queryView level _minSizeBranch = PhyloQueryView level Merge False 2
-           [BranchAge]
-           []
-           -- [SizeBranch $ SBParams minSizeBranch]
-           [BranchPeakFreq,GroupLabelCooc]
-           (Just (ByBranchAge,Asc))
-           Json Flat True
+queryView _level _minSizeBranch = undefined
 
 viewPhylo :: Level -> MinSizeBranch -> Phylo -> PhyloView
-viewPhylo l b phylo = toPhyloView (queryView l b) phylo
+viewPhylo _l _b _phylo = undefined
+-- viewPhylo l b phylo = toPhyloView (queryView l b) phylo
 
 writePhylo :: FilePath -> PhyloView -> IO FilePath
-writePhylo fp phview = runGraphviz (viewToDot phview) Svg fp
+writePhylo _fp _phview = undefined
+-- writePhylo fp phview = runGraphviz (viewToDot phview) Svg fp
 
-viewPhylo2Svg :: PhyloView -> IO DB.ByteString
-viewPhylo2Svg p = graphvizWithHandle Dot (viewToDot p) Svg DB.hGetContents
+-- refactor 2021
+-- viewPhylo2Svg :: PhyloView -> IO DB.ByteString
+-- viewPhylo2Svg p = graphvizWithHandle Dot (viewToDot p) Svg DB.hGetContents
 

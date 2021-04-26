@@ -25,7 +25,7 @@ one 8, e54847.
 {-# LANGUAGE DeriveAnyClass   #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
-module Gargantext.Core.Viz.Phylo where
+module Gargantext.Core.Viz.LegacyPhylo where
 
 import Control.DeepSeq
 import Control.Lens (makeLenses)
@@ -261,11 +261,12 @@ data LouvainParams = LouvainParams
 
 -- | Proximity constructors
 data Proximity = WeightedLogJaccard WLJParams
+               | WeightedLogSim WLJParams
                | Hamming HammingParams
                | Filiation
           deriving (Generic, Show, Eq, Read)
 
--- | Parameters for WeightedLogJaccard proximity
+-- | Parameters for WeightedLogJaccard and WeightedLogSim proximity
 data WLJParams = WLJParams
   { _wlj_threshold   :: !Double
   , _wlj_sensibility :: !Double

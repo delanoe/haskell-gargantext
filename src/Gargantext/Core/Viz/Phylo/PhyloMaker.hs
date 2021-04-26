@@ -24,6 +24,8 @@ import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
 import Gargantext.Core.Methods.Graph.MaxClique (getMaxCliques)
 import Gargantext.Core.Methods.Distances (Distance(Conditional))
+import Gargantext.Core.Viz.Phylo.PhyloExport (toHorizon)
+
 
 import Control.DeepSeq (NFData)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
@@ -49,20 +51,22 @@ toPhylo' (PhyloBase phylo) = toPhylo
 -}
 
 
-toPhylo :: [Document] -> TermList -> Config -> Phylo
-toPhylo docs lst conf = trace ("# phylo1 groups " <> show(length $ getGroupsFromLevel 1 phylo1))
-                      $ traceToPhylo (phyloLevel conf) $
-    if (phyloLevel conf) > 1
-      then foldl' (\phylo' _ -> synchronicClustering phylo') phylo1 [2..(phyloLevel conf)]
+toPhylo :: Phylo -> Phylo
+toPhylo phyloStep = trace ("# phylo1 groups " <> show(length $ getGroupsFromLevel 1 phylo1))
+                      $ traceToPhylo (phyloLevel $ getConfig phyloStep) $
+    if (phyloLevel $ getConfig phyloStep) > 1
+      then foldl' (\phylo' _ -> synchronicClustering phylo') phyloAncestors [2..(phyloLevel $ getConfig phyloStep)]
       else phylo1 
     where
         --------------------------------------
-        phylo1 :: Phylo
-        phylo1 = toPhylo1 docs phyloBase
-        -- > AD to db here
+        phyloAncestors :: Phylo
+        phyloAncestors = 
+            if (findAncestors $ getConfig phyloStep)
+              then toHorizon phylo1
+              else phylo1
         --------------------------------------
-        phyloBase :: Phylo
-        phyloBase = toPhyloBase docs lst conf
+        phylo1 :: Phylo
+        phylo1 = toPhylo1 phyloStep
         -- > AD to db here
         --------------------------------------
 
@@ -131,13 +135,21 @@ cliqueToGroup fis pId lvl idx coocs = PhyloGroup pId lvl idx ""
                    [] [] [] [] []
 
 
-toPhylo1 :: [Document] -> Phylo -> Phylo
-toPhylo1 docs phyloBase = case (getSeaElevation phyloBase) of 
-    Constante start gap -> constanteTemporalMatching  start gap 
-                   $ appendGroups cliqueToGroup 1 phyloClique phyloBase    
-    Adaptative steps    -> adaptativeTemporalMatching steps
-                   $ toGroupsProxi 1
-                   $ appendGroups cliqueToGroup 1 phyloClique phyloBase
+toPhylo1 :: Phylo -> Phylo
+toPhylo1 phyloStep = case (getSeaElevation phyloStep) of 
+    Constante start gap -> constanteTemporalMatching  start gap phyloStep
+    Adaptative steps    -> adaptativeTemporalMatching steps phyloStep
+
+-----------------------
+-- | To Phylo Step | --
+-----------------------
+
+
+-- To build the first phylo step from docs and terms
+toPhyloStep :: [Document] -> TermList -> Config -> Phylo
+toPhyloStep docs lst conf = case (getSeaElevation phyloBase) of 
+    Constante  _ _ -> appendGroups cliqueToGroup 1 phyloClique phyloBase
+    Adaptative _   -> toGroupsProxi 1 $ appendGroups cliqueToGroup 1 phyloClique phyloBase
     where
         --------------------------------------
         phyloClique :: Map (Date,Date) [PhyloClique]
@@ -145,9 +157,10 @@ toPhylo1 docs phyloBase = case (getSeaElevation phyloBase) of
         --------------------------------------
         docs' :: Map (Date,Date) [Document]
         docs' =  groupDocsByPeriodRec date (getPeriodIds phyloBase) (sortOn date docs) empty
-        -- docs' =  groupDocsByPeriod' date (getPeriodIds phyloBase) docs
         --------------------------------------
-
+        phyloBase :: Phylo
+        phyloBase = toPhyloBase docs lst conf
+        --------------------------------------
 
 ---------------------------
 -- | Frequent Item Set | --
@@ -196,8 +209,8 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
                  $ filterClique True s (filterCliqueBySupport)
                  {- \$ traceFis "Unfiltered Fis" -}
                  phyloClique
-    MaxClique s -> filterClique True s (filterCliqueBySize)
-                 phyloClique
+    MaxClique s _ _ -> filterClique True s (filterCliqueBySize)
+                       phyloClique
     where
         -------------------------------------- 
         phyloClique :: Map (Date,Date) [PhyloClique]
@@ -209,13 +222,13 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
                                $ toList phyloDocs
                           fis' = fis `using` parList rdeepseq
                        in fromList fis'
-          MaxClique _ -> 
+          MaxClique _ thr filterType -> 
                       let mcl  = map (\(prd,docs) -> 
                                     let cooc = map round
                                              $ foldl sumCooc empty
                                              $ map listToMatrix 
                                              $ map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs
-                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques Conditional 0.001 cooc)) 
+                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques filterType Conditional thr cooc)) 
                                $ toList phyloDocs
                           mcl' = mcl `using` parList rdeepseq                               
                        in fromList mcl' 

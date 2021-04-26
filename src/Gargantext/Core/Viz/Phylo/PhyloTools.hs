@@ -225,12 +225,12 @@ traceFis msg mFis = trace ( "\n" <> "-- | " <> msg <> " : " <> show (sum $ map l
 getCliqueSupport :: Clique -> Int
 getCliqueSupport unit = case unit of 
     Fis s _ -> s
-    MaxClique _ -> 0
+    MaxClique _ _ _ -> 0
 
 getCliqueSize :: Clique -> Int
 getCliqueSize unit = case unit of 
     Fis _ s -> s
-    MaxClique s -> s
+    MaxClique s _ _ -> s
 
 
 --------------
@@ -295,12 +295,14 @@ filterProximity :: Proximity -> Double -> Double -> Bool
 filterProximity proximity thr local = 
     case proximity of
         WeightedLogJaccard _ -> local >= thr
+        WeightedLogSim _ -> local >= thr
         Hamming -> undefined   
 
 getProximityName :: Proximity -> String
 getProximityName proximity =
     case proximity of
         WeightedLogJaccard _ -> "WLJaccard"
+        WeightedLogSim _ -> "WeightedLogSim"
         Hamming -> "Hamming"            
 
 ---------------
@@ -342,6 +344,16 @@ getSeaElevation phylo = seaElevation (getConfig phylo)
 
 getConfig :: Phylo -> Config
 getConfig phylo = (phylo ^. phylo_param) ^. phyloParam_config
+
+
+setConfig :: Config -> Phylo -> Phylo
+setConfig config phylo = phylo 
+                       & phylo_param .~ (PhyloParam 
+                                            ((phylo ^. phylo_param) ^. phyloParam_version) 
+                                            ((phylo ^. phylo_param) ^. phyloParam_software) 
+                                            config)
+
+-- & phylo_param & phyloParam_config & phyloParam_config .~ config
 
 
 getRoots :: Phylo -> Vector Ngrams
@@ -464,7 +476,7 @@ toRelatedComponents nodes edges =
 
 traceSynchronyEnd :: Phylo -> Phylo
 traceSynchronyEnd phylo = 
-    trace ( "\n" <> "-- | End synchronic clustering at level " <> show (getLastLevel phylo) 
+    trace ( "-- | End synchronic clustering at level " <> show (getLastLevel phylo) 
                  <> " with " <> show (length $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " groups"
                  <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " branches"
                  <> "\n" ) phylo
@@ -484,6 +496,7 @@ traceSynchronyStart phylo =
 getSensibility :: Proximity -> Double
 getSensibility proxi = case proxi of 
     WeightedLogJaccard s -> s
+    WeightedLogSim s -> s
     Hamming -> undefined
 
 ----------------

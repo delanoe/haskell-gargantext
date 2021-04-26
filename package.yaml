@@ -89,17 +89,11 @@ library:
   - Gargantext.Core.Text.Flow
   - Gargantext.Core.Viz.Graph
   - Gargantext.Core.Viz.Graph.Index
-  - Gargantext.Core.Viz.Phylo
   - Gargantext.Core.Viz.AdaptativePhylo
   - Gargantext.Core.Viz.Phylo.PhyloMaker
-  - Gargantext.Core.Viz.Phylo.Tools
   - Gargantext.Core.Viz.Phylo.PhyloTools
   - Gargantext.Core.Viz.Phylo.PhyloExport
   - Gargantext.Core.Viz.Phylo.SynchronicClustering
-  - Gargantext.Core.Viz.Phylo.Example
-  - Gargantext.Core.Viz.Phylo.LevelMaker
-  - Gargantext.Core.Viz.Phylo.View.Export
-  - Gargantext.Core.Viz.Phylo.View.ViewMaker
   - Gargantext.Core.Viz.Types
   dependencies:
   - HSvm
@@ -135,6 +129,7 @@ library:
   - conduit-extra
   - containers
   - contravariant
+  - cryptohash
   - crawlerHAL
   - crawlerISTEX
   - crawlerIsidore
@@ -312,31 +307,6 @@ executables:
       - unordered-containers
       - full-text-search
 
-  gargantext-phylo:
-    main: Main.hs
-    source-dirs: bin/gargantext-phylo
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -O2
-    - -Wmissing-signatures
-    dependencies:
-      - aeson
-      - async
-      - base
-      - bytestring
-      - containers
-      - directory
-      - gargantext
-      - vector
-      - parallel
-      - cassava
-      - ini
-      - optparse-generic
-      - split
-      - unordered-containers
-
   gargantext-adaptative-phylo:
     main: Main.hs
     source-dirs: bin/gargantext-adaptative-phylo
@@ -360,7 +330,8 @@ executables:
       - ini
       - optparse-generic
       - split
-      - unordered-containers      
+      - unordered-containers
+      - cryptohash   
 
   gargantext-import:
     main: Main.hs

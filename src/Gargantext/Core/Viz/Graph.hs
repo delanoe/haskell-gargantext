@@ -10,8 +10,7 @@ Portability : POSIX
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-
-{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TemplateHaskell      #-}
 
 module Gargantext.Core.Viz.Graph
   where
