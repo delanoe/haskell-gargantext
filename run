@@ -1,0 +1,5 @@
+#!/bin/bash
+
+figlet "GarganText"
+
+./bin/gargantext_stop; ./bin/gargantext_tmux && tmux a -t gargantext ; ./bin/gargantext_stop
