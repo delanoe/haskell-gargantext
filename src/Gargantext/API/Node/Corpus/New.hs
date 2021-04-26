@@ -155,6 +155,8 @@ data WithQuery = WithQuery
 makeLenses ''WithQuery
 instance FromJSON WithQuery where
   parseJSON = genericParseJSON $ jsonOptions "_wq_"
+instance ToJSON WithQuery where
+  toJSON = genericToJSON $ jsonOptions "_wq_"
 instance ToSchema WithQuery where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wq_")
 

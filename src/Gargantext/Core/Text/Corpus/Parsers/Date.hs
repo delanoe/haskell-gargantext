@@ -26,7 +26,8 @@ import Data.Time.Clock (UTCTime(..), getCurrentTime)
 import Data.Time.LocalTime (utc)
 import Data.Time.LocalTime.TimeZone.Series (zonedTimeToZoneSeriesTime)
 import Duckling.Api (analyze)
-import Duckling.Core (makeLocale, Some(This), Dimension(Time))
+import Duckling.Core (makeLocale, Dimension(Time))
+import Duckling.Types (Seal(..))
 import Duckling.Resolve (fromUTC, Context(Context, referenceTime, locale), DucklingTime(DucklingTime), Options(..))
 import Duckling.Types (ResolvedToken(..), ResolvedVal(..))
 import Gargantext.Core (Lang(FR,EN))
@@ -128,7 +129,7 @@ parseDateWithDuckling lang input options = do
     contxt <- localContext lang <$> utcToDucklingTime <$> getCurrentTime
     --pure $ parseAndResolve (rulesFor (locale ctx) (HashSet.fromList [(This Time)])) input ctx
     -- TODO check/test Options False or True
-    pure $ analyze input contxt options $ HashSet.fromList [(This Time)]
+    pure $ analyze input contxt options $ HashSet.fromList [(Seal Time)]
 
 
 

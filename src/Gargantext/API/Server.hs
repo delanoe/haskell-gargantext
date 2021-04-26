@@ -37,7 +37,7 @@ import Gargantext.Prelude.Config (gc_url_backend_api)
 import Gargantext.Database.Prelude (hasConfig)
 
 
-serverGargAPI :: Text -> GargServerM env err GargAPI
+serverGargAPI :: MimeRender JSON err => Text -> GargServerM env err GargAPI
 serverGargAPI baseUrl -- orchestrator
        =  auth
      :<|> gargVersion

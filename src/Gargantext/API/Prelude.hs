@@ -71,6 +71,7 @@ type GargServerC env err m =
   ( CmdRandom env err m
   , EnvC  env
   , ErrC      err
+  , MimeRender JSON err
   )
 
 type GargServerT env err m api = GargServerC env err m => ServerT api m

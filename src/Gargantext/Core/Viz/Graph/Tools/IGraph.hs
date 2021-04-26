@@ -77,7 +77,7 @@ partitions_spinglass' :: (Serialize v, Serialize e)
                          => Seed -> IG.Graph 'U v e -> IO [[Int]]
 partitions_spinglass' s g = do
   gen <- IG.withSeed s pure
-  pure $ IG.findCommunity g Nothing Nothing IG.spinglass gen
+  IG.findCommunity g Nothing Nothing IG.spinglass gen
 
 
 data ClusterNode = ClusterNode { cl_node_id :: Int

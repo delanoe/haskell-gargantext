@@ -54,6 +54,7 @@ instance Arbitrary FileType
 instance ToParamSchema FileType
 
 instance FromJSON FileType
+instance ToJSON FileType
 
 instance ToParamSchema (MultipartData Mem) where
   toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)

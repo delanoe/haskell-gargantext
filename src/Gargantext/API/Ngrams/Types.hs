@@ -782,6 +782,10 @@ data UpdateTableNgramsCharts = UpdateTableNgramsCharts
 makeLenses ''UpdateTableNgramsCharts
 instance FromJSON UpdateTableNgramsCharts where
   parseJSON = genericParseJSON $ jsonOptions "_utn_"
+
+instance ToJSON UpdateTableNgramsCharts where
+  toJSON = genericToJSON $ jsonOptions "_utn_"
+
 instance ToSchema UpdateTableNgramsCharts where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_utn_")
 

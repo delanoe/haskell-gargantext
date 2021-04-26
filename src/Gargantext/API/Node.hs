@@ -192,6 +192,8 @@ nodeAPI :: forall proxy a.
        ( JSONB a
        , FromJSON a
        , ToJSON a
+       , MimeRender JSON a
+       , MimeUnrender JSON a
        ) => proxy a
          -> UserId
          -> NodeId

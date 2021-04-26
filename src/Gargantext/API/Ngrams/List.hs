@@ -126,6 +126,10 @@ makeLenses ''WithFile
 instance FromForm WithFile
 instance FromJSON WithFile where
   parseJSON = genericParseJSON $ jsonOptions "_wf_"
+instance ToJSON WithFile where
+  toJSON = genericToJSON $ jsonOptions "_wf_"
+
+
 instance ToSchema WithFile where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wf_")
 

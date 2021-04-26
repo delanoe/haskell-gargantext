@@ -49,6 +49,9 @@ makeLenses ''AnnuaireWithForm
 instance FromForm AnnuaireWithForm
 instance FromJSON AnnuaireWithForm where
   parseJSON = genericParseJSON $ jsonOptions "_wf_"
+instance ToJSON AnnuaireWithForm where
+  toJSON = genericToJSON $ jsonOptions "_wf_"
+
 instance ToSchema AnnuaireWithForm where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wf_")
 

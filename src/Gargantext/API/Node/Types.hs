@@ -33,6 +33,8 @@ makeLenses ''NewWithForm
 instance FromForm NewWithForm
 instance FromJSON NewWithForm where
   parseJSON = genericParseJSON $ jsonOptions "_wf_"
+instance ToJSON NewWithForm where
+  toJSON = genericToJSON $ jsonOptions "_wf_"
 instance ToSchema NewWithForm where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wf_")
 
@@ -48,6 +50,10 @@ makeLenses ''NewWithFile
 instance FromForm NewWithFile
 instance FromJSON NewWithFile where
   parseJSON = genericParseJSON $ jsonOptions "_wfi_"
+instance ToJSON NewWithFile where
+  toJSON = genericToJSON $ jsonOptions "_wfi_"
+
+
 instance ToSchema NewWithFile where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wfi_")
 
