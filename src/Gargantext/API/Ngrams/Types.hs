@@ -20,39 +20,35 @@ import Data.Aeson.TH (deriveJSON)
 import Data.Either (Either(..))
 import Data.Foldable
 import Data.Hashable (Hashable)
-import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
-import qualified Data.List as List
 import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-import qualified Data.Map.Strict.Patch as PM
 import Data.Maybe (fromMaybe)
 import Data.Monoid
-import Data.Patch.Class (Replace, replace, Action(act), Group, Applicable(..), Composable(..), Transformable(..),
-                         PairPatch(..), Patched, ConflictResolution, ConflictResolutionReplace,
-                         MaybePatch(Mod), unMod, old, new)
+import Data.Patch.Class (Replace, replace, Action(act), Group, Applicable(..), Composable(..), Transformable(..),PairPatch(..), Patched, ConflictResolution, ConflictResolutionReplace,MaybePatch(Mod), unMod, old, new)
 import Data.Set (Set)
-import qualified Data.Set as Set
 import Data.String (IsString, fromString)
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text, pack, strip)
 import Data.Validity
 import Database.PostgreSQL.Simple.FromField (FromField, fromField, ResultError(ConversionFailed), returnError)
 import GHC.Generics (Generic)
-import Servant hiding (Patch)
-import Servant.Job.Utils (jsonOptions)
-import System.FileLock (FileLock)
-import Test.QuickCheck (elements, frequency)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-
-import Protolude (maybeToEither)
-import Gargantext.Prelude
-
-import Gargantext.Prelude.Crypto.Hash (IsHashable(..))
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..), ListId, NodeId)
 import Gargantext.Core.Types (TODO)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Prelude (fromField', CmdM', HasConnectionPool, HasConfig)
+import Gargantext.Prelude
+import Gargantext.Prelude.Crypto.Hash (IsHashable(..))
+import Protolude (maybeToEither)
+import Servant hiding (Patch)
+import Servant.Job.Utils (jsonOptions)
+import System.FileLock (FileLock)
+import Test.QuickCheck (elements, frequency)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import qualified Data.HashMap.Strict.InsOrd             as InsOrdHashMap
+import qualified Data.List                              as List
+import qualified Data.Map.Strict                        as Map
+import qualified Data.Map.Strict.Patch                  as PM
+import qualified Data.Set                               as Set
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 ------------------------------------------------------------------------
@@ -87,9 +83,8 @@ instance ToParamSchema TabType
 instance ToJSON        TabType
 instance FromJSON      TabType
 instance ToSchema      TabType
-instance Arbitrary     TabType
-  where
-    arbitrary = elements [minBound .. maxBound]
+instance Arbitrary     TabType where
+  arbitrary = elements [minBound .. maxBound]
 instance FromJSONKey TabType where
   fromJSONKey = genericFromJSONKey defaultJSONKeyOptions
 instance ToJSONKey TabType where
@@ -129,7 +124,6 @@ instance (ToJSONKey a, ToSchema a) => ToSchema (MSet a) where
 ------------------------------------------------------------------------
 newtype NgramsTerm = NgramsTerm { unNgramsTerm :: Text }
   deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema, Hashable)
-
 
 instance IsHashable NgramsTerm where
   hash (NgramsTerm t) = hash t
