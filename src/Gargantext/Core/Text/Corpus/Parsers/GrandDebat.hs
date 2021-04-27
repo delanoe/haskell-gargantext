@@ -27,17 +27,15 @@ module Gargantext.Core.Text.Corpus.Parsers.GrandDebat
   where
 
 import Data.Aeson (ToJSON, FromJSON)
-import qualified Data.ByteString.Lazy as DBL
-import qualified Data.JsonStream.Parser as P
 import Data.Text (Text)
-import qualified Data.Text as Text
 import GHC.Generics (Generic)
-
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..), ToHyperdataDocument, toHyperdataDocument)
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils
-
+import Gargantext.Prelude.GargDB
+import qualified Data.ByteString.Lazy as DBL
+import qualified Data.JsonStream.Parser as P
+import qualified Data.Text as Text
 
 data GrandDebatReference = GrandDebatReference
   { id        :: !(Maybe Text)

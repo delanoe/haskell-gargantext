@@ -34,7 +34,7 @@ import Data.Tuple.Extra (both)
 import qualified Data.ByteString.Lazy as BSL
 
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils
+import Gargantext.Prelude.GargDB
 import Gargantext.Core (Lang(..), allLangs)
 import Gargantext.Core.Text.Terms.Mono (words)
 import Gargantext.Core.Text.Metrics.Count (occurrencesWith)

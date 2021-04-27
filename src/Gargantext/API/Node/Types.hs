@@ -18,7 +18,7 @@ import Web.FormUrlEncoded          (FromForm)
 import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Prelude
-import qualified Gargantext.Prelude.Utils as GPU
+import qualified Gargantext.Prelude.GargDB as GargDB
 import Gargantext.API.Node.Corpus.New.File (FileType)
 
 -------------------------------------------------------
@@ -57,7 +57,7 @@ instance ToJSON NewWithFile where
 instance ToSchema NewWithFile where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wfi_")
 
-instance GPU.SaveFile NewWithFile where
+instance GargDB.SaveFile NewWithFile where
   saveFile' fp (NewWithFile b64d _ _) = do
     let eDecoded = BSB64.decode $ TE.encodeUtf8 b64d
     case eDecoded of
@@ -65,5 +65,5 @@ instance GPU.SaveFile NewWithFile where
       Right decoded -> BS.writeFile fp decoded
     -- BS.writeFile fp $ BSB64.decodeLenient $ TE.encodeUtf8 b64d
 
---instance GPU.ReadFile NewWithFile where
+--instance GargDB.ReadFile NewWithFile where
 --  readFile' = TIO.readFile
