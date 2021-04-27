@@ -17,13 +17,11 @@ module Gargantext.Prelude.GargDB
 
 import Control.Exception
 import Control.Lens (view)
-import Control.Monad.Random.Class (MonadRandom)
 import Control.Monad.Reader (MonadReader)
 import Data.Aeson (ToJSON, toJSON)
 import Data.Text (Text)
 import Data.Tuple.Extra (both)
 import GHC.IO (FilePath)
-import Gargantext.Database.Admin.Types.Node (NodeId, NodeType)
 import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config
@@ -33,7 +31,6 @@ import System.IO.Error
 import System.Random (newStdGen)
 import qualified Data.Text             as Text
 import qualified System.Directory      as SD
-import qualified System.Random.Shuffle as SRS
 
 -------------------------------------------------------------------
 -- | Main Class to use (just declare needed functions)

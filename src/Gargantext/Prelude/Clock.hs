@@ -12,7 +12,6 @@ Portability : POSIX
 module Gargantext.Prelude.Clock
   where
 
-import Data.Aeson (ToJSON, toJSON)
 import Formatting.Clock (timeSpecs)
 import Formatting.Internal (Format(..))
 import Gargantext.Prelude
