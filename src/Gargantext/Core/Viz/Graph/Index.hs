@@ -60,17 +60,17 @@ cooc2mat sym ti m = map2mat sym 0 n idx
     n = M.size ti
     idx = toIndex ti m -- it is important to make sure that toIndex is ran only once.
 
-data MatrixShape = Triangular | Square
+data MatrixShape = Triangle | Square
 
 map2mat :: Elt a => MatrixShape -> a -> Int -> Map (Index, Index) a -> Matrix a
 map2mat sym def n m = A.fromFunction shape getData
   where
     getData = (\(Z :. x :. y) ->
       case sym of
-        Triangular -> fromMaybe def (M.lookup (x,y) m)
-        Square -> fromMaybe (fromMaybe def $ M.lookup (y,x) m)
-                                           $ M.lookup (x, y) m
-                                           )
+        Triangle -> fromMaybe def (M.lookup (x,y) m)
+        Square   -> fromMaybe (fromMaybe def $ M.lookup (y,x) m)
+                                             $ M.lookup (x, y) m
+                                             )
     shape   = (Z :. n :. n)
 
 mat2map :: (Elt a, Shape (Z :. Index)) =>

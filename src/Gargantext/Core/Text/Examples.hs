@@ -112,7 +112,7 @@ ex_cooc_mat :: IO (Map Label Index, Matrix Int, Matrix Double, (DAA.Vector Gener
 ex_cooc_mat = do
   m <- ex_cooc
   let (ti,_) = createIndices m
-  let mat_cooc = cooc2mat Triangular ti m
+  let mat_cooc = cooc2mat Triangle ti m
   pure ( ti
        , mat_cooc
        , incExcSpeGen_proba  mat_cooc
@@ -123,7 +123,7 @@ ex_incExcSpeGen :: IO ([(Label, Double)], [(Label, Double)])
 ex_incExcSpeGen = incExcSpeGen_sorted <$> ex_cooc
 
 incExcSpeGen_sorted :: Ord t => Map (t,t) Int -> ([(t,Double)],[(t,Double)])
-incExcSpeGen_sorted m = both ordonne (incExcSpeGen $ cooc2mat Triangular ti m)
+incExcSpeGen_sorted m = both ordonne (incExcSpeGen $ cooc2mat Triangle ti m)
   where
     (ti,fi) = createIndices m
     ordonne x = sortWith (Down . snd)
