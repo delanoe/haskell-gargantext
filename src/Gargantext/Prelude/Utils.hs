@@ -23,8 +23,6 @@ import Control.Monad.Reader (MonadReader)
 import Data.Aeson (ToJSON, toJSON)
 import Data.Text (Text)
 import Data.Tuple.Extra (both)
-import Formatting.Clock (timeSpecs)
-import Formatting.Internal (Format(..))
 import GHC.IO (FilePath)
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType)
 import Gargantext.Database.Prelude (HasConfig(..))
@@ -35,16 +33,9 @@ import System.Directory (createDirectoryIfMissing)
 import System.IO.Error
 import System.Random (newStdGen)
 import qualified Data.Text             as Text
-import qualified System.Clock          as Clock (getTime, TimeSpec, Clock(..))
 import qualified System.Directory      as SD
 import qualified System.Random.Shuffle as SRS
 
--------------------------------------------------------------------
-hasTime :: Formatting.Internal.Format r (Clock.TimeSpec -> Clock.TimeSpec -> r)
-hasTime = timeSpecs
-
-getTime :: MonadBase IO m => m Clock.TimeSpec
-getTime = liftBase $ Clock.getTime Clock.ProcessCPUTime
 -------------------------------------------------------------------
 -- | Main Class to use (just declare needed functions)
 class GargDB a where

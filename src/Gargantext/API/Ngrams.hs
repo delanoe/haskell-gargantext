@@ -118,7 +118,7 @@ import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Schema.Node (node_id, node_parentId, node_userId)
 import Gargantext.Prelude hiding (log)
 import Gargantext.Prelude.Job
-import Gargantext.Prelude.Utils (hasTime, getTime)
+import Gargantext.Prelude.Clock (hasTime, getTime)
 import Prelude (error)
 import Servant hiding (Patch)
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)
