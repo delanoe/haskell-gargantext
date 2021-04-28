@@ -17,14 +17,14 @@ module Gargantext.Core.Text.Terms.WithList where
 
 import Data.List (null)
 import Data.Ord
-import Data.Text (Text, concat)
+import Data.Text (Text, concat, unwords)
 import Gargantext.Prelude
 import Gargantext.Core.Text.Context
 import Gargantext.Core.Text.Terms.Mono (monoTextsBySentence)
 import Prelude (error)
 import qualified Data.Algorithms.KMP as KMP
-import qualified Data.IntMap.Strict as IntMap
-
+import qualified Data.IntMap.Strict  as IntMap
+import qualified Data.List           as List
 ------------------------------------------------------------------------
 
 data Pattern = Pattern
@@ -67,6 +67,19 @@ buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern
                 Pattern (KMP.build alt) (length alt) label
                         --(Terms label $ Set.empty) -- TODO check stems
 
+
+--------------------------------------------------------------------------
+-- Utils
+type BlockText   = Text
+type MatchedText = Text
+termsInText :: Patterns -> BlockText -> [MatchedText]
+termsInText pats txt = List.nub
+                     $ List.concat
+                     $ map (map unwords)
+                     $ extractTermsWithList pats txt
+
+--------------------------------------------------------------------------
+
 extractTermsWithList :: Patterns -> Text -> Corpus [Text]
 extractTermsWithList pats = map (replaceTerms pats) . monoTextsBySentence
 
@@ -78,7 +91,9 @@ extractTermsWithList' :: Patterns -> Text -> [Text]
 extractTermsWithList' pats = map (concat . map concat . replaceTerms pats)
                            . monoTextsBySentence
 
+--------------------------------------------------------------------------
 
+{- | Not used
 filterWith :: TermList
            -> (a -> Text)
            -> [a] 
@@ -96,4 +111,4 @@ filterWith' termList f f' xs = f' xs
                             $ map f xs
     where
       pats = buildPatterns termList
-
+-}

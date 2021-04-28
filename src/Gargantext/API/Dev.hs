@@ -1,4 +1,13 @@
--- |
+{-|
+Module      : Gargantext.API.Dev
+Description : 
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+-}
 
 -- Use only for dev/repl
 module Gargantext.API.Dev where
@@ -17,7 +26,6 @@ import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..), readConfig)
 
 -------------------------------------------------------------------
-
 withDevEnv :: IniPath -> (DevEnv -> IO a) -> IO a
 withDevEnv iniPath k = do
   env <- newDevEnv
@@ -38,7 +46,6 @@ withDevEnv iniPath k = do
         }
 
 -- | Run Cmd Sugar for the Repl (GHCI)
-
 runCmdRepl :: Show err => Cmd'' DevEnv err a -> IO a
 runCmdRepl f = withDevEnv "gargantext.ini" $ \env -> runCmdDev env f
 

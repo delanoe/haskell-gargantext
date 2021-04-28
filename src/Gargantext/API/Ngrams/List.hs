@@ -15,6 +15,7 @@ Portability : POSIX
 module Gargantext.API.Ngrams.List
   where
 
+import Data.Maybe (catMaybes)
 import Control.Lens hiding (elements)
 import Data.Aeson
 import Data.Map (toList, fromList)
@@ -22,21 +23,27 @@ import Data.Swagger (ToSchema, declareNamedSchema, genericDeclareNamedSchema)
 import Data.Text (Text, concat, pack)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Ngrams (getNgramsTableMap, setListNgrams)
-import Gargantext.API.Ngrams.Types (RepoCmdM, Versioned(..), NgramsList)
+import Gargantext.API.Ngrams (getNgramsTableMap, setListNgrams, NgramsTerm)
+import Gargantext.API.Ngrams.Types (RepoCmdM, Versioned(..), NgramsList, NgramsTerm(..))
 import Gargantext.API.Node.Corpus.New.File (FileType(..))
-import Gargantext.API.Prelude (GargServer)
+import Gargantext.API.Prelude (GargServer, GargNoServer)
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
+import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
+import Gargantext.Database.Schema.Node
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Schema.Ngrams (ngramsTypes)
+import Gargantext.Database.Admin.Types.Hyperdata.Document
+import Gargantext.Database.Schema.Ngrams (ngramsTypes, NgramsType(..))
+import Gargantext.Database.Query.Table.Node (getDocumentsWithParentId)
 import Gargantext.Prelude
+import Gargantext.Core.Text.Terms.WithList (buildPatterns, termsInText)
 import Network.HTTP.Media ((//), (/:))
 import Servant
 import Servant.Job.Async
 import Servant.Job.Utils (jsonOptions)
 import Web.FormUrlEncoded (FromForm)
-------------------------------------------------------------------------
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.Text           as Text
 
 ------------------------------------------------------------------------
 type API =  Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
@@ -82,6 +89,41 @@ post l m  = do
   _ <- mapM (\(nt, Versioned _v ns) -> setListNgrams l nt ns) $ toList m
   -- TODO reindex
   pure True
+
+
+-----------------------------------------------------------------------------
+-- | Re-index documents of a corpus with new ngrams (called orphans here)
+reIndexWith :: CorpusId
+            -> ListId
+            -> NgramsType
+            -> [NgramsTerm]
+            -> GargNoServer ()
+reIndexWith cId lId nt ts = do
+  docs <- getDocumentsWithParentId cId
+
+  -- Taking the ngrams with 0 occurrences only (orphans)
+  orphans <-  map (\k -> ([unNgramsTerm k], []))
+         <$> HashMap.keys
+         <$> HashMap.filter (==0)
+         <$> getOccByNgramsOnlyFast' cId lId nt ts
+
+  -- Checking Text documents where orphans match
+  let
+    docMatched =
+        map (\doc -> ( doc ^. node_id
+                   , termsInText (buildPatterns orphans)
+                                 ( Text.unlines
+                                 $ catMaybes
+                                 [ doc ^. node_hyperdata . hd_title
+                                 , doc ^. node_hyperdata . hd_abstract
+                                 ]
+                                 )
+                  )
+         ) docs
+
+  -- Saving the indexation in database
+
+  pure ()
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

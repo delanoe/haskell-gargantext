@@ -514,7 +514,9 @@ getTableNgrams _nType nId tabType listId limit_ offset
     filteredNodes :: Map NgramsTerm NgramsElement -> [NgramsElement]
     filteredNodes tableMap = rootOf <$> list & filter selected_node
       where
-        rootOf ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root") (tableMap ^. at r))
+        rootOf ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
+                                              (tableMap ^. at r)
+                             )
                              (ne ^. ne_root)
         list = tableMap ^.. each
 
@@ -523,7 +525,9 @@ getTableNgrams _nType nId tabType listId limit_ offset
     selectAndPaginate tableMap = roots <> inners
       where
         list = tableMap ^.. each
-        rootOf ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root") (tableMap ^. at r))
+        rootOf ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
+                                              (tableMap ^. at r)
+                             )
                              (ne ^. ne_root)
         selected_nodes = list & take limit_
                               . drop offset'
@@ -777,3 +781,7 @@ listNgramsChangedSince listId ngramsType version
       Versioned <$> currentVersion <*> pure True
   | otherwise   =
       tableNgramsPull listId ngramsType version & mapped . v_data %~ (== mempty)
+
+
+
+

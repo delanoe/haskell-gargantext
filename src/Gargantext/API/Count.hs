@@ -10,8 +10,6 @@ Portability : POSIX
 Count API part of Gargantext.
 -}
 
-
-
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
 {-# LANGUAGE DeriveAnyClass     #-}
@@ -19,23 +17,18 @@ Count API part of Gargantext.
 module Gargantext.API.Count
       where
 
-
-import GHC.Generics (Generic)
-
 import Data.Aeson hiding (Error)
 import Data.Aeson.TH (deriveJSON)
 import Data.Either
 import Data.List (permutations)
 import Data.Swagger
 import Data.Text (Text, pack)
-
-import Servant
-import Test.QuickCheck.Arbitrary
-import Test.QuickCheck (elements)
--- import Control.Applicative ((<*>))
-
-import Gargantext.Prelude
+import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Prelude
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary
 
 -----------------------------------------------------------------------
 -- TODO-ACCESS: CanCount

@@ -103,18 +103,9 @@ getJson path = L.readFile path
 -- | Parse | --
 ---------------
 
-
 -- | To filter the Ngrams of a document based on the termList
 filterTerms :: Patterns -> (a, Text) -> (a, [Text])
 filterTerms patterns (y,d) = (y,termsInText patterns d)
-  where
-    --------------------------------------
-    termsInText :: Patterns -> Text -> [Text]
-    termsInText pats txt = DL.nub
-                         $ DL.concat
-                         $ map (map unwords)
-                         $ extractTermsWithList pats txt
-    --------------------------------------
 
 
 -- | To transform a Csv nfile into a readable corpus
