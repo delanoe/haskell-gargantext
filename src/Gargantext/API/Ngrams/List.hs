@@ -39,7 +39,7 @@ import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Types.Hyperdata.Document
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Ngrams (insertNgrams)
-import Gargantext.Database.Query.Table.Node (getDocumentsWithParentId)
+import Gargantext.Database.Query.Table.NodeNode (selectDocNodes)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Types (Indexed(..))
@@ -114,12 +114,16 @@ reIndexWith cId lId nt lts = do
      <$> HashMap.toList
      <$> getTermsWith identity [lId] nt lts
   
---   printDebug "ts" ts
+  --printDebug "ts" ts
 
   -- Taking the ngrams with 0 occurrences only (orphans)
-  orphans <-  HashMap.keys
-         <$> HashMap.filter (==0)
-         <$> getOccByNgramsOnlyFast' cId lId nt ts
+  occs <- getOccByNgramsOnlyFast' cId lId nt ts
+
+  let orphans = List.concat 
+              $ map (\t -> case HashMap.lookup t occs of
+                       Nothing -> [t]
+                       Just n  -> if n == 1 then [t] else [ ]
+                       ) ts
 
   -- Getting the Id of orphan ngrams
   mapTextNgramsId <- insertNgrams (map (text2ngrams . unNgramsTerm) orphans)
@@ -127,7 +131,9 @@ reIndexWith cId lId nt lts = do
   printDebug "orphans" orphans
 
   -- Get all documents of the corpus
-  docs <- getDocumentsWithParentId cId
+  docs <- selectDocNodes cId
+
+  printDebug "docs length" (List.length docs)
 
   -- Checking Text documents where orphans match
   -- TODO Tests here
@@ -142,6 +148,8 @@ reIndexWith cId lId nt lts = do
                                  )
                                 (List.cycle [Map.fromList $ [(nt, Map.singleton (doc ^. node_id) 1 )]])
                         ) docs
+
+  printDebug "ngramsByDoc" ngramsByDoc
 
   -- Saving the indexation in database
   _ <- insertDocNgrams lId ( HashMap.fromList
