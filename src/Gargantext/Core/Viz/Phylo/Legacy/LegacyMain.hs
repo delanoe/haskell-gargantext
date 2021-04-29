@@ -41,7 +41,8 @@ import Gargantext.Core.Types
 -- import Gargantext.Core.Viz.Phylo.View.Export
 -- import Gargantext.Core.Viz.Phylo.View.ViewMaker    -- TODO Just Maker is fine
 import qualified Data.HashMap.Strict as HashMap
-import qualified Data.Text as Text
+import qualified Data.Set            as Set
+import qualified Data.Text           as Text
 
 type MinSizeBranch = Int
 
@@ -51,7 +52,7 @@ flowPhylo :: FlowCmdM env err m
 flowPhylo cId = do
 
   list     <- defaultList cId
-  termList <- HashMap.toList <$> getTermsWith (Text.words . unNgramsTerm) [list] NgramsTerms MapTerm
+  termList <- HashMap.toList <$> getTermsWith (Text.words . unNgramsTerm) [list] NgramsTerms (Set.singleton MapTerm)
 
   docs' <- catMaybes
         <$> map (\h -> (,) <$> _hd_publication_year h

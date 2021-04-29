@@ -144,7 +144,6 @@ extracted2ngrams :: ExtractedNgrams -> Ngrams
 extracted2ngrams (SimpleNgrams   ng) = ng
 extracted2ngrams (EnrichedNgrams ng) = view np_form ng
 
-
 ---------------------------
 insertExtractedNgrams :: [ ExtractedNgrams ] -> Cmd err (HashMap Text NgramsId)
 insertExtractedNgrams ngs = do
@@ -216,6 +215,6 @@ text2term lang txt = Terms txt (Set.fromList $ map (stem lang) txt)
 
 isPunctuation :: Text -> Bool
 isPunctuation x = List.elem x $  (Text.pack . pure)
-                             <$> ("!?(),;." :: String)
+                             <$> ("!?(),;.:" :: String)
 
 

@@ -26,8 +26,8 @@ import Gargantext.Core.Types (ListType(..), NodeId, ListId)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
-import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
+import qualified Data.Map.Strict     as Map
+import qualified Data.Set            as Set
 
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
 mergeNgramsElement _neOld neNew = neNew
@@ -50,7 +50,6 @@ listNgramsFromRepo nodeIds ngramsType repo = ngrams
                 [ ngramsMap ^. at nodeId . _Just | nodeId <- nodeIds ]
 
 
-
 -- TODO-ACCESS: We want to do the security check before entering here.
 --              Add a static capability parameter would be nice.
 --              Ideally this is the access to `repoVar` which needs to
@@ -62,12 +61,12 @@ getListNgrams nodeIds ngramsType = listNgramsFromRepo nodeIds ngramsType <$> get
 
 getTermsWith :: (RepoCmdM env err m, Eq a, Hashable a)
           => (NgramsTerm -> a) -> [ListId]
-          -> NgramsType -> ListType
+          -> NgramsType -> Set ListType
           -> m (HashMap a [a])
-getTermsWith f ls ngt lt = HM.fromListWith (<>)
+getTermsWith f ls ngt lts = HM.fromListWith (<>)
                       <$> map toTreeWith
                       <$> HM.toList
-                      <$> HM.filter (\f' -> fst f' == lt)
+                      <$> HM.filter (\f' -> Set.member (fst f') lts)
                       <$> mapTermListRoot ls ngt
                       <$> getRepo
   where

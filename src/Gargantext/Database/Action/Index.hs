@@ -20,6 +20,7 @@ data Granularity = NewNgrams | NewTexts | Both
 module Gargantext.Database.Action.Index
   where
 
+{-
 import Data.List (nub)
 import Gargantext.Core.Text.Terms.WithList (buildPatterns, filterTerms, termsInText)
 
@@ -44,7 +45,7 @@ indexSave :: [Document] -> Pattern -> Cmd err [Int]
 indexSave corpus p = do
   indexedDoc <- map (filterTerms patterns) corpus
   saveIndexDoc ngramsTextId
-
+-}
 
 
 

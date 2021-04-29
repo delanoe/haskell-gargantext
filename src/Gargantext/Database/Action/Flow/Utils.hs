@@ -37,10 +37,10 @@ docNgrams2nodeNodeNgrams :: CorpusId
 docNgrams2nodeNodeNgrams cId (DocNgrams d n nt w) =
   NodeNodeNgrams cId d n nt w
 
-data DocNgrams = DocNgrams { dn_doc_id :: DocId
-                           , dn_ngrams_id :: Int
+data DocNgrams = DocNgrams { dn_doc_id      :: DocId
+                           , dn_ngrams_id   :: Int
                            , dn_ngrams_type :: NgramsTypeId
-                           , dn_weight  :: Double
+                           , dn_weight      :: Double
                            }
 
 insertDocNgramsOn :: CorpusId

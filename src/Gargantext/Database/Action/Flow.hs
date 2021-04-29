@@ -236,7 +236,8 @@ flowCorpusUser l user corpusName ctype ids = do
   -- printDebug "Node Text Ids:" tId
 
   -- User List Flow
-  (masterUserId, _masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
+  (masterUserId, _masterRootId, masterCorpusId)
+    <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
 
   --let gp = (GroupParams l 2 3 (StopSize 3)) 
   let gp = GroupWithPosTag l CoreNLP HashMap.empty 

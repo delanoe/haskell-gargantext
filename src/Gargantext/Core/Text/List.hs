@@ -150,7 +150,6 @@ getGroupParams gp _ = pure gp
 
 
 
-
 -- TODO use ListIds
 buildNgramsTermsList :: ( HasNodeError err
                         , CmdM     env err m

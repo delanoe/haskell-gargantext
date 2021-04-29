@@ -15,34 +15,43 @@ Portability : POSIX
 module Gargantext.API.Ngrams.List
   where
 
-import Data.Maybe (catMaybes)
-import Control.Lens hiding (elements)
+import Control.Lens hiding (elements, Indexed)
 import Data.Aeson
+import Data.HashMap.Strict (HashMap)
 import Data.Map (toList, fromList)
+import Data.Maybe (catMaybes)
+import Data.Set (Set)
 import Data.Swagger (ToSchema, declareNamedSchema, genericDeclareNamedSchema)
 import Data.Text (Text, concat, pack)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Ngrams (getNgramsTableMap, setListNgrams, NgramsTerm)
+import Gargantext.API.Ngrams (getNgramsTableMap, setListNgrams)
+import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.API.Ngrams.Types (RepoCmdM, Versioned(..), NgramsList, NgramsTerm(..))
 import Gargantext.API.Node.Corpus.New.File (FileType(..))
 import Gargantext.API.Prelude (GargServer, GargNoServer)
+import Gargantext.Core.Text.Terms.WithList (buildPatterns, termsInText)
+import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
+import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
-import Gargantext.Database.Schema.Node
-import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Hyperdata.Document
-import Gargantext.Database.Schema.Ngrams (ngramsTypes, NgramsType(..))
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Query.Table.Ngrams (insertNgrams)
 import Gargantext.Database.Query.Table.Node (getDocumentsWithParentId)
+import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Schema.Node
+import Gargantext.Database.Types (Indexed(..))
 import Gargantext.Prelude
-import Gargantext.Core.Text.Terms.WithList (buildPatterns, termsInText)
 import Network.HTTP.Media ((//), (/:))
 import Servant
 import Servant.Job.Async
 import Servant.Job.Utils (jsonOptions)
 import Web.FormUrlEncoded (FromForm)
 import qualified Data.HashMap.Strict as HashMap
+import qualified Data.List           as List
+import qualified Data.Map            as Map
 import qualified Data.Text           as Text
 
 ------------------------------------------------------------------------
@@ -64,9 +73,9 @@ get :: RepoCmdM env err m =>
        ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
 get lId = do
   lst <- get' lId
-  let (NodeId id) = lId
+  let (NodeId id') = lId
   return $ addHeader (concat [ "attachment; filename=GarganText_NgramsList-"
-                             , pack $ show id
+                             , pack $ show id'
                              , ".json"
                              ]
                      ) lst
@@ -96,34 +105,57 @@ post l m  = do
 reIndexWith :: CorpusId
             -> ListId
             -> NgramsType
-            -> [NgramsTerm]
+            -> Set ListType
             -> GargNoServer ()
-reIndexWith cId lId nt ts = do
-  docs <- getDocumentsWithParentId cId
+reIndexWith cId lId nt lts = do
+  -- Getting [NgramsTerm]
+  ts <- List.concat
+     <$> map (\(k,vs) -> k:vs)
+     <$> HashMap.toList
+     <$> getTermsWith identity [lId] nt lts
+  
+--   printDebug "ts" ts
 
   -- Taking the ngrams with 0 occurrences only (orphans)
-  orphans <-  map (\k -> ([unNgramsTerm k], []))
-         <$> HashMap.keys
+  orphans <-  HashMap.keys
          <$> HashMap.filter (==0)
          <$> getOccByNgramsOnlyFast' cId lId nt ts
 
+  -- Getting the Id of orphan ngrams
+  mapTextNgramsId <- insertNgrams (map (text2ngrams . unNgramsTerm) orphans)
+
+  printDebug "orphans" orphans
+
+  -- Get all documents of the corpus
+  docs <- getDocumentsWithParentId cId
+
   -- Checking Text documents where orphans match
+  -- TODO Tests here
   let
-    docMatched =
-        map (\doc -> ( doc ^. node_id
-                   , termsInText (buildPatterns orphans)
-                                 ( Text.unlines
-                                 $ catMaybes
-                                 [ doc ^. node_hyperdata . hd_title
-                                 , doc ^. node_hyperdata . hd_abstract
-                                 ]
+    ngramsByDoc =  List.concat
+               $  map (\doc -> List.zip
+                                (termsInText (buildPatterns $ map (\k -> ([unNgramsTerm k], [])) orphans)
+                                             $ Text.unlines $ catMaybes
+                                               [ doc ^. node_hyperdata . hd_title
+                                               , doc ^. node_hyperdata . hd_abstract
+                                               ]
                                  )
-                  )
-         ) docs
+                                (List.cycle [Map.fromList $ [(nt, Map.singleton (doc ^. node_id) 1 )]])
+                        ) docs
 
   -- Saving the indexation in database
-
+  _ <- insertDocNgrams lId ( HashMap.fromList
+                           $ catMaybes
+                           $ map (\(t,d) -> (,) <$> toIndexedNgrams mapTextNgramsId t
+                                                <*> Just d ) ngramsByDoc
+                           )
   pure ()
+
+toIndexedNgrams :: HashMap Text NgramsId -> Text -> Maybe (Indexed Int Ngrams)
+toIndexedNgrams m t = Indexed <$> i <*> n
+  where
+    i = HashMap.lookup t m
+    n = Just (text2ngrams t)
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
