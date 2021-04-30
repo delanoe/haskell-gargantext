@@ -65,14 +65,6 @@ flowPhylo cId = do
     -- | To filter the Ngrams of a document based on the termList
     filterTerms :: Patterns -> (Date, Text) -> (Date, [Text])
     filterTerms patterns' (y,d) = (y,termsInText patterns' d)
-      where
-        --------------------------------------
-        termsInText :: Patterns -> Text -> [Text]
-        termsInText pats txt = List.nub
-                             $ List.concat
-                             $ map (map Text.unwords)
-                             $ extractTermsWithList pats txt
-        --------------------------------------
 
     docs = map ((\(y,t) -> Document y t) . filterTerms patterns) docs'
 

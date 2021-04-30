@@ -49,7 +49,7 @@ shareNodeWith (ShareNodeWith_User NodeFolderShared u) n = do
   if not (hasNodeType nodeToCheck NodeTeam)
     then errorWith "[G.D.A.S.shareNodeWith] Can share node Team only"
     else
-      if (view node_userId nodeToCheck == userIdCheck)
+      if (view node_user_id nodeToCheck == userIdCheck)
         then errorWith "[G.D.A.S.shareNodeWith] Can share to others only"
         else do
           folderSharedId  <- getFolderId u NodeFolderShared

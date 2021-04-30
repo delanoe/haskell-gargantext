@@ -61,7 +61,7 @@ postNode :: HasNodeError err
          -> Cmd err [NodeId]
 postNode uId pId (PostNode nodeName nt) = do
   nodeUser <- getNodeUser (NodeId uId)
-  let uId' = nodeUser ^. node_userId
+  let uId' = nodeUser ^. node_user_id
   mkNodeWithParent nt (Just pId) uId' nodeName
 
 ------------------------------------------------------------------------
@@ -100,7 +100,7 @@ postNodeAsync uId nId (PostNode nodeName tn) logStatus = do
                    , _scst_events    = Just []
                    }
 
-  let uId' = nodeUser ^. node_userId
+  let uId' = nodeUser ^. node_user_id
   _ <- mkNodeWithParent tn (Just nId) uId' nodeName
 
   pure      JobLog { _scst_succeeded = Just 3

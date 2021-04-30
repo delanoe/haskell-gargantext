@@ -182,7 +182,7 @@ findSharedDirect r nt nts fun = do
   --                         , " "
   --                         , s ]
   parent <- getNodeWith r (Proxy :: Proxy HyperdataAny)
-  let mParent = _node_parentId parent
+  let mParent = _node_parent_id parent
   case mParent of
     Nothing -> pure []
     Just parentId -> do

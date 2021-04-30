@@ -121,13 +121,13 @@ selectRoot (UserName username) = proc () -> do
     users <- queryUserTable -< ()
     restrict -< _node_typename row   .== (pgInt4 $ toDBid NodeUser)
     restrict -< user_username  users .== (pgStrictText username)
-    restrict -< _node_userId   row   .== (user_id users)
+    restrict -< _node_user_id   row   .== (user_id users)
     returnA  -< row
 
 selectRoot (UserDBId uid) = proc () -> do
     row   <- queryNodeTable -< ()
     restrict -< _node_typename row   .== (pgInt4 $ toDBid NodeUser)
-    restrict -< _node_userId   row   .== (pgInt4 uid)
+    restrict -< _node_user_id   row   .== (pgInt4 uid)
     returnA  -< row
 
 selectRoot (RootId nid) =

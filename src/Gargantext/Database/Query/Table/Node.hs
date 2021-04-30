@@ -264,10 +264,10 @@ insertNodesR ns = mkCmd $ \conn ->
   runInsert_ conn (Insert nodeTable ns (rReturning (\(Node i _ _ _ _ _ _ _) -> i)) Nothing)
 
 insertNodesWithParent :: Maybe ParentId -> [NodeWrite] -> Cmd err Int64
-insertNodesWithParent pid ns = insertNodes (set node_parentId (pgNodeId <$> pid) <$> ns)
+insertNodesWithParent pid ns = insertNodes (set node_parent_id (pgNodeId <$> pid) <$> ns)
 
 insertNodesWithParentR :: Maybe ParentId -> [NodeWrite] -> Cmd err [NodeId]
-insertNodesWithParentR pid ns = insertNodesR (set node_parentId (pgNodeId <$> pid) <$> ns)
+insertNodesWithParentR pid ns = insertNodesR (set node_parent_id (pgNodeId <$> pid) <$> ns)
 ------------------------------------------------------------------------
 -- TODO
 -- currently this function removes the child relation

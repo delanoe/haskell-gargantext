@@ -47,7 +47,7 @@ deleteNode u nodeId = do
     nt | nt == toDBid NodeUser -> panic "Not allowed to delete NodeUser (yet)"
     nt | nt == toDBid NodeTeam -> do
       uId   <- getUserId u
-      if _node_userId node' == uId
+      if _node_user_id node' == uId
         then N.deleteNode    nodeId
         else delFolderTeam u nodeId
     nt | nt == toDBid NodeFile -> do
@@ -62,7 +62,7 @@ deleteNode u nodeId = do
   --    else if hasNodeType node' NodeTeam
   --            then do
   --               uId   <- getUserId u
-  --               if _node_userId node' == uId
+  --               if _node_user_id node' == uId
   --                  then N.deleteNode    nodeId
   --                  else delFolderTeam u nodeId
   --            else N.deleteNode nodeId

@@ -16,25 +16,31 @@ Portability : POSIX
 module Gargantext.API.Node.Update
       where
 
+import Control.Lens (view)
 import Data.Aeson
 import Data.Maybe (Maybe(..))
 import Data.Swagger
 import GHC.Generics (Generic)
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
+import Gargantext.API.Admin.Types (HasSettings)
+import Gargantext.API.Ngrams.List (reIndexWith)
+import Gargantext.API.Prelude (GargServer, simuLogs)
+import Gargantext.Core.Methods.Distances (GraphMetric(..))
+import Gargantext.Core.Viz.Graph.API (recomputeGraph)
+import Gargantext.Database.Query.Table.Node (getNode)
+import Gargantext.Database.Schema.Node (node_parent_id)
+import Gargantext.Core.Types.Main (ListType(..))
+import Gargantext.Database.Schema.Ngrams (NgramsType(NgramsTerms))
+import Gargantext.Database.Action.Flow.Pairing (pairing)
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
-
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
-import Gargantext.API.Admin.Types (HasSettings)
-import Gargantext.API.Prelude (GargServer, simuLogs)
-import Gargantext.Core.Viz.Graph.API (recomputeGraph)
-import Gargantext.Core.Methods.Distances (GraphMetric(..))
-import Gargantext.Database.Action.Flow.Pairing (pairing)
-import Gargantext.Database.Action.Flow.Types (FlowCmdM)
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic)
+import qualified Data.Set as Set
 
 ------------------------------------------------------------------------
 type API = Summary " Update node according to NodeType params"
@@ -107,6 +113,30 @@ updateNode _uId nid1 (LinkNodeReq nt nid2) logStatus = do
                            <> cs (show nt)
 
   pure  JobLog { _scst_succeeded = Just 2
+               , _scst_failed    = Just 0
+               , _scst_remaining = Just 0
+               , _scst_events    = Just []
+               }
+
+updateNode _uId nId (UpdateNodeParamsList _mode) logStatus = do
+  logStatus JobLog { _scst_succeeded = Just 1
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 2
+                   , _scst_events    = Just []
+                   }
+  corpusId <- view node_parent_id <$> getNode nId
+
+  logStatus JobLog { _scst_succeeded = Just 2
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
+
+  _ <- case corpusId of
+    Just cId -> reIndexWith cId nId NgramsTerms (Set.singleton MapTerm)
+    Nothing  -> pure ()
+
+  pure  JobLog { _scst_succeeded = Just 3
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
                , _scst_events    = Just []

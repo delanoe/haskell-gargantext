@@ -43,7 +43,7 @@ import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.Node.User (getNodeUser)
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.Node (node_parentId, node_hyperdata, node_name, node_userId)
+import Gargantext.Database.Schema.Node (node_parent_id, node_hyperdata, node_name, node_user_id)
 import Gargantext.Prelude
 import Servant
 import Servant.Job.Async
@@ -87,7 +87,7 @@ getGraph _uId nId = do
     camera = nodeGraph ^. node_hyperdata . hyperdataCamera
     cId = maybe (panic "[G.V.G.API] Node has no parent")
                   identity
-                  $ nodeGraph ^. node_parentId
+                  $ nodeGraph ^. node_parent_id
 
   -- TODO Distance in Graph params
   case graph of
@@ -123,7 +123,7 @@ recomputeGraph _uId nId maybeDistance = do
     v   = repo ^. r_version
     cId = maybe (panic "[G.V.G.API.recomputeGraph] Node has no parent")
                   identity
-                  $ nodeGraph ^. node_parentId
+                  $ nodeGraph ^. node_parent_id
     similarity = case graphMetric of
                    Nothing -> withMetric Order2
                    Just m  -> withMetric m
@@ -269,7 +269,7 @@ graphClone uId pId (HyperdataGraphAPI { _hyperdataAPIGraph = graph
   let nodeType = NodeGraph
   nodeUser <- getNodeUser (NodeId uId)
   nodeParent <- getNodeWith pId (Proxy :: Proxy HyperdataGraph)
-  let uId' = nodeUser ^. node_userId
+  let uId' = nodeUser ^. node_user_id
   nIds <- mkNodeWithParent nodeType (Just pId) uId' $ nodeParent ^. node_name
   case nIds of
     [] -> pure pId

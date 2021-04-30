@@ -115,7 +115,7 @@ import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngramsType
 import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.Select
-import Gargantext.Database.Schema.Node (node_id, node_parentId, node_userId)
+import Gargantext.Database.Schema.Node (node_id, node_parent_id, node_user_id)
 import Gargantext.Prelude hiding (log)
 import Gargantext.Prelude.Job
 import Gargantext.Prelude.Clock (hasTime, getTime)
@@ -368,8 +368,8 @@ tableNgramsPostChartsAsync utn logStatus = do
 
       node <- getNode listId
       let nId = node ^. node_id
-          _uId = node ^. node_userId
-          mCId = node ^. node_parentId
+          _uId = node ^. node_user_id
+          mCId = node ^. node_parent_id
 
       printDebug "[tableNgramsPut] tabType" tabType
       printDebug "[tableNgramsPut] listId" listId

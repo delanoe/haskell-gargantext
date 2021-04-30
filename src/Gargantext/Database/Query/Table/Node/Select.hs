@@ -38,5 +38,5 @@ selectNodesWithUsername nt u = runOpaQuery (q u)
     join' :: Query (NodeRead, UserReadNull)
     join' = leftJoin queryNodeTable queryUserTable on1
       where
-        on1 (n,us) = _node_userId n .== user_id us
+        on1 (n,us) = _node_user_id n .== user_id us
 

@@ -28,8 +28,8 @@ import Prelude hiding (null, id, map, sum)
 data NodePoly id
               hash_id
               typename
-              userId
-              parentId
+              user_id
+              parent_id
               name
               date
               hyperdata  =
@@ -37,8 +37,8 @@ data NodePoly id
           , _node_hash_id   :: !hash_id
           , _node_typename  :: !typename
 
-          , _node_userId    :: !userId
-          , _node_parentId  :: !parentId
+          , _node_user_id    :: !user_id
+          , _node_parent_id  :: !parent_id
 
           , _node_name      :: !name
           , _node_date      :: !date
@@ -58,9 +58,9 @@ nodeTable :: Table NodeWrite NodeRead
 nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
                                       , _node_hash_id    = optional "hash_id"
                                       , _node_typename   = required "typename"
-                                      , _node_userId     = required "user_id"
+                                      , _node_user_id    = required "user_id"
 
-                                      , _node_parentId   = optional "parent_id"
+                                      , _node_parent_id  = optional "parent_id"
                                       , _node_name       = required "name"
                                       , _node_date       = optional "date"
 
@@ -146,11 +146,11 @@ data NodePolySearch id
                     search =
      NodeSearch { _ns_id        :: id
                 , _ns_typename  :: typename
-                , _ns_userId    :: userId
+                , _ns_user_id   :: user_id
                                           --   , nodeUniqId    :: shaId
-                , _ns_parentId  :: parentId
-                , _ns_name      :: name
-                , _ns_date      :: date
+                , _ns_parent_id  :: parent_id
+                , _ns_name       :: name
+                , _ns_date       :: date
 
                 , _ns_hyperdata :: hyperdata
                 , _ns_search    :: search
@@ -165,9 +165,9 @@ nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
 nodeTableSearch = Table "nodes" ( pNodeSearch
                                    NodeSearch { _ns_id         = optional "id"
                                               , _ns_typename   = required "typename"
-                                              , _ns_userId     = required "user_id"
+                                              , _ns_user_id    = required "user_id"
 
-                                              , _ns_parentId   = required "parent_id"
+                                              , _ns_parent_id  = required "parent_id"
                                               , _ns_name       = required "name"
                                               , _ns_date       = optional "date"
 

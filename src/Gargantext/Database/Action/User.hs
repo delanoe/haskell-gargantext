@@ -53,7 +53,7 @@ getUserId' :: HasNodeError err
 getUserId' (UserDBId uid) = pure (Just uid)
 getUserId' (RootId   rid) = do
   n <- getNode rid
-  pure $ Just $ _node_userId n
+  pure $ Just $ _node_user_id n
 getUserId' (UserName u  ) = do
   muser <- getUser u
   case muser of
@@ -77,7 +77,7 @@ getUsername (UserDBId i) = do
     Nothing -> nodeError $ NodeError "G.D.A.U.getUserName: User not found with that id"
 getUsername (RootId   rid) = do
   n <- getNode rid
-  getUsername (UserDBId $ _node_userId n)
+  getUsername (UserDBId $ _node_user_id n)
 getUsername UserPublic = pure "UserPublic"
 
 --------------------------------------------------------------------------
