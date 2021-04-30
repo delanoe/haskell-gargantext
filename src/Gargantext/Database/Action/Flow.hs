@@ -33,6 +33,7 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   , flowCorpus
   , flowAnnuaire
   , insertMasterDocs
+  , saveDocNgramsWith
 
   , getOrMkRoot
   , getOrMk_RootWithCorpus
@@ -280,6 +281,17 @@ insertMasterDocs c lang hs  =  do
                     (extractNgramsT $ withLang lang documentsWithId)
                     documentsWithId
 
+  lId      <- getOrMkList masterCorpusId masterUserId
+  _ <- saveDocNgramsWith lId mapNgramsDocs'
+
+  -- _cooc <- insertDefaultNode NodeListCooc lId masterUserId
+  pure ids'
+
+saveDocNgramsWith :: ( FlowCmdM env err m)
+                  => ListId
+                  -> HashMap ExtractedNgrams (Map NgramsType (Map NodeId Int))
+                  -> m ()
+saveDocNgramsWith lId mapNgramsDocs' = do
   terms2id <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
   let mapNgramsDocs = HashMap.mapKeys extracted2ngrams mapNgramsDocs'
 
@@ -287,10 +299,10 @@ insertMasterDocs c lang hs  =  do
   let indexedNgrams = HashMap.mapKeys (indexNgrams terms2id) mapNgramsDocs
 
   -- new
-  lId      <- getOrMkList masterCorpusId masterUserId
   mapCgramsId <- listInsertDb lId toNodeNgramsW'
                $ map (first _ngramsTerms . second Map.keys)
                $ HashMap.toList mapNgramsDocs
+
   -- insertDocNgrams
   _return <- insertNodeNodeNgrams2
            $ catMaybes [ NodeNodeNgrams2 <$> Just nId
@@ -300,11 +312,11 @@ insertMasterDocs c lang hs  =  do
                        , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
                        , (nId, w)                       <- Map.toList mapNodeIdWeight
                        ]
-
-  -- _cooc <- insertDefaultNode NodeListCooc lId masterUserId
   -- to be removed
   _   <- insertDocNgrams lId indexedNgrams
-  pure ids'
+
+  pure ()
+
 
 ------------------------------------------------------------------------
 -- TODO Type NodeDocumentUnicised

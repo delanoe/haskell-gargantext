@@ -11,6 +11,7 @@ Portability : POSIX
 
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MonoLocalBinds  #-}
 
 module Gargantext.API.Prelude
   ( module Gargantext.API.Prelude
@@ -30,10 +31,6 @@ import Crypto.JOSE.Error as Jose
 import Data.Aeson.Types
 import Data.Typeable
 import Data.Validity
-import Servant
-import Servant.Job.Async
-import Servant.Job.Core (HasServerError(..), serverError)
-
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Admin.Types
 import Gargantext.API.Ngrams.Types
@@ -42,6 +39,9 @@ import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (NodeError(..), HasNodeError(..))
 import Gargantext.Database.Query.Tree
 import Gargantext.Prelude
+import Servant
+import Servant.Job.Async
+import Servant.Job.Core (HasServerError(..), serverError)
 
 class HasJoseError e where
   _JoseError :: Prism' e Jose.Error

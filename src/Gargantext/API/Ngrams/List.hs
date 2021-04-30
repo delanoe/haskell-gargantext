@@ -27,18 +27,18 @@ import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams (getNgramsTableMap, setListNgrams)
 import Gargantext.API.Ngrams.Tools (getTermsWith)
-import Gargantext.API.Ngrams.Types (RepoCmdM, Versioned(..), NgramsList, NgramsTerm(..))
+import Gargantext.API.Ngrams.Types
 import Gargantext.API.Node.Corpus.New.File (FileType(..))
-import Gargantext.API.Prelude (GargServer, GargNoServer)
+import Gargantext.API.Prelude (GargServer)
+import Gargantext.Core.Text.Terms (ExtractedNgrams(..))
 import Gargantext.Core.Text.Terms.WithList (buildPatterns, termsInText)
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
+import Gargantext.Database.Action.Flow (saveDocNgramsWith)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
-import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Types.Hyperdata.Document
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Ngrams (insertNgrams)
 import Gargantext.Database.Query.Table.NodeNode (selectDocNodes)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
@@ -102,11 +102,14 @@ post l m  = do
 
 -----------------------------------------------------------------------------
 -- | Re-index documents of a corpus with new ngrams (called orphans here)
-reIndexWith :: CorpusId
+reIndexWith :: ( HasRepo env
+               , FlowCmdM env err m
+               )
+            => CorpusId
             -> ListId
             -> NgramsType
             -> Set ListType
-            -> GargNoServer ()
+            -> m ()
 reIndexWith cId lId nt lts = do
   -- Getting [NgramsTerm]
   ts <- List.concat
@@ -125,21 +128,16 @@ reIndexWith cId lId nt lts = do
                        Just n  -> if n == 1 then [t] else [ ]
                        ) ts
 
-  -- Getting the Id of orphan ngrams
-  mapTextNgramsId <- insertNgrams (map (text2ngrams . unNgramsTerm) orphans)
-
-  printDebug "orphans" orphans
-
   -- Get all documents of the corpus
   docs <- selectDocNodes cId
-
-  printDebug "docs length" (List.length docs)
 
   -- Checking Text documents where orphans match
   -- TODO Tests here
   let
-    ngramsByDoc =  List.concat
-               $  map (\doc -> List.zip
+    ngramsByDoc = HashMap.fromList
+                $ map (\(k,v) -> (SimpleNgrams (text2ngrams k), v))
+                $ List.concat
+                $  map (\doc -> List.zip
                                 (termsInText (buildPatterns $ map (\k -> ([unNgramsTerm k], [])) orphans)
                                              $ Text.unlines $ catMaybes
                                                [ doc ^. node_hyperdata . hd_title
@@ -152,12 +150,9 @@ reIndexWith cId lId nt lts = do
   printDebug "ngramsByDoc" ngramsByDoc
 
   -- Saving the indexation in database
-  _ <- insertDocNgrams lId ( HashMap.fromList
-                           $ catMaybes
-                           $ map (\(t,d) -> (,) <$> toIndexedNgrams mapTextNgramsId t
-                                                <*> Just d ) ngramsByDoc
-                           )
-  pure ()
+  _ <- saveDocNgramsWith lId ngramsByDoc
+
+  pure () -- ngramsByDoc
 
 toIndexedNgrams :: HashMap Text NgramsId -> Text -> Maybe (Indexed Int Ngrams)
 toIndexedNgrams m t = Indexed <$> i <*> n

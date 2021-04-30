@@ -138,8 +138,8 @@ type NodeSearchReadNull =
 
 data NodePolySearch id
                     typename
-                    userId
-                    parentId
+                    user_id
+                    parent_id
                     name
                     date
                     hyperdata

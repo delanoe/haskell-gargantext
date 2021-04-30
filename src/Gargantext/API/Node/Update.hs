@@ -118,13 +118,13 @@ updateNode _uId nid1 (LinkNodeReq nt nid2) logStatus = do
                , _scst_events    = Just []
                }
 
-updateNode _uId nId (UpdateNodeParamsList _mode) logStatus = do
+updateNode _uId lId (UpdateNodeParamsList _mode) logStatus = do
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
                    , _scst_remaining = Just 2
                    , _scst_events    = Just []
                    }
-  corpusId <- view node_parent_id <$> getNode nId
+  corpusId <- view node_parent_id <$> getNode lId
 
   logStatus JobLog { _scst_succeeded = Just 2
                    , _scst_failed    = Just 0
@@ -133,7 +133,7 @@ updateNode _uId nId (UpdateNodeParamsList _mode) logStatus = do
                    }
 
   _ <- case corpusId of
-    Just cId -> reIndexWith cId nId NgramsTerms (Set.singleton MapTerm)
+    Just cId -> reIndexWith cId lId NgramsTerms (Set.singleton MapTerm)
     Nothing  -> pure ()
 
   pure  JobLog { _scst_succeeded = Just 3
