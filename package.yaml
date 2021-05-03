@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.2.9.2'
+version: '0.0.2.9.3'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -66,7 +66,7 @@ library:
   - Gargantext.Database.Admin.Types.Node
   - Gargantext.Prelude
   - Gargantext.Prelude.Crypto.Pass.User
-  - Gargantext.Prelude.Utils
+  - Gargantext.Prelude.GargDB
   - Gargantext.Core.Text
   - Gargantext.Core.Text.Context
   - Gargantext.Core.Text.Corpus.Parsers

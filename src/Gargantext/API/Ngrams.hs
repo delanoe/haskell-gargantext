@@ -88,56 +88,51 @@ import Control.Concurrent
 import Control.Lens ((.~), view, (^.), (^..), (+~), (%~), (.~), sumOf, at, _Just, Each(..), (%%~), mapped, ifolded, withIndex)
 import Control.Monad.Reader
 import Data.Aeson hiding ((.=))
-import qualified Data.Aeson.Text as DAT
 import Data.Either (Either(..))
 import Data.Foldable
-import qualified Data.List as List
 import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-import qualified Data.Map.Strict.Patch as PM
 import Data.Maybe (fromMaybe)
 import Data.Monoid
 import Data.Ord (Down(..))
 import Data.Patch.Class (Action(act), Transformable(..), ours)
-import qualified Data.Set as S
-import qualified Data.Set as Set
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text, isInfixOf, unpack)
 import Data.Text.Lazy.IO as DTL
 import Formatting (hprint, int, (%))
-import Formatting.Clock (timeSpecs)
 import GHC.Generics (Generic)
-import Servant hiding (Patch)
-import System.Clock (getTime, TimeSpec, Clock(..))
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
-import System.IO (stderr)
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-
-import Prelude (error)
-import Gargantext.Prelude hiding (log)
-
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
-import qualified Gargantext.API.Metrics as Metrics
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid)
 import Gargantext.Core.Utils (something)
--- import Gargantext.Core.Viz.Graph.API (recomputeGraph)
--- import Gargantext.Core.Viz.Graph.Distances (Distance(Conditional))
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
+import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngramsType, ngrams_terms)
+import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.Select
-import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngramsType, ngrams_terms)
-import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
-import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Schema.Node (node_id, node_parentId, node_userId)
+import Gargantext.Prelude hiding (log)
 import Gargantext.Prelude.Job
+import Gargantext.Prelude.Clock (hasTime, getTime)
+import Prelude (error)
+import Servant hiding (Patch)
+import Servant.Job.Async (JobFunction(..), serveJobsAPI)
+import System.IO (stderr)
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import qualified Data.Aeson.Text as DAT
+import qualified Data.List as List
+import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict.Patch as PM
+import qualified Data.Set as S
+import qualified Data.Set as Set
+import qualified Gargantext.API.Metrics as Metrics
+import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 {-
 -- TODO sequences of modifications (Patchs)
@@ -476,9 +471,6 @@ type MaxSize = Int
 -- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
 -- TODO: should take only one ListId
 
-getTime' :: MonadBase IO m => m TimeSpec
-getTime' = liftBase $ getTime ProcessCPUTime
-
 
 getTableNgrams :: forall env err m.
                   (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
@@ -492,7 +484,7 @@ getTableNgrams :: forall env err m.
 getTableNgrams _nType nId tabType listId limit_ offset
                listType minSize maxSize orderBy searchQuery = do
 
-  t0 <- getTime'
+  t0 <- getTime
   -- lIds <- selectNodesWithUsername NodeList userMaster
   let
     ngramsType = ngramsTypeFromTabType tabType
@@ -546,14 +538,14 @@ getTableNgrams _nType nId tabType listId limit_ offset
     setScores False table = pure table
     setScores True  table = do
       let ngrams_terms = table ^.. each . ne_ngrams
-      t1 <- getTime'
+      t1 <- getTime
       occurrences <- getOccByNgramsOnlyFast' nId
                                              listId
                                             ngramsType
                                             ngrams_terms
-      t2 <- getTime'
+      t2 <- getTime
       liftBase $ hprint stderr
-        ("getTableNgrams/setScores #ngrams=" % int % " time=" % timeSpecs % "\n")
+        ("getTableNgrams/setScores #ngrams=" % int % " time=" % hasTime % "\n")
         (length ngrams_terms) t1 t2
       {-
       occurrences <- getOccByNgramsOnlySlow nType nId
@@ -574,7 +566,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
 
   let scoresNeeded = needsScores orderBy
   tableMap1 <- getNgramsTableMap listId ngramsType
-  t1 <- getTime'
+  t1 <- getTime
   tableMap2 <- tableMap1 & v_data %%~ setScores scoresNeeded
                                     . Map.mapWithKey ngramsElementFromRepo
 
@@ -582,16 +574,16 @@ getTableNgrams _nType nId tabType listId limit_ offset
                                                   . filteredNodes
   let fltrCount = length $ fltr ^. v_data . _NgramsTable
 
-  t2 <- getTime'
+  t2 <- getTime
   tableMap3 <- tableMap2 & v_data %%~ fmap NgramsTable
                                     . setScores (not scoresNeeded)
                                     . selectAndPaginate
-  t3 <- getTime'
+  t3 <- getTime
   liftBase $ hprint stderr
-            ("getTableNgrams total=" % timeSpecs
-                          % " map1=" % timeSpecs
-                          % " map2=" % timeSpecs
-                          % " map3=" % timeSpecs
+            ("getTableNgrams total=" % hasTime
+                          % " map1=" % hasTime
+                          % " map2=" % hasTime
+                          % " map3=" % hasTime
                           % " sql="  % (if scoresNeeded then "map2" else "map3")
                           % "\n"
             ) t0 t3 t0 t1 t1 t2 t2 t3

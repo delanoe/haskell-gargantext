@@ -70,7 +70,7 @@ localMetrics' m = Map.fromList $ zipWith (\(_,t) (inc,spe) -> (t, Vec.fromList [
                                           scores
   where
     (ti, fi) = createIndices m
-    (is, ss) = incExcSpeGen $ cooc2mat Triangular ti m
+    (is, ss) = incExcSpeGen $ cooc2mat Triangle ti m
     scores   = DAA.toList
              $ DAA.run
              $ DAA.zip (DAA.use is) (DAA.use ss)
@@ -82,7 +82,7 @@ scored' :: Ord t => Map (t,t) Int -> [Scored t]
 scored' m = zipWith (\(_,t) (inc,spe) -> Scored t inc spe) (Map.toList fi) scores
   where
     (ti, fi) = createIndices m
-    (is, ss) = incExcSpeGen $ cooc2mat Triangular ti m
+    (is, ss) = incExcSpeGen $ cooc2mat Triangle ti m
     scores   = DAA.toList
              $ DAA.run
              $ DAA.zip (DAA.use is) (DAA.use ss)

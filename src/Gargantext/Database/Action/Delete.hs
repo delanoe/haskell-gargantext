@@ -33,7 +33,7 @@ import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
-import qualified Gargantext.Prelude.Utils as GPU
+import qualified Gargantext.Prelude.GargDB as GargDB
 
 ------------------------------------------------------------------------
 
@@ -53,7 +53,7 @@ deleteNode u nodeId = do
     nt | nt == toDBid NodeFile -> do
       node <- getNodeWith nodeId (Proxy :: Proxy HyperdataFile)
       let (HyperdataFile { _hff_path = path }) = node ^. node_hyperdata
-      GPU.rmFile $ unpack path
+      GargDB.rmFile $ unpack path
       N.deleteNode nodeId
     _                             -> N.deleteNode nodeId
    

@@ -57,8 +57,8 @@ cooc2graph' distance threshold myCooc
     $ mat2map
     $ measure distance
     $ case distance of
-        Conditional    -> map2mat Triangular 0 tiSize
-        Distributional -> map2mat Square     0 tiSize
+        Conditional    -> map2mat Triangle 0 tiSize
+        Distributional -> map2mat Square   0 tiSize
     $ Map.filter (> 1) myCooc'
 
      where
@@ -85,7 +85,7 @@ cooc2graph'' distance threshold myCooc = neighbouMap
   where
     (ti, _) = createIndices myCooc
     myCooc' = toIndex ti myCooc
-    matCooc = map2mat Triangular 0 (Map.size ti) $ Map.filter (> 1) myCooc'
+    matCooc = map2mat Triangle 0 (Map.size ti) $ Map.filter (> 1) myCooc'
     distanceMat = measure distance matCooc
     neighbouMap = filterByNeighbours threshold
                 $ mat2map distanceMat
@@ -125,7 +125,7 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
     tiSize  = Map.size ti
     myCooc' = toIndex ti theMatrix
     matCooc = case distance of  -- Shape of the Matrix
-                Conditional    -> map2mat Triangular 0 tiSize
+                Conditional    -> map2mat Triangle 0 tiSize
                 Distributional -> map2mat Square     0 tiSize
             $ case distance of   -- Removing the Diagonal ?
                 Conditional     -> Map.filterWithKey (\(a,b) _ -> a /= b)

@@ -48,18 +48,13 @@ toTermList lt nt nl = toTermList' lt <$> Map.lookup nt nl
         (roots, children) = List.partition (\(_t, nre) -> view nre_root nre == Nothing)
                           $ List.filter (\(_t,nre) -> view nre_list nre == lt'') ns
 
-        roots'    = catMaybes
-                   $ map (\(t,nre) -> (,) <$> Just t
-                                           <*> Just (map toTerm $ unMSet 
-                                                                $ view nre_children nre
-                                                    )
-                         ) roots
+        roots'    = map (\(t,nre) -> (t, map toTerm $ unMSet $ view nre_children nre )) roots
 
         children' = catMaybes
                   $ map (\(t,nre) -> (,) <$> view nre_root nre
-                                          <*> Just (map toTerm $ [t] 
-                                                              <> (unMSet $ view nre_children nre)
-                                                   )
+                                         <*> Just (map toTerm $ [t] 
+                                                             <> (unMSet $ view nre_children nre)
+                                                  )
                         ) children 
 
 ------------------------------------------
@@ -68,4 +63,3 @@ patchMSet_toList = HM.toList . unPatchMapToHashMap . unPatchMSet
 
 unMSet :: MSet a -> [a]
 unMSet (MSet a) = Map.keys a
-

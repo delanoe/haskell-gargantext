@@ -22,7 +22,7 @@ import Data.Text (Text)
 import Data.String (String)
 import Control.Monad
 import Control.Monad.Random
-import Data.List hiding (sum)
+import qualified Data.List as List
 
 -- | 2) Easy password manager imports
 import Gargantext.Prelude
@@ -35,7 +35,7 @@ import Gargantext.Prelude.Utils (shuffle)
 gargPass :: MonadRandom m => m Text
 gargPass = cs <$> gargPass' chars 33
   where
-    chars = zipWith (\\) charSets visualySimilar
+    chars = zipWith (List.\\) charSets visualySimilar
 
     charSets = [ ['a'..'z']
                , ['A'..'Z']
@@ -49,7 +49,7 @@ gargPass' :: MonadRandom m => [String] -> Int -> m String
 gargPass' charSets n = do
   parts <- getPartition n
   chars <- zipWithM replicateM parts (uniform <$> charSets)
-  shuffle' (concat chars)
+  shuffle' (List.concat chars)
   where
     getPartition n' = adjust <$> replicateM (k-1) (getRandomR (1, n' `div` k))
     k = length charSets
@@ -59,7 +59,7 @@ shuffle' :: (Eq a, MonadRandom m) => [a] -> m [a]
 shuffle' [] = pure []
 shuffle' lst = do
   x <- uniform lst
-  xs <- shuffle (delete x lst)
+  xs <- shuffle (List.delete x lst)
   return (x : xs)
 
 
@@ -84,5 +84,5 @@ getRandomIndex list = randomRIO (0, (length list - 1))
 getRandomElement :: [b] -> IO b
 getRandomElement list = do
   index <- (getRandomIndex list)
-  pure (list !! index)
+  pure (list List.!! index)
 

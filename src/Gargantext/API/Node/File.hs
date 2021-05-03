@@ -6,24 +6,14 @@
 module Gargantext.API.Node.File where
 
 import Control.Lens ((^.))
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.MIME.Types as DMT
 import Data.Swagger
 import Data.Text
 import GHC.Generics (Generic)
-import qualified Network.HTTP.Media as M
-import Servant
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
-
-import Gargantext.Prelude
-import qualified Gargantext.Prelude.Utils as GPU
-
-import Gargantext.Core.Types (TODO)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node.Types
 import Gargantext.API.Prelude
+import Gargantext.Core.Types (TODO)
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Admin.Types.Hyperdata.File
@@ -31,6 +21,14 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
+import Gargantext.Prelude
+import Servant
+import Servant.Job.Async (JobFunction(..), serveJobsAPI)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.MIME.Types as DMT
+import qualified Gargantext.Prelude.GargDB as GargDB
+import qualified Network.HTTP.Media as M
 
 data RESPONSE deriving Typeable
 
@@ -49,7 +47,7 @@ fileApi uId nId = fileDownload uId nId
 
 newtype Contents = Contents BS.ByteString
 
-instance GPU.ReadFile Contents where
+instance GargDB.ReadFile Contents where
   readFile' fp = do
     c <- BS.readFile fp
     pure $ Contents c
@@ -72,7 +70,7 @@ fileDownload uId nId = do
   let (HyperdataFile { _hff_name = name'
                      , _hff_path = path }) = node ^. node_hyperdata
 
-  Contents c <- GPU.readFile $ unpack path
+  Contents c <- GargDB.readFile $ unpack path
 
   let (mMime, _) = DMT.guessType DMT.defaultmtd False $ unpack name'
       mime = case mMime of
@@ -121,7 +119,7 @@ addWithFile uId nId nwf@(NewWithFile _d _l fName) logStatus = do
                    , _scst_events    = Just []
                    }
 
-  fPath <- GPU.writeFile nwf
+  fPath <- GargDB.writeFile nwf
   printDebug "[addWithFile] File saved as: " fPath
 
   nIds <- mkNodeWithParent NodeFile (Just nId) uId fName

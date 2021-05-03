@@ -28,7 +28,7 @@ import Gargantext.Core
 import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils
+import Gargantext.Prelude.GargDB
 
 ------------------------------------------------------------------------
 train :: Double -> Double -> SVM.Problem -> IO SVM.Model
