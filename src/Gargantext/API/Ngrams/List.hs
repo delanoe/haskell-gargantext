@@ -130,13 +130,13 @@ reIndexWith cId lId nt lts = do
 
   -- Get all documents of the corpus
   docs <- selectDocNodes cId
+  
 
   -- Checking Text documents where orphans match
   -- TODO Tests here
   let
-    ngramsByDoc = HashMap.fromList
-                $ map (\(k,v) -> (SimpleNgrams (text2ngrams k), v))
-                $ List.concat
+    ngramsByDoc = map (HashMap.fromList)
+                $ map (map (\(k,v) -> (SimpleNgrams (text2ngrams k), v)))
                 $  map (\doc -> List.zip
                                 (termsInText (buildPatterns $ map (\k -> ([unNgramsTerm k], [])) orphans)
                                              $ Text.unlines $ catMaybes
@@ -150,7 +150,7 @@ reIndexWith cId lId nt lts = do
   printDebug "ngramsByDoc" ngramsByDoc
 
   -- Saving the indexation in database
-  _ <- saveDocNgramsWith lId ngramsByDoc
+  _ <- mapM (saveDocNgramsWith lId) ngramsByDoc
 
   pure () -- ngramsByDoc
 

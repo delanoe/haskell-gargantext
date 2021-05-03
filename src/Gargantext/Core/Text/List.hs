@@ -104,20 +104,9 @@ buildNgramsOthersList user uCid _groupParams (nt, MapListSize mapListSize) = do
                                                       $ List.zip (HashMap.keys allTerms)
                                                                  (List.cycle [mempty])
                                            )
-{-
-  if nt == Sources -- Authors
-     then printDebug "flowSocialList" socialLists
-     else printDebug "flowSocialList" ""
--}
   let
     groupedWithList = toGroupedTree {- groupParams -} socialLists allTerms
-{-
-  if nt == Sources -- Authors
-     then printDebug "groupedWithList" groupedWithList
-     else printDebug "groupedWithList" ""
--}
 
-  let
     (stopTerms, tailTerms) = HashMap.partition ((== Just StopTerm) . viewListType)
                            $ view flc_scores groupedWithList
 
@@ -129,10 +118,10 @@ buildNgramsOthersList user uCid _groupParams (nt, MapListSize mapListSize) = do
                             $ List.sortOn (Down . viewScore . snd)
                             $ HashMap.toList tailTerms'
 
-  pure $ Map.fromList [( nt,  (toNgramsElement stopTerms)
-                             <> (toNgramsElement mapTerms )
-                             <> (toNgramsElement $ setListType (Just MapTerm      ) mapTerms' )
-                             <> (toNgramsElement $ setListType (Just CandidateTerm) candiTerms)
+  pure $ Map.fromList [( nt, (toNgramsElement stopTerms)
+                          <> (toNgramsElement mapTerms )
+                          <> (toNgramsElement $ setListType (Just MapTerm      ) mapTerms' )
+                          <> (toNgramsElement $ setListType (Just CandidateTerm) candiTerms)
                           )]
 
 
@@ -147,7 +136,6 @@ getGroupParams gp@(GroupWithPosTag l a _m) ng = do
   -- printDebug "hashMap" hashMap
   pure $ over gwl_map (\x -> x <> hashMap) gp
 getGroupParams gp _ = pure gp
-
 
 
 -- TODO use ListIds
@@ -178,18 +166,19 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
   let ngramsKeys = HashMap.keysSet allTerms
 
   groupParams' <- getGroupParams groupParams (HashSet.map (text2ngrams . unNgramsTerm) ngramsKeys)
-  let socialLists_Stemmed = addScoreStem groupParams' ngramsKeys socialLists
+
+  let
+    socialLists_Stemmed = addScoreStem groupParams' ngramsKeys socialLists
   --printDebug "socialLists_Stemmed" socialLists_Stemmed
-  let groupedWithList = toGroupedTree socialLists_Stemmed allTerms
-      (stopTerms, candidateTerms) = HashMap.partition ((== Just StopTerm) . viewListType)
+    groupedWithList = toGroupedTree socialLists_Stemmed allTerms
+    (stopTerms, candidateTerms) = HashMap.partition ((== Just StopTerm) . viewListType)
                                   $ view flc_scores groupedWithList
 
-      (groupedMono, groupedMult)  = HashMap.partitionWithKey (\(NgramsTerm t) _v -> size t < 2) candidateTerms
+    (groupedMono, groupedMult)  = HashMap.partitionWithKey (\(NgramsTerm t) _v -> size t < 2) candidateTerms
 
   -- printDebug "stopTerms" stopTerms
 
   -- splitting monterms and multiterms to take proportional candidates
-  let
     -- use % of list if to big, or Int if too small
     listSizeGlobal = 2000 :: Double
     monoSize = 0.4  :: Double
@@ -208,10 +197,9 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
     selectedTerms = Set.toList $ hasTerms (groupedMonoHead <> groupedMultHead)
  
 
- -- TO remove (and remove HasNodeError instance)
+ -- TODO remove (and remove HasNodeError instance)
   userListId    <- defaultList uCid
   masterListId  <- defaultList mCid
-
 
   mapTextDocIds <- getNodesByNgramsOnlyUser uCid
                                             [userListId, masterListId]
@@ -220,11 +208,15 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
   let
     groupedTreeScores_SetNodeId :: HashMap NgramsTerm (GroupedTreeScores (Set NodeId))
-    groupedTreeScores_SetNodeId = setScoresWithMap mapTextDocIds (groupedMonoHead <> groupedMultHead)
+    groupedTreeScores_SetNodeId = HashMap.filter (\g -> Set.size (view gts'_score g) > 1) -- removing hapax
+                                $ setScoresWithMap mapTextDocIds (groupedMonoHead <> groupedMultHead)
+
+
+  printDebug "groupedTreeScores_SetNodeId" groupedTreeScores_SetNodeId
 
   -- | Coocurrences computation
   --, t1 >= t2 -- permute byAxis diag  -- since matrix symmetric
-  let mapCooc = HashMap.filter (>2)
+  let mapCooc = HashMap.filter (>1) -- removing cooc of 1
               $ HashMap.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
                            | (t1, s1) <- mapStemNodeIds
                            , (t2, s2) <- mapStemNodeIds
@@ -245,10 +237,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
   let
     groupedTreeScores_SpeGen :: HashMap NgramsTerm (GroupedTreeScores (Scored NgramsTerm))
-    groupedTreeScores_SpeGen = setScoresWithMap (mapScores identity)
-                                                (  groupedMonoHead
-                                                <> groupedMultHead
-                                                )
+    groupedTreeScores_SpeGen = setScoresWithMap (mapScores identity) groupedTreeScores_SetNodeId
 
   let
     -- sort / partition / split
