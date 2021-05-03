@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PGVersion=11
+PGVersion=13
 GARGDATA=/srv/gargantua/gargandata
 sudo mkdir -vp ${GARGDATA}
 sudo apt install rsync
