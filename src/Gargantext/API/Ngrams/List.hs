@@ -117,20 +117,24 @@ reIndexWith cId lId nt lts = do
      <$> HashMap.toList
      <$> getTermsWith identity [lId] nt lts
   
-  --printDebug "ts" ts
+  -- printDebug "ts" ts
 
   -- Taking the ngrams with 0 occurrences only (orphans)
   occs <- getOccByNgramsOnlyFast' cId lId nt ts
 
+  -- printDebug "occs" occs
+
   let orphans = List.concat 
               $ map (\t -> case HashMap.lookup t occs of
                        Nothing -> [t]
-                       Just n  -> if n == 1 then [t] else [ ]
+                       Just n  -> if n <= 1 then [t] else [ ]
                        ) ts
+
+  -- printDebug "orphans" orphans
 
   -- Get all documents of the corpus
   docs <- selectDocNodes cId
-  
+  -- printDebug "docs length" (List.length docs)
 
   -- Checking Text documents where orphans match
   -- TODO Tests here
@@ -147,7 +151,7 @@ reIndexWith cId lId nt lts = do
                                 (List.cycle [Map.fromList $ [(nt, Map.singleton (doc ^. node_id) 1 )]])
                         ) docs
 
-  printDebug "ngramsByDoc" ngramsByDoc
+  -- printDebug "ngramsByDoc" ngramsByDoc
 
   -- Saving the indexation in database
   _ <- mapM (saveDocNgramsWith lId) ngramsByDoc
