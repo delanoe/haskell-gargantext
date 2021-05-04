@@ -172,7 +172,8 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
   --printDebug "socialLists_Stemmed" socialLists_Stemmed
     groupedWithList = toGroupedTree socialLists_Stemmed allTerms
     (stopTerms, candidateTerms) = HashMap.partition ((== Just StopTerm) . viewListType)
-                                  $ view flc_scores groupedWithList
+                                $ HashMap.filter (\g -> (view gts'_score g) > 1)
+                                $ view flc_scores groupedWithList
 
     (groupedMono, groupedMult)  = HashMap.partitionWithKey (\(NgramsTerm t) _v -> size t < 2) candidateTerms
 
@@ -270,6 +271,8 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
     multExc_size = splitAt' $ multSize * exclSize / 2
     (multScoredInclHead, multScoredInclTail) = multExc_size $ (sortOn scored_genInc) multScoredIncl
     (multScoredExclHead, multScoredExclTail) = multExc_size $ (sortOn scored_speExc) multScoredExcl
+
+  printDebug "stopWords" stopTerms
 
 ------------------------------------------------------------
     -- Final Step building the Typed list
