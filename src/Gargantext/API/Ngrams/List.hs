@@ -142,7 +142,7 @@ reIndexWith cId lId nt lts = do
     ngramsByDoc = map (HashMap.fromList)
                 $ map (map (\(k,v) -> (SimpleNgrams (text2ngrams k), v)))
                 $  map (\doc -> List.zip
-                                (termsInText (buildPatterns $ map (\k -> ([unNgramsTerm k], [])) orphans)
+                                (termsInText (buildPatterns $ map (\k -> (Text.splitOn " " $ unNgramsTerm k, [])) orphans)
                                              $ Text.unlines $ catMaybes
                                                [ doc ^. node_hyperdata . hd_title
                                                , doc ^. node_hyperdata . hd_abstract
