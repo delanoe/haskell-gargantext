@@ -120,11 +120,13 @@ branchToDotNode b bId =
             , toAttr "label"    (pack $ show $ b ^. branch_label)
             ])
  
-periodToDotNode :: (Date,Date) -> Dot DotId
-periodToDotNode prd =
+periodToDotNode :: (Date,Date) -> (Text.Text,Text.Text) -> Dot DotId
+periodToDotNode prd prd' =
     node (periodIdToDotId prd)
          ([Shape BoxShape, FontSize 50, Label (toDotLabel $ Text.pack (show (fst prd) <> " " <> show (snd prd)))]
-         <> [ toAttr "nodeType" "period" 
+         <> [ toAttr "nodeType" "period"
+            , toAttr "strFrom" (fromStrict $ Text.pack $ (show $ fst prd'))
+            , toAttr "strTo"   (fromStrict $ Text.pack $ (show $ snd prd'))          
             , toAttr "from" (fromStrict $ Text.pack $ (show $ fst prd))
             , toAttr "to"   (fromStrict $ Text.pack $ (show $ snd prd))])
 
@@ -136,9 +138,13 @@ groupToDotNode fdt g bId =
                       <> [ toAttr "nodeType" "group"
                          , toAttr "from" (pack $ show (fst $ g ^. phylo_groupPeriod))
                          , toAttr "to"   (pack $ show (snd $ g ^. phylo_groupPeriod))
+                         , toAttr "strFrom" (pack $ show (fst $ g ^. phylo_groupPeriod'))
+                         , toAttr "strTo"   (pack $ show (snd $ g ^. phylo_groupPeriod'))                         
                          , toAttr "branchId" (pack $ unwords (init $ map show $ snd $ g ^. phylo_groupBranchId))
                          , toAttr "bId" (pack $ show bId)
                          , toAttr "support" (pack $ show (g ^. phylo_groupSupport))
+                         , toAttr "weight" (pack $ show (g ^. phylo_groupWeight))
+                         , toAttr "source" (pack $ show (nub $ g ^. phylo_groupSources))
                          , toAttr "lbl" (pack $ show (ngramsToLabel fdt (g ^. phylo_groupNgrams)))
                          , toAttr "foundation" (pack $ show (idxToLabel (g ^. phylo_groupNgrams)))
                          , toAttr "role" (pack $ show (idxToLabel' ((g ^. phylo_groupMeta) ! "dynamics")))
@@ -193,6 +199,8 @@ exportToDot phylo export =
                      ,(toAttr (fromStrict "phyloPeriods") $ pack $ show (length $ elems $ phylo ^. phylo_periods))
                      ,(toAttr (fromStrict "phyloBranches") $ pack $ show (length $ export ^. export_branches))
                      ,(toAttr (fromStrict "phyloGroups") $ pack $ show (length $ export ^. export_groups))
+                     ,(toAttr (fromStrict "phyloSources") $ pack $ show (Vector.toList $ getSources phylo))
+                     ,(toAttr (fromStrict "phyloTimeScale") $ pack $ getTimeScale phylo)
                      -- ,(toAttr (fromStrict "phyloTermsFreq") $ pack $ show (toList $ _phylo_lastTermFreq phylo))
                      ])
 
@@ -217,13 +225,13 @@ exportToDot phylo export =
 
         {--  5) create a layer for each period -}
         _ <- mapM (\period ->
-                subgraph ((Str . fromStrict . Text.pack) $ ("Period" <> show (fst period) <> show (snd period))) $ do 
+                subgraph ((Str . fromStrict . Text.pack) $ ("Period" <> show (fst $ _phylo_periodPeriod period) <> show (snd $ _phylo_periodPeriod period))) $ do 
                     graphAttrs [Rank SameRank]
-                    periodToDotNode period
+                    periodToDotNode (period ^. phylo_periodPeriod) (period ^. phylo_periodPeriod')
 
                     {--  6) create a node for each group -}
-                    mapM (\g -> groupToDotNode (getRoots phylo) g (toBid g (export ^. export_branches))) (filter (\g -> g ^. phylo_groupPeriod == period) $ export ^. export_groups)
-            ) $ getPeriodIds phylo
+                    mapM (\g -> groupToDotNode (getRoots phylo) g (toBid g (export ^. export_branches))) (filter (\g -> g ^. phylo_groupPeriod == (period ^. phylo_periodPeriod)) $ export ^. export_groups)
+            ) $ phylo ^. phylo_periods
 
         {--  7) create the edges between a branch and its first groups -}
         _ <- mapM (\(bId,groups) ->

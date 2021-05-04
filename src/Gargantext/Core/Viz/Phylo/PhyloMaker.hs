@@ -14,6 +14,7 @@ module Gargantext.Core.Viz.Phylo.PhyloMaker where
 import Data.List (concat, nub, partition, sort, (++), group, intersect, null, sortOn, groupBy, tail)
 import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, foldlWithKey, insert)
 import Data.Vector (Vector)
+import Data.Text (Text)
 
 import Gargantext.Prelude
 import Gargantext.Core.Viz.AdaptativePhylo
@@ -21,7 +22,7 @@ import Gargantext.Core.Viz.Phylo.PhyloTools
 import Gargantext.Core.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching, getNextPeriods, filterDocs, filterDiago, reduceDiagos, toProximity)
 import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
 import Gargantext.Core.Text.Context (TermList)
-import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
+import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, fisWithSizePolyMap', Size(..))
 import Gargantext.Core.Methods.Graph.MaxClique (getMaxCliques)
 import Gargantext.Core.Methods.Distances (Distance(Conditional))
 import Gargantext.Core.Viz.Phylo.PhyloExport (toHorizon)
@@ -104,7 +105,7 @@ toGroupsProxi lvl phylo =
    in phylo & phylo_groupsProxi .~ ((traceGroupsProxi . fromList) groupsProxi) 
 
 
-appendGroups :: (a -> PhyloPeriodId -> Level -> Int -> [Cooc] -> PhyloGroup) -> Level -> Map (Date,Date) [a] -> Phylo -> Phylo
+appendGroups :: (a -> PhyloPeriodId -> (Text,Text) -> Level -> Int -> [Cooc] -> PhyloGroup) -> Level -> Map (Date,Date) [a] -> Phylo -> Phylo
 appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ concat $ elems m) <> " groups to Level " <> show (lvl) <> "\n")
     $ over ( phylo_periods
            .  traverse
@@ -112,12 +113,13 @@ appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ co
            .  traverse)
            (\phyloLvl -> if lvl == (phyloLvl ^. phylo_levelLevel)
                          then
-                            let pId = phyloLvl ^. phylo_levelPeriod
+                            let pId  = phyloLvl ^. phylo_levelPeriod
+                                pId' = phyloLvl ^. phylo_levelPeriod' 
                                 phyloCUnit = m ! pId
                             in  phyloLvl 
                               & phylo_levelGroups .~ (fromList $ foldl (\groups obj ->
                                     groups ++ [ (((pId,lvl),length groups)
-                                              , f obj pId lvl (length groups)
+                                              , f obj pId pId' lvl (length groups)
                                                   (elems $ restrictKeys (phylo ^. phylo_timeCooc) $ periodsToYears [pId]))
                                               ] ) [] phyloCUnit)
                          else 
@@ -125,9 +127,11 @@ appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ co
            phylo  
 
 
-cliqueToGroup :: PhyloClique -> PhyloPeriodId -> Level ->  Int -> [Cooc] -> PhyloGroup
-cliqueToGroup fis pId lvl idx coocs = PhyloGroup pId lvl idx ""
+cliqueToGroup :: PhyloClique -> PhyloPeriodId -> (Text,Text) -> Level ->  Int -> [Cooc] -> PhyloGroup
+cliqueToGroup fis pId pId' lvl idx coocs = PhyloGroup pId pId' lvl idx ""
                    (fis ^. phyloClique_support)
+                   (fis ^. phyloClique_weight)
+                   (fis ^. phyloClique_sources)
                    (fis ^. phyloClique_nodes)
                    (ngramsToCooc (fis ^. phyloClique_nodes) coocs)
                    (1,[0]) -- branchid (lvl,[path in the branching tree])
@@ -142,14 +146,27 @@ toPhylo1 phyloStep = case (getSeaElevation phyloStep) of
 
 -----------------------
 -- | To Phylo Step | --
------------------------
+-----------------------    
+
+
+indexDates' :: Map (Date,Date) [Document] -> Map (Date,Date) (Text,Text)  
+indexDates' m = map (\docs -> 
+  let ds = map (\d -> date' d) docs
+      f = if (null ds)
+            then ""
+            else toFstDate ds
+      l = if (null ds) 
+            then ""
+            else toLstDate ds
+   in (f,l)) m
 
 
 -- To build the first phylo step from docs and terms
 toPhyloStep :: [Document] -> TermList -> Config -> Phylo
 toPhyloStep docs lst conf = case (getSeaElevation phyloBase) of 
-    Constante  _ _ -> appendGroups cliqueToGroup 1 phyloClique phyloBase
-    Adaptative _   -> toGroupsProxi 1 $ appendGroups cliqueToGroup 1 phyloClique phyloBase
+    Constante  _ _ -> appendGroups cliqueToGroup 1 phyloClique (updatePeriods (indexDates' docs') phyloBase)
+    Adaptative _   -> toGroupsProxi 1 
+                    $ appendGroups cliqueToGroup 1 phyloClique (updatePeriods (indexDates' docs') phyloBase)
     where
         --------------------------------------
         phyloClique :: Map (Date,Date) [PhyloClique]
@@ -217,8 +234,14 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
         phyloClique = case (clique $ getConfig phylo) of 
           Fis _ _     ->  
                       let fis  = map (\(prd,docs) -> 
-                                  let lst = toList $ fisWithSizePolyMap (Segment 1 20) 1 (map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs)
-                                   in (prd, map (\f -> PhyloClique (Set.toList $ fst f) (snd f) prd) lst))
+                                      case (corpusParser $ getConfig phylo) of
+                                        Csv' _  -> let lst = toList 
+                                                                  $ fisWithSizePolyMap' (Segment 1 20) 1 (map (\d -> (ngramsToIdx (text d) (getRoots phylo), (weight d, (sourcesToIdx (sources d) (getSources phylo))))) docs)
+                                                           in (prd, map (\f -> PhyloClique (Set.toList $ fst f) ((fst . snd) f) prd ((fst . snd . snd) f) (((snd . snd . snd) f))) lst)
+                                        _  -> let lst = toList 
+                                                      $ fisWithSizePolyMap (Segment 1 20) 1 (map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs)
+                                              in (prd, map (\f -> PhyloClique (Set.toList $ fst f) (snd f) prd Nothing []) lst)
+                                      )
                                $ toList phyloDocs
                           fis' = fis `using` parList rdeepseq
                        in fromList fis'
@@ -228,7 +251,7 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
                                              $ foldl sumCooc empty
                                              $ map listToMatrix 
                                              $ map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs
-                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques filterType Conditional thr cooc)) 
+                                     in (prd, map (\cl -> PhyloClique cl 0 prd Nothing []) $ getMaxCliques filterType Conditional thr cooc)) 
                                $ toList phyloDocs
                           mcl' = mcl `using` parList rdeepseq                               
                        in fromList mcl' 
@@ -335,17 +358,20 @@ docsToTimeScaleNb docs =
 
 initPhyloLevels :: Int -> PhyloPeriodId -> Map PhyloLevelId PhyloLevel
 initPhyloLevels lvlMax pId = 
-    fromList $ map (\lvl -> ((pId,lvl),PhyloLevel pId lvl empty)) [1..lvlMax]
+    fromList $ map (\lvl -> ((pId,lvl),PhyloLevel pId ("","") lvl empty)) [1..lvlMax]
+
 
 
 --  To init the basic elements of a Phylo
 toPhyloBase :: [Document] -> TermList -> Config -> Phylo
 toPhyloBase docs lst conf = 
     let foundations  = PhyloFoundations (Vector.fromList $ nub $ concat $ map text docs) lst
+        docsSources  = PhyloSources     (Vector.fromList $ nub $ concat $ map sources docs)
         params = defaultPhyloParam { _phyloParam_config = conf }
         periods = toPeriods (sort $ nub $ map date docs) (getTimePeriod $ timeUnit conf) (getTimeStep $ timeUnit conf)
     in trace ("\n" <> "-- | Create PhyloBase out of " <> show(length docs) <> " docs \n") 
        $ Phylo foundations
+               docsSources
                (docsToTimeScaleCooc docs (foundations ^. foundations_roots))
                (docsToTimeScaleNb docs)
                (docsToTermFreq docs (foundations ^. foundations_roots))
@@ -353,4 +379,4 @@ toPhyloBase docs lst conf =
                empty
                empty
                params
-               (fromList $ map (\prd -> (prd, PhyloPeriod prd (initPhyloLevels 1 prd))) periods)
+               (fromList $ map (\prd -> (prd, PhyloPeriod prd ("","") (initPhyloLevels 1 prd))) periods)

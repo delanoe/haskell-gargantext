@@ -21,6 +21,7 @@ module Gargantext.Core.Text.Metrics.FrequentItemSet
   , fisWithSizePoly
   , fisWithSizePoly2
   , fisWithSizePolyMap
+  , fisWithSizePolyMap'
   , module HLCM
   )
   where
@@ -34,6 +35,8 @@ import HLCM
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.Vector as V
+
+import Control.Monad (sequence)
 
 data Size = Point Int | Segment Int Int
 
@@ -116,6 +119,28 @@ fisWithSizePolyMap :: Ord a => Size -> Frequency -> [[a]] -> Map (Set a) Int
 fisWithSizePolyMap n f is =
   Map.fromList $ (\i -> (Set.fromList (_fisItemSet i), _fisCount i)) <$> fisWithSizePoly2 n f is
 
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+
+---- Weighted [[Item]]
+
+isSublistOf :: Ord a => [a] -> [a] -> Bool
+isSublistOf sub lst = all (\i -> elem i lst) sub
+
+reIndexFis :: Ord a => [([a],(b,c))] -> [Fis' a] -> [(Fis' a,([b],[c]))]
+reIndexFis items fis = map (\f -> 
+    let docs = filter (\(lst,_) -> isSublistOf (_fisItemSet f) lst) items
+     in (f, (map (fst . snd) docs,map (snd . snd) docs))) fis
+
+wsum :: [Maybe Double] -> Maybe Double
+wsum lst = fmap sum $ sequence lst  
+
+fisWithSizePolyMap' :: Ord a => Size -> Frequency -> [([a], (Maybe Double,[Int]))] -> Map (Set a) (Int, (Maybe Double,[Int]))
+fisWithSizePolyMap' n f is = Map.fromList
+  $ map (\(fis,(ws,sources)) -> (Set.fromList (_fisItemSet fis),(_fisCount fis,(wsum ws,concat sources))))
+  $ reIndexFis is 
+  $ fisWithSizePoly2 n f (map fst is)
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

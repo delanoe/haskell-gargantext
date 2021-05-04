@@ -330,7 +330,8 @@ executables:
       - optparse-generic
       - split
       - unordered-containers
-      - cryptohash   
+      - cryptohash  
+      - time 
 
   gargantext-import:
     main: Main.hs
