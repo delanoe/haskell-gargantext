@@ -54,6 +54,7 @@ library:
   - Gargantext.API.Ngrams
   - Gargantext.API.Ngrams.Tools
   - Gargantext.API.Ngrams.Types
+  - Gargantext.API.Ngrams.Prelude
   - Gargantext.API.Admin.Settings
   - Gargantext.API.Admin.EnvTypes
   - Gargantext.API.Admin.Types
@@ -73,6 +74,7 @@ library:
   - Gargantext.Database.Query.Table.Node
   - Gargantext.Database.Query.Table.Node.UpdateOpaleye
   - Gargantext.Database.Query.Table.NgramsPostag
+  - Gargantext.Database.Schema.Ngrams
   - Gargantext.Database.Prelude
   - Gargantext.Database.Admin.Trigger.Init
   - Gargantext.Database.Admin.Config

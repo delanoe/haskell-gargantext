@@ -13,7 +13,7 @@ Portability : POSIX
 module Gargantext.Core.Viz.Phylo.PhyloTools where
 
 import Control.Lens hiding (Level)
-import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition, tails, nubBy, group)
+import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition, tails, nubBy, group, notElem)
 import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty, restrictKeys)
 import Data.Set (Set, disjoint)
 import Data.String (String)
@@ -36,9 +36,9 @@ import qualified Data.Vector as Vector
 
 -- | To print an important message as an IO()
 printIOMsg :: String -> IO ()
-printIOMsg msg = 
+printIOMsg msg =
     putStrLn ( "\n"
-            <> "------------" 
+            <> "------------"
             <> "\n"
             <> "-- | " <> msg <> "\n" )
 
@@ -59,13 +59,13 @@ printIOComment cmt =
 
 truncate' :: Double -> Int -> Double
 truncate' x n = (fromIntegral $ (floor (x * t) :: Int)) / t
-    where 
+    where
         --------------
         t :: Double
         t = 10 ^n
 
 getInMap :: Int -> Map Int Double -> Double
-getInMap k m = 
+getInMap k m =
     if (member k m)
         then m ! k
         else 0
@@ -140,15 +140,15 @@ periodsToYears periods = (Set.fromList . sort . concat)
 
 
 findBounds :: [Date] -> (Date,Date)
-findBounds dates = 
+findBounds dates =
     let dates' = sort dates
     in  (head' "findBounds" dates', last' "findBounds" dates')
 
 
 toPeriods :: [Date] -> Int -> Int -> [(Date,Date)]
-toPeriods dates p s = 
+toPeriods dates p s =
     let (start,end) = findBounds dates
-    in map (\dates' -> (head' "toPeriods" dates', last' "toPeriods" dates')) 
+    in map (\dates' -> (head' "toPeriods" dates', last' "toPeriods" dates'))
      $ chunkAlong p s [start .. end]
 
 
@@ -156,8 +156,8 @@ toFstDate :: [Text] -> Text
 toFstDate ds = snd
              $ head' "firstDate"
              $ sortOn fst
-             $ map (\d -> 
-                      let d' = read (filter (\c -> c /= '-') $ unpack d)::Int
+             $ map (\d ->
+                      let d' = read (filter (\c -> notElem c ['U','T','C',' ',':','-']) $ unpack d)::Int
                        in (d',d)) ds
 
 toLstDate :: [Text] -> Text
@@ -165,46 +165,50 @@ toLstDate ds = snd
              $ head' "firstDate"
              $ reverse
              $ sortOn fst
-             $ map (\d -> 
-                      let d' = read (filter (\c -> c /= '-') $ unpack d)::Int
-                       in (d',d)) ds  
+             $ map (\d ->
+                      let d' = read (filter (\c -> notElem c ['U','T','C',' ',':','-']) $ unpack d)::Int
+                       in (d',d)) ds
 
 
 getTimeScale :: Phylo -> [Char]
 getTimeScale p = case (timeUnit $ getConfig p) of
+    Epoch _ _ _ -> "epoch"
     Year  _ _ _ -> "year"
     Month _ _ _ -> "month"
-    Week  _ _ _ -> "week"  
-    Day   _ _ _ -> "day"      
+    Week  _ _ _ -> "week"
+    Day   _ _ _ -> "day"
 
 
 -- | Get a regular & ascendante timeScale from a given list of dates
 toTimeScale :: [Date] -> Int -> [Date]
-toTimeScale dates step = 
+toTimeScale dates step =
     let (start,end) = findBounds dates
     in  [start, (start + step) .. end]
 
 
 getTimeStep :: TimeUnit -> Int
-getTimeStep time = case time of 
+getTimeStep time = case time of
+    Epoch _ s _ -> s
     Year  _ s _ -> s
-    Month _ s _ -> s  
-    Week  _ s _ -> s  
-    Day   _ s _ -> s  
+    Month _ s _ -> s
+    Week  _ s _ -> s
+    Day   _ s _ -> s
 
 getTimePeriod :: TimeUnit -> Int
-getTimePeriod time = case time of 
+getTimePeriod time = case time of
+    Epoch p _ _ -> p
     Year  p _ _ -> p
-    Month p _ _ -> p  
-    Week  p _ _ -> p  
-    Day   p _ _ -> p  
+    Month p _ _ -> p
+    Week  p _ _ -> p
+    Day   p _ _ -> p
 
 getTimeFrame :: TimeUnit -> Int
-getTimeFrame time = case time of 
+getTimeFrame time = case time of
+    Epoch _ _ f -> f
     Year  _ _ f -> f
     Month _ _ f -> f
     Week  _ _ f -> f
-    Day   _ _ f -> f            
+    Day   _ _ f -> f
 
 -------------
 -- | Fis | --
@@ -217,7 +221,7 @@ isNested l l'
   | null l'               = True
   | length l' > length l  = False
   | (union  l l') == l    = True
-  | otherwise             = False 
+  | otherwise             = False
 
 
 -- | To filter Fis with small Support but by keeping non empty Periods
@@ -233,7 +237,7 @@ traceClique mFis = foldl (\msg cpt -> msg <> show (countSup cpt cliques) <> " (>
         --------------------------------------
         cliques :: [Double]
         cliques = sort $ map (fromIntegral . length . _phyloClique_nodes) $ concat $ elems mFis
-        -------------------------------------- 
+        --------------------------------------
 
 
 traceSupport :: Map (Date, Date) [PhyloClique] -> String
@@ -242,7 +246,7 @@ traceSupport mFis = foldl (\msg cpt -> msg <> show (countSup cpt supports) <> " 
         --------------------------------------
         supports :: [Double]
         supports = sort $ map (fromIntegral . _phyloClique_support) $ concat $ elems mFis
-        -------------------------------------- 
+        --------------------------------------
 
 
 traceFis :: [Char] -> Map (Date, Date) [PhyloClique] -> Map (Date, Date) [PhyloClique]
@@ -257,12 +261,12 @@ traceFis msg mFis = trace ( "\n" <> "-- | " <> msg <> " : " <> show (sum $ map l
 
 
 getCliqueSupport :: Clique -> Int
-getCliqueSupport unit = case unit of 
+getCliqueSupport unit = case unit of
     Fis s _ -> s
     MaxClique _ _ _ -> 0
 
 getCliqueSize :: Clique -> Int
-getCliqueSize unit = case unit of 
+getCliqueSize unit = case unit of
     Fis _ s -> s
     MaxClique s _ _ -> s
 
@@ -292,7 +296,7 @@ listToSeq l = nubBy (\x y -> fst x == fst y) $ [ (x,y) | (x:rest) <- tails l,  y
 sumCooc :: Cooc -> Cooc -> Cooc
 sumCooc cooc cooc' = unionWith (+) cooc cooc'
 
-getTrace :: Cooc -> Double 
+getTrace :: Cooc -> Double
 getTrace cooc = sum $ elems $ filterWithKey (\(k,k') _ -> k == k') cooc
 
 coocToDiago :: Cooc -> Cooc
@@ -310,7 +314,7 @@ ngramsToCooc ngrams coocs =
 -- | PhyloGroup | --
 --------------------
 
-getGroupId :: PhyloGroup -> PhyloGroupId 
+getGroupId :: PhyloGroup -> PhyloGroupId
 getGroupId g = ((g ^. phylo_groupPeriod, g ^. phylo_groupLevel), g ^. phylo_groupIndex)
 
 idToPrd :: PhyloGroupId -> PhyloPeriodId
@@ -320,38 +324,58 @@ groupByField :: Ord a => (PhyloGroup -> a) -> [PhyloGroup] ->  Map a [PhyloGroup
 groupByField toField groups = fromListWith (++) $ map (\g -> (toField g, [g])) groups
 
 getPeriodPointers :: Filiation -> PhyloGroup -> [Pointer]
-getPeriodPointers fil g = 
-    case fil of 
+getPeriodPointers fil g =
+    case fil of
         ToChilds  -> g ^. phylo_groupPeriodChilds
         ToParents -> g ^. phylo_groupPeriodParents
+        ToChildsMemory  -> undefined
+        ToParentsMemory -> undefined
 
 filterProximity :: Proximity -> Double -> Double -> Bool
-filterProximity proximity thr local = 
+filterProximity proximity thr local =
     case proximity of
         WeightedLogJaccard _ -> local >= thr
-        WeightedLogSim _ -> local >= thr
-        Hamming -> undefined   
+        WeightedLogSim     _ -> local >= thr
+        Hamming            _ -> undefined
 
 getProximityName :: Proximity -> String
 getProximityName proximity =
     case proximity of
         WeightedLogJaccard _ -> "WLJaccard"
-        WeightedLogSim _ -> "WeightedLogSim"
-        Hamming -> "Hamming"            
+        WeightedLogSim     _ -> "WeightedLogSim"
+        Hamming            _ -> "Hamming"
 
 ---------------
 -- | Phylo | --
 ---------------
 
 addPointers :: Filiation -> PointerType -> [Pointer] -> PhyloGroup -> PhyloGroup
-addPointers fil pty pointers g = 
-    case pty of 
-        TemporalPointer -> case fil of 
+addPointers fil pty pointers g =
+    case pty of
+        TemporalPointer -> case fil of
                                 ToChilds  -> g & phylo_groupPeriodChilds  .~ pointers
                                 ToParents -> g & phylo_groupPeriodParents .~ pointers
-        LevelPointer    -> case fil of 
+                                ToChildsMemory  -> undefined
+                                ToParentsMemory -> undefined
+        LevelPointer    -> case fil of
                                 ToChilds  -> g & phylo_groupLevelChilds   .~ pointers
                                 ToParents -> g & phylo_groupLevelParents  .~ pointers
+                                ToChildsMemory  -> undefined
+                                ToParentsMemory -> undefined
+
+toPointer' :: Double -> Pointer -> Pointer'
+toPointer' thr pt = (fst pt,(thr,snd pt))
+
+
+addMemoryPointers :: Filiation -> PointerType -> Double -> [Pointer] -> PhyloGroup -> PhyloGroup
+addMemoryPointers fil pty thr pointers g =
+    case pty of
+        TemporalPointer -> case fil of
+                                ToChilds  -> undefined
+                                ToParents -> undefined
+                                ToChildsMemory  -> g & phylo_groupPeriodMemoryChilds  .~ (concat [(g ^. phylo_groupPeriodMemoryChilds),(map (\pt -> toPointer' thr pt) pointers)])
+                                ToParentsMemory -> g & phylo_groupPeriodMemoryParents .~ (concat [(g ^. phylo_groupPeriodMemoryParents),(map (\pt -> toPointer' thr pt) pointers)])
+        LevelPointer    -> undefined
 
 
 getPeriodIds :: Phylo -> [(Date,Date)]
@@ -359,14 +383,14 @@ getPeriodIds phylo = sortOn fst
                    $ keys
                    $ phylo ^. phylo_periods
 
-getLevelParentId :: PhyloGroup -> PhyloGroupId 
+getLevelParentId :: PhyloGroup -> PhyloGroupId
 getLevelParentId g = fst $ head' "getLevelParentId" $ g ^. phylo_groupLevelParents
 
 getLastLevel :: Phylo -> Level
 getLastLevel phylo = last' "lastLevel" $ getLevels phylo
 
 getLevels :: Phylo -> [Level]
-getLevels phylo = nub 
+getLevels phylo = nub
                 $ map snd
                 $ keys $ view ( phylo_periods
                        .  traverse
@@ -381,10 +405,10 @@ getConfig phylo = (phylo ^. phylo_param) ^. phyloParam_config
 
 
 setConfig :: Config -> Phylo -> Phylo
-setConfig config phylo = phylo 
-                       & phylo_param .~ (PhyloParam 
-                                            ((phylo ^. phylo_param) ^. phyloParam_version) 
-                                            ((phylo ^. phylo_param) ^. phyloParam_software) 
+setConfig config phylo = phylo
+                       & phylo_param .~ (PhyloParam
+                                            ((phylo ^. phylo_param) ^. phyloParam_version)
+                                            ((phylo ^. phylo_param) ^. phyloParam_software)
                                             config)
 
 -- & phylo_param & phyloParam_config & phyloParam_config .~ config
@@ -397,13 +421,13 @@ getSources :: Phylo -> Vector Text
 getSources phylo = _sources (phylo ^. phylo_sources)
 
 phyloToLastBranches :: Phylo -> [[PhyloGroup]]
-phyloToLastBranches phylo = elems 
+phyloToLastBranches phylo = elems
     $ fromListWith (++)
     $ map (\g -> (g ^. phylo_groupBranchId, [g]))
     $ getGroupsFromLevel (last' "byBranches" $ getLevels phylo) phylo
 
 getGroupsFromLevel :: Level -> Phylo -> [PhyloGroup]
-getGroupsFromLevel lvl phylo = 
+getGroupsFromLevel lvl phylo =
     elems $ view ( phylo_periods
                  .  traverse
                  . phylo_periodLevels
@@ -413,18 +437,18 @@ getGroupsFromLevel lvl phylo =
 
 
 getGroupsFromLevelPeriods :: Level -> [PhyloPeriodId] -> Phylo -> [PhyloGroup]
-getGroupsFromLevelPeriods lvl periods phylo = 
+getGroupsFromLevelPeriods lvl periods phylo =
     elems $ view ( phylo_periods
                  .  traverse
                  .  filtered (\phyloPrd -> elem (phyloPrd ^. phylo_periodPeriod) periods)
                  . phylo_periodLevels
                  .  traverse
                  .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
-                 . phylo_levelGroups ) phylo    
+                 . phylo_levelGroups ) phylo
 
 
 getGroupsFromPeriods :: Level -> Map PhyloPeriodId PhyloPeriod -> [PhyloGroup]
-getGroupsFromPeriods lvl periods = 
+getGroupsFromPeriods lvl periods =
     elems $ view (  traverse
                  . phylo_periodLevels
                  .  traverse
@@ -433,25 +457,25 @@ getGroupsFromPeriods lvl periods =
 
 
 updatePhyloGroups :: Level -> Map PhyloGroupId PhyloGroup -> Phylo -> Phylo
-updatePhyloGroups lvl m phylo = 
+updatePhyloGroups lvl m phylo =
     over ( phylo_periods
          .  traverse
          . phylo_periodLevels
          .  traverse
          .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
          . phylo_levelGroups
-         .  traverse 
-         ) (\g -> 
+         .  traverse
+         ) (\g ->
                 let id = getGroupId g
-                in 
-                    if member id m 
+                in
+                    if member id m
                     then m ! id
                     else g ) phylo
 
 updatePeriods :: Map (Date,Date) (Text,Text) -> Phylo -> Phylo
-updatePeriods periods' phylo = 
-    over (phylo_periods . traverse) 
-            (\prd -> 
+updatePeriods periods' phylo =
+    over (phylo_periods . traverse)
+            (\prd ->
                 let prd' = periods' ! (prd ^. phylo_periodPeriod)
                     lvls = map (\lvl -> lvl & phylo_levelPeriod' .~ prd') $ prd ^. phylo_periodLevels
                  in prd & phylo_periodPeriod' .~ prd'
@@ -460,10 +484,10 @@ updatePeriods periods' phylo =
 
 
 traceToPhylo :: Level -> Phylo -> Phylo
-traceToPhylo lvl phylo = 
+traceToPhylo lvl phylo =
     trace ("\n" <> "-- | End of phylo making at level " <> show (lvl) <> " with "
                 <> show (length $ getGroupsFromLevel lvl phylo) <> " groups and "
-                <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel lvl phylo) <> " branches" <> "\n") phylo 
+                <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel lvl phylo) <> " branches" <> "\n") phylo
 
 --------------------
 -- | Clustering | --
@@ -474,28 +498,28 @@ mergeBranchIds ids = (head' "mergeBranchIds" . sort . mostFreq') ids
   where
     -- | 2) find the most Up Left ids in the hierarchy of similarity
     -- mostUpLeft :: [[Int]] -> [[Int]]
-    -- mostUpLeft ids' = 
+    -- mostUpLeft ids' =
     --      let groupIds = (map (\gIds -> (length $ head' "gIds" gIds, head' "gIds" gIds)) . groupBy (\id id' -> length id == length id') . sortOn length) ids'
     --          inf = (fst . minimum) groupIds
     --      in map snd $ filter (\gIds -> fst gIds == inf) groupIds
     -- | 1) find the most frequent ids
     mostFreq' :: [[Int]] -> [[Int]]
-    mostFreq' ids' = 
+    mostFreq' ids' =
        let groupIds = (map (\gIds -> (length gIds, head' "gIds" gIds)) . group . sort) ids'
            sup = (fst . maximum) groupIds
         in map snd $ filter (\gIds -> fst gIds == sup) groupIds
 
 
 mergeMeta :: [Int] -> [PhyloGroup] -> Map Text [Double]
-mergeMeta bId groups = 
-  let ego = head' "mergeMeta" $ filter (\g -> (snd (g ^. phylo_groupBranchId)) == bId) groups  
-   in fromList [("breaks",(ego ^. phylo_groupMeta) ! "breaks"),("seaLevels",(ego ^. phylo_groupMeta) ! "seaLevels")]   
+mergeMeta bId groups =
+  let ego = head' "mergeMeta" $ filter (\g -> (snd (g ^. phylo_groupBranchId)) == bId) groups
+   in fromList [("breaks",(ego ^. phylo_groupMeta) ! "breaks"),("seaLevels",(ego ^. phylo_groupMeta) ! "seaLevels")]
 
 
 groupsToBranches :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
 groupsToBranches groups =
     {- run the related component algorithm -}
-    let egos  = map (\g -> [getGroupId g] 
+    let egos  = map (\g -> [getGroupId g]
                         ++ (map fst $ g ^. phylo_groupPeriodParents)
                         ++ (map fst $ g ^. phylo_groupPeriodChilds)
                         ++ (map fst $ g ^. phylo_groupAncestors)) $ elems groups
@@ -510,30 +534,30 @@ relatedComponents :: Ord a => [[a]] -> [[a]]
 relatedComponents graph = foldl' (\acc groups ->
     if (null acc)
     then acc ++ [groups]
-    else 
+    else
         let acc' = partition (\groups' -> disjoint (Set.fromList groups') (Set.fromList groups)) acc
          in (fst acc') ++ [nub $ concat $ (snd acc') ++ [groups]]) [] graph
 
 toRelatedComponents :: [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)] -> [[PhyloGroup]]
-toRelatedComponents nodes edges = 
+toRelatedComponents nodes edges =
   let ref = fromList $ map (\g -> (getGroupId g, g)) nodes
-      clusters = relatedComponents $ ((map (\((g,g'),_) -> [getGroupId g, getGroupId g']) edges) ++ (map (\g -> [getGroupId g]) nodes)) 
-   in map (\cluster -> map (\gId -> ref ! gId) cluster) clusters 
+      clusters = relatedComponents $ ((map (\((g,g'),_) -> [getGroupId g, getGroupId g']) edges) ++ (map (\g -> [getGroupId g]) nodes))
+   in map (\cluster -> map (\gId -> ref ! gId) cluster) clusters
 
 
 traceSynchronyEnd :: Phylo -> Phylo
-traceSynchronyEnd phylo = 
-    trace ( "-- | End synchronic clustering at level " <> show (getLastLevel phylo) 
+traceSynchronyEnd phylo =
+    trace ( "-- | End synchronic clustering at level " <> show (getLastLevel phylo)
                  <> " with " <> show (length $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " groups"
                  <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " branches"
                  <> "\n" ) phylo
 
 traceSynchronyStart :: Phylo -> Phylo
-traceSynchronyStart phylo = 
-    trace ( "\n" <> "-- | Start synchronic clustering at level " <> show (getLastLevel phylo) 
+traceSynchronyStart phylo =
+    trace ( "\n" <> "-- | Start synchronic clustering at level " <> show (getLastLevel phylo)
                  <> " with " <> show (length $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " groups"
                  <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " branches"
-                 <> "\n" ) phylo    
+                 <> "\n" ) phylo
 
 
 -------------------
@@ -541,10 +565,10 @@ traceSynchronyStart phylo =
 -------------------
 
 getSensibility :: Proximity -> Double
-getSensibility proxi = case proxi of 
+getSensibility proxi = case proxi of
     WeightedLogJaccard s -> s
-    WeightedLogSim s -> s
-    Hamming -> undefined
+    WeightedLogSim     s -> s
+    Hamming            _ -> undefined
 
 ----------------
 -- | Branch | --
@@ -599,7 +623,7 @@ traceMatchLimit branches =
                                            <> ",(1.." <> show (length branches) <> ")]"
                  <> " | " <> show (length $ concat branches) <> " groups" <> "\n"
          <> " - unable to increase the threshold above 1" <> "\n"
-        ) branches            
+        ) branches
 
 
 traceMatchEnd :: [PhyloGroup] -> [PhyloGroup]
@@ -609,10 +633,10 @@ traceMatchEnd groups =
 
 
 traceTemporalMatching :: [PhyloGroup] -> [PhyloGroup]
-traceTemporalMatching groups = 
+traceTemporalMatching groups =
     trace ( "\n" <> "-- | Start temporal matching for " <> show(length groups) <> " groups" <> "\n") groups
 
 
 traceGroupsProxi :: Map (PhyloGroupId,PhyloGroupId) Double -> Map (PhyloGroupId,PhyloGroupId) Double
-traceGroupsProxi m = 
+traceGroupsProxi m =
     trace ( "\n" <> "-- | " <> show(Map.size m) <> " computed pairs of groups proximity" <> "\n") m

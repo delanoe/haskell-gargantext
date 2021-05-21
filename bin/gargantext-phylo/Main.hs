@@ -16,43 +16,40 @@ Adaptative Phylo binaries
 
 module Main where
 
+-- import Debug.Trace (trace)
 import Control.Concurrent.Async (mapConcurrently)
 import Crypto.Hash.SHA256 (hash)
 import Data.Aeson
-import Data.Either (Either(..))
+import Data.Either (Either(..), fromRight)
 import Data.List  (concat, nub, isSuffixOf)
+import Data.List.Split
 import Data.Maybe (fromMaybe)
 import Data.String (String)
-import GHC.IO (FilePath)
-import qualified Prelude as Prelude
-import System.Environment
-import System.Directory (listDirectory,doesFileExist)
 import Data.Text  (Text, unwords, unpack, replace, pack)
-import Data.Time.Calendar (fromGregorian, diffGregorianDurationClip, cdMonths, diffDays, showGregorian)
-
-import qualified Data.ByteString.Char8 as C8
-import qualified Data.ByteString.Lazy as Lazy
-import qualified Data.Vector as Vector
-import qualified Data.Text as T
-
-import Gargantext.Prelude
-import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import GHC.IO (FilePath)
+import Gargantext.API.Ngrams.Prelude (toTermList)
+import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Text.Context (TermList)
-import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year, csv_publication_month, csv_publication_day,
-  csv'_source, csv'_title, csv'_abstract, csv'_publication_year, csv'_publication_month, csv'_publication_day, csv'_weight)
-import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv
 import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)
+import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year, csv_publication_month, csv_publication_day, csv'_source, csv'_title, csv'_abstract, csv'_publication_year, csv'_publication_month, csv'_publication_day, csv'_weight)
 import Gargantext.Core.Text.List.Formats.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
+import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Viz.Phylo
+import Gargantext.Core.Viz.Phylo.API
+import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
 import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo, toPhyloStep)
 import Gargantext.Core.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment, setConfig)
-import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
--- import Gargantext.API.Ngrams.Prelude (toTermList)
-import Gargantext.Core.Viz.Phylo.API (toPhyloDate, toPhyloDate')
-
-
--- import Debug.Trace (trace)
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+import Gargantext.Prelude
+import System.Directory (listDirectory,doesFileExist)
+import System.Environment
+import qualified Data.ByteString.Char8                   as C8
+import qualified Data.ByteString.Lazy                    as Lazy
+import qualified Data.Text                               as T
+import qualified Data.Vector                             as Vector
+import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv
 
 data PhyloStage = PhyloWithCliques | PhyloWithLinks deriving (Show)
 
@@ -60,23 +57,12 @@ data PhyloStage = PhyloWithCliques | PhyloWithLinks deriving (Show)
 -- | Tools | --
 ---------------
 
-
 -- | To get all the files in a directory or just a file
-getFilesFromPath :: FilePath -> IO([FilePath])
+getFilesFromPath :: FilePath -> IO [FilePath]
 getFilesFromPath path = do
   if (isSuffixOf "/" path)
     then (listDirectory path)
     else return [path]
-
---------------
--- | Json | --
---------------
-
-
--- | To read and decode a Json file
-readJson :: FilePath -> IO Lazy.ByteString
-readJson path = Lazy.readFile path
-
 
 ----------------
 -- | Parser | --
@@ -90,31 +76,26 @@ termsInText pats txt = nub $ concat $ map (map unwords) $ extractTermsWithList p
 -- | To transform a Wos file (or [file]) into a list of Docs
 wosToDocs :: Int -> Patterns -> TimeUnit -> FilePath -> IO [Document]
 wosToDocs limit patterns time path = do
-  files <- getFilesFromPath path
-  let parseFile' file = do
-        eParsed <- parseFile WOS (path <> file)
-        case eParsed of
-          Right ps -> pure ps
-          Left e   -> panic $ "Error: " <> (pack e)
-  take limit
-    <$> map (\d -> let title = fromJust $ _hd_title d
-                       abstr = if (isJust $ _hd_abstract d)
-                               then fromJust $ _hd_abstract d
-                               else ""
-                    in Document (toPhyloDate
-                                  (fromIntegral $ fromJust $ _hd_publication_year d)
-                                  (fromJust $ _hd_publication_month d)
-                                  (fromJust $ _hd_publication_day d) time)
-                                (toPhyloDate'
-                                  (fromIntegral $ fromJust $ _hd_publication_year d)
-                                  (fromJust $ _hd_publication_month d)
-                                  (fromJust $ _hd_publication_day d))
-                                (termsInText patterns $ title <> " " <> abstr) Nothing [])
-    <$> concat
-    <$> mapConcurrently (\file ->
-          filter (\d -> (isJust $ _hd_publication_year d)
-                     && (isJust $ _hd_title d))
-             <$> parseFile' file) files
+      files <- getFilesFromPath path
+      take limit
+        <$> map (\d -> let title = fromJust $ _hd_title d
+                           abstr = if (isJust $ _hd_abstract d)
+                                   then fromJust $ _hd_abstract d
+                                   else ""
+                        in Document (toPhyloDate
+                                      (fromIntegral $ fromJust $ _hd_publication_year d)
+                                      (fromJust $ _hd_publication_month d)
+                                      (fromJust $ _hd_publication_day d) time)
+                                    (toPhyloDate'
+                                      (fromIntegral $ fromJust $ _hd_publication_year d)
+                                      (fromJust $ _hd_publication_month d)
+                                      (fromJust $ _hd_publication_day d) time)
+                                    (termsInText patterns $ title <> " " <> abstr) Nothing [])
+        <$> concat
+        <$> mapConcurrently (\file ->
+              filter (\d -> (isJust $ _hd_publication_year d)
+                         && (isJust $ _hd_title d))
+                <$> fromRight [] <$> parseFile WOS (path <> file) ) files
 
 
 -- To transform a Csv file into a list of Document
@@ -122,31 +103,21 @@ csvToDocs :: CorpusParser -> Patterns -> TimeUnit -> FilePath -> IO [Document]
 csvToDocs parser patterns time path =
   case parser of
     Wos  _     -> undefined
-    Csv  limit -> do
-      eR <- Csv.readFile path
-      case eR of
-        Right r ->
-          pure $ Vector.toList
-            $ Vector.take limit
-            $ Vector.map (\row -> Document (toPhyloDate  (Csv.fromMIntOrDec Csv.defaultYear $ csv_publication_year row)
-                                                         (fromMaybe Csv.defaultMonth $ csv_publication_month row)
-                                                         (fromMaybe Csv.defaultDay $ csv_publication_day row)
-                                                         time)
-                                           (toPhyloDate' (Csv.fromMIntOrDec Csv.defaultYear $ csv_publication_year row)
-                                                         (fromMaybe Csv.defaultMonth $ csv_publication_month row)
-                                                         (fromMaybe Csv.defaultDay $ csv_publication_day row))
-                                           (termsInText patterns $ (csv_title row) <> " " <> (csv_abstract row))
-                                           Nothing
-                                           []
-                         ) $ snd r
-        Left e -> panic $ "Error: " <> (pack e)
+    Csv  limit -> Vector.toList
+      <$> Vector.take limit
+      <$> Vector.map (\row -> Document (toPhyloDate  (Csv.fromMIntOrDec Csv.defaultYear $ csv_publication_year row) (fromMaybe Csv.defaultMonth $ csv_publication_month row) (fromMaybe Csv.defaultDay $ csv_publication_day row) time)
+                                       (toPhyloDate' (Csv.fromMIntOrDec Csv.defaultYear $ csv_publication_year row) (fromMaybe Csv.defaultMonth $ csv_publication_month row) (fromMaybe Csv.defaultDay $ csv_publication_day row) time)
+                                       (termsInText patterns $ (csv_title row) <> " " <> (csv_abstract row))
+                                       Nothing
+                                       []
+                     ) <$> snd <$> either (\err -> panic $ cs $ "CSV error" <> (show err)) identity <$> Csv.readFile path
     Csv' limit -> Vector.toList
       <$> Vector.take limit
       <$> Vector.map (\row -> Document (toPhyloDate  (csv'_publication_year row) (csv'_publication_month row) (csv'_publication_day row) time)
-                                       (toPhyloDate' (csv'_publication_year row) (csv'_publication_month row) (csv'_publication_day row))
+                                       (toPhyloDate' (csv'_publication_year row) (csv'_publication_month row) (csv'_publication_day row) time)
                                        (termsInText patterns $ (csv'_title row) <> " " <> (csv'_abstract row))
                                        (Just $ csv'_weight row)
-                                       [csv'_source row]
+                                       (map (T.strip . pack) $ splitOn ";" (unpack $ (csv'_source row)))
                      ) <$> snd <$> Csv.readWeightedCsv path
 
 
@@ -168,10 +139,11 @@ fileToDocs' parser path time lst = do
 -- Config time parameters to label
 timeToLabel :: Config -> [Char]
 timeToLabel config = case (timeUnit config) of
-      Year  p s f -> ("time_years" <> "_" <> (show p) <> "_" <> (show s) <> "_" <> (show f))
-      Month p s f -> ("time_months"<> "_" <> (show p) <> "_" <> (show s) <> "_" <> (show f))
-      Week  p s f -> ("time_weeks" <> "_" <> (show p) <> "_" <> (show s) <> "_" <> (show f))
-      Day   p s f -> ("time_days"  <> "_" <> (show p) <> "_" <> (show s) <> "_" <> (show f))
+      Epoch p s f -> ("time_epochs" <> "_" <> (show p) <> "_" <> (show s) <> "_" <> (show f))
+      Year  p s f -> ("time_years"  <> "_" <> (show p) <> "_" <> (show s) <> "_" <> (show f))
+      Month p s f -> ("time_months" <> "_" <> (show p) <> "_" <> (show s) <> "_" <> (show f))
+      Week  p s f -> ("time_weeks"  <> "_" <> (show p) <> "_" <> (show s) <> "_" <> (show f))
+      Day   p s f -> ("time_days"   <> "_" <> (show p) <> "_" <> (show s) <> "_" <> (show f))
 
 
 seaToLabel :: Config -> [Char]
@@ -182,7 +154,7 @@ seaToLabel config = case (seaElevation config) of
 
 sensToLabel :: Config -> [Char]
 sensToLabel config = case (phyloProximity config) of
-      Hamming -> undefined
+      Hamming _ -> undefined
       WeightedLogJaccard s -> ("WeightedLogJaccard_"  <> show s)
       WeightedLogSim s -> ( "WeightedLogSim-sens_"  <> show s)
 
@@ -240,18 +212,23 @@ configToSha stage config = unpack
                        <> (show (phyloLevel config))
 
 
-writePhylo :: [Char] -> Phylo -> IO ()
-writePhylo path phylo = Lazy.writeFile path $ encode phylo
-
-
-readPhylo :: [Char] -> IO Phylo
-readPhylo path = do
-  phyloJson <- (eitherDecode <$> readJson path) :: IO (Either String Phylo)
-  case phyloJson of
+readListV4 :: [Char] -> IO NgramsList
+readListV4 path = do
+  listJson <- (eitherDecode <$> readJson path) :: IO (Either String NgramsList)
+  case listJson of
     Left err -> do
       putStrLn err
       undefined
-    Right phylo -> pure phylo
+    Right listV4 -> pure listV4
+
+
+fileToList  :: ListParser -> FilePath -> IO TermList
+fileToList parser path =
+  case parser of
+    V3 -> csvMapTermList path
+    V4 -> fromJust
+      <$> toTermList MapTerm NgramsTerms
+      <$> readListV4 path
 
 
 --------------
@@ -273,7 +250,7 @@ main = do
         Right config -> do
 
             printIOMsg "Parse the corpus"
-            mapList <- csvMapTermList (listPath config)
+            mapList <-  fileToList (listParser config) (listPath config)
             corpus  <- fileToDocs' (corpusParser config) (corpusPath config) (timeUnit config) mapList
             printIOComment (show (length corpus) <> " parsed docs from the corpus")
 
@@ -297,7 +274,6 @@ main = do
 
             -- let phylo = toPhylo (setConfig config phyloStep)
 
-            -- QL: 2 files read from disk
             phyloWithLinks <- if phyloWithLinksExists
                                   then do
                                     printIOMsg "Reconstruct the phylo from an existing file with intertemporal links"
