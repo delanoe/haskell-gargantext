@@ -16,7 +16,8 @@ commentary with @some markup@.
 module Graph.Distance where
 
 import Test.Hspec
-import Gargantext.Viz.Graph.Distances.Matrice
+
+import Gargantext.Core.Methods.Matrix.Accelerate.Utils (cross', matrix)
 import Gargantext.Prelude
 
 test :: IO ()

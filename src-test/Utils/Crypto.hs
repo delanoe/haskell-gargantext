@@ -14,7 +14,9 @@ module Utils.Crypto where
 
 import Data.Text (Text)
 import Test.Hspec
+
 import Gargantext.Prelude
+import Gargantext.Prelude.Crypto.Hash
 import Gargantext.Prelude.Utils
 
 -- | Crypto Hash tests

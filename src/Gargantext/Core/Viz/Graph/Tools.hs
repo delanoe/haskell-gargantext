@@ -69,6 +69,7 @@ cooc2graph' distance threshold myCooc
 
 data PartitionMethod = Louvain | Spinglass
 
+-- | coocurrences graph computation
 cooc2graphWith :: PartitionMethod
                -> Distance
                -> Threshold
@@ -134,14 +135,14 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
 
     similarities = measure distance matCooc
     links = round (let n :: Double = fromIntegral tiSize in n * log n)
-    distanceMap  = Map.fromList
-                 $ List.take links
-                 $ List.sortOn snd
-                 $ Map.toList
-                 $ case distance of
-                     Conditional    -> Map.filter (> threshold)
-                     Distributional -> Map.filter (> 0)
-                 $ mat2map similarities
+    distanceMap = Map.fromList
+                $ List.take links
+                $ List.sortOn snd
+                $ Map.toList
+                $ case distance of
+                    Conditional    -> Map.filter (> threshold)
+                    Distributional -> Map.filter (> 0)
+                $ mat2map similarities
 
     nodesApprox :: Int
     nodesApprox = n'

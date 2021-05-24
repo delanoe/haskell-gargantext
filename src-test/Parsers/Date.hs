@@ -28,7 +28,7 @@ import Duckling.Time.Types (toRFC3339)
 
 -----------------------------------------------------------
 import Gargantext.Prelude
-import Gargantext.Text.Corpus.Parsers.Date.Parsec (fromRFC3339)
+import Gargantext.Core.Text.Corpus.Parsers.Date.Parsec (fromRFC3339)
 import Parsers.Types
 -----------------------------------------------------------
 
