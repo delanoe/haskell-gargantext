@@ -41,7 +41,7 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Prelude
 import Gargantext.Core.Text.Corpus.Parsers.CSV (parseHal, parseHal', parseCsv, parseCsv')
 import Gargantext.Core.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
-import Gargantext.Core.Text.Learn (detectLangDefault)
+-- import Gargantext.Core.Text.Learn (detectLangDefault)
 import System.FilePath (FilePath(), takeExtension)
 import qualified Data.ByteString       as DB
 import qualified Data.ByteString.Char8 as DBC
@@ -103,11 +103,11 @@ parseFile ff        p = join $ mapM (toDoc ff)  <$> snd <$> enrichWith ff       
 toDoc :: FileFormat -> [(Text, Text)] -> IO HyperdataDocument
 -- TODO use language for RIS
 toDoc ff d = do
-      let abstract = lookup "abstract" d
-      let lang = maybe EN identity (join $ detectLangDefault <$> (fmap (DT.take 50) abstract))
-      
+      -- let abstract = lookup "abstract" d
+      let lang = EN -- maybe EN identity (join $ detectLangDefault <$> (fmap (DT.take 50) abstract))
+
       let dateToParse = DT.replace "-" " " <$> lookup "PY" d <> Just " " <> lookup "publication_date" d
-      
+
       (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit lang  dateToParse
 
       pure $ HyperdataDocument (Just $ DT.pack $ show ff)
