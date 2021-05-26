@@ -260,18 +260,23 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
     inclSize = 0.4  :: Double
     exclSize = 1 - inclSize
 
-    splitAt' n' = (both (HashMap.fromList)) . (List.splitAt (round $ n' * listSizeLocal))
+    splitAt' max' n' = (both (HashMap.fromList)) . (List.splitAt (round $ n' * max'))
     sortOn   f  = (List.sortOn (Down . (view (gts'_score . f)) . snd)) . HashMap.toList
 
 
-    monoInc_size = splitAt' $ monoSize * inclSize / 2
-    (monoScoredInclHead, _monoScoredInclTail) = monoInc_size $ (sortOn scored_genInc) monoScoredIncl
+    monoInc_size = splitAt' listSizeLocal $ monoSize * inclSize / 2
+    (monoScoredInclHead, monoScoredInclTail) = monoInc_size $ (sortOn scored_genInc) monoScoredIncl
     (monoScoredExclHead, _monoScoredExclTail) = monoInc_size $ (sortOn scored_speExc) monoScoredExcl
 
-    multExc_size = splitAt' $ multSize * exclSize / 2
+    multExc_size = splitAt' listSizeLocal $ multSize * exclSize / 2
     (multScoredInclHead, multScoredInclTail) = multExc_size $ (sortOn scored_genInc) multScoredIncl
     (multScoredExclHead, multScoredExclTail) = multExc_size $ (sortOn scored_speExc) multScoredExcl
 
+    (candidatesHead, _candidatesTail) = splitAt' 4000 (0.5 :: Double)
+                                      $ sortOn scored_genInc
+                                      $  monoScoredInclTail
+                                      <> multScoredInclTail
+                                      <> multScoredExclTail
   printDebug "stopWords" stopTerms
 
 ------------------------------------------------------------
@@ -285,11 +290,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
         <> multScoredExclHead
 
     -- An original way to filter to start with
-    cands = setListType (Just CandidateTerm)
-          $  {- monoScoredInclTail
-          <> monoScoredExclTail
-          <> -} multScoredInclTail
-          <>  multScoredExclTail
+    cands = setListType (Just CandidateTerm) candidatesHead
 
     cands' = setListType (Just CandidateTerm)
           {-$  groupedMonoTail
@@ -302,7 +303,5 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
                           <> toNgramsElement stopTerms
                       )]
        ]
-
-  -- printDebug "result" result
 
   pure result
