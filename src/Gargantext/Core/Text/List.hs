@@ -256,41 +256,50 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
   -- splitAt
   let
     -- use % of list if to big, or Int if to small
-    listSizeLocal = 1000 :: Double
+    mapSize = 1000 :: Double
+    canSize = mapSize * 10 :: Double
+ 
     inclSize = 0.4  :: Double
     exclSize = 1 - inclSize
 
-    splitAt' n' = (both (HashMap.fromList)) . (List.splitAt (round $ n' * listSizeLocal))
+    splitAt' max' n' = (both (HashMap.fromList)) . (List.splitAt (round $ n' * max'))
     sortOn   f  = (List.sortOn (Down . (view (gts'_score . f)) . snd)) . HashMap.toList
 
+    monoInc_size n = splitAt' n $ monoSize * inclSize / 2
+    multExc_size n = splitAt' n $ multSize * exclSize / 2
 
-    monoInc_size = splitAt' $ monoSize * inclSize / 2
-    (monoScoredInclHead, _monoScoredInclTail) = monoInc_size $ (sortOn scored_genInc) monoScoredIncl
-    (monoScoredExclHead, _monoScoredExclTail) = monoInc_size $ (sortOn scored_speExc) monoScoredExcl
 
-    multExc_size = splitAt' $ multSize * exclSize / 2
-    (multScoredInclHead, multScoredInclTail) = multExc_size $ (sortOn scored_genInc) multScoredIncl
-    (multScoredExclHead, multScoredExclTail) = multExc_size $ (sortOn scored_speExc) multScoredExcl
+    (mapMonoScoredInclHead, monoScoredInclTail) = monoInc_size mapSize $ (sortOn scored_genInc) monoScoredIncl
+    (mapMonoScoredExclHead, monoScoredExclTail) = monoInc_size mapSize $ (sortOn scored_speExc) monoScoredExcl
 
-  printDebug "stopWords" stopTerms
+    (mapMultScoredInclHead, multScoredInclTail) = multExc_size mapSize $ (sortOn scored_genInc) multScoredIncl
+    (mapMultScoredExclHead, multScoredExclTail) = multExc_size mapSize $ (sortOn scored_speExc) multScoredExcl
+
+
+    (canMonoScoredIncHead , _) = monoInc_size canSize $ (sortOn scored_genInc) monoScoredInclTail
+    (canMonoScoredExclHead, _) = monoInc_size canSize $ (sortOn scored_speExc) monoScoredExclTail
+
+    (canMulScoredInclHead, _)  = multExc_size canSize $ (sortOn scored_genInc) multScoredInclTail
+    (canMultScoredExclHead, _) = multExc_size canSize $ (sortOn scored_speExc) multScoredExclTail
 
 ------------------------------------------------------------
     -- Final Step building the Typed list
     -- Candidates Terms need to be filtered
   let
     maps = setListType (Just MapTerm)
-        $  monoScoredInclHead
-        <> monoScoredExclHead
-        <> multScoredInclHead
-        <> multScoredExclHead
+        $  mapMonoScoredInclHead
+        <> mapMonoScoredExclHead
+        <> mapMultScoredInclHead
+        <> mapMultScoredExclHead
 
     -- An original way to filter to start with
-    cands = setListType (Just CandidateTerm)
-          $  {- monoScoredInclTail
-          <> monoScoredExclTail
-          <> -} multScoredInclTail
-          <>  multScoredExclTail
+    cands = setListType (Just CandidateTerm) 
+          $ canMonoScoredIncHead
+          <> canMonoScoredExclHead
+          <> canMulScoredInclHead
+          <> canMultScoredExclHead
 
+  -- TODO count it too
     cands' = setListType (Just CandidateTerm)
           {-$  groupedMonoTail
           <>-} groupedMultTail
@@ -302,7 +311,5 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
                           <> toNgramsElement stopTerms
                       )]
        ]
-
-  -- printDebug "result" result
 
   pure result

@@ -112,7 +112,7 @@ detectLangDefault = detectCat 99 eventLang
     textSample :: Lang -> String
     textSample EN = EN.textSample
     textSample FR = FR.textSample
-    textSample _  = panic "textSample: not impl yet"
+    textSample _  = panic "[G.C.T.L:detectLangDefault] not impl yet"
     --textSample DE = DE.textSample
     --textSample SP = SP.textSample
     --textSample CH = CH.textSample
