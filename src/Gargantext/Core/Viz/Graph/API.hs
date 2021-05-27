@@ -165,6 +165,7 @@ computeGraph cId d nt repo = do
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
 
   -- printDebug "myCooc" myCooc
+  saveAsFileDebug "debug/my-cooc" myCooc
 
   graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
   pure graph

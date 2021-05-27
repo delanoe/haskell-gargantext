@@ -38,7 +38,7 @@ import Data.Map (Map, lookup)
 import Data.Maybe (isJust, fromJust, maybe)
 import Data.Monoid (Monoid, mempty)
 import Data.Semigroup (Semigroup, (<>))
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import Data.Typeable (Typeable)
 import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
@@ -66,6 +66,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , panic
                  , seq
                  )
+import qualified Protolude as Protolude (writeFile)
 
 import Prelude (Enum, Bounded, minBound, maxBound, putStrLn)
 -- TODO import functions optimized in Utils.Count
@@ -86,6 +87,9 @@ import qualified Data.Vector   as V
 printDebug :: (Show a, MonadBase IO m) => [Char] -> a -> m ()
 printDebug msg x = liftBase . putStrLn $ msg <> " " <> show x
 -- printDebug _ _ = pure ()
+
+saveAsFileDebug :: (Show a, MonadBase IO m) => [Char] -> a -> m ()
+saveAsFileDebug fname x = liftBase . Protolude.writeFile fname $ pack $ show x
 
 
 -- | splitEvery n == chunkAlong n n

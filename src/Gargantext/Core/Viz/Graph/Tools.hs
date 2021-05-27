@@ -82,14 +82,14 @@ cooc2graph'' :: Ord t => Distance
                       -> Double
                       -> Map (t, t) Int
                       -> Map (Index, Index) Double
-cooc2graph'' distance threshold myCooc = neighbouMap
+cooc2graph'' distance threshold myCooc = neighbourMap
   where
     (ti, _) = createIndices myCooc
     myCooc' = toIndex ti myCooc
     matCooc = map2mat Triangle 0 (Map.size ti) $ Map.filter (> 1) myCooc'
     distanceMat = measure distance matCooc
-    neighbouMap = filterByNeighbours threshold
-                $ mat2map distanceMat
+    neighbourMap = filterByNeighbours threshold
+                 $ mat2map distanceMat
 
 
 -- Quentin
@@ -151,11 +151,20 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
         n' = Set.size $ Set.fromList $ as <> bs
     ClustersParams rivers _level = clustersParams nodesApprox
 
+  saveAsFileDebug "debug/the-matrix" theMatrix
+  saveAsFileDebug "debug/my-cooc-prime" myCooc'
+  saveAsFileDebug "debug/mat-cooc" matCooc
+  saveAsFileDebug "debug/similarities" similarities
+  saveAsFileDebug "debug/links" links
+  saveAsFileDebug "debug/distanceMap" distanceMap
+  saveAsFileDebug "debug/nodesApprox" nodesApprox
+
   printDebug "similarities" similarities
 
-  partitions <- if (Map.size distanceMap > 0)
-      then doPartitions distanceMap
-      else panic "Text.Flow: DistanceMap is empty"
+  -- partitions <- if (Map.size distanceMap > 0)
+  --     then doPartitions distanceMap
+  --     else panic "Text.Flow: DistanceMap is empty"
+  partitions <- doPartitions distanceMap
 
   let
     -- bridgeness' = distanceMap
