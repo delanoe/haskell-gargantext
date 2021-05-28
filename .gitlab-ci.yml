@@ -2,7 +2,7 @@
 # https://vadosware.io/post/zero-to-continuous-integrated-testing-a-haskell-project-with-gitlab/
 #
 #
-image: haskell:8
+image: fpco/stack-build:lts-16.26-garg
 
 variables:
   STACK_ROOT: "${CI_PROJECT_DIR}/.stack"
