@@ -25,8 +25,9 @@ stages:
 build:
   stage: build
   script:
-    - make setup
-    - make build
+    - rm -rf .stack
+    - rm -rf .stack-work
+    - stack --docker build --haddock --no-haddock-deps --fast
 
       # TOOO
 #unit-test:
