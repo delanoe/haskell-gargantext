@@ -69,10 +69,10 @@ Children are not modified in this specific case.
 -- New list get +1 score
 -- Hence others lists lay around 0 score
 addScorePatch fl (t, (NgramsPatch children' (Patch.Replace old_list new_list))) =
-  -- | Adding New Children score
+  -- Adding new 'Children' score
   addScorePatch fl' (t, NgramsPatch children' Patch.Keep)
     where
-      -- | Adding New ListType score
+      -- | Adding new 'ListType' score
       fl' = fl & flc_scores . at t %~ (score fls_listType old_list (-1))
           & flc_scores . at t %~ (score fls_listType new_list ( 1))
           & flc_cont   %~ (HashMap.delete t)

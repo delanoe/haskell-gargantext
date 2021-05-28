@@ -97,7 +97,7 @@ buildNgramsOthersList ::( HasNodeError err
 buildNgramsOthersList user uCid _groupParams (nt, MapListSize mapListSize) = do
   allTerms  :: HashMap NgramsTerm (Set NodeId) <- getNodesByNgramsUser uCid nt
 
-  -- | PrivateFirst for first developments since Public NodeMode is not implemented yet
+  -- PrivateFirst for first developments since Public NodeMode is not implemented yet
   socialLists :: FlowCont NgramsTerm FlowListScores
     <- flowSocialList MySelfFirst user nt ( FlowCont HashMap.empty
                                                       $ HashMap.fromList
@@ -152,11 +152,11 @@ buildNgramsTermsList :: ( HasNodeError err
                         -> m (Map NgramsType [NgramsElement])
 buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
--- | Filter 0 With Double
+-- Filter 0 With Double
 -- Computing global speGen score
   allTerms :: HashMap NgramsTerm Double <- getTficf uCid mCid nt
 
-  -- | PrivateFirst for first developments since Public NodeMode is not implemented yet
+  -- PrivateFirst for first developments since Public NodeMode is not implemented yet
   socialLists :: FlowCont NgramsTerm FlowListScores
     <- flowSocialList MySelfFirst user nt ( FlowCont HashMap.empty
                                                       $ HashMap.fromList
@@ -215,7 +215,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
   printDebug "groupedTreeScores_SetNodeId" groupedTreeScores_SetNodeId
 
-  -- | Coocurrences computation
+  -- Coocurrences computation
   --, t1 >= t2 -- permute byAxis diag  -- since matrix symmetric
   let mapCooc = HashMap.filter (>1) -- removing cooc of 1
               $ HashMap.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
@@ -301,7 +301,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
   -- TODO count it too
     cands' = setListType (Just CandidateTerm)
-          {-$  groupedMonoTail
+          {-\$  groupedMonoTail
           <>-} groupedMultTail
 
     result = Map.unionsWith (<>)

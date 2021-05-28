@@ -17,20 +17,20 @@ module Gargantext.Prelude.Crypto.Pass.User
       where
 
 
--- | 1) Quick password generator imports
+-- 1) Quick password generator imports
 import Data.Text (Text)
 import Data.String (String)
 import Control.Monad
 import Control.Monad.Random
 import qualified Data.List as List
 
--- | 2) Easy password manager imports
+-- 2) Easy password manager imports
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils (shuffle)
 
 
--- | 1) Quick password generator
--- | Inspired by Rosetta code
+-- 1) Quick password generator
+-- Inspired by Rosetta code
 -- https://www.rosettacode.org/wiki/Password_generator#Haskell
 gargPass :: MonadRandom m => m Text
 gargPass = cs <$> gargPass' chars 33

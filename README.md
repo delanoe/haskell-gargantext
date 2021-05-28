@@ -156,3 +156,12 @@ file format. To decode it to JSON and analyze, say, using
 ``` sh
 cat repos/repo.cbor.v5 | stack --nix exec gargantext-cbor2json | jq .
 ```
+### Documentation
+
+To build documentation, run:
+
+```sh
+stack --docker build --haddock --no-haddock-deps --fast
+```
+
+

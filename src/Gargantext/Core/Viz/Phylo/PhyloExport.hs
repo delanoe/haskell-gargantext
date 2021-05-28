@@ -670,7 +670,7 @@ toPhyloExport phylo = exportToDot phylo
                $ processDynamics
                $ getGroupsFromLevel (phyloLevel $ getConfig phylo)
                $ tracePhyloInfo phylo
-               -- $ toHorizon phylo
+               -- \$ toHorizon phylo
 
 
 traceExportBranches :: [PhyloBranch] -> [PhyloBranch]

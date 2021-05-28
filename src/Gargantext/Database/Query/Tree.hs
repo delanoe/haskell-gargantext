@@ -256,7 +256,7 @@ toTree m =
                 -> Tree NodeTree
         toTree' m' root =
           TreeN (toNodeTree root) $
-            -- | Lines below are equivalent computationally but not semantically
+            -- Lines below are equivalent computationally but not semantically
             -- m' ^.. at (Just $ _dt_nodeId root) . _Just . each . to (toTree' m')
             toListOf (at (Just $ _dt_nodeId root) . _Just . each . to (toTree' m')) m'
 
