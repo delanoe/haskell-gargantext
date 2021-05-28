@@ -11,7 +11,7 @@ packages:
 
 docker:
   enable: false
-  repo: 'fpco/stack-build:lts-16.26-garg'
+  repo: 'fpco/stack-build:lts-17.13-garg'
   run-args:
     - '--publish=8008:8008'
 

@@ -102,7 +102,7 @@ For Docker env, first create the appropriate image:
 
 ``` sh
 cd devops/docker
-docker build -t fpco/stack-build:lts-16.26-garg .
+docker build -t fpco/stack-build:lts-17.13-garg .
 ```
 
 then run:
