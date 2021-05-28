@@ -27,7 +27,7 @@ build:
   script:
     - rm -rf .stack
     - rm -rf .stack-work
-    - stack --docker build --haddock --no-haddock-deps --fast
+    - stack build --haddock --no-haddock-deps --fast
 
       # TOOO
 #unit-test:
