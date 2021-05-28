@@ -24,6 +24,9 @@ build:
       - .stack-work/
   script:
     - stack build --no-terminal --haddock --no-haddock-deps --fast
+    - cp -R "$(stack --docker path --local-install-root)" ./output
+  artifacts:
+    - ./output
 
 test:
   cache:
