@@ -5,14 +5,8 @@
 image: cgenie/stack-build:lts-17.13-garg
 
 variables:
-  STACK_ROOT: "${CI_PROJECT_DIR}/.stack"
+  STACK_ROOT: "${CI_PROJECT_DIR}/.stack-root"
   STACK_OPTS: "--system-ghc"
-
-cache:
-  paths:
-    - .stack
-    - .stack-work
-    - target
 
 #before_script:
   #- apt-get update
@@ -23,11 +17,22 @@ stages:
   - test
 
 build:
-  stage: build
+  cache:
+    key: "$CI_JOB_NAME"
+    paths:
+      - .stack-root/
+      - .stack-work/
   script:
-    - rm -rf .stack
-    - rm -rf .stack-work
-    - stack build --haddock --no-haddock-deps --fast
+    - stack build --no-terminal --haddock --no-haddock-deps --fast
+
+test:
+  cache:
+    key: "$CI_JOB_NAME"
+    paths:
+      - .stack-root/
+      - .stack-work/
+  script:
+    - stack test --no-terminal --fast
 
       # TOOO
 #unit-test:
