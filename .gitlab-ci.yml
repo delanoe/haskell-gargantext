@@ -13,10 +13,10 @@ variables:
   #- apt-get install make xz-utils
 
 stages:
-  - build
+  - docs
   - test
 
-build:
+docs:
   cache:
     key: "$CI_JOB_NAME"
     paths:
@@ -24,7 +24,7 @@ build:
       - .stack-work/
   script:
     - stack build --no-terminal --haddock --no-haddock-deps --fast
-    - cp -R "$(stack path --local-install-root)" ./output
+    - cp -R "$(stack path --local-install-root)"/doc ./output
   artifacts:
     paths:
       - ./output
