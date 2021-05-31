@@ -241,7 +241,7 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
                                                            in (prd, map (\f -> PhyloClique (Set.toList $ fst f) ((fst . snd) f) prd ((fst . snd . snd) f) (((snd . snd . snd) f))) lst)
                                         _  -> let lst = toList 
                                                       $ fisWithSizePolyMap (Segment 1 20) 1 (map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs)
-                                              in (prd, map (\f -> PhyloClique (Set.toList $ fst f) (snd f) prd Nothing []) lst)
+                                              in (prd, map (\f -> PhyloClique (Set.toList $ fst f) (snd f) prd (Just $ fromIntegral $ snd f) []) lst)
                                       )
                                $ toList phyloDocs
                           fis' = fis `using` parList rdeepseq

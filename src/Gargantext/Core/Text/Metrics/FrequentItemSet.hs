@@ -28,7 +28,7 @@ module Gargantext.Core.Text.Metrics.FrequentItemSet
 
 import Data.List (concat, null)
 import Data.Map.Strict (Map)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, isNothing)
 import Data.Set (Set)
 import Gargantext.Prelude
 import HLCM
@@ -131,14 +131,19 @@ isSublistOf sub lst = all (\i -> elem i lst) sub
 reIndexFis :: Ord a => [([a],(b,c))] -> [Fis' a] -> [(Fis' a,([b],[c]))]
 reIndexFis items fis = map (\f -> 
     let docs = filter (\(lst,_) -> isSublistOf (_fisItemSet f) lst) items
-     in (f, (map (fst . snd) docs,map (snd . snd) docs))) fis
+     in (f, (map (fst . snd) docs, map (snd . snd) docs))) fis
 
-wsum :: [Maybe Double] -> Maybe Double
-wsum lst = fmap sum $ sequence lst  
+wsum :: [Maybe Double] -> Int -> Maybe Double
+wsum lst sup =
+  let w = fmap sum $ sequence lst
+   in
+      if (isNothing w)
+        then Just $ fromIntegral sup
+        else w
 
 fisWithSizePolyMap' :: Ord a => Size -> Frequency -> [([a], (Maybe Double,[Int]))] -> Map (Set a) (Int, (Maybe Double,[Int]))
 fisWithSizePolyMap' n f is = Map.fromList
-  $ map (\(fis,(ws,sources)) -> (Set.fromList (_fisItemSet fis),(_fisCount fis,(wsum ws,concat sources))))
+  $ map (\(fis,(ws,sources)) -> (Set.fromList (_fisItemSet fis),(_fisCount fis,(wsum ws (_fisCount fis),concat sources))))
   $ reIndexFis is 
   $ fisWithSizePoly2 n f (map fst is)
 
