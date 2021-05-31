@@ -125,7 +125,7 @@ recomputeGraph _uId nId maybeDistance = do
                   identity
                   $ nodeGraph ^. node_parent_id
     similarity = case graphMetric of
-                   Nothing -> withMetric Order2
+                   Nothing -> withMetric Order1
                    Just m  -> withMetric m
 
   case graph of
@@ -159,7 +159,7 @@ computeGraph cId d nt repo = do
   let ngs = filterListWithRoot MapTerm
           $ mapTermListRoot [lId] nt repo
 
-  myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)
+  myCooc <- HashMap.filter (>2) -- Removing the hapax (ngrams with 1 cooc)
          <$> getCoocByNgrams (Diagonal True)
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)

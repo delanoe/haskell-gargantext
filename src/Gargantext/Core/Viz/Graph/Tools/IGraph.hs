@@ -68,7 +68,9 @@ spinglass s g = toClusterNode
     g''  = mkGraphUfromEdges (Map.keys g')
     g''' = case IG.isConnected g'' of
       True -> g''
-      False -> panic "[G.C.V.G.T.Igraph: not connected graph]"
+      False -> case head (IG.decompose g'') of
+        Nothing    -> panic "[G.C.V.G.T.Igraph: not connected graph]"
+        Just g'''' -> g''''
 
     (toI, fromI) = createIndices g
 
