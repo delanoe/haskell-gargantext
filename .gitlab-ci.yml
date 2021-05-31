@@ -18,6 +18,8 @@ stages:
 
 docs:
   cache:
+    # cache per branch name
+    # key: ${CI_COMMIT_REF_SLUG}
     paths:
       - .stack-root/
       - .stack-work/
@@ -31,6 +33,8 @@ docs:
 
 test:
   cache:
+    # cache per branch name
+    # key: ${CI_COMMIT_REF_SLUG}
     paths:
       - .stack-root/
       - .stack-work/
