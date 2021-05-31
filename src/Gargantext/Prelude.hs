@@ -82,14 +82,18 @@ import qualified Data.List     as L hiding (head, sum)
 import qualified Data.Map      as M
 import qualified Data.Set      as Set
 import qualified Data.Vector   as V
-
+import System.FilePath.Posix (takeDirectory)
+import System.Directory (createDirectoryIfMissing)
 
 printDebug :: (Show a, MonadBase IO m) => [Char] -> a -> m ()
 printDebug msg x = liftBase . putStrLn $ msg <> " " <> show x
 -- printDebug _ _ = pure ()
 
 saveAsFileDebug :: (Show a, MonadBase IO m) => [Char] -> a -> m ()
-saveAsFileDebug fname x = liftBase . Protolude.writeFile fname $ pack $ show x
+saveAsFileDebug fname x = do
+  let dir = takeDirectory fname
+  _ <- liftBase $ createDirectoryIfMissing True dir
+  liftBase . Protolude.writeFile fname $ pack $ show x
 
 
 -- | splitEvery n == chunkAlong n n
