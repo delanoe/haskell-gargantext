@@ -14,10 +14,11 @@ import Gargantext.Core (Lang(..))
 --import qualified Ngrams.Lang.Fr as Fr
 --import qualified Ngrams.Lang as Lang
 import qualified Ngrams.Lang.Occurrences as Occ
-import qualified Ngrams.Metrics as Metrics
-import qualified Parsers.Date as PD
-import qualified Graph.Distance as GD
-import qualified Utils.Crypto as Crypto
+import qualified Ngrams.Metrics          as Metrics
+import qualified Parsers.Date            as PD
+-- import qualified Graph.Distance          as GD
+import qualified Graph.Clustering        as Graph
+import qualified Utils.Crypto            as Crypto
 
 main :: IO ()
 main = do
@@ -25,6 +26,7 @@ main = do
 --    Lang.ngramsExtractionTest FR
 --    Lang.ngramsExtractionTest EN
 --    Metrics.main
-    PD.testFromRFC3339
+  Graph.test 
+  PD.testFromRFC3339
 --    GD.test
-    Crypto.test
+  Crypto.test
