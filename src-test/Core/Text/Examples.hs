@@ -23,7 +23,7 @@ This document defines basic of Text definitions according to Gargantext..
 
 {-# LANGUAGE BangPatterns      #-}
 
-module Gargantext.Core.Text.Examples
+module Core.Text.Examples
   where
 
 import Data.Array.Accelerate (toList, Matrix)

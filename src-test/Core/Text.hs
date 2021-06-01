@@ -11,7 +11,7 @@ Portability : POSIX
 -}
 
 
-module Graph.Clustering where
+module Core.Text where
 
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Viz.Graph (Graph(..))
