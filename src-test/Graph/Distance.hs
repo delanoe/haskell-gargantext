@@ -17,6 +17,7 @@ module Graph.Distance where
 
 import Test.Hspec
 
+{-
 import Gargantext.Core.Methods.Matrix.Accelerate.Utils (cross', matrix)
 import Gargantext.Prelude
 
@@ -26,4 +27,4 @@ test = hspec $ do
     let result = cross' $ matrix 3 ([1,1..] :: [Double])
     it "compare" $ do
       shouldBe result (matrix 3 ([2,2..] :: [Double]))
-
+-}

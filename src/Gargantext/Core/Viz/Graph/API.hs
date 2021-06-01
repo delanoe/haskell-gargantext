@@ -168,6 +168,7 @@ computeGraph cId d nt repo = do
   saveAsFileDebug "debug/my-cooc" myCooc
 
   graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
+  saveAsFileDebug "debug/graph" graph
   pure graph
 
 
@@ -289,3 +290,9 @@ getGraphGexf :: UserId
 getGraphGexf uId nId = do
   HyperdataGraphAPI { _hyperdataAPIGraph = graph } <- getGraph uId nId
   pure $ addHeader "attachment; filename=graph.gexf" graph
+
+
+
+
+
+

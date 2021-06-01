@@ -110,14 +110,13 @@ filterByNeighbours threshold distanceMap = filteredMap
                            in List.take (round threshold) selected
                       ) indexes                 
 
-cooc2graphWith' :: ToComId a
-               => Partitions a
-               -> Distance
+
+doDistanceMap :: Distance
                -> Threshold
                -> HashMap (NgramsTerm, NgramsTerm) Int
-               -> IO Graph
-cooc2graphWith' doPartitions distance threshold myCooc = do
-  let
+               -> (Map (Int,Int) Double, Map (Index, Index) Int, Map NgramsTerm Index)
+doDistanceMap distance threshold myCooc = (distanceMap, myCooc', ti)
+  where
     -- TODO remove below
     theMatrix = Map.fromList
               $ HashMap.toList myCooc
@@ -135,14 +134,24 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
 
     similarities = measure distance matCooc
     links = round (let n :: Double = fromIntegral tiSize in n * log n)
-    distanceMap = Map.fromList
-                $ List.take links
+
+    distanceMap = Map.fromList  $ List.take links
                 $ List.sortOn snd
                 $ Map.toList
                 $ case distance of
                     Conditional    -> Map.filter (> threshold)
                     Distributional -> Map.filter (> 0)
                 $ mat2map similarities
+
+cooc2graphWith' :: ToComId a
+               => Partitions a
+               -> Distance
+               -> Threshold
+               -> HashMap (NgramsTerm, NgramsTerm) Int
+               -> IO Graph
+cooc2graphWith' doPartitions distance threshold myCooc = do
+  let
+    (distanceMap, myCooc', ti) = doDistanceMap distance threshold myCooc
 
     nodesApprox :: Int
     nodesApprox = n'
@@ -151,15 +160,10 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
         n' = Set.size $ Set.fromList $ as <> bs
     ClustersParams rivers _level = clustersParams nodesApprox
 
-  saveAsFileDebug "debug/the-matrix" theMatrix
-  saveAsFileDebug "debug/my-cooc-prime" myCooc'
-  saveAsFileDebug "debug/mat-cooc" matCooc
-  saveAsFileDebug "debug/similarities" similarities
-  saveAsFileDebug "debug/links" links
+{- | Debug
   saveAsFileDebug "debug/distanceMap" distanceMap
-  saveAsFileDebug "debug/nodesApprox" nodesApprox
-
   printDebug "similarities" similarities
+-}
 
   -- partitions <- if (Map.size distanceMap > 0)
   --     then doPartitions distanceMap
@@ -176,48 +180,6 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
   pure $ data2graph (Map.toList $ Map.mapKeys unNgramsTerm ti)
                     myCooc' bridgeness' confluence' partitions
 
-
-
--- cooc2graph :: Distance
---            -> Threshold
---            -> (Map (Text, Text) Int)
---            -> IO Graph
--- cooc2graph distance threshold myCooc = do
---   printDebug "cooc2graph" distance
---   let
---     -- TODO remove below
---     theMatrix = Map.fromList $ HashMap.toList myCooc
---     (ti, _) = createIndices theMatrix
---     myCooc' = toIndex ti theMatrix
---     matCooc = map2mat 0 (Map.size ti)
---             $ Map.filterWithKey (\(a,b) _ -> a /= b) 
---             $ Map.filter (> 1) myCooc'
---     distanceMat = measure distance matCooc
---     distanceMap = Map.filter (> threshold) $ mat2map distanceMat
-
---     nodesApprox :: Int
---     nodesApprox = n'
---       where
---         (as, bs) = List.unzip $ Map.keys distanceMap
---         n' = Set.size $ Set.fromList $ as <> bs
---     ClustersParams rivers _level = clustersParams nodesApprox
-
---   printDebug "Start" ("partitions" :: Text)
---   partitions <- if (Map.size distanceMap > 0)
---       -- then iLouvainMap 100 10 distanceMap
---       -- then hLouvain distanceMap
---       then doPartitions distanceMap
---       else panic "Text.Flow: DistanceMap is empty"
---   printDebug "End" ("partitions" :: Text)
-
---   let
---     -- bridgeness' = distanceMap
---     bridgeness' = trace ("Rivers: " <> show rivers)
---                 $ bridgeness rivers partitions distanceMap
---     confluence' = confluence (Map.keys bridgeness') 3 True False
-
---   pure $ data2graph (Map.toList $ Map.mapKeys unNgramsTerm ti)
---                     myCooc' bridgeness' confluence' partitions
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

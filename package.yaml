@@ -49,6 +49,7 @@ library:
   - Gargantext.API.Admin.Types
   - Gargantext.API.Prelude
   - Gargantext.Core
+  - Gargantext.Core.Methods.Distances
   - Gargantext.Core.Types
   - Gargantext.Core.Types.Individu
   - Gargantext.Core.Types.Main
@@ -67,6 +68,8 @@ library:
   - Gargantext.Prelude
   - Gargantext.Prelude.Crypto.Pass.User
   - Gargantext.Prelude.GargDB
+  - Gargantext.Prelude.Crypto.Hash
+  - Gargantext.Prelude.Utils
   - Gargantext.Core.Text
   - Gargantext.Core.Text.Context
   - Gargantext.Core.Text.Corpus.Parsers
@@ -88,6 +91,8 @@ library:
   - Gargantext.Core.Text.Terms.WithList
   - Gargantext.Core.Text.Flow
   - Gargantext.Core.Viz.Graph
+  - Gargantext.Core.Viz.Graph.Tools
+  - Gargantext.Core.Viz.Graph.Tools.IGraph
   - Gargantext.Core.Viz.Graph.Index
   - Gargantext.Core.Viz.AdaptativePhylo
   - Gargantext.Core.Viz.Phylo.PhyloMaker
@@ -431,6 +436,7 @@ tests:
      - parsec
      - duckling
      - text
+     - unordered-containers
 #  garg-doctest:
 #    main: Main.hs
 #    source-dirs: src-doctest
