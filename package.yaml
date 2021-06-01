@@ -76,7 +76,6 @@ library:
   - Gargantext.Core.Text.Corpus.Parsers.Date.Parsec
   - Gargantext.Core.Text.Corpus.API
   - Gargantext.Core.Text.Corpus.Parsers.CSV
-  - Gargantext.Core.Text.Examples
   - Gargantext.Core.Text.List.Formats.CSV
   - Gargantext.Core.Text.Metrics
   - Gargantext.Core.Text.Metrics.TFICF
@@ -89,7 +88,6 @@ library:
   - Gargantext.Core.Text.Terms.Multi.Lang.Fr
   - Gargantext.Core.Text.Terms.Multi.RAKE
   - Gargantext.Core.Text.Terms.WithList
-  - Gargantext.Core.Text.Flow
   - Gargantext.Core.Viz.Graph
   - Gargantext.Core.Viz.Graph.Tools
   - Gargantext.Core.Viz.Graph.Tools.IGraph
