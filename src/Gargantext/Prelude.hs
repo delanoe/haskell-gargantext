@@ -9,7 +9,6 @@ Portability : POSIX
 
 -}
 
-
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults  #-}
 
@@ -361,6 +360,4 @@ hasDuplicatesWith  seen (x:xs) =
     -- we'll add it the the set of previously seen items and process the rest of the
     -- list against that.
     x `Set.member` seen || hasDuplicatesWith (Set.insert x seen) xs
-
-
 
