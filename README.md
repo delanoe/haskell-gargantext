@@ -6,10 +6,9 @@ Gargantext is a collaborative web platform for the exploration of sets
 of unstructured documents. It combines tools from natural language
 processing, text-mining, complex networks analysis and interactive data
 visualization to pave the way toward new kinds of interactions with your
-digital corpora.
-
-This software is a free software, developed by the CNRS Complex Systems
-Institute of Paris Île-de-France (ISC-PIF) and its partners.
+digital corpora. This software is a free software, developed by the CNRS
+Complex Systems Institute of Paris Île-de-France (ISC-PIF) and its
+partners.
 
 ## Installation
 
@@ -163,5 +162,4 @@ To build documentation, run:
 ```sh
 stack --docker build --haddock --no-haddock-deps --fast
 ```
-
 
