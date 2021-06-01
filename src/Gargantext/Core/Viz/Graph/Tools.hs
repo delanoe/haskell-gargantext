@@ -160,15 +160,14 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
         n' = Set.size $ Set.fromList $ as <> bs
     ClustersParams rivers _level = clustersParams nodesApprox
 
-{- | Debug
+{- -- Debug
   saveAsFileDebug "debug/distanceMap" distanceMap
   printDebug "similarities" similarities
 -}
 
-  -- partitions <- if (Map.size distanceMap > 0)
-  --     then doPartitions distanceMap
-  --     else panic "Text.Flow: DistanceMap is empty"
-  partitions <- doPartitions distanceMap
+  partitions <- if (Map.size distanceMap > 0)
+      then doPartitions distanceMap
+      else panic "Text.Flow: DistanceMap is empty"
 
   let
     -- bridgeness' = distanceMap
