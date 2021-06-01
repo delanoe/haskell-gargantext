@@ -12,7 +12,7 @@ From text to viz, all the flow of texts in Gargantext.
 -}
 
 
-module Gargantext.Core.Text.Flow
+module Core.Text.Flow
   where
 
 import qualified Data.Text as T
