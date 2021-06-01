@@ -15,12 +15,14 @@ From text to viz, all the flow of texts in Gargantext.
 module Core.Text.Flow
   where
 
+{-
 import qualified Data.Text as T
 --import Data.Text.IO (readFile)
 import Database.PostgreSQL.Simple (Connection)
 import GHC.IO (FilePath)
 --import Gargantext.Core (Lang)
 import Gargantext.Core.Types (CorpusId)
+-}
 
 {-
   ____                           _____         _   
@@ -32,6 +34,7 @@ import Gargantext.Core.Types (CorpusId)
 -}
 
 
+{-
 contextText :: [T.Text]
 contextText = ["The dog is an animal."
               ,"The bird is an animal."
@@ -53,6 +56,7 @@ data TextFlow = CSV FilePath
               | DBV3 Connection CorpusId
               | Query T.Text
 
+-}
 {-
 textFlow :: TermType Lang -> TextFlow -> IO Graph
 textFlow termType workType = do

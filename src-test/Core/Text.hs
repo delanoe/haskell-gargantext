@@ -13,6 +13,7 @@ Portability : POSIX
 
 module Core.Text where
 
+{-
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Viz.Graph (Graph(..))
 import Gargantext.Prelude
@@ -58,3 +59,5 @@ termTests = "It is hard to detect important articles in a specific context. Info
     -- TODO
     -- group ngrams
     --ocs  = occ       $ ws
+    --
+-}

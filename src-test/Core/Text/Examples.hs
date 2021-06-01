@@ -26,6 +26,7 @@ This document defines basic of Text definitions according to Gargantext..
 module Core.Text.Examples
   where
 
+{-
 import Data.Array.Accelerate (toList, Matrix)
 import Data.Map (Map)
 import Data.Ord (Down(..))
@@ -129,4 +130,4 @@ incExcSpeGen_sorted m = both ordonne (incExcSpeGen $ cooc2mat Triangle ti m)
     ordonne x = sortWith (Down . snd)
               $ zip (map snd $ Map.toList fi) (toList x)
 
-
+-}
