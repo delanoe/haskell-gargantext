@@ -265,8 +265,8 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
     splitAt' max' n' = (both (HashMap.fromList)) . (List.splitAt (round $ n' * max'))
     sortOn   f  = (List.sortOn (Down . (view (gts'_score . f)) . snd)) . HashMap.toList
 
-    monoInc_size n = splitAt' n $ monoSize * inclSize / 2
-    multExc_size n = splitAt' n $ multSize * exclSize / 2
+    monoInc_size n = splitAt' n $ monoSize * inclSize / 4
+    multExc_size n = splitAt' n $ multSize * exclSize / 4
 
 
     (mapMonoScoredInclHead, monoScoredInclTail) = monoInc_size mapSize $ (sortOn scored_genInc) monoScoredIncl
