@@ -247,8 +247,8 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
       -- filter with max score
     partitionWithMaxScore = HashMap.partition (\g -> (view scored_genInc $ view gts'_score g)
-                                               > (view scored_speExc $ view gts'_score g)
-                                          )
+                                                   > (view scored_speExc $ view gts'_score g)
+                                              )
 
     (monoScoredIncl, monoScoredExcl) = partitionWithMaxScore monoScored
     (multScoredIncl, multScoredExcl) = partitionWithMaxScore multScored
@@ -257,7 +257,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
   let
     -- use % of list if to big, or Int if to small
     mapSize = 1000 :: Double
-    canSize = mapSize * 10 :: Double
+    canSize = mapSize * 5 :: Double
  
     inclSize = 0.4  :: Double
     exclSize = 1 - inclSize

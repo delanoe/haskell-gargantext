@@ -116,7 +116,10 @@ distributional m' = run result
     result = termDivNan z_1 z_2
 
 logDistributional :: Matrix Int -> Matrix Double
-logDistributional m = run $ diagNull n $ matMiniMax $ logDistributional' n m
+logDistributional m = run
+                    $ diagNull n
+                    $ matMiniMax
+                    $ logDistributional' n m
   where
     n = dim m
 
