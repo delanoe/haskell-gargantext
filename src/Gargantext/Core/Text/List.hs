@@ -118,6 +118,7 @@ buildNgramsOthersList user uCid _groupParams (nt, MapListSize mapListSize) = do
                             $ List.sortOn (Down . viewScore . snd)
                             $ HashMap.toList tailTerms'
 
+
   pure $ Map.fromList [( nt, (toNgramsElement stopTerms)
                           <> (toNgramsElement mapTerms )
                           <> (toNgramsElement $ setListType (Just MapTerm      ) mapTerms' )
@@ -265,8 +266,8 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
     splitAt' max' n' = (both (HashMap.fromList)) . (List.splitAt (round $ n' * max'))
     sortOn   f  = (List.sortOn (Down . (view (gts'_score . f)) . snd)) . HashMap.toList
 
-    monoInc_size n = splitAt' n $ monoSize * inclSize / 4
-    multExc_size n = splitAt' n $ multSize * exclSize / 4
+    monoInc_size n = splitAt' n $ monoSize * inclSize / 2
+    multExc_size n = splitAt' n $ multSize * exclSize / 2
 
 
     (mapMonoScoredInclHead, monoScoredInclTail) = monoInc_size mapSize $ (sortOn scored_genInc) monoScoredIncl
@@ -304,11 +305,14 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
           {-\$  groupedMonoTail
           <>-} groupedMultTail
 
+    -- Quick FIX
+    candNgramsElement = List.take 5000
+                      $ toNgramsElement cands <> toNgramsElement cands'
+
     result = Map.unionsWith (<>)
        [ Map.fromList [( nt, toNgramsElement maps
-                          <> toNgramsElement cands
-                          <> toNgramsElement cands'
                           <> toNgramsElement stopTerms
+                          <> candNgramsElement
                       )]
        ]
 
