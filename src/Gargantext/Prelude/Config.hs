@@ -39,6 +39,7 @@ data GargConfig = GargConfig { _gc_url              :: !T.Text
 
                              , _gc_frame_write_url  :: !T.Text
                              , _gc_frame_calc_url   :: !T.Text
+                             , _gc_frame_visio_url  :: !T.Text
 
                              , _gc_frame_searx_url  :: !T.Text
                              , _gc_frame_istex_url  :: !T.Text
@@ -68,6 +69,7 @@ readConfig fp = do
                     (cs $ val "REPO_FILEPATH")
                     (stripRight '/' $ val "FRAME_WRITE_URL")
                     (stripRight '/' $ val "FRAME_CALC_URL")
+                    (stripRight '/' $ val "FRAME_VISIO_URL")
                     (stripRight '/' $ val "FRAME_SEARX_URL")
                     (stripRight '/' $ val "FRAME_ISTEX_URL")
                     (read $ cs $ val "MAX_DOCS_SCRAPERS")

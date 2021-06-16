@@ -76,9 +76,10 @@ nodeTypeId n =
 
     NodeFile        -> 101
 
-    NodeFrameWrite  -> 991
-    NodeFrameCalc   -> 992
-    NodeFrameNotebook   -> 993
+    NodeFrameWrite    -> 991
+    NodeFrameCalc     -> 992
+    NodeFrameNotebook -> 993
+    NodeFrameVisio    -> 994
 
 --  Cooccurrences -> 9
 --

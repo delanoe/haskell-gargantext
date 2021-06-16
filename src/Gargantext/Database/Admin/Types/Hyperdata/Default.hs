@@ -52,6 +52,7 @@ data DefaultHyperdata =
 
   | DefaultFrameWrite    HyperdataFrame
   | DefaultFrameCalc     HyperdataFrame
+  | DefaultFrameVisio    HyperdataFrame
   | DefaultFrameCode     HyperdataFrame
 
   | DefaultFile          HyperdataFile
@@ -84,6 +85,7 @@ instance ToJSON DefaultHyperdata where
 
   toJSON (DefaultFrameWrite x) = toJSON x
   toJSON (DefaultFrameCalc  x) = toJSON x
+  toJSON (DefaultFrameVisio x) = toJSON x
   toJSON (DefaultFrameCode  x) = toJSON x
 
   toJSON (DefaultFile x) = toJSON x
@@ -115,6 +117,7 @@ defaultHyperdata NodeDashboard      = DefaultDashboard defaultHyperdataDashboard
 
 defaultHyperdata NodeFrameWrite     = DefaultFrameWrite defaultHyperdataFrame
 defaultHyperdata NodeFrameCalc      = DefaultFrameCalc  defaultHyperdataFrame
+defaultHyperdata NodeFrameVisio     = DefaultFrameVisio defaultHyperdataFrame
 defaultHyperdata NodeFrameNotebook      = DefaultFrameCalc  defaultHyperdataFrame
 
 defaultHyperdata NodeFile           = DefaultFile defaultHyperdataFile

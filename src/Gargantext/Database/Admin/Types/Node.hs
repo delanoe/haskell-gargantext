@@ -266,7 +266,7 @@ data NodeType = NodeUser
 -}
 
               -- Optional Nodes
-              | NodeFrameWrite | NodeFrameCalc | NodeFrameNotebook
+              | NodeFrameWrite | NodeFrameCalc | NodeFrameVisio | NodeFrameNotebook
               | NodeFile
 
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
@@ -301,6 +301,7 @@ defaultName NodePhylo         = "Phylo"
 
 defaultName NodeFrameWrite    = "Frame Write"
 defaultName NodeFrameCalc     = "Frame Calc"
+defaultName NodeFrameVisio    = "Frame Visio"
 defaultName NodeFrameNotebook     = "Frame Code"
 
 defaultName NodeFile          = "File"
