@@ -6,5 +6,5 @@ import (builtins.fetchGit {
   url = "https://github.com/nixos/nixpkgs/";
   # `git ls-remote https://github.com/nixos/nixpkgs-channels nixos-20.09`
   ref = "refs/heads/nixos-20.09";
-  rev = "19db3e5ea2777daa874563b5986288151f502e27";
+  rev = "69f3a9705014ce75b0489404210995fb6f29836e";
 })

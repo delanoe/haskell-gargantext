@@ -24,7 +24,7 @@ import Gargantext.Prelude
 import System.Environment (getArgs)
 import Prelude (getLine)
 
--- | PosTag
+-- PosTag
 import Gargantext.Database.Action.Flow (indexAllDocumentsWithPosTag)
 
 main :: IO ()

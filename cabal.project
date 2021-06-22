@@ -1,0 +1,103 @@
+packages: .
+
+allow-newer: base, accelerate
+
+-- Patches
+source-repository-package
+  type: git
+  location: https://github.com/delanoe/patches-map.git
+  tag: 76cae88f367976ff091e661ee69a5c3126b94694
+
+source-repository-package
+  type: git
+  location: https://gitlab.iscpif.fr/gargantext/patches-class.git
+  tag: 271ba32d6c940029dc653354dd7974a819f48e77
+
+-- External Data API connectors
+source-repository-package
+  type: git
+  location: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed.git
+  tag: a9d8e08a7ef82f90e29dfaced4071704a3163394
+
+source-repository-package
+  type: git
+  location: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
+  tag: 3db385e767d2100d8abe900833c6e7de3ac55e1b
+
+source-repository-package
+  type: git
+  location: https://gitlab.iscpif.fr/gargantext/crawlers/istex.git
+  tag: daeae80365250c4bd539f0a65e271f9aa37f731f
+
+source-repository-package
+  type: git
+  location: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
+  tag: 020f5f9b308f5c23c925aedf5fb11f8b4728fb19
+
+-- Graphs
+source-repository-package
+  type: git
+  location: https://github.com/alpmestan/haskell-igraph.git
+  tag: 9f55eb36639c8e0965c8bc539a57738869f33e9a
+
+-- Data mining
+source-repository-package
+  type: git
+  location: https://github.com/delanoe/data-time-segment.git
+  tag: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
+
+source-repository-package
+  type: git
+  location: https://gitlab.iscpif.fr/gargantext/hlcm.git
+  tag: 6f0595d2421005837d59151a8b26eee83ebb67b5
+
+source-repository-package
+  type: git
+  location: https://github.com/delanoe/hstatistics.git
+  tag: 90eef7604bb230644c2246eccd094d7bfefcb135
+
+source-repository-package
+  type: git
+  location: https://github.com/paulrzcz/HSvm.git
+  tag: 3fe28b683aba5ddf05e3b5f8eced0bd05c5a29f9
+
+-- servant
+source-repository-package
+  type: git
+  location: https://github.com/delanoe/servant-static-th.git
+  tag: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
+
+source-repository-package
+  type: git
+  location: https://github.com/alpmestan/servant-job.git
+  tag: e9a4c57ca3ddee450627ed251df942effb27e4be
+
+-- Database libraries
+source-repository-package
+  type: git
+  location: https://github.com/delanoe/haskell-opaleye.git
+  tag: 63ee65d974e9d20eaaf17a2e83652175988cbb79
+
+source-repository-package
+  type: git
+  location: https://github.com/delanoe/hsparql.git
+  tag: 308c74b71a1abb0a91546fa57d353131248e3a7f
+
+source-repository-package
+  type: git
+  location: https://github.com/alpmestan/rdf4h.git
+  tag: fc24987d3af348a677748f226e48d64779a694e9
+
+
+-- Accelerate
+source-repository-package
+  type: git
+  location: https://gitlab.iscpif.fr/anoe/accelerate.git
+  tag: f5c0e0071ec7b6532f9a9cd3eb33d14f340fbcc9
+
+source-repository-package
+  type: git
+  location: https://gitlab.iscpif.fr/anoe/accelerate-utility.git
+  tag: 83ada76e78ac10d9559af8ed6bd4064ec81308e4
+
+constraints: unordered-containers==0.2.13.*

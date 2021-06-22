@@ -327,7 +327,7 @@ main = do
             writePhylo phyloWithLinksFile phyloWithLinks                                        
 
 
-            -- | probes
+            -- probes
 
             -- writeFile ((outputPath config) <> (unpack $ phyloName config) <> "_synchronic_distance_cumu_jaccard.txt") 
             --          $ synchronicDistance' phylo 1

@@ -18,7 +18,7 @@ docker:
 nix:
   enable: false
   add-gc-roots: true
-  shell-file: build-shell.nix
+  shell-file: nix/stack-shell.nix
 
 allow-newer: true
 
@@ -69,8 +69,8 @@ extra-deps:
 
   # Graph libs
 #- git: https://github.com/kaizhang/haskell-igraph.git
-- git: https://github.com/delanoe/haskell-igraph.git
-  commit: 3c9dc79ff4de2ad7060ff3a527a774dff3aa6f4a
+- git: https://github.com/alpmestan/haskell-igraph.git
+  commit: 9f55eb36639c8e0965c8bc539a57738869f33e9a
 
   # Accelerate Linear Algebra and specific instances
   # (UndecidableInstances for newer GHC version)
