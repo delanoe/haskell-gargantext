@@ -135,7 +135,7 @@ cliqueToGroup fis pId pId' lvl idx coocs = PhyloGroup pId pId' lvl idx ""
                    (ngramsToCooc (fis ^. phyloClique_nodes) coocs)
                    (1,[0]) -- branchid (lvl,[path in the branching tree])
                    (fromList [("breaks",[0]),("seaLevels",[0])])
-                   [] [] [] [] []
+                   [] [] [] [] [] [] []
 
 
 toPhylo1 :: Phylo -> Phylo

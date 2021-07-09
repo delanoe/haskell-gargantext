@@ -45,6 +45,8 @@ mergeGroups coocs id mapIds childs =
                   (updatePointers $ concat $ map _phylo_groupPeriodParents childs)
                   (updatePointers $ concat $ map _phylo_groupPeriodChilds  childs)
                   (mergeAncestors $ concat $ map _phylo_groupAncestors childs)
+                  (updatePointers' $ concat $ map _phylo_groupPeriodMemoryParents childs)
+                  (updatePointers' $ concat $ map _phylo_groupPeriodMemoryChilds  childs)
     where
         --------------------
         bId :: [Int]
@@ -52,6 +54,8 @@ mergeGroups coocs id mapIds childs =
         --------------------
         updatePointers :: [Pointer] -> [Pointer]
         updatePointers pointers = map (\(pId,w) -> (mapIds ! pId,w)) pointers
+        updatePointers' :: [Pointer'] -> [Pointer']
+        updatePointers' pointers = map (\(pId,(t,w)) -> (mapIds ! pId,(t,w))) pointers
         --------------------
         mergeAncestors :: [Pointer] -> [Pointer]
         mergeAncestors pointers = Map.toList $ fromListWith max pointers

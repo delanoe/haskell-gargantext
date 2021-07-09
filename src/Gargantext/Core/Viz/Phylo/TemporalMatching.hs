@@ -119,6 +119,8 @@ findLastPeriod :: Filiation -> [PhyloPeriodId] -> PhyloPeriodId
 findLastPeriod fil periods = case fil of
     ToParents -> head' "findLastPeriod" (sortOn fst periods)
     ToChilds  -> last' "findLastPeriod" (sortOn fst periods)
+    ToChildsMemory  -> undefined
+    ToParentsMemory -> undefined
 
 
 -- | To filter pairs of candidates related to old pointers periods
@@ -133,10 +135,12 @@ removeOldPointers oldPointers fil thr prox prd pairs
         then []
         else filter (\((id,_),(id',_)) -> 
                 case fil of
+                     ToChildsMemory  -> undefined
+                     ToParentsMemory -> undefined
                      ToParents -> (((fst . fst . fst) id ) < (fst lastMatchedPrd))
                                || (((fst . fst . fst) id') < (fst lastMatchedPrd))
                      ToChilds  -> (((fst . fst . fst) id ) > (fst lastMatchedPrd))
-                               || (((fst . fst . fst) id') > (fst lastMatchedPrd))) pairs 
+                               || (((fst . fst . fst) id') > (fst lastMatchedPrd))) pairs
   | otherwise = []
 
 
@@ -181,6 +185,8 @@ filterPointersByPeriod fil pts =
     $ case fil of
         ToParents -> reverse pts'
         ToChilds  -> pts'
+        ToChildsMemory  -> undefined
+        ToParentsMemory -> undefined
 
 phyloGroupMatching :: [[(PhyloGroupId,[Int])]] -> Filiation -> Proximity -> Map Date Double -> Map Date Cooc
                    -> Double -> [Pointer] -> (PhyloGroupId,[Int]) -> [Pointer]
@@ -236,6 +242,8 @@ getNextPeriods fil max' pId pIds =
     case fil of 
         ToChilds  -> take max' $ (tail . snd) $ splitAt (elemIndex' pId pIds) pIds
         ToParents -> take max' $ (reverse . fst) $ splitAt (elemIndex' pId pIds) pIds
+        ToChildsMemory  -> undefined
+        ToParentsMemory -> undefined
 
 
 getCandidates :: PhyloGroup -> [[(PhyloGroupId,[Int])]] -> [[(PhyloGroupId,[Int])]]
@@ -268,7 +276,9 @@ matchGroupsToGroups frame periods proximity thr docs coocs groups =
                           pointersChi = phyloGroupMatching (getCandidates ego candidatesChi) ToChilds  proximity docsChi diagoChi
                                         thr (getPeriodPointers ToChilds  ego) (getGroupId ego, ego ^. phylo_groupNgrams)
                        in addPointers ToChilds  TemporalPointer pointersChi
-                        $ addPointers ToParents TemporalPointer pointersPar ego)
+                        $ addPointers ToParents TemporalPointer pointersPar
+                        $ addMemoryPointers ToChildsMemory  TemporalPointer thr pointersChi
+                        $ addMemoryPointers ToParentsMemory TemporalPointer thr pointersPar ego)
                   $ findWithDefault [] prd groups'
             egos' = egos `using` parList rdeepseq 
          in acc ++ egos'       

@@ -146,13 +146,26 @@ groupToDotNode fdt g bId =
                          , toAttr "foundation" (pack $ show (idxToLabel (g ^. phylo_groupNgrams)))
                          , toAttr "role" (pack $ show (idxToLabel' ((g ^. phylo_groupMeta) ! "dynamics")))
                          , toAttr "frequence" (pack $ show (idxToLabel' ((g ^. phylo_groupMeta) ! "frequence")))
+                         , toAttr "seaLvl" (pack $ show ((g ^. phylo_groupMeta) ! "seaLevels"))
                          ])  
+
+
+toDotEdge' :: DotId -> DotId -> [Char] -> [Char] -> EdgeType -> Dot DotId
+toDotEdge' source target thr w edgeType = edge source target
+    (case edgeType of
+        GroupToGroup    -> undefined
+        GroupToGroupMemory  -> [ Width 3, penWidth 4, Color [toWColor Black], Constraint True] <> [toAttr "edgeType" "memoryLink", toAttr "thr" (pack thr), toAttr "weight" (pack w)]
+        BranchToGroup   -> undefined
+        BranchToBranch  -> undefined
+        GroupToAncestor -> undefined
+        PeriodToPeriod  -> undefined)
 
 
 toDotEdge :: DotId -> DotId -> [Char] -> EdgeType -> Dot DotId
 toDotEdge source target lbl edgeType = edge source target
     (case edgeType of
         GroupToGroup    -> [ Width 3, penWidth 4, Color [toWColor Black], Constraint True] <> [toAttr "edgeType" "link", toAttr "lbl" (pack lbl)]
+        GroupToGroupMemory  -> undefined
         BranchToGroup   -> [ Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])] <> [toAttr "edgeType" "branchLink" ]
         BranchToBranch  -> [ Width 2, Color [toWColor Black], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,DotArrow)])]
         GroupToAncestor -> [ Width 3, Color [toWColor Red], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,NoArrow)]), PenWidth 4] <> [toAttr "edgeType" "ancestorLink", toAttr "lbl" (pack lbl)]                          
@@ -164,6 +177,12 @@ mergePointers groups =
     let toChilds  = fromList $ concat $ map (\g -> map (\(target,w) -> ((getGroupId g,target),w)) $ g ^. phylo_groupPeriodChilds) groups
         toParents = fromList $ concat $ map (\g -> map (\(target,w) -> ((target,getGroupId g),w)) $ g ^. phylo_groupPeriodParents) groups
     in  unionWith (\w w' -> max w w') toChilds toParents
+
+mergePointersMemory :: [PhyloGroup] -> [((PhyloGroupId,PhyloGroupId),(Double,Double))]
+mergePointersMemory groups =
+    let toChilds  = concat $ map (\g -> map (\(target,(t,w)) -> ((getGroupId g,target),(t,w))) $ g ^. phylo_groupPeriodMemoryChilds) groups
+        toParents = concat $ map (\g -> map (\(target,(t,w)) -> ((target,getGroupId g),(t,w))) $ g ^. phylo_groupPeriodMemoryParents) groups
+    in  concat [toChilds,toParents]
 
 mergeAncestors :: [PhyloGroup] -> [((PhyloGroupId,PhyloGroupId), Double)]
 mergeAncestors groups = concat
@@ -244,6 +263,11 @@ exportToDot phylo export =
         _ <- mapM (\((k,k'),v) -> 
                 toDotEdge (groupIdToDotId k) (groupIdToDotId k') (show v) GroupToGroup
             ) $ (toList . mergePointers) $ export ^. export_groups
+
+        {-  8-bis) create the edges between the groups -}
+        _ <- mapM (\((k,k'),v) ->
+                toDotEdge' (groupIdToDotId k) (groupIdToDotId k') (show (fst v)) (show (snd v)) GroupToGroupMemory
+            ) $ mergePointersMemory $ export ^. export_groups
 
         _ <- mapM (\((k,k'),v) -> 
                 toDotEdge (groupIdToDotId k) (groupIdToDotId k') (show v) GroupToAncestor
