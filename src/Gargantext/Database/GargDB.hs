@@ -12,7 +12,7 @@ TODO_2: quantitative tests (coded)
 
 -}
 
-module Gargantext.Prelude.GargDB
+module Gargantext.Database.GargDB
   where
 
 import Control.Exception

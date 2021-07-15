@@ -39,8 +39,8 @@ withDevEnv iniPath k = do
       repo    <- readRepoEnv        (_gc_repofilepath cfg)
       setts   <- devSettings devJwkFile
       pure $ DevEnv
-        { _dev_env_pool = pool
-        , _dev_env_repo = repo
+        { _dev_env_pool     = pool
+        , _dev_env_repo     = repo
         , _dev_env_settings = setts
         , _dev_env_config   = cfg
         }

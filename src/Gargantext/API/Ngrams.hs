@@ -594,7 +594,9 @@ getTableNgrams _nType nId tabType listId limit_ offset
   pure $ toVersionedWithCount fltrCount tableMap3
 
 
-scoresRecomputeTableNgrams :: forall env err m. (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env) => NodeId -> TabType -> ListId -> m Int
+scoresRecomputeTableNgrams :: forall env err m.
+  (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+  => NodeId -> TabType -> ListId -> m Int
 scoresRecomputeTableNgrams nId tabType listId = do
   tableMap <- getNgramsTableMap listId ngramsType
   _ <- tableMap & v_data %%~ setScores
@@ -736,20 +738,20 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
 apiNgramsTableCorpus :: ( GargServerC env err m
                         )
                      => NodeId -> ServerT TableNgramsApi m
-apiNgramsTableCorpus cId =  getTableNgramsCorpus cId
+apiNgramsTableCorpus cId =  getTableNgramsCorpus       cId
                        :<|> tableNgramsPut
                        :<|> scoresRecomputeTableNgrams cId
-                       :<|> getTableNgramsVersion cId
-                       :<|> apiNgramsAsync cId
+                       :<|> getTableNgramsVersion      cId
+                       :<|> apiNgramsAsync             cId
 
 apiNgramsTableDoc :: ( GargServerC env err m
                      )
                   => DocId -> ServerT TableNgramsApi m
-apiNgramsTableDoc dId =  getTableNgramsDoc dId
+apiNgramsTableDoc dId =  getTableNgramsDoc          dId
                     :<|> tableNgramsPut
                     :<|> scoresRecomputeTableNgrams dId
-                    :<|> getTableNgramsVersion dId
-                    :<|> apiNgramsAsync dId
+                    :<|> getTableNgramsVersion      dId
+                    :<|> apiNgramsAsync             dId
                     -- > index all the corpus accordingly (TODO AD)
 
 apiNgramsAsync :: NodeId -> GargServer TableNgramsAsyncApi

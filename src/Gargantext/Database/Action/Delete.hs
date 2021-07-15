@@ -33,7 +33,7 @@ import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
-import qualified Gargantext.Prelude.GargDB as GargDB
+import qualified Gargantext.Database.GargDB as GargDB
 
 ------------------------------------------------------------------------
 

@@ -67,7 +67,6 @@ library:
   - Gargantext.Database.Admin.Types.Node
   - Gargantext.Prelude
   - Gargantext.Prelude.Crypto.Pass.User
-  - Gargantext.Prelude.GargDB
   - Gargantext.Prelude.Crypto.Hash
   - Gargantext.Prelude.Utils
   - Gargantext.Core.Text
@@ -111,7 +110,6 @@ library:
   - aeson
   - aeson-lens
   - aeson-pretty
-  - password
   - array
   - async
   - attoparsec
@@ -229,6 +227,7 @@ library:
   - cprng-aes
   - binary
   - crypto-random
+  - password
 
   - split
   - stemmer
@@ -333,7 +332,7 @@ executables:
       - optparse-generic
       - split
       - unordered-containers
-      - cryptohash  
+      - cryptohash
       - time 
 
   gargantext-import:

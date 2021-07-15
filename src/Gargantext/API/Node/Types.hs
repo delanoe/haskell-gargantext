@@ -18,7 +18,7 @@ import Web.FormUrlEncoded          (FromForm)
 import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Prelude
-import qualified Gargantext.Prelude.GargDB as GargDB
+import qualified Gargantext.Database.GargDB as GargDB
 import Gargantext.API.Node.Corpus.New.File (FileType)
 
 -------------------------------------------------------

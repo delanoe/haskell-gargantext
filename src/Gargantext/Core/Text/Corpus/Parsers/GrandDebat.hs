@@ -32,7 +32,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..), ToHyperdataDocument, toHyperdataDocument)
 import Gargantext.Prelude
-import Gargantext.Prelude.GargDB
+import Gargantext.Database.GargDB
 import qualified Data.ByteString.Lazy as DBL
 import qualified Data.JsonStream.Parser as P
 import qualified Data.Text as Text

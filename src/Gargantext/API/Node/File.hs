@@ -27,7 +27,7 @@ import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.MIME.Types as DMT
-import qualified Gargantext.Prelude.GargDB as GargDB
+import qualified Gargantext.Database.GargDB as GargDB
 import qualified Network.HTTP.Media as M
 
 data RESPONSE deriving Typeable
