@@ -29,7 +29,6 @@ import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy.Internal (ByteString)
 import Data.Set (fromList)
-import Data.String.Conversions (ConvertibleStrings)
 import Data.Text (Text, splitOn, pack, toLower)
 import GHC.Generics
 import Gargantext.Core (Lang(..))
