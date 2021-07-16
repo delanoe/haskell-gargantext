@@ -19,7 +19,6 @@ module Gargantext.Core.Viz.Phylo.Legacy.LegacyAPI
 
 -- import Data.Maybe (fromMaybe)
 -- import Control.Lens ((^.))
-import Data.String.Conversions
 --import Control.Monad.Reader (ask)
 import qualified Data.ByteString as DB
 import qualified Data.ByteString.Lazy as DBL
