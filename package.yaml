@@ -65,10 +65,6 @@ library:
   - Gargantext.Database.Admin.Config
   - Gargantext.Database.Admin.Types.Hyperdata
   - Gargantext.Database.Admin.Types.Node
-  - Gargantext.Prelude
-  - Gargantext.Prelude.Crypto.Pass.User
-  - Gargantext.Prelude.Crypto.Hash
-  - Gargantext.Prelude.Utils
   - Gargantext.Core.Text
   - Gargantext.Core.Text.Context
   - Gargantext.Core.Text.Corpus.Parsers
@@ -100,13 +96,13 @@ library:
   dependencies:
   - HSvm
   - KMP
+  - MissingH
   - MonadRandom
   - QuickCheck
-  - SHA
   - Unique
   - accelerate
-  - accelerate-utility
   - accelerate-arithmetic
+  - accelerate-utility
   - aeson
   - aeson-lens
   - aeson-pretty
@@ -124,16 +120,15 @@ library:
   - case-insensitive
   - cassava
   - cereal     # (IGraph)
-  - clock
   - conduit
   - conduit-extra
   - containers
   - contravariant
-  - cryptohash
   - crawlerHAL
   - crawlerISTEX
   - crawlerIsidore
   - crawlerPubMed
+  - cryptohash
   - data-time-segment
   - deepseq
   - directory
@@ -147,6 +142,7 @@ library:
   - formatting
   - full-text-search
   - fullstop
+  - gargantext-prelude
   - graphviz
   - hashable
   - haskell-igraph
@@ -168,7 +164,6 @@ library:
   - located-base
   - logging-effect
   - matrix
-  - MissingH
   - monad-control
   - monad-logger
   - mtl
@@ -191,7 +186,6 @@ library:
   - quickcheck-instances
   - rake
   - random
-  - random-shuffle
   - rdf4h
   - regex-compat
   - resource-pool
@@ -216,24 +210,11 @@ library:
   - servant-xml
   - simple-reflect
   - singletons # (IGraph)
-  - template-haskell
-  - wai-app-static
-
-    # for mail
-  - smtp-mail
-  - mime-mail
-
-    # for password generation
-  - cprng-aes
-  - binary
-  - crypto-random
-  - password
-
   - split
   - stemmer
-  - string-conversions
   - swagger2
   - tagsoup
+  - template-haskell
   - temporary
   - text-metrics
   - time
@@ -246,6 +227,7 @@ library:
   - validity
   - vector
   - wai
+  - wai-app-static
   - wai-cors
   - wai-extra
   - warp
@@ -256,10 +238,6 @@ library:
   - yaml
   - zip
   - zlib
-    #  - kmeans-vector
-  #- charsetdetect-ae  # detect charset
-#  - utc
-#  API external connections
 
 executables:
   gargantext-server:
@@ -277,6 +255,7 @@ executables:
       - base
       - containers
       - gargantext
+      - gargantext-prelude
       - vector
       - cassava
       - ini
@@ -300,6 +279,7 @@ executables:
       - bytestring
       - containers
       - gargantext
+      - gargantext-prelude
       - vector
       - cassava
       - ini
@@ -325,6 +305,7 @@ executables:
       - containers
       - directory
       - gargantext
+      - gargantext-prelude
       - vector
       - parallel
       - cassava
@@ -346,6 +327,7 @@ executables:
     - -Wmissing-signatures
     dependencies:
       - gargantext
+      - gargantext-prelude
       - base
       - servant-server
 
@@ -360,6 +342,7 @@ executables:
     - -Wmissing-signatures
     dependencies:
       - gargantext
+      - gargantext-prelude
       - base
 
   gargantext-upgrade:
@@ -373,6 +356,7 @@ executables:
     - -Wmissing-signatures
     dependencies:
       - gargantext
+      - gargantext-prelude
       - base
 
   gargantext-admin:
@@ -386,6 +370,7 @@ executables:
     - -Wmissing-signatures
     dependencies:
       - gargantext
+      - gargantext-prelude
       - base
 
   gargantext-cbor2json:
@@ -399,6 +384,7 @@ executables:
     - -Wmissing-signatures
     dependencies:
       - gargantext
+      - gargantext-prelude
       - base
       - bytestring
       - aeson
@@ -426,6 +412,7 @@ tests:
      dependencies:
      - base
      - gargantext
+     - gargantext-prelude
      - hspec
      - QuickCheck
      - quickcheck-instances

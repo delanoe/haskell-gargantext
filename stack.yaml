@@ -23,7 +23,8 @@ nix:
 allow-newer: true
 
 extra-deps:
-
+- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
+  commit: 9dc45d72a52ece3bde5a104653a76ffb7a13a31e
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef

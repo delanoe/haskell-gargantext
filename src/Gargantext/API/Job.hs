@@ -1,4 +1,4 @@
-module Gargantext.Prelude.Job where
+module Gargantext.API.Job where
 
 import Data.IORef
 import Data.Maybe
