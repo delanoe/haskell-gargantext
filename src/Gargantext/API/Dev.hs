@@ -24,7 +24,9 @@ import Gargantext.API.Ngrams (saveRepo)
 import Gargantext.Database.Prelude
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..), readConfig)
+import System.IO (FilePath)
 
+type IniPath  = FilePath
 -------------------------------------------------------------------
 withDevEnv :: IniPath -> (DevEnv -> IO a) -> IO a
 withDevEnv iniPath k = do

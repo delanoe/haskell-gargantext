@@ -194,4 +194,3 @@ cleanEnv env = do
   repoSaverAction (env ^. hasConfig . gc_repofilepath) r
   unlockFile (env ^. repoEnv . renv_lock)
 
-type IniPath  = FilePath
