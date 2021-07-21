@@ -1,31 +1,73 @@
-# Gargantext Haskell
+# Gargantext with Haskell (Backend instance)
 
-## About this project
+## About the project
 
-Gargantext is a collaborative web platform for the exploration of sets
-of unstructured documents. It combines tools from natural language
-processing, text-mining, complex networks analysis and interactive data
-visualization to pave the way toward new kinds of interactions with your
-digital corpora. This software is a free software, developed by the CNRS
+GarganText is a collaborative web-decentralized-based macro-service
+platform for the exploration of unstructured texts. It combines tools
+from natural language processing, text-data-mining tricks, complex
+networks analysis algorithms and interactive data visualization tools to
+pave the way toward new kinds of interactions with your digital corpora.
+
+This software is free software, developed and offered by the CNRS
 Complex Systems Institute of Paris Île-de-France (ISC-PIF) and its
 partners.
+
+GarganText Project: this repo builds the
+backend for the frontend server built by
+[backend](https://gitlab.iscpif.fr/gargantext/haskell-gargantext).
+
 
 ## Installation
 
 Disclaimer: this project is still in development, this is work in
 progress. Please report and improve this documentation if you encounter issues.
 
-### Build Core Code
+### Stack setup
 
-NOTE: Default build (with optimizations) requires large amounts of RAM (16GB at least). To avoid heavy compilation times and swapping out your machine, it is recommended to `stack build` with the `--fast-` flag, i.e.:
-``` sh
-stack --docker build --fast
+You need to install stack first:
+
+```shell
+curl -sSL https://get.haskellstack.org/ | sh
 ```
-or
+
+Verify the installation is complete with
+```shell
+stack --version
+```
+
+### With Nix setup
+
+First install [nix](https://nixos.org/guides/install-nix.html): 
+
+```shell
+sh < (curl -L https://nixos.org/nix/install) --daemon
+```
+
+Verify the installation is complete
+```shell
+$ nix-env
+nix-env (Nix) 2.3.12
+```
+And just build:
 ``` sh
 stack --nix build --fast
 ```
-This might be related to the [broken Swagger `-O2` issue](https://github.com/haskell-servant/servant/issues/986).
+
+### Build Core Code
+
+NOTE: Default build (with optimizations) requires large amounts of RAM
+(16GB at least). To avoid heavy compilation times and swapping out your
+machine, it is recommended to `stack build` with the `--fast-` flag,
+i.e.:
+
+``` sh
+stack --nix build --fast
+```
+or
+
+``` sh
+stack --docker build --fast
+```
 
 #### Docker
 
@@ -53,15 +95,6 @@ curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/dev/devops/
 ./devops/install-corenlp
 ```
 
-2. Louvain C++ needed to draw the socio-semantic graphs
-
-NOTE: This is already added in the Docker build.
-
-``` sh
-git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain-cplusplus.git
-cd clustering-louvain-cplusplus
-./install
-```
 
 ### Initialization
 
