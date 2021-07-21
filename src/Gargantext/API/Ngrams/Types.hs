@@ -53,6 +53,7 @@ import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 ------------------------------------------------------------------------
 
+type QueryParamR = QueryParam' '[Required, Strict]
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
@@ -251,16 +252,16 @@ toNgramsElement ns = map toNgramsElement' ns
 
 mockTable :: NgramsTable
 mockTable = NgramsTable
-  [ mkNgramsElement "animal"  MapTerm      Nothing       (mSetFromList ["dog", "cat"])
-  , mkNgramsElement "cat"     MapTerm     (rp "animal")  mempty
+  [ mkNgramsElement "animal"  MapTerm        Nothing       (mSetFromList ["dog", "cat"])
+  , mkNgramsElement "cat"     MapTerm       (rp "animal")  mempty
   , mkNgramsElement "cats"    StopTerm       Nothing       mempty
-  , mkNgramsElement "dog"     MapTerm     (rp "animal")  (mSetFromList ["dogs"])
+  , mkNgramsElement "dog"     MapTerm       (rp "animal")  (mSetFromList ["dogs"])
   , mkNgramsElement "dogs"    StopTerm      (rp "dog")     mempty
-  , mkNgramsElement "fox"     MapTerm      Nothing       mempty
+  , mkNgramsElement "fox"     MapTerm        Nothing       mempty
   , mkNgramsElement "object"  CandidateTerm  Nothing       mempty
   , mkNgramsElement "nothing" StopTerm       Nothing       mempty
-  , mkNgramsElement "organic" MapTerm      Nothing       (mSetFromList ["flower"])
-  , mkNgramsElement "flower"  MapTerm     (rp "organic") mempty
+  , mkNgramsElement "organic" MapTerm        Nothing       (mSetFromList ["flower"])
+  , mkNgramsElement "flower"  MapTerm       (rp "organic") mempty
   , mkNgramsElement "moon"    CandidateTerm  Nothing       mempty
   , mkNgramsElement "sky"     StopTerm       Nothing       mempty
   ]
@@ -711,6 +712,8 @@ initMockRepo = Repo 1 s []
       $ Map.fromList
       [ (n ^. ne_ngrams, ngramsElementToRepo n) | n <- mockTable ^. _NgramsTable ]
 
+--------------------
+
 data RepoEnv = RepoEnv
   { _renv_var   :: !(MVar NgramsRepo)
   , _renv_saver :: !(IO ())
@@ -750,8 +753,7 @@ type RepoCmdM   env err m =
   , HasConfig         env
   )
 
-
-type QueryParamR = QueryParam' '[Required, Strict]
+------------------------------------------------------------------------
 
 
 -- Instances
