@@ -40,7 +40,7 @@ stack --version
 First install [nix](https://nixos.org/guides/install-nix.html): 
 
 ```shell
-sh < (curl -L https://nixos.org/nix/install) --daemon
+curl -sSL https://nixos.org/nix/install | sh
 ```
 
 Verify the installation is complete
