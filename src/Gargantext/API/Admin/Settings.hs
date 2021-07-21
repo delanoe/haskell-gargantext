@@ -27,6 +27,14 @@ import Control.Monad.Reader
 import Data.Maybe (fromMaybe)
 import Data.Pool (Pool, createPool)
 import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
+import Gargantext.API.Admin.EnvTypes
+import Gargantext.API.Admin.Types
+import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
+import Gargantext.Core.NodeStory
+import Gargantext.Core.Types (NodeId)
+import Gargantext.Database.Prelude (databaseParameters, HasConfig(..))
+import Gargantext.Prelude
+import Gargantext.Prelude.Config (GargConfig(..), gc_repofilepath, readConfig)
 import Network.HTTP.Client.TLS (newTlsManager)
 import Servant.Auth.Server (defaultJWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
 import Servant.Client (parseBaseUrl)
@@ -37,14 +45,6 @@ import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
 import System.Log.FastLogger
 import qualified Data.ByteString.Lazy as L
-
-import Gargantext.Core.Types (NodeId)
-import Gargantext.API.Admin.EnvTypes
-import Gargantext.API.Admin.Types
-import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
-import Gargantext.Database.Prelude (databaseParameters, HasConfig(..))
-import Gargantext.Prelude
-import Gargantext.Prelude.Config (GargConfig(..), gc_repofilepath, readConfig)
 
 devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
@@ -107,15 +107,6 @@ repoSnapshot' repoDir nId = repoDir <> "/repo" <> "-" <> (cs $ show nId) <> ".cb
 -- This assumes we own the lock on repoSnapshot.
 repoSaverAction :: RepoDirFilePath -> Serialise a => a -> IO ()
 repoSaverAction repoDir a = do
-  withTempFile "repos" "tmp-repo.cbor" $ \fp h -> do
-    printDebug "repoSaverAction" fp
-    L.hPut h $ serialise a
-    hClose h
-    renameFile fp (repoSnapshot repoDir)
-
-
-repoSaverAction' :: RepoDirFilePath -> NgramsRepo -> IO ()
-repoSaverAction' repoDir a = do
   withTempFile "repos" "tmp-repo.cbor" $ \fp h -> do
     printDebug "repoSaverAction" fp
     L.hPut h $ serialise a

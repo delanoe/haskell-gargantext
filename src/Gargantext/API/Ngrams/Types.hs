@@ -681,6 +681,7 @@ data Repo s p = Repo
 
 -- | TO REMOVE
 type NgramsRepo       = Repo     NgramsState NgramsStatePatch
+
 type NgramsState      = Map      TableNgrams.NgramsType (Map NodeId NgramsTableMap)
 type NgramsStatePatch = PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTablePatch)
 
