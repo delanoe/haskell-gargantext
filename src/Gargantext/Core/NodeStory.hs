@@ -22,10 +22,20 @@ import Data.IntMap as Bibliotheque
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import Gargantext.Prelude
 import GHC.Generics (Generic)
+import Data.Aeson hiding ((.=))
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
+
+
+-- TODO : repo Migration
+repoMigration :: (s -> s') -> (p -> p') -> Repo s p -> NodeStory s' p'
+repoMigration = undefined
 
 -- Key is NodeId
 -- | Node Story for each NodeType
-type NodeStory s p = Map NodeId (Archive s p)
+data NodeStory s p = NodeStory { unNodeStory :: Map NodeId (Archive s p) }
+  deriving (Generic, Show)
+
+instance (FromJSON s, FromJSON p) => FromJSON (NodeStory s p)
 
 data Archive s p = Archive
   { _a_version :: !Version
@@ -37,7 +47,13 @@ data Archive s p = Archive
 
 -- TODO Semigroup instance for unions
 
-
 type NodeListStory     = NodeStory NgramsState' NgramsStatePatch'
 type NgramsState'      = Map       TableNgrams.NgramsType NgramsTableMap
 type NgramsStatePatch' = PatchMap  TableNgrams.NgramsType NgramsTablePatch
+
+instance (FromJSON s, FromJSON p) => FromJSON (Archive s p) where
+  parseJSON = genericParseJSON $ unPrefix "_a_"
+
+instance (ToJSON s, ToJSON p) => ToJSON (Archive s p) where
+  toJSON     = genericToJSON     $ unPrefix "_a_"
+  toEncoding = genericToEncoding $ unPrefix "_a_"
