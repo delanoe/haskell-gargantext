@@ -23,7 +23,7 @@ import Data.Hashable (Hashable)
 import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe)
 import Data.Monoid
-import Data.Patch.Class (Replace, replace, Action(act), Group, Applicable(..), Composable(..), Transformable(..),PairPatch(..), Patched, ConflictResolution, ConflictResolutionReplace,MaybePatch(Mod), unMod, old, new)
+import Data.Patch.Class (Replace, replace, Action(act), Group, Applicable(..), Composable(..), Transformable(..), PairPatch(..), Patched, ConflictResolution, ConflictResolutionReplace, MaybePatch(Mod), unMod, old, new)
 import Data.Set (Set)
 import Data.String (IsString, fromString)
 import Data.Swagger hiding (version, patch)
@@ -577,7 +577,7 @@ ngramsElementFromRepo
                 , _ne_parent      = p
                 , _ne_children    = c
                 , _ne_ngrams      = ngrams
-                , _ne_occurrences = panic $ "API.Ngrams._ne_occurrences"
+                , _ne_occurrences = panic $ "API.Ngrams.Types._ne_occurrences"
                 {-
                 -- Here we could use 0 if we want to avoid any `panic`.
                 -- It will not happen using getTableNgrams if
@@ -666,6 +666,8 @@ instance Arbitrary a => Arbitrary (VersionedWithCount a) where
 toVersionedWithCount :: Count -> Versioned a -> VersionedWithCount a
 toVersionedWithCount count (Versioned version data_) = VersionedWithCount version count data_
 ------------------------------------------------------------------------
+
+-- | TOREMOVE
 data Repo s p = Repo
   { _r_version :: !Version
   , _r_state   :: !s
@@ -673,6 +675,16 @@ data Repo s p = Repo
     -- first patch in the list is the most recent
   }
   deriving (Generic, Show)
+
+
+
+-- | TO REMOVE
+type NgramsRepo       = Repo     NgramsState NgramsStatePatch
+type NgramsState      = Map      TableNgrams.NgramsType (Map NodeId NgramsTableMap)
+type NgramsStatePatch = PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTablePatch)
+
+----------------------------------------------------------------------
+
 
 instance (FromJSON s, FromJSON p) => FromJSON (Repo s p) where
   parseJSON = genericParseJSON $ unPrefix "_r_"
@@ -687,10 +699,6 @@ makeLenses ''Repo
 
 initRepo :: Monoid s => Repo s p
 initRepo = Repo 1 mempty []
-
-type NgramsRepo       = Repo NgramsState NgramsStatePatch
-type NgramsState      = Map      TableNgrams.NgramsType (Map NodeId NgramsTableMap)
-type NgramsStatePatch = PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTablePatch)
 
 instance Serialise (PM.PatchMap NodeId NgramsTablePatch)
 instance Serialise NgramsStatePatch
@@ -717,6 +725,8 @@ class HasRepoVar env where
 
 instance HasRepoVar (MVar NgramsRepo) where
   repoVar = identity
+
+
 
 class HasRepoSaver env where
   repoSaver :: Getter env (IO ())
@@ -756,13 +766,13 @@ instance FromHttpApiData (Map TableNgrams.NgramsType (Versioned NgramsTableMap))
 
 ngramsTypeFromTabType :: TabType -> TableNgrams.NgramsType
 ngramsTypeFromTabType tabType =
-  let lieu = "Garg.API.Ngrams: " :: Text in
+  let here = "Garg.API.Ngrams: " :: Text in
     case tabType of
       Sources    -> TableNgrams.Sources
       Authors    -> TableNgrams.Authors
       Institutes -> TableNgrams.Institutes
       Terms      -> TableNgrams.NgramsTerms
-      _          -> panic $ lieu <> "No Ngrams for this tab"
+      _          -> panic $ here <> "No Ngrams for this tab"
       -- TODO: This `panic` would disapear with custom NgramsType.
 
 ----

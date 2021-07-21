@@ -38,6 +38,7 @@ import System.IO.Temp (withTempFile)
 import System.Log.FastLogger
 import qualified Data.ByteString.Lazy as L
 
+import Gargantext.Core.Types (NodeId)
 import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Admin.Types
 import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
@@ -97,6 +98,11 @@ type RepoDirFilePath = FilePath
 repoSnapshot :: RepoDirFilePath -> FilePath
 repoSnapshot repoDir = repoDir <> "/repo.cbor"
 
+repoSnapshot' :: RepoDirFilePath -> NodeId -> FilePath
+repoSnapshot' repoDir nId = repoDir <> "/repo" <> "-" <> (cs $ show nId) <> ".cbor"
+
+
+
 -- | TODO add hard coded file in Settings
 -- This assumes we own the lock on repoSnapshot.
 repoSaverAction :: RepoDirFilePath -> Serialise a => a -> IO ()
@@ -106,6 +112,17 @@ repoSaverAction repoDir a = do
     L.hPut h $ serialise a
     hClose h
     renameFile fp (repoSnapshot repoDir)
+
+
+repoSaverAction' :: RepoDirFilePath -> NgramsRepo -> IO ()
+repoSaverAction' repoDir a = do
+  withTempFile "repos" "tmp-repo.cbor" $ \fp h -> do
+    printDebug "repoSaverAction" fp
+    L.hPut h $ serialise a
+    hClose h
+    renameFile fp (repoSnapshot repoDir)
+
+
 
 -- The use of mkDebounce makes sure that repoSaverAction is not called too often.
 -- If repoSaverAction start taking more time than the debounceFreq then it should
@@ -161,17 +178,17 @@ devJwkFile = "dev.jwk"
 
 newEnv :: PortNumber -> FilePath -> IO Env
 newEnv port file = do
-  manager     <- newTlsManager
+  manager_env  <- newTlsManager
   settings'    <- devSettings devJwkFile <&> appPort .~ port -- TODO read from 'file'
   when (port /= settings' ^. appPort) $
     panic "TODO: conflicting settings of port"
 
-  config'       <- readConfig file
-  self_url     <- parseBaseUrl $ "http://0.0.0.0:" <> show port
+  config_env   <- readConfig file
+  self_url_env <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   dbParam      <- databaseParameters file
   pool         <- newPool dbParam
-  repo         <- readRepoEnv (_gc_repofilepath config')
-  scrapers_env <- newJobEnv defaultSettings manager
+  repo         <- readRepoEnv (_gc_repofilepath config_env)
+  scrapers_env <- newJobEnv defaultSettings manager_env
   logger       <- newStderrLoggerSet defaultBufSize
 
   pure $ Env
@@ -179,10 +196,10 @@ newEnv port file = do
     , _env_logger   = logger
     , _env_pool     = pool
     , _env_repo     = repo
-    , _env_manager  = manager
+    , _env_manager  = manager_env
     , _env_scrapers = scrapers_env
-    , _env_self_url = self_url
-    , _env_config   = config'
+    , _env_self_url = self_url_env
+    , _env_config   = config_env
     }
 
 newPool :: ConnectInfo -> IO (Pool Connection)

@@ -281,7 +281,8 @@ newNgramsFromNgramsStatePatch p =
   ]
 
 -- tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
-commitStatePatch :: RepoCmdM env err m => Versioned NgramsStatePatch -> m (Versioned NgramsStatePatch)
+commitStatePatch :: RepoCmdM env err m
+                 => Versioned NgramsStatePatch -> m (Versioned NgramsStatePatch)
 commitStatePatch (Versioned p_version p) = do
   var <- view repoVar
   vq' <- liftBase $ modifyMVar var $ \r -> do
