@@ -20,17 +20,18 @@ import Gargantext.API.Ngrams.Types (HasRepoVar(..), HasRepoSaver(..), HasRepo(..
 import Gargantext.Database.Prelude (HasConnectionPool(..), HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..))
-
+import Gargantext.Core.NodeStory
 
 data Env = Env
-  { _env_settings :: !Settings
-  , _env_logger   :: !LoggerSet
-  , _env_pool     :: !(Pool Connection)
-  , _env_repo     :: !RepoEnv
-  , _env_manager  :: !Manager
-  , _env_self_url :: !BaseUrl
-  , _env_scrapers :: !ScrapersEnv
-  , _env_config   :: !GargConfig
+  { _env_settings  :: !Settings
+  , _env_logger    :: !LoggerSet
+  , _env_pool      :: !(Pool Connection)
+  , _env_repo      :: !RepoEnv
+  , _env_nodeStory :: !NodeStoryEnv
+  , _env_manager   :: !Manager
+  , _env_self_url  :: !BaseUrl
+  , _env_scrapers  :: !ScrapersEnv
+  , _env_config    :: !GargConfig
   }
   deriving (Generic)
 

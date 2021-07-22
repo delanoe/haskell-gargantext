@@ -170,23 +170,25 @@ newEnv port file = do
   when (port /= settings' ^. appPort) $
     panic "TODO: conflicting settings of port"
 
-  config_env   <- readConfig file
-  self_url_env <- parseBaseUrl $ "http://0.0.0.0:" <> show port
-  dbParam      <- databaseParameters file
-  pool         <- newPool dbParam
-  repo         <- readRepoEnv (_gc_repofilepath config_env)
-  scrapers_env <- newJobEnv defaultSettings manager_env
-  logger       <- newStderrLoggerSet defaultBufSize
+  config_env    <- readConfig file
+  self_url_env  <- parseBaseUrl $ "http://0.0.0.0:" <> show port
+  dbParam       <- databaseParameters file
+  pool          <- newPool dbParam
+  repo          <- readRepoEnv (_gc_repofilepath config_env)
+  nodeStory_env <- readNodeStoryEnv (_gc_repofilepath config_env)
+  scrapers_env  <- newJobEnv defaultSettings manager_env
+  logger        <- newStderrLoggerSet defaultBufSize
 
   pure $ Env
-    { _env_settings = settings'
-    , _env_logger   = logger
-    , _env_pool     = pool
-    , _env_repo     = repo
-    , _env_manager  = manager_env
-    , _env_scrapers = scrapers_env
-    , _env_self_url = self_url_env
-    , _env_config   = config_env
+    { _env_settings  = settings'
+    , _env_logger    = logger
+    , _env_pool      = pool
+    , _env_repo      = repo
+    , _env_nodeStory = nodeStory_env
+    , _env_manager   = manager_env
+    , _env_scrapers  = scrapers_env
+    , _env_self_url  = self_url_env
+    , _env_config    = config_env
     }
 
 newPool :: ConnectInfo -> IO (Pool Connection)

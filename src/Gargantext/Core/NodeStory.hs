@@ -41,8 +41,10 @@ import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debo
 
 ------------------------------------------------------------------------
 data NodeStoryEnv = NodeStoryEnv
-  { _nse_var :: !(Maybe (MVar NodeListStory) -> NodeId -> (IO (MVar NodeListStory)))
-  , _nse_saver :: !(MVar NodeListStory -> (IO (IO ())))
+  { _nse_var :: !(MVar NodeListStory)
+  , _nse_saver :: !(IO ())
+  , _nse_getter :: NodeId -> IO (MVar NodeListStory)
+  --, _nse_cleaner :: !(IO ()) -- every 12 hours: cleans the repos of unused NodeStories
   -- , _nse_lock  :: !FileLock -- TODO
   }
   deriving (Generic)
@@ -61,8 +63,11 @@ class HasNodeStorySaver env where
 instance Serialise (PatchMap TableNgrams.NgramsType NgramsTablePatch)
 
 ------------------------------------------------------------------------
-readNodeStoryEnv :: NodeStoryDir -> NodeStoryEnv
-readNodeStoryEnv nsd = NodeStoryEnv (nodeStoryVar nsd) (mkNodeStorySaver nsd)
+readNodeStoryEnv :: NodeStoryDir -> IO NodeStoryEnv
+readNodeStoryEnv nsd = do
+  mvar  <- nodeStoryVar nsd Nothing 0
+  saver <- mkNodeStorySaver nsd mvar
+  pure $ NodeStoryEnv mvar saver (nodeStoryVar nsd (Just mvar))
 
 ------------------------------------------------------------------------
 mkNodeStorySaver :: NodeStoryDir -> MVar NodeListStory -> IO (IO ())
