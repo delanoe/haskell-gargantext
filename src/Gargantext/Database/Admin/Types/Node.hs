@@ -131,7 +131,10 @@ pgNodeId = O.pgInt4 . id2int
 
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
-  deriving (Show, Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable)
+  deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable)
+
+instance Show NodeId where
+  show (NodeId n) = "nodeId-" <> show n
 
 unNodeId :: NodeId -> Int
 unNodeId (NodeId n) = n

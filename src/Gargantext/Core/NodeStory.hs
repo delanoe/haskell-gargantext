@@ -17,7 +17,7 @@ import System.IO (FilePath, hClose)
 import Data.Maybe (fromMaybe)
 import Codec.Serialise (Serialise(), serialise, deserialise)
 import System.FileLock (FileLock)
-import Control.Concurrent (MVar())
+import Control.Concurrent (MVar(), withMVar, newMVar)
 import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~))
 import Data.Aeson hiding ((.=))
 import Data.IntMap (IntMap)
@@ -35,16 +35,92 @@ import qualified Data.IntMap as Dict
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import qualified Data.Map.Strict.Patch.Internal as Patch
 import qualified Data.ByteString.Lazy as L
-import System.Directory (renameFile)
+import System.Directory (renameFile, createDirectoryIfMissing, doesFileExist)
 import System.IO.Temp (withTempFile)
+import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
+
+------------------------------------------------------------------------
+data NodeStoryEnv = NodeStoryEnv
+  { _nse_var :: !(Maybe (MVar NodeListStory) -> NodeId -> (IO (MVar NodeListStory)))
+  , _nse_saver :: !(MVar NodeListStory -> (IO (IO ())))
+  -- , _nse_lock  :: !FileLock -- TODO
+  }
+  deriving (Generic)
 
 
-type NodeStoryFilePath = FilePath
+class HasNodeStoryEnv env where
+  nodeStoryEnv :: env -> IO (MVar NodeListStory)
 
-nodeStoryPath :: NodeStoryFilePath -> NodeId -> FilePath
-nodeStoryPath repoDir nId = repoDir <> "/repo" <> "-" <> (cs $ show nId) <> ".cbor"
+instance HasNodeStoryEnv (MVar NodeListStory) where
+  nodeStoryEnv = pure
 
-saverAction' :: NodeStoryFilePath -> NodeId -> Serialise a => a -> IO ()
+
+class HasNodeStorySaver env where
+  nodeStorySaver :: Getter env (IO ())
+
+instance Serialise (PatchMap TableNgrams.NgramsType NgramsTablePatch)
+
+------------------------------------------------------------------------
+readNodeStoryEnv :: NodeStoryDir -> NodeStoryEnv
+readNodeStoryEnv nsd = NodeStoryEnv (nodeStoryVar nsd) (mkNodeStorySaver nsd)
+
+------------------------------------------------------------------------
+mkNodeStorySaver :: NodeStoryDir -> MVar NodeListStory -> IO (IO ())
+mkNodeStorySaver nsd mvns = mkDebounce settings
+  where
+    settings = defaultDebounceSettings
+                 { debounceAction = withMVar mvns (writeNodeStories nsd)
+                 , debounceFreq = 10 * 60 * 10^(6 :: Int)  -- ^ sec
+--                 , debounceEdge = trailingEdge -- Trigger on the trailing edge
+                 }
+
+nodeStoryVar :: NodeStoryDir
+             -> Maybe (MVar NodeListStory)
+             -> NodeId
+             -> IO (MVar NodeListStory)
+nodeStoryVar nsd Nothing ni = nodeStoryInc nsd Nothing ni >>= newMVar
+nodeStoryVar nsd (Just mv) ni = do
+  mv' <- withMVar mv pure
+  nodeStoryInc nsd (Just mv') ni >>= newMVar
+
+
+nodeStoryInc :: NodeStoryDir -> Maybe NodeListStory -> NodeId -> IO NodeListStory
+nodeStoryInc nsd (Just ns@(NodeStory nls)) ni = do
+  case Map.lookup ni nls of
+    Nothing -> do
+      (NodeStory nls') <- nodeStoryRead nsd ni
+      pure $ NodeStory $ Map.union nls nls'
+    Just _  -> pure ns
+readStoryInc nsd Nothing ni = nodeStoryRead nsd ni
+
+
+-- | TODO lock
+nodeStoryRead :: NodeStoryDir -> NodeId -> IO NodeListStory
+nodeStoryRead nsd ni = do
+  _repoDir <- createDirectoryIfMissing True nsd
+  let nsp = nodeStoryPath nsd ni
+  exists <- doesFileExist nsp
+  if exists
+     then deserialise <$> L.readFile nsp
+     else pure (initNodeStory ni)
+
+------------------------------------------------------------------------
+type NodeStoryDir = FilePath
+
+writeNodeStories :: NodeStoryDir -> NodeListStory -> IO ()
+writeNodeStories fp nls = do
+  _ <- mapM (writeNodeStory fp) $ splitByNode nls
+  pure ()
+
+writeNodeStory :: NodeStoryDir -> (NodeId, NodeListStory) -> IO ()
+writeNodeStory rdfp (n, ns) = saverAction' rdfp n ns
+
+splitByNode :: NodeListStory -> [(NodeId, NodeListStory)]
+splitByNode (NodeStory m) =
+  List.map (\(n,a) -> (n, NodeStory $ Map.singleton n a)) $ Map.toList m
+
+
+saverAction' :: NodeStoryDir -> NodeId -> Serialise a => a -> IO ()
 saverAction' repoDir nId a = do
   withTempFile repoDir ((cs $ show nId) <> "-tmp-repo.cbor") $ \fp h -> do
     printDebug "repoSaverAction" fp
@@ -52,21 +128,16 @@ saverAction' repoDir nId a = do
     hClose h
     renameFile fp (nodeStoryPath repoDir nId)
 
+nodeStoryPath :: NodeStoryDir -> NodeId -> FilePath
+nodeStoryPath repoDir nId = repoDir <> "/" <> filename
+  where
+    filename = "repo" <> "-" <> (cs $ show nId) <> ".cbor"
 
-writeNodeStory :: NodeStoryFilePath -> (NodeId, NodeListStory) -> IO ()
-writeNodeStory rdfp (n, ns) = saverAction' rdfp n ns
 
-
-splitByNode :: NodeListStory -> [(NodeId, NodeListStory)]
-splitByNode (NodeStory m) =
-  List.map (\(n,a) -> (n, NodeStory $ Map.singleton n a)) $ Map.toList m
-
-writeNodeStories :: NodeStoryFilePath -> NodeListStory -> IO [()]
-writeNodeStories fp nls = mapM (writeNodeStory fp) $ splitByNode nls
 
 ------------------------------------------------------------------------
 -- TODO : repo Migration TODO TESTS
-repoMigration :: NodeStoryFilePath -> NgramsRepo -> IO [()]
+repoMigration :: NodeStoryDir -> NgramsRepo -> IO ()
 repoMigration fp r = writeNodeStories fp (repoToNodeListStory r)
 
 repoToNodeListStory :: NgramsRepo -> NodeListStory
@@ -128,10 +199,10 @@ instance (Serialise s, Serialise p) => Serialise (Archive s p)
 -- TODO Semigroup instance for unions
 
 type NodeListStory     = NodeStory NgramsState' NgramsStatePatch'
+type ArchiveList       = Archive NgramsState' NgramsStatePatch'
 
 type NgramsState'      = Map       TableNgrams.NgramsType NgramsTableMap
 type NgramsStatePatch' = PatchMap  TableNgrams.NgramsType NgramsTablePatch
-
 instance (FromJSON s, FromJSON p) => FromJSON (Archive s p) where
   parseJSON = genericParseJSON $ unPrefix "_a_"
 
@@ -140,8 +211,10 @@ instance (ToJSON s, ToJSON p) => ToJSON (Archive s p) where
   toEncoding = genericToEncoding $ unPrefix "_a_"
 
 ------------------------------------------------------------------------
-initNodeStory :: Monoid s => NodeStory s p
-initNodeStory = NodeStory $ Map.singleton 0 initArchive
+
+
+initNodeStory :: Monoid s => NodeId -> NodeStory s p
+initNodeStory ni = NodeStory $ Map.singleton ni initArchive
 
 initArchive :: Monoid s => Archive s p
 initArchive = Archive 0 mempty []
@@ -158,24 +231,4 @@ initNodeListStoryMock = NodeStory $ Map.singleton nodeListId archive
                    ]
 
 ------------------------------------------------------------------------
-data NodeStoryEnv = NodeStoryEnv
-  { _nse_var :: !(IO (MVar NodeListStory))
-  , _nse_saver :: !(IO ())
-  , _nse_lock  :: !FileLock
-  }
-  deriving (Generic)
-
 makeLenses ''NodeStoryEnv
-
-class HasNodeStoryEnv env where
-  nodeStoryEnv :: env -> IO (MVar NodeListStory)
-
-instance HasNodeStoryEnv (MVar NodeListStory) where
-  nodeStoryEnv = pure
-
-
-class HasNodeStorySaver env where
-  nodeStorySaver :: Getter env (IO ())
-
-
-instance Serialise (PatchMap TableNgrams.NgramsType NgramsTablePatch)
