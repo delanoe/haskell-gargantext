@@ -100,6 +100,15 @@ post l m  = do
   -- TODO reindex
   pure True
 
+------------------------------------------------------------------------
+csvPost :: FlowCmdM env err m
+        => ListId
+        -> NgramsList
+        -> m Bool
+csvPost l m  = do
+  printDebug "[csvPost] l" l
+  printDebug "[csvPost] m" m
+  pure True
 
 -----------------------------------------------------------------------------
 -- | Re-index documents of a corpus with new ngrams (called orphans here)
@@ -220,7 +229,7 @@ csvPostAsync' l (WithFile _ m _) logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _r <- post l m
+  _r <- csvPost l m
 
   pure JobLog { _scst_succeeded = Just 1
               , _scst_failed    = Just 0
