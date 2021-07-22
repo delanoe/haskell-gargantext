@@ -98,16 +98,12 @@ type RepoDirFilePath = FilePath
 repoSnapshot :: RepoDirFilePath -> FilePath
 repoSnapshot repoDir = repoDir <> "/repo.cbor"
 
-repoSnapshot' :: RepoDirFilePath -> NodeId -> FilePath
-repoSnapshot' repoDir nId = repoDir <> "/repo" <> "-" <> (cs $ show nId) <> ".cbor"
 
 
-
--- | TODO add hard coded file in Settings
 -- This assumes we own the lock on repoSnapshot.
 repoSaverAction :: RepoDirFilePath -> Serialise a => a -> IO ()
 repoSaverAction repoDir a = do
-  withTempFile "repos" "tmp-repo.cbor" $ \fp h -> do
+  withTempFile repoDir "tmp-repo.cbor" $ \fp h -> do
     printDebug "repoSaverAction" fp
     L.hPut h $ serialise a
     hClose h

@@ -13,8 +13,9 @@ Portability : POSIX
 
 module Gargantext.Core.NodeStory where
 
+import System.IO (FilePath, hClose)
 import Data.Maybe (fromMaybe)
-import Codec.Serialise (Serialise())
+import Codec.Serialise (Serialise(), serialise, deserialise)
 import System.FileLock (FileLock)
 import Control.Concurrent (MVar())
 import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~))
@@ -33,12 +34,43 @@ import Gargantext.Prelude
 import qualified Data.IntMap as Dict
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import qualified Data.Map.Strict.Patch.Internal as Patch
+import qualified Data.ByteString.Lazy as L
+import System.Directory (renameFile)
+import System.IO.Temp (withTempFile)
 
+
+type NodeStoryFilePath = FilePath
+
+nodeStoryPath :: NodeStoryFilePath -> NodeId -> FilePath
+nodeStoryPath repoDir nId = repoDir <> "/repo" <> "-" <> (cs $ show nId) <> ".cbor"
+
+saverAction' :: NodeStoryFilePath -> NodeId -> Serialise a => a -> IO ()
+saverAction' repoDir nId a = do
+  withTempFile repoDir ((cs $ show nId) <> "-tmp-repo.cbor") $ \fp h -> do
+    printDebug "repoSaverAction" fp
+    L.hPut h $ serialise a
+    hClose h
+    renameFile fp (nodeStoryPath repoDir nId)
+
+
+writeNodeStory :: NodeStoryFilePath -> (NodeId, NodeListStory) -> IO ()
+writeNodeStory rdfp (n, ns) = saverAction' rdfp n ns
+
+
+splitByNode :: NodeListStory -> [(NodeId, NodeListStory)]
+splitByNode (NodeStory m) =
+  List.map (\(n,a) -> (n, NodeStory $ Map.singleton n a)) $ Map.toList m
+
+writeNodeStories :: NodeStoryFilePath -> NodeListStory -> IO [()]
+writeNodeStories fp nls = mapM (writeNodeStory fp) $ splitByNode nls
 
 ------------------------------------------------------------------------
 -- TODO : repo Migration TODO TESTS
-repoMigration :: NgramsRepo -> NodeListStory
-repoMigration (Repo _v s h) = NodeStory $ Map.fromList ns
+repoMigration :: NodeStoryFilePath -> NgramsRepo -> IO [()]
+repoMigration fp r = writeNodeStories fp (repoToNodeListStory r)
+
+repoToNodeListStory :: NgramsRepo -> NodeListStory
+repoToNodeListStory (Repo _v s h) = NodeStory $ Map.fromList ns
   where
     s' = ngramsState_migration      s
     h' = ngramsStatePatch_migration h
@@ -64,6 +96,11 @@ ngramsStatePatch_migration np' = Map.fromListWith (<>)
     , (nt, nTable) <- Patch.toList np
     , (nid, table) <- Patch.toList nTable
     ]
+
+
+
+
+
 ------------------------------------------------------------------------
 
 
@@ -141,3 +178,4 @@ class HasNodeStorySaver env where
   nodeStorySaver :: Getter env (IO ())
 
 
+instance Serialise (PatchMap TableNgrams.NgramsType NgramsTablePatch)
