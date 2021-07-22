@@ -31,7 +31,6 @@ import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Admin.Types
 import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
 import Gargantext.Core.NodeStory
-import Gargantext.Core.Types (NodeId)
 import Gargantext.Database.Prelude (databaseParameters, HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..), gc_repofilepath, readConfig)

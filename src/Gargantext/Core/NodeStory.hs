@@ -9,6 +9,7 @@ Portability : POSIX
 
 -}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Core.NodeStory where
@@ -16,22 +17,17 @@ module Gargantext.Core.NodeStory where
 import System.IO (FilePath, hClose)
 import Data.Maybe (fromMaybe)
 import Codec.Serialise (Serialise(), serialise, deserialise)
-import System.FileLock (FileLock)
 import Control.Concurrent (MVar(), withMVar, newMVar)
-import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~))
+import Control.Lens (makeLenses, Getter, (^.))
 import Data.Aeson hiding ((.=))
-import Data.IntMap (IntMap)
-import Data.IntMap as Bibliotheque
 import qualified Data.List as List
-import Data.Map (Map)
 import Data.Map as Map
 import Data.Monoid
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
-import Gargantext.Core.Types (ListType(..), ListId, NodeId)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
+import Gargantext.Core.Types (NodeId)
+import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
-import qualified Data.IntMap as Dict
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import qualified Data.Map.Strict.Patch.Internal as Patch
 import qualified Data.ByteString.Lazy as L
@@ -45,7 +41,7 @@ data NodeStoryEnv = NodeStoryEnv
   , _nse_saver :: !(IO ())
   , _nse_getter :: NodeId -> IO (MVar NodeListStory)
   --, _nse_cleaner :: !(IO ()) -- every 12 hours: cleans the repos of unused NodeStories
-  -- , _nse_lock  :: !FileLock -- TODO
+  -- , _nse_lock  :: !FileLock -- TODO (it depends on the option: if with database or file only)
   }
   deriving (Generic)
 
@@ -60,7 +56,6 @@ instance HasNodeStoryEnv (MVar NodeListStory) where
 class HasNodeStorySaver env where
   nodeStorySaver :: Getter env (IO ())
 
-instance Serialise (PatchMap TableNgrams.NgramsType NgramsTablePatch)
 
 ------------------------------------------------------------------------
 readNodeStoryEnv :: NodeStoryDir -> IO NodeStoryEnv
@@ -75,9 +70,11 @@ mkNodeStorySaver nsd mvns = mkDebounce settings
   where
     settings = defaultDebounceSettings
                  { debounceAction = withMVar mvns (writeNodeStories nsd)
-                 , debounceFreq = 10 * 60 * 10^(6 :: Int)  -- ^ sec
+                 , debounceFreq = 10 * minute
 --                 , debounceEdge = trailingEdge -- Trigger on the trailing edge
                  }
+    minute = 60 * second
+    second = 10^(6 :: Int)
 
 nodeStoryVar :: NodeStoryDir
              -> Maybe (MVar NodeListStory)
@@ -96,7 +93,7 @@ nodeStoryInc nsd (Just ns@(NodeStory nls)) ni = do
       (NodeStory nls') <- nodeStoryRead nsd ni
       pure $ NodeStory $ Map.union nls nls'
     Just _  -> pure ns
-readStoryInc nsd Nothing ni = nodeStoryRead nsd ni
+nodeStoryInc nsd Nothing ni = nodeStoryRead nsd ni
 
 
 -- | TODO lock
@@ -150,9 +147,9 @@ repoToNodeListStory (Repo _v s h) = NodeStory $ Map.fromList ns
   where
     s' = ngramsState_migration      s
     h' = ngramsStatePatch_migration h
-    ns = List.map (\(n,ns)
+    ns = List.map (\(n,ns')
                     -> (n, let hs = fromMaybe [] (Map.lookup n h') in
-                               Archive (List.length hs) ns hs
+                               Archive (List.length hs) ns' hs
                        )
                   ) s'
 
@@ -208,6 +205,8 @@ type ArchiveList       = Archive NgramsState' NgramsStatePatch'
 
 type NgramsState'      = Map       TableNgrams.NgramsType NgramsTableMap
 type NgramsStatePatch' = PatchMap  TableNgrams.NgramsType NgramsTablePatch
+instance Serialise NgramsStatePatch'
+
 instance (FromJSON s, FromJSON p) => FromJSON (Archive s p) where
   parseJSON = genericParseJSON $ unPrefix "_a_"
 
