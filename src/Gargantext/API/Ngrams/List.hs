@@ -58,9 +58,10 @@ import qualified Data.Text           as Text
 type API =  Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
        -- :<|> ReqBody '[JSON] NgramsList :> Post '[JSON] Bool
        :<|> PostAPI
+       :<|> CSVPostAPI
 
 api :: ListId -> GargServer API
-api l = get l :<|> postAsync l
+api l = get l :<|> postAsync l :<|> csvPostAsync l
 
 data HTML
 instance Accept HTML where
@@ -165,7 +166,6 @@ toIndexedNgrams m t = Indexed <$> i <*> n
     n = Just (text2ngrams t)
 
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
 type PostAPI = Summary "Update List"
         :> "add"
         :> "form"
@@ -196,6 +196,38 @@ postAsync' l (WithFile _ m _) logStatus = do
               , _scst_remaining = Just 0
               , _scst_events    = Just []
               }
+------------------------------------------------------------------------
+type CSVPostAPI = Summary "Update List (legacy v3 CSV)"
+        :> "csv"
+        :> "form"
+        :> "async"
+        :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
+
+csvPostAsync :: ListId -> GargServer PostAPI
+csvPostAsync lId =
+  serveJobsAPI $
+    JobFunction (\f  log' -> csvPostAsync' lId f (liftBase . log'))
+
+csvPostAsync' :: FlowCmdM env err m
+             => ListId
+             -> WithFile
+             -> (JobLog -> m ())
+             -> m JobLog
+csvPostAsync' l (WithFile _ m _) logStatus = do
+
+  logStatus JobLog { _scst_succeeded = Just 0
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
+  _r <- post l m
+
+  pure JobLog { _scst_succeeded = Just 1
+              , _scst_failed    = Just 0
+              , _scst_remaining = Just 0
+              , _scst_events    = Just []
+              }
+------------------------------------------------------------------------
 
 data WithFile = WithFile
   { _wf_filetype :: !FileType
