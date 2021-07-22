@@ -49,7 +49,7 @@ instance Show NodeError
     show NotImplYet    = "Not implemented yet"
     show ManyParents   = "Too many parents"
     show ManyNodeUsers = "Many userNode/user"
-    show (DoesNotExist n)   = "Node does not exist" <> show n
+    show (DoesNotExist n)   = "Node does not exist (" <> show n <> ")"
     show NeedsConfiguration = "Needs configuration"
     show (NodeError e)      = "NodeError: " <> cs e
 

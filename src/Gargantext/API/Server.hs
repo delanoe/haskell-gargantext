@@ -8,6 +8,7 @@ Stability   : experimental
 Portability : POSIX
 -}
 
+{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 
 ---------------------------------------------------------------------
@@ -32,9 +33,10 @@ import Gargantext.API.Prelude
 import Gargantext.API.Routes
 import Gargantext.API.Swagger (swaggerDoc)
 import Gargantext.API.ThrowAll (serverPrivateGargAPI)
+import Gargantext.Database.Query.Table.Node.Error (NodeError(..))
+import Gargantext.Database.Prelude (hasConfig)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (gc_url_backend_api)
-import Gargantext.Database.Prelude (hasConfig)
 
 
 serverGargAPI :: MimeRender JSON err => Text -> GargServerM env err GargAPI
@@ -66,5 +68,10 @@ server env = do
 
 
 showAsServantErr :: GargError -> ServerError
+showAsServantErr (GargNodeError err@NoListFound) = err404 { errBody = BL8.pack $ show err }
+showAsServantErr (GargNodeError err@NoRootFound) = err404 { errBody = BL8.pack $ show err }
+showAsServantErr (GargNodeError err@NoCorpusFound) = err404 { errBody = BL8.pack $ show err }
+showAsServantErr (GargNodeError err@NoUserFound) = err404 { errBody = BL8.pack $ show err }
+showAsServantErr (GargNodeError err@(DoesNotExist _)) = err404 { errBody = BL8.pack $ show err }
 showAsServantErr (GargServerError err) = err
 showAsServantErr a = err500 { errBody = BL8.pack $ show a }
