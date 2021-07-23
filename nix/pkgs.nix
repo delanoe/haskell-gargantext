@@ -22,12 +22,12 @@ rec {
     zlib
     blas
     gfortran7
-    gfortran7.cc.lib
+    #    gfortran7.cc.lib
   ];
   libPaths = pkgs.lib.makeLibraryPath nonhsBuildInputs;
   shellHook = ''
-    export LD_LIBRARY_PATH="${libPaths}"
-    export LIBRARY_PATH="${libPaths}"
+    export LD_LIBRARY_PATH="${pkgs.gfortran7.cc.lib}:${libPaths}:$LD_LIBRARY_PATH"
+    export LIBRARY_PATH="${pkgs.gfortran7.cc.lib}:${libPaths}"
   '';
   shell = pkgs.mkShell {
     name = "gargantext-shell";
