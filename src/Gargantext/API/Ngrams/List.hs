@@ -56,19 +56,58 @@ import Gargantext.Database.Types (Indexed(..))
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
+-- | TODO refactor 
 type API =  Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
        -- :<|> ReqBody '[JSON] NgramsList :> Post '[JSON] Bool
        :<|> PostAPI
        :<|> CSVPostAPI
-
-api :: ListId -> GargServer API
-api l = get l :<|> postAsync l :<|> csvPostAsync l
 
 data HTML
 instance Accept HTML where
   contentType _ = "text" // "html" /: ("charset", "utf-8")
 instance ToJSON a => MimeRender HTML a where
   mimeRender _ = encode
+
+
+api :: ListId -> GargServer API
+api l = get l :<|> postAsync l :<|> csvPostAsync l
+
+----------------------
+type GETAPI = Summary "Get List"
+            :> "lists"
+              :> Capture "listId" ListId
+            :> Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
+getApi :: GargServer GETAPI
+getApi = get
+
+----------------------
+type JSONAPI = Summary "Update List"
+          :> "lists"
+            :> Capture "listId" ListId
+          :> "add"
+          :> "form"
+          :> "async"
+            :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
+
+jsonApi :: GargServer JSONAPI
+jsonApi = postAsync
+
+----------------------
+type CSVAPI = Summary "Update List (legacy v3 CSV)"
+          :> "lists"
+            :> Capture "listId" ListId
+          :> "csv"
+          :> "add"
+          :> "form"
+          :> "async"
+            :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
+
+csvApi :: GargServer CSVAPI
+csvApi = csvPostAsync
+
+----------------------
+
+
 
 ------------------------------------------------------------------------
 get :: RepoCmdM env err m =>
@@ -97,6 +136,7 @@ post :: FlowCmdM env err m
     -> m Bool
 post l m  = do
   -- TODO check with Version for optim
+  printDebug "New list as file" l
   _ <- mapM (\(nt, Versioned _v ns) -> setListNgrams l nt ns) $ toList m
   -- TODO reindex
   pure True
@@ -182,10 +222,15 @@ type PostAPI = Summary "Update List"
         :> "async"
         :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
 
-postAsync :: ListId -> GargServer PostAPI
+postAsync :: GargServer JSONAPI
 postAsync lId =
   serveJobsAPI $
-    JobFunction (\f log' -> postAsync' lId f (liftBase . log'))
+    JobFunction (\f log' ->
+      let
+        log'' x = do
+          printDebug "postAsync ListId" x
+          liftBase $ log' x
+      in postAsync' lId f log'')
 
 postAsync' :: FlowCmdM env err m
           => ListId
@@ -199,7 +244,9 @@ postAsync' l (WithFile _ m _) logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _r <- post l m
+  printDebug "New list as file" l
+  _ <- post l m
+  -- printDebug "Done" r
 
   pure JobLog { _scst_succeeded = Just 1
               , _scst_failed    = Just 0
@@ -214,7 +261,7 @@ type CSVPostAPI = Summary "Update List (legacy v3 CSV)"
         :> "async"
         :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
 
-csvPostAsync :: ListId -> GargServer PostAPI
+csvPostAsync :: GargServer CSVAPI
 csvPostAsync lId =
   serveJobsAPI $
     JobFunction $ \f@(WithFile ft _ n) log' -> do

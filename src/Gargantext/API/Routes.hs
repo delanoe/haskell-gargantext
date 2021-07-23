@@ -160,9 +160,11 @@ type GargPrivateAPI' =
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
 
-           :<|> "lists"  :> Summary "List export API"
-                         :> Capture "listId" ListId
-                         :> List.API
+      -- TODO refactor the 3 routes below
+           :<|> List.GETAPI
+           :<|> List.JSONAPI
+           :<|> List.CSVAPI
+
 {-
            :<|> "wait"   :> Summary "Wait test"
                          :> Capture "x" Int
@@ -237,7 +239,9 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      -- :<|> addAnnuaireWithForm
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
-     :<|> List.api
+     :<|> List.getApi
+     :<|> List.jsonApi
+     :<|> List.csvApi
 --     :<|> waitAPI
 
 
