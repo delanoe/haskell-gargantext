@@ -140,7 +140,7 @@ docker build -t cgenie/stack-build:lts-17.13-garg .
 then run:
 
 ``` sh
-stack --docker run gargantext-init -- gargantext.ini
+stack --docker exec gargantext-init -- gargantext.ini
 ```
 
 ### Importing data
