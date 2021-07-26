@@ -28,6 +28,7 @@ import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
+import Gargantext.Core.NodeStory
 
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
 mergeNgramsElement _neOld neNew = neNew
@@ -38,6 +39,29 @@ getRepo :: RepoCmdM env err m => m NgramsRepo
 getRepo = do
   v <- view repoVar
   liftBase $ readMVar v
+
+getNodeListStory :: HasNodeStory' env err m
+                 => m (NodeId -> IO (MVar NodeListStory))
+getNodeListStory = do
+  env <- view hasNodeStory
+  pure $ view nse_getter env
+
+getNodeListStory' :: HasNodeStory' env err m
+                 => NodeId -> m (IO NodeListStory)
+getNodeListStory' n = do
+  f <- getNodeListStory
+  v <- liftBase $ f n
+  pure $ readMVar v
+
+getNodeListStory'' :: HasNodeStory' env err m
+                 => NodeId -> m NodeListStory
+getNodeListStory'' n = do
+  f <- getNodeListStory
+  v  <- liftBase  $ f n
+  v' <- liftBase $ readMVar v
+  pure $ v'
+
+
 
 listNgramsFromRepo :: [ListId] -> NgramsType
                    -> NgramsRepo -> HashMap NgramsTerm NgramsRepoElement

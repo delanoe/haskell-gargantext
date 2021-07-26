@@ -13,7 +13,6 @@ import Codec.Serialise (Serialise())
 import Control.Category ((>>>))
 import Control.Concurrent
 import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~))
-import Control.Monad.Reader
 import Control.Monad.State
 import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
@@ -32,8 +31,7 @@ import Data.Validity
 import Database.PostgreSQL.Simple.FromField (FromField, fromField, ResultError(ConversionFailed), returnError)
 import GHC.Generics (Generic)
 import Gargantext.Core.Text (size)
-import Gargantext.Core.Types (ListType(..), ListId, NodeId)
-import Gargantext.Core.Types (TODO)
+import Gargantext.Core.Types (ListType(..), ListId, NodeId, TODO)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Prelude (fromField', CmdM', HasConnectionPool, HasConfig)
 import Gargantext.Prelude
@@ -724,35 +722,31 @@ data RepoEnv = RepoEnv
 
 makeLenses ''RepoEnv
 
-class HasRepoVar env where
-  repoVar :: Getter env (MVar NgramsRepo)
-
-instance HasRepoVar (MVar NgramsRepo) where
-  repoVar = identity
-
-
-
-class HasRepoSaver env where
-  repoSaver :: Getter env (IO ())
-
-class (HasRepoVar env, HasRepoSaver env) => HasRepo env where
-  repoEnv :: Getter env RepoEnv
-
-instance HasRepo RepoEnv where
-  repoEnv = identity
-
-instance HasRepoVar RepoEnv where
-  repoVar = renv_var
-
-instance HasRepoSaver RepoEnv where
-  repoSaver = renv_saver
-
 type RepoCmdM   env err m =
   ( CmdM'             env err m
   , HasRepo           env
   , HasConnectionPool env
   , HasConfig         env
   )
+
+class (HasRepoVar env, HasRepoSaver env)
+  => HasRepo env where
+  repoEnv :: Getter env RepoEnv
+class HasRepoVar env where
+  repoVar :: Getter env (MVar NgramsRepo)
+class HasRepoSaver env where
+  repoSaver :: Getter env (IO ())
+
+
+instance HasRepo RepoEnv where
+  repoEnv = identity
+instance HasRepoVar (MVar NgramsRepo) where
+  repoVar = identity
+instance HasRepoVar RepoEnv where
+  repoVar = renv_var
+instance HasRepoSaver RepoEnv where
+  repoSaver = renv_saver
+
 
 ------------------------------------------------------------------------
 

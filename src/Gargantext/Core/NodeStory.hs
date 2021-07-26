@@ -11,6 +11,7 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE ConstraintKinds   #-}
 
 module Gargantext.Core.NodeStory where
 
@@ -28,33 +29,40 @@ import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (NodeId)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
+import Control.Monad.Reader
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import qualified Data.Map.Strict.Patch.Internal as Patch
 import qualified Data.ByteString.Lazy as L
 import System.Directory (renameFile, createDirectoryIfMissing, doesFileExist)
 import System.IO.Temp (withTempFile)
 import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
+import Gargantext.Database.Prelude (CmdM', HasConnectionPool, HasConfig)
 
 ------------------------------------------------------------------------
 data NodeStoryEnv = NodeStoryEnv
-  { _nse_var :: !(MVar NodeListStory)
-  , _nse_saver :: !(IO ())
+  { _nse_var    :: !(MVar NodeListStory)
+  , _nse_saver  :: !(IO ())
   , _nse_getter :: NodeId -> IO (MVar NodeListStory)
   --, _nse_cleaner :: !(IO ()) -- every 12 hours: cleans the repos of unused NodeStories
   -- , _nse_lock  :: !FileLock -- TODO (it depends on the option: if with database or file only)
   }
   deriving (Generic)
 
+type HasNodeStory' env err m = (CmdM' env err m
+                               , HasNodeStory env
+                               , HasConfig env
+                               )
 
-class HasNodeStoryEnv env where
-  nodeStoryEnv :: env -> IO (MVar NodeListStory)
+class (HasNodeStoryVar env, HasNodeStorySaver env)
+  => HasNodeStory env where
+    hasNodeStory :: Getter env NodeStoryEnv
 
-instance HasNodeStoryEnv (MVar NodeListStory) where
-  nodeStoryEnv = pure
-
+class HasNodeStoryVar env where
+  hasNodeStoryVar :: Getter env (NodeId -> IO (MVar NodeListStory))
 
 class HasNodeStorySaver env where
-  nodeStorySaver :: Getter env (IO ())
+  hasNodeStorySaver :: Getter env (IO ())
+
 
 
 ------------------------------------------------------------------------
@@ -170,12 +178,7 @@ ngramsStatePatch_migration np' = Map.fromListWith (<>)
     , (nid, table) <- Patch.toList nTable
     ]
 
-
-
-
-
 ------------------------------------------------------------------------
-
 
 {- | Node Story for each NodeType where the Key of the Map is NodeId
   TODO : generalize for any NodeType, let's start with NodeList which
@@ -216,7 +219,6 @@ instance (ToJSON s, ToJSON p) => ToJSON (Archive s p) where
 
 ------------------------------------------------------------------------
 
-
 initNodeStory :: Monoid s => NodeId -> NodeStory s p
 initNodeStory ni = NodeStory $ Map.singleton ni initArchive
 
@@ -235,4 +237,5 @@ initNodeListStoryMock = NodeStory $ Map.singleton nodeListId archive
                    ]
 
 ------------------------------------------------------------------------
+-- | Lenses at the bottom of the file because Template Haskell would reorder order of execution in others cases
 makeLenses ''NodeStoryEnv
