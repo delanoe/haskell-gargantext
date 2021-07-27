@@ -102,9 +102,12 @@ import Formatting (hprint, int, (%))
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
+import Gargantext.API.Job
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude
+import Gargantext.Core.NodeStory
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid)
+import Gargantext.API.Ngrams.Tools
 import Gargantext.Core.Utils (something)
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
@@ -117,7 +120,6 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Schema.Node (node_id, node_parent_id, node_user_id)
 import Gargantext.Prelude hiding (log)
-import Gargantext.API.Job
 import Gargantext.Prelude.Clock (hasTime, getTime)
 import Prelude (error)
 import Servant hiding (Patch)
@@ -184,6 +186,11 @@ mkChildrenGroups addOrRem nt patches =
 saveRepo :: ( MonadReader env m, MonadBase IO m, HasRepoSaver env )
          => m ()
 saveRepo = liftBase =<< view repoSaver
+saveRepo' :: ( MonadReader env m, MonadBase IO m, HasNodeStorySaver env )
+         => m ()
+saveRepo' = liftBase =<< view hasNodeStorySaver
+
+
 
 listTypeConflictResolution :: ListType -> ListType -> ListType
 listTypeConflictResolution _ _ = undefined -- TODO Use Map User ListType
@@ -237,16 +244,10 @@ addListNgrams listId ngramsType nes = do
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
 -}
 
--- UNSAFE
-rmListNgrams ::  RepoCmdM env err m
-              => ListId
-              -> TableNgrams.NgramsType
-              -> m ()
-rmListNgrams l nt = setListNgrams l nt mempty
-
 -- | TODO: incr the Version number
 -- && should use patch
 -- UNSAFE
+
 setListNgrams ::  RepoCmdM env err m
               => NodeId
               -> TableNgrams.NgramsType
@@ -256,14 +257,27 @@ setListNgrams listId ngramsType ns = do
   var <- view repoVar
   liftBase $ modifyMVar_ var $
     pure . ( r_state
-           . at ngramsType %~
-             (Just .
-               (at listId .~ ( Just ns))
-               . something
-             )
+           . at ngramsType
+             %~ Just . (at listId .~ Just ns) . something
            )
   printDebug "List modified" NodeList
   saveRepo
+setListNgrams' ::  HasNodeStory env err m
+              => NodeId
+              -> TableNgrams.NgramsType
+              -> Map NgramsTerm NgramsRepoElement
+              -> m ()
+setListNgrams' listId ngramsType ns = do
+  getter <- view hasNodeStory
+  var <- liftBase $ (getter ^. nse_getter) listId
+  liftBase $ modifyMVar_ var $
+    pure . ( unNodeStory
+           . at listId . _Just
+            . a_state
+              . at ngramsType
+              .~ Just ns
+           )
+  saveRepo'
 
 
 currentVersion :: RepoCmdM env err m
@@ -272,6 +286,14 @@ currentVersion = do
   var <- view repoVar
   r   <- liftBase $ readMVar var
   pure $ r ^. r_version
+currentVersion' :: HasNodeStory env err m
+               => ListId -> m Version
+currentVersion' listId = do
+  nls <- getRepo' [listId]
+  pure $ nls ^. unNodeStory . at listId . _Just . a_version
+
+
+
 
 newNgramsFromNgramsStatePatch :: NgramsStatePatch -> [Ngrams]
 newNgramsFromNgramsStatePatch p =
@@ -282,7 +304,8 @@ newNgramsFromNgramsStatePatch p =
 
 -- tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
 commitStatePatch :: RepoCmdM env err m
-                 => Versioned NgramsStatePatch -> m (Versioned NgramsStatePatch)
+                 =>    Versioned NgramsStatePatch
+                 -> m (Versioned NgramsStatePatch)
 commitStatePatch (Versioned p_version p) = do
   var <- view repoVar
   vq' <- liftBase $ modifyMVar var $ \r -> do

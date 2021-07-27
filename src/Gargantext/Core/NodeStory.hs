@@ -18,6 +18,8 @@ module Gargantext.Core.NodeStory where
 import System.IO (FilePath, hClose)
 import Data.Maybe (fromMaybe)
 import Codec.Serialise (Serialise(), serialise, deserialise)
+import Control.Monad.Reader
+import Control.Monad.Except
 import Control.Concurrent (MVar(), withMVar, newMVar)
 import Control.Lens (makeLenses, Getter, (^.))
 import Data.Aeson hiding ((.=))
@@ -47,11 +49,13 @@ data NodeStoryEnv = NodeStoryEnv
   }
   deriving (Generic)
 
-type HasNodeStory env err m = (CmdM' env err m
-                               , HasNodeStoryEnv env
-                               , HasConfig env
-                               , HasConnectionPool env
-                               )
+type HasNodeStory env err m = ( CmdM' env err m
+                              , MonadReader env m
+                              , MonadError  err m
+                              , HasNodeStoryEnv env
+                              , HasConfig env
+                              , HasConnectionPool env
+                              )
 
 class (HasNodeStoryVar env, HasNodeStorySaver env)
   => HasNodeStoryEnv env where
@@ -62,8 +66,6 @@ class HasNodeStoryVar env where
 
 class HasNodeStorySaver env where
   hasNodeStorySaver :: Getter env (IO ())
-
-
 
 ------------------------------------------------------------------------
 readNodeStoryEnv :: NodeStoryDir -> IO NodeStoryEnv
