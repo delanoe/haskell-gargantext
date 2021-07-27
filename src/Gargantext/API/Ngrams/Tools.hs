@@ -28,6 +28,7 @@ import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
+import qualified Data.List           as List
 import Gargantext.Core.NodeStory
 
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
@@ -40,24 +41,33 @@ getRepo = do
   v <- view repoVar
   liftBase $ readMVar v
 
-getNodeListStory :: HasNodeStory' env err m
+getRepo' :: HasNodeStory env err m
+         => [ListId] -> m NodeListStory
+getRepo' listIds = do
+  maybeNodeListStory <- head <$> List.reverse <$> mapM getNodeListStory'' listIds
+  case maybeNodeListStory of
+    Nothing  -> panic "[G.A.N.Tools.getRepo']"
+    Just nls -> pure nls 
+
+
+getNodeListStory :: HasNodeStory env err m
                  => m (NodeId -> IO (MVar NodeListStory))
 getNodeListStory = do
   env <- view hasNodeStory
   pure $ view nse_getter env
 
-getNodeListStory' :: HasNodeStory' env err m
+getNodeListStory' :: HasNodeStory env err m
                  => NodeId -> m (IO NodeListStory)
 getNodeListStory' n = do
   f <- getNodeListStory
   v <- liftBase $ f n
   pure $ readMVar v
 
-getNodeListStory'' :: HasNodeStory' env err m
+getNodeListStory'' :: HasNodeStory env err m
                  => NodeId -> m NodeListStory
 getNodeListStory'' n = do
   f <- getNodeListStory
-  v  <- liftBase  $ f n
+  v  <- liftBase $ f n
   v' <- liftBase $ readMVar v
   pure $ v'
 
@@ -74,6 +84,22 @@ listNgramsFromRepo nodeIds ngramsType repo = ngrams
                 [ ngramsMap ^. at nodeId . _Just | nodeId <- nodeIds ]
 
 
+listNgramsFromRepo' :: [ListId] -> NgramsType
+                   -> NodeListStory -> HashMap NgramsTerm NgramsRepoElement
+listNgramsFromRepo' nodeIds ngramsType repo =
+  HM.fromList $ Map.toList
+              $ Map.unionsWith mergeNgramsElement ngrams
+    where
+      ngrams = [ repo
+               ^. unNodeStory
+                . at nodeId . _Just
+                . a_state
+                . at ngramsType . _Just
+                | nodeId <- nodeIds
+                ]
+
+
+
 -- TODO-ACCESS: We want to do the security check before entering here.
 --              Add a static capability parameter would be nice.
 --              Ideally this is the access to `repoVar` which needs to
@@ -82,6 +108,13 @@ getListNgrams :: RepoCmdM env err m
               => [ListId] -> NgramsType
               -> m (HashMap NgramsTerm NgramsRepoElement)
 getListNgrams nodeIds ngramsType = listNgramsFromRepo nodeIds ngramsType <$> getRepo
+
+getListNgrams' :: HasNodeStory env err m
+              => [ListId] -> NgramsType
+              -> m (HashMap NgramsTerm NgramsRepoElement)
+getListNgrams' nodeIds ngramsType = listNgramsFromRepo' nodeIds ngramsType
+                                 <$> getRepo' nodeIds
+
 
 getTermsWith :: (RepoCmdM env err m, Eq a, Hashable a)
           => (NgramsTerm -> a) -> [ListId]
@@ -97,6 +130,23 @@ getTermsWith f ls ngt lts = HM.fromListWith (<>)
     toTreeWith (t, (_lt, maybeRoot)) = case maybeRoot of
       Nothing -> (f t, [])
       Just  r -> (f r, [f t])
+getTermsWith' :: (HasNodeStory env err m, Eq a, Hashable a)
+          => (NgramsTerm -> a) -> [ListId]
+          -> NgramsType -> Set ListType
+          -> m (HashMap a [a])
+getTermsWith' f ls ngt lts  = HM.fromListWith (<>)
+                      <$> map toTreeWith
+                      <$> HM.toList
+                      <$> HM.filter (\f' -> Set.member (fst f') lts)
+                      <$> mapTermListRoot' ls ngt
+                      <$> getRepo' ls
+  where
+    toTreeWith (t, (_lt, maybeRoot)) = case maybeRoot of
+      Nothing -> (f t, [])
+      Just  r -> (f r, [f t])
+
+
+
 
 mapTermListRoot :: [ListId]
                 -> NgramsType
@@ -105,6 +155,17 @@ mapTermListRoot :: [ListId]
 mapTermListRoot nodeIds ngramsType repo =
       (\nre -> (_nre_list nre, _nre_root nre))
   <$> listNgramsFromRepo nodeIds ngramsType repo
+mapTermListRoot' :: [ListId]
+                -> NgramsType
+                -> NodeListStory
+                -> HashMap NgramsTerm (ListType, Maybe NgramsTerm)
+mapTermListRoot' nodeIds ngramsType repo =
+      (\nre -> (_nre_list nre, _nre_root nre))
+  <$> listNgramsFromRepo' nodeIds ngramsType repo
+
+
+
+
 
 filterListWithRootHashMap :: ListType
                           -> HashMap NgramsTerm (ListType, Maybe NgramsTerm)
@@ -146,11 +207,17 @@ groupNodesByNgrams syn occs = HM.fromListWith (<>) occs'
 
 data Diagonal = Diagonal Bool
 
-getCoocByNgrams :: Diagonal -> HashMap NgramsTerm (Set NodeId) -> HashMap (NgramsTerm, NgramsTerm) Int
+getCoocByNgrams :: Diagonal
+                -> HashMap NgramsTerm (Set NodeId)
+                -> HashMap (NgramsTerm, NgramsTerm) Int
 getCoocByNgrams = getCoocByNgrams' identity
 
 
-getCoocByNgrams' :: (Hashable a, Ord a, Ord c) => (b -> Set c) -> Diagonal -> HashMap a b -> HashMap (a, a) Int
+getCoocByNgrams' :: (Hashable a, Ord a, Ord c)
+                 => (b -> Set c)
+                 -> Diagonal
+                 -> HashMap a b
+                 -> HashMap (a, a) Int
 getCoocByNgrams' f (Diagonal diag) m =
   HM.fromList [( (t1,t2)
                , maybe 0 Set.size $ Set.intersection

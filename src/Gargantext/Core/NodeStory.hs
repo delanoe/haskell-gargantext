@@ -29,7 +29,6 @@ import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (NodeId)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
-import Control.Monad.Reader
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import qualified Data.Map.Strict.Patch.Internal as Patch
 import qualified Data.ByteString.Lazy as L
@@ -48,13 +47,14 @@ data NodeStoryEnv = NodeStoryEnv
   }
   deriving (Generic)
 
-type HasNodeStory' env err m = (CmdM' env err m
-                               , HasNodeStory env
+type HasNodeStory env err m = (CmdM' env err m
+                               , HasNodeStoryEnv env
                                , HasConfig env
+                               , HasConnectionPool env
                                )
 
 class (HasNodeStoryVar env, HasNodeStorySaver env)
-  => HasNodeStory env where
+  => HasNodeStoryEnv env where
     hasNodeStory :: Getter env NodeStoryEnv
 
 class HasNodeStoryVar env where
@@ -184,7 +184,7 @@ ngramsStatePatch_migration np' = Map.fromListWith (<>)
   TODO : generalize for any NodeType, let's start with NodeList which
   is implemented already
 -}
-data NodeStory s p = NodeStory { unNodeStory :: Map NodeId (Archive s p) }
+data NodeStory s p = NodeStory { _unNodeStory :: Map NodeId (Archive s p) }
   deriving (Generic, Show)
 
 instance (FromJSON s, FromJSON p) => FromJSON (NodeStory s p)
@@ -239,3 +239,5 @@ initNodeListStoryMock = NodeStory $ Map.singleton nodeListId archive
 ------------------------------------------------------------------------
 -- | Lenses at the bottom of the file because Template Haskell would reorder order of execution in others cases
 makeLenses ''NodeStoryEnv
+makeLenses ''NodeStory
+makeLenses ''Archive
