@@ -22,6 +22,9 @@ nix:
 
 allow-newer: true
 
+#ghc-options:
+#  "$everything": -haddock
+
 extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
   commit: 3e32ec3aca71eb326805355d3a99b9288dc342ee 
@@ -103,3 +106,6 @@ extra-deps:
 - stemmer-0.5.2@sha256:823aec56249ec2619f60a2c0d1384b732894dbbbe642856d337ebfe9629a0efd,4082
 - xmlbf-0.6.1@sha256:57867fcb39e0514d17b3328ff5de8d241a18482fc89bb742d9ed820a6a2a5187,1540
 - xmlbf-xeno-0.2@sha256:39f70fced6052524c290cf595f114661c721452e65fc3e0953a44e7682a6a6b0,950
+
+# need Vector.uncons
+- vector-0.12.3.0@sha256:0ae2c1ba86f0077910be242ec6802cc3d7725fe7b2bea6987201aa3737b239b5,7953
