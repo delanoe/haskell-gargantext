@@ -36,25 +36,26 @@ import Test.QuickCheck.Arbitrary
 import Gargantext.Prelude
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
-import qualified Gargantext.API.Admin.Orchestrator.Types as T
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node.Corpus.New.File
+import Gargantext.API.Node.Corpus.Searx
+import Gargantext.API.Node.Corpus.Types
 import Gargantext.API.Node.Types
 import Gargantext.Core (Lang(..){-, allLangs-})
-import Gargantext.Database.Action.Mail (sendMail)
+import qualified Gargantext.Core.Text.Corpus.API as API
+import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..){-, allDataOrigins-})
-import Gargantext.Database.Action.User (getUserId)
+import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..){-, allDataOrigins-})
+import Gargantext.Database.Action.Mail (sendMail)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
+import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node (CorpusId, NodeType(..), UserId)
 import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import qualified Gargantext.Database.GargDB as GargDB
-import qualified Gargantext.Core.Text.Corpus.API as API
-import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 
 ------------------------------------------------------------------------
 {-
@@ -125,28 +126,11 @@ info :: FlowCmdM env err m => UserId -> m ApiInfo
 info _u = pure $ ApiInfo API.externalAPIs
 
 ------------------------------------------------------------------------
-
-data Database = Empty
-              | PubMed
-              | HAL
-              | IsTex
-              | Isidore
-  deriving (Eq, Show, Generic)
-
-deriveJSON (unPrefix "") ''Database
-instance ToSchema Database
-
-database2origin :: Database -> DataOrigin
-database2origin Empty   = InternalOrigin T.IsTex
-database2origin PubMed  = ExternalOrigin T.PubMed
-database2origin HAL     = ExternalOrigin T.HAL
-database2origin IsTex   = ExternalOrigin T.IsTex
-database2origin Isidore = ExternalOrigin T.Isidore
-
 ------------------------------------------------------------------------
 data WithQuery = WithQuery
   { _wq_query     :: !Text
   , _wq_databases :: !Database
+  , _wq_datafield :: !Datafield
   , _wq_lang      :: !Lang
   , _wq_node_id   :: !Int
   }
@@ -190,36 +174,51 @@ addToCorpusWithQuery :: FlowCmdM env err m
                        -> Maybe Integer
                        -> (JobLog -> m ())
                        -> m JobLog
-addToCorpusWithQuery user cid (WithQuery q dbs l _nid) maybeLimit logStatus = do
+addToCorpusWithQuery user cid (WithQuery q dbs datafield l _nid) maybeLimit logStatus = do
   -- TODO ...
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
-                   , _scst_remaining = Just 5
+                   , _scst_remaining = Just 3
                    , _scst_events    = Just []
                    }
-  printDebug "addToCorpusWithQuery" (cid, dbs)
-  -- TODO add cid
-  -- TODO if cid is folder -> create Corpus
-  --      if cid is corpus -> add to corpus
-  --      if cid is root   -> create corpus in Private
-  txts <- mapM (\db  -> getDataText db (Multi l) q maybeLimit) [database2origin dbs]
+  printDebug "[addToCorpusWithQuery] (cid, dbs)" (cid, dbs)
+  printDebug "[addToCorpusWithQuery] datafield" datafield
 
-  logStatus JobLog { _scst_succeeded = Just 2
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 1
-                   , _scst_events    = Just []
-                   }
+  case datafield of
+    Web -> do
+      printDebug "[addToCorpusWithQuery] processing web request" datafield
 
-  cids <- mapM (\txt -> flowDataText user txt (Multi l) cid) txts
-  printDebug "corpus id" cids
-  printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
-  sendMail user
-  -- TODO ...
-  pure      JobLog { _scst_succeeded = Just 3
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 0
-                   , _scst_events    = Just []
-                   }
+      _ <- triggerSearxSearch cid q l
+
+      pure JobLog { _scst_succeeded = Just 3
+                  , _scst_failed    = Just 0
+                  , _scst_remaining = Just 0
+                  , _scst_events    = Just []
+                  }
+
+    _ -> do
+      -- TODO add cid
+      -- TODO if cid is folder -> create Corpus
+      --      if cid is corpus -> add to corpus
+      --      if cid is root   -> create corpus in Private
+      txts <- mapM (\db  -> getDataText db (Multi l) q maybeLimit) [database2origin dbs]
+  
+      logStatus JobLog { _scst_succeeded = Just 2
+                       , _scst_failed    = Just 0
+                       , _scst_remaining = Just 1
+                       , _scst_events    = Just []
+                       }
+
+      cids <- mapM (\txt -> flowDataText user txt (Multi l) cid) txts
+      printDebug "corpus id" cids
+      printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
+      sendMail user
+      -- TODO ...
+      pure JobLog { _scst_succeeded = Just 3
+                  , _scst_failed    = Just 0
+                  , _scst_remaining = Just 0
+                  , _scst_events    = Just []
+                  }
 
 
 type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"

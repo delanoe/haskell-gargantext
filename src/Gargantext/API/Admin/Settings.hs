@@ -166,7 +166,7 @@ newEnv port file = do
   when (port /= settings' ^. appPort) $
     panic "TODO: conflicting settings of port"
 
-  config'       <- readConfig file
+  config'      <- readConfig file
   self_url     <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   dbParam      <- databaseParameters file
   pool         <- newPool dbParam

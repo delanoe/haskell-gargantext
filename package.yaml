@@ -188,6 +188,7 @@ library:
   - random
   - rdf4h
   - regex-compat
+  - regex-tdfa
   - resource-pool
   - resourcet
   - safe
