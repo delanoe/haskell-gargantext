@@ -49,6 +49,12 @@ getRepo' listIds = do
     Nothing  -> panic "[G.A.N.Tools.getRepo']"
     Just nls -> pure nls 
 
+getRepoVar :: HasNodeStory env err m
+           => ListId -> m (MVar NodeListStory)
+getRepoVar l = do
+  f <- getNodeListStory
+  v  <- liftBase $ f l
+  pure v
 
 getNodeListStory :: HasNodeStory env err m
                  => m (NodeId -> IO (MVar NodeListStory))

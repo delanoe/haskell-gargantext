@@ -204,8 +204,20 @@ ngramsStatePatchConflictResolution _ngramsType _nodeId _ngramsTerm
   = (ours, (const ours, ours), (False, False))
                              -- (False, False) mean here that Mod has always priority.
                              -- (True, False) <- would mean priority to the left (same as ours).
-
   -- undefined {- TODO think this through -}, listTypeConflictResolution)
+
+ngramsStatePatchConflictResolution'
+  :: TableNgrams.NgramsType
+  -> NgramsTerm
+  -> ConflictResolutionNgramsPatch
+ngramsStatePatchConflictResolution' _ngramsType _ngramsTerm
+  = (ours, (const ours, ours), (False, False))
+                             -- (False, False) mean here that Mod has always priority.
+                             -- (True, False) <- would mean priority to the left (same as ours).
+  -- undefined {- TODO think this through -}, listTypeConflictResolution)
+
+
+
 
 -- Current state:
 --   Insertions are not considered as patches,
@@ -301,6 +313,16 @@ newNgramsFromNgramsStatePatch p =
   | (n,np) <- p ^.. _PatchMap . each . _PatchMap . each . _NgramsTablePatch . _PatchMap . ifolded . withIndex
   , _ <- np ^.. patch_new . _Just
   ]
+newNgramsFromNgramsStatePatch' :: NgramsStatePatch' -> [Ngrams]
+newNgramsFromNgramsStatePatch' p =
+  [ text2ngrams (unNgramsTerm n)
+  | (n,np) <- p ^.. _PatchMap
+                -- . each . _PatchMap
+                . each . _NgramsTablePatch
+                . _PatchMap . ifolded . withIndex
+  , _ <- np ^.. patch_new . _Just
+  ]
+
 
 -- tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
 commitStatePatch :: RepoCmdM env err m
@@ -334,6 +356,31 @@ commitStatePatch (Versioned p_version p) = do
   _ <- insertNgrams (newNgramsFromNgramsStatePatch p)
 
   pure vq'
+
+commitStatePatch' :: HasNodeStory env err m
+                 => ListId
+                 ->    Versioned NgramsStatePatch'
+                 -> m (Versioned NgramsStatePatch')
+commitStatePatch' listId (Versioned p_version p) = do
+  var <- getRepoVar listId
+  vq' <- liftBase $ modifyMVar var $ \ns -> do
+    let
+      a = ns ^. unNodeStory . at listId . _Just
+      q = mconcat $ take (a ^. a_version - p_version) (a ^. a_history)
+      (p', q') = transformWith ngramsStatePatchConflictResolution' p q
+      a' = a & a_version +~ 1
+             & a_state   %~ act p'
+             & a_history %~ (p' :)
+    pure ( ns & unNodeStory . at listId .~ (Just a')
+         , Versioned (a' ^. a_version) q'
+         )
+  saveRepo'
+  -- Save new ngrams
+  _ <- insertNgrams (newNgramsFromNgramsStatePatch' p)
+
+  pure $ vq'
+
+
 
 -- This is a special case of tableNgramsPut where the input patch is empty.
 tableNgramsPull :: RepoCmdM env err m

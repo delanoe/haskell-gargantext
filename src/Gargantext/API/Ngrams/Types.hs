@@ -532,6 +532,7 @@ instance FromField (PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTable
 type instance ConflictResolution NgramsTablePatch =
   NgramsTerm -> ConflictResolutionNgramsPatch
 
+
 type PatchedNgramsTablePatch = Map NgramsTerm PatchedNgramsPatch
   -- ~ Patched (PatchMap NgramsTerm NgramsPatch)
 type instance Patched NgramsTablePatch = PatchedNgramsTablePatch
@@ -675,16 +676,12 @@ data Repo s p = Repo
   }
   deriving (Generic, Show)
 
-
-
 -- | TO REMOVE
 type NgramsRepo       = Repo     NgramsState NgramsStatePatch
-
 type NgramsState      = Map      TableNgrams.NgramsType (Map NodeId NgramsTableMap)
 type NgramsStatePatch = PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTablePatch)
 
 ----------------------------------------------------------------------
-
 
 instance (FromJSON s, FromJSON p) => FromJSON (Repo s p) where
   parseJSON = genericParseJSON $ unPrefix "_r_"

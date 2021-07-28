@@ -26,6 +26,7 @@ import Data.Aeson hiding ((.=))
 import qualified Data.List as List
 import Data.Map as Map
 import Data.Monoid
+import Data.Semigroup
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (NodeId)
@@ -206,11 +207,17 @@ instance (Serialise s, Serialise p) => Serialise (Archive s p)
 -- TODO Semigroup instance for unions
 
 type NodeListStory     = NodeStory NgramsState' NgramsStatePatch'
-type ArchiveList       = Archive NgramsState' NgramsStatePatch'
 
 type NgramsState'      = Map       TableNgrams.NgramsType NgramsTableMap
 type NgramsStatePatch' = PatchMap  TableNgrams.NgramsType NgramsTablePatch
 instance Serialise NgramsStatePatch'
+
+-- TODO check this
+instance (Semigroup s, Semigroup p) => Semigroup (Archive s p) where
+  (<>) (Archive _v _s p) (Archive v' s' p') = Archive v' s' (p' <> p)
+
+instance Monoid (Archive NgramsState' NgramsStatePatch') where
+  mempty = Archive 0 mempty []
 
 instance (FromJSON s, FromJSON p) => FromJSON (Archive s p) where
   parseJSON = genericParseJSON $ unPrefix "_a_"
