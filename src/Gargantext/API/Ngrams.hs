@@ -106,7 +106,7 @@ import Gargantext.API.Job
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude
 import Gargantext.Core.NodeStory
-import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid)
+import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid, HasInvalidError)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.Core.Utils (something)
 import Gargantext.Database.Action.Flow.Types
@@ -397,6 +397,24 @@ tableNgramsPull listId ngramsType p_version = do
     q_table = q ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
 
   pure (Versioned (r ^. r_version) q_table)
+tableNgramsPull' :: HasNodeStory env err m
+                => ListId
+                -> TableNgrams.NgramsType
+                -> Version
+                -> m (Versioned NgramsTablePatch)
+tableNgramsPull' listId ngramsType p_version = do
+  var <- getRepoVar listId
+  r <- liftBase $ readMVar var
+
+  let
+    a = r ^. unNodeStory . at listId . _Just
+    q = mconcat $ take (a ^. a_version - p_version) (a ^. a_history)
+    q_table = q ^. _PatchMap . at ngramsType . _Just
+
+  pure (Versioned (a ^. a_version) q_table)
+
+
+
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
@@ -425,6 +443,30 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
         <&> v_data %~ (view (_PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just))
 
       pure ret
+tableNgramsPut' :: ( HasNodeStory env err m
+                   , HasInvalidError err
+                  , HasSettings env
+                  )
+                 => TabType
+                 -> ListId
+                 -> Versioned NgramsTablePatch
+                 -> m (Versioned NgramsTablePatch)
+tableNgramsPut' tabType listId (Versioned p_version p_table)
+  | p_table == mempty = do
+      let ngramsType        = ngramsTypeFromTabType tabType
+      tableNgramsPull' listId ngramsType p_version
+
+  | otherwise         = do
+      let ngramsType        = ngramsTypeFromTabType tabType
+          (p, p_validity)   = PM.singleton ngramsType p_table
+
+      assertValid p_validity
+
+      ret <- commitStatePatch' listId (Versioned p_version p)
+        <&> v_data %~ (view (_PatchMap . at ngramsType . _Just))
+
+      pure ret
+
 
 
 tableNgramsPostChartsAsync :: ( FlowCmdM env err m
@@ -524,6 +566,16 @@ getNgramsTableMap nodeId ngramsType = do
   repo <- liftBase $ readMVar v
   pure $ Versioned (repo ^. r_version)
                    (repo ^. r_state . at ngramsType . _Just . at nodeId . _Just)
+getNgramsTableMap' :: HasNodeStory env err m
+                  => NodeId
+                  -> TableNgrams.NgramsType
+                  -> m (Versioned NgramsTableMap)
+getNgramsTableMap' nodeId ngramsType = do
+  v    <- getRepoVar nodeId
+  repo <- liftBase $ readMVar v
+  pure $ Versioned (repo ^. unNodeStory . at nodeId . _Just . a_version)
+                   (repo ^. unNodeStory . at nodeId . _Just . a_state . at ngramsType . _Just)
+
 
 dumpJsonTableMap :: RepoCmdM env err m
                  => Text
@@ -534,6 +586,17 @@ dumpJsonTableMap fpath nodeId ngramsType = do
   m <- getNgramsTableMap nodeId ngramsType
   liftBase $ DTL.writeFile (unpack fpath) (DAT.encodeToLazyText m)
   pure ()
+dumpJsonTableMap' :: HasNodeStory env err m
+                 => Text
+                 -> NodeId
+                 -> TableNgrams.NgramsType
+                 -> m ()
+dumpJsonTableMap' fpath nodeId ngramsType = do
+  m <- getNgramsTableMap' nodeId ngramsType
+  liftBase $ DTL.writeFile (unpack fpath) (DAT.encodeToLazyText m)
+  pure ()
+
+
 
 type MinSize = Int
 type MaxSize = Int
@@ -664,6 +727,127 @@ getTableNgrams _nType nId tabType listId limit_ offset
                           % "\n"
             ) t0 t3 t0 t1 t1 t2 t2 t3
   pure $ toVersionedWithCount fltrCount tableMap3
+getTableNgrams' :: forall env err m.
+                  (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+               => NodeType -> NodeId -> TabType
+               -> ListId -> Limit -> Maybe Offset
+               -> Maybe ListType
+               -> Maybe MinSize -> Maybe MaxSize
+               -> Maybe OrderBy
+               -> (NgramsTerm -> Bool)
+               -> m (VersionedWithCount NgramsTable)
+getTableNgrams' _nType nId tabType listId limit_ offset
+               listType minSize maxSize orderBy searchQuery = do
+
+  t0 <- getTime
+  -- lIds <- selectNodesWithUsername NodeList userMaster
+  let
+    ngramsType = ngramsTypeFromTabType tabType
+    offset'  = maybe 0 identity offset
+    listType' = maybe (const True) (==) listType
+    minSize'  = maybe (const True) (<=) minSize
+    maxSize'  = maybe (const True) (>=) maxSize
+
+    selected_node n = minSize'     s
+                   && maxSize'     s
+                   && searchQuery  (n ^. ne_ngrams)
+                   && listType'    (n ^. ne_list)
+      where
+        s = n ^. ne_size
+
+    selected_inner roots n = maybe False (`Set.member` roots) (n ^. ne_root)
+
+    ---------------------------------------
+    sortOnOrder Nothing = identity
+    sortOnOrder (Just TermAsc)   = List.sortOn $ view ne_ngrams
+    sortOnOrder (Just TermDesc)  = List.sortOn $ Down . view ne_ngrams
+    sortOnOrder (Just ScoreAsc)  = List.sortOn $ view ne_occurrences
+    sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view ne_occurrences
+
+    ---------------------------------------
+
+    filteredNodes :: Map NgramsTerm NgramsElement -> [NgramsElement]
+    filteredNodes tableMap = rootOf <$> list & filter selected_node
+      where
+        rootOf ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
+                                              (tableMap ^. at r)
+                             )
+                             (ne ^. ne_root)
+        list = tableMap ^.. each
+
+    ---------------------------------------
+    selectAndPaginate :: Map NgramsTerm NgramsElement -> [NgramsElement]
+    selectAndPaginate tableMap = roots <> inners
+      where
+        list = tableMap ^.. each
+        rootOf ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
+                                              (tableMap ^. at r)
+                             )
+                             (ne ^. ne_root)
+        selected_nodes = list & take limit_
+                              . drop offset'
+                              . filter selected_node
+                              . sortOnOrder orderBy
+        roots = rootOf <$> selected_nodes
+        rootsSet = Set.fromList (_ne_ngrams <$> roots)
+        inners = list & filter (selected_inner rootsSet)
+
+    ---------------------------------------
+    setScores :: forall t. Each t t NgramsElement NgramsElement => Bool -> t -> m t
+    setScores False table = pure table
+    setScores True  table = do
+      let ngrams_terms = table ^.. each . ne_ngrams
+      t1 <- getTime
+      occurrences <- getOccByNgramsOnlyFast' nId
+                                             listId
+                                            ngramsType
+                                            ngrams_terms
+      t2 <- getTime
+      liftBase $ hprint stderr
+        ("getTableNgrams/setScores #ngrams=" % int % " time=" % hasTime % "\n")
+        (length ngrams_terms) t1 t2
+      {-
+      occurrences <- getOccByNgramsOnlySlow nType nId
+                                            (lIds <> [listId])
+                                            ngramsType
+                                            ngrams_terms
+      -}
+      let
+        setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
+
+      pure $ table & each %~ setOcc
+    ---------------------------------------
+
+  -- lists <- catMaybes <$> listsWith userMaster
+  -- trace (show lists) $
+  -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
+
+
+  let scoresNeeded = needsScores orderBy
+  tableMap1 <- getNgramsTableMap' listId ngramsType
+  t1 <- getTime
+  tableMap2 <- tableMap1 & v_data %%~ setScores scoresNeeded
+                                    . Map.mapWithKey ngramsElementFromRepo
+
+  fltr <- tableMap2 & v_data %%~ fmap NgramsTable . setScores (not scoresNeeded)
+                                                  . filteredNodes
+  let fltrCount = length $ fltr ^. v_data . _NgramsTable
+
+  t2 <- getTime
+  tableMap3 <- tableMap2 & v_data %%~ fmap NgramsTable
+                                    . setScores (not scoresNeeded)
+                                    . selectAndPaginate
+  t3 <- getTime
+  liftBase $ hprint stderr
+            ("getTableNgrams total=" % hasTime
+                          % " map1=" % hasTime
+                          % " map2=" % hasTime
+                          % " map3=" % hasTime
+                          % " sql="  % (if scoresNeeded then "map2" else "map3")
+                          % "\n"
+            ) t0 t3 t0 t1 t1 t2 t2 t3
+  pure $ toVersionedWithCount fltrCount tableMap3
+
 
 
 scoresRecomputeTableNgrams :: forall env err m.
@@ -689,6 +873,30 @@ scoresRecomputeTableNgrams nId tabType listId = do
         setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 
       pure $ table & each %~ setOcc
+scoresRecomputeTableNgrams' :: forall env err m.
+  (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+  => NodeId -> TabType -> ListId -> m Int
+scoresRecomputeTableNgrams' nId tabType listId = do
+  tableMap <- getNgramsTableMap' listId ngramsType
+  _ <- tableMap & v_data %%~ setScores
+                           . Map.mapWithKey ngramsElementFromRepo
+
+  pure $ 1
+  where
+    ngramsType = ngramsTypeFromTabType tabType
+
+    setScores :: forall t. Each t t NgramsElement NgramsElement => t -> m t
+    setScores table = do
+      let ngrams_terms = table ^.. each . ne_ngrams
+      occurrences <- getOccByNgramsOnlyFast' nId
+                                             listId
+                                            ngramsType
+                                            ngrams_terms
+      let
+        setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
+
+      pure $ table & each %~ setOcc
+
 
 
 
@@ -776,6 +984,23 @@ getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize o
   getTableNgrams NodeCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
     where
       searchQuery (NgramsTerm nt) = maybe (const True) isInfixOf mt nt
+getTableNgramsCorpus' :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+               => NodeId
+               -> TabType
+               -> ListId
+               -> Limit
+               -> Maybe Offset
+               -> Maybe ListType
+               -> Maybe MinSize -> Maybe MaxSize
+               -> Maybe OrderBy
+               -> Maybe Text -- full text search
+               -> m (VersionedWithCount NgramsTable)
+getTableNgramsCorpus' nId tabType listId limit_ offset listType minSize maxSize orderBy mt =
+  getTableNgrams' NodeCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
+    where
+      searchQuery (NgramsTerm nt) = maybe (const True) isInfixOf mt nt
+
+
 
 getTableNgramsVersion :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
                => NodeId
@@ -783,6 +1008,15 @@ getTableNgramsVersion :: (RepoCmdM env err m, HasNodeError err, HasConnectionPoo
                -> ListId
                -> m Version
 getTableNgramsVersion _nId _tabType _listId = currentVersion
+getTableNgramsVersion' :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+               => NodeId
+               -> TabType
+               -> ListId
+               -> m Version
+getTableNgramsVersion' _nId _tabType listId = currentVersion' listId
+
+
+
   -- TODO: limit?
   -- Versioned { _v_version = v } <- getTableNgramsCorpus nId tabType listId 100000 Nothing Nothing Nothing Nothing Nothing Nothing
   -- This line above looks like a waste of computation to finally get only the version.
@@ -804,6 +1038,21 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
   ngs <- selectNgramsByDoc (ns <> [listId]) dId ngramsType
   let searchQuery (NgramsTerm nt) = flip S.member (S.fromList ngs) nt
   getTableNgrams NodeDocument dId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
+getTableNgramsDoc' :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+               => DocId -> TabType
+               -> ListId -> Limit -> Maybe Offset
+               -> Maybe ListType
+               -> Maybe MinSize -> Maybe MaxSize
+               -> Maybe OrderBy
+               -> Maybe Text -- full text search
+               -> m (VersionedWithCount NgramsTable)
+getTableNgramsDoc' dId tabType listId limit_ offset listType minSize maxSize orderBy _mt = do
+  ns <- selectNodesWithUsername NodeList userMaster
+  let ngramsType = ngramsTypeFromTabType tabType
+  ngs <- selectNgramsByDoc (ns <> [listId]) dId ngramsType
+  let searchQuery (NgramsTerm nt) = flip S.member (S.fromList ngs) nt
+  getTableNgrams' NodeDocument dId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
+
 
 
 
@@ -855,7 +1104,12 @@ listNgramsChangedSince listId ngramsType version
       Versioned <$> currentVersion <*> pure True
   | otherwise   =
       tableNgramsPull listId ngramsType version & mapped . v_data %~ (== mempty)
-
-
+listNgramsChangedSince' :: HasNodeStory env err m
+                       => ListId -> TableNgrams.NgramsType -> Version -> m (Versioned Bool)
+listNgramsChangedSince' listId ngramsType version
+  | version < 0 =
+      Versioned <$> currentVersion' listId <*> pure True
+  | otherwise   =
+      tableNgramsPull' listId ngramsType version & mapped . v_data %~ (== mempty)
 
 

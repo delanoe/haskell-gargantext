@@ -204,7 +204,6 @@ data Archive s p = Archive
 
 instance (Serialise s, Serialise p) => Serialise (Archive s p)
 
--- TODO Semigroup instance for unions
 
 type NodeListStory     = NodeStory NgramsState' NgramsStatePatch'
 
@@ -212,6 +211,7 @@ type NgramsState'      = Map       TableNgrams.NgramsType NgramsTableMap
 type NgramsStatePatch' = PatchMap  TableNgrams.NgramsType NgramsTablePatch
 instance Serialise NgramsStatePatch'
 
+-- TODO Semigroup instance for unions
 -- TODO check this
 instance (Semigroup s, Semigroup p) => Semigroup (Archive s p) where
   (<>) (Archive _v _s p) (Archive v' s' p') = Archive v' s' (p' <> p)
