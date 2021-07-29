@@ -16,7 +16,7 @@ module Gargantext.Database.Action.Flow.Pairing
   -- (pairing)
     where
 
-import Control.Lens (_Just, (^.))
+import Control.Lens (_Just, (^.), view)
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import Data.Maybe (catMaybes, fromMaybe)
@@ -179,8 +179,8 @@ getNgramsDocId :: CorpusId
                 -> NgramsType
                 -> GargNoServer (HashMap DocAuthor (Set NodeId))
 getNgramsDocId cId lId nt = do
-  repo <- getRepo
   lIds <- selectNodesWithUsername NodeList userMaster
+  repo <- getRepo' lIds
   let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
 
   groupNodesByNgrams ngs

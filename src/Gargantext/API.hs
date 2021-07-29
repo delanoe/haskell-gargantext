@@ -28,18 +28,27 @@ Pouillard (who mainly made it).
 
 {-# LANGUAGE ScopedTypeVariables  #-}
 
----------------------------------------------------------------------
 module Gargantext.API
       where
----------------------------------------------------------------------
+
 import Control.Exception (finally)
 import Control.Lens
 import Control.Monad.Reader (runReaderT)
 import Data.List (lookup)
 import Data.Text.Encoding (encodeUtf8)
+import Data.Text.IO (putStrLn)
 import Data.Validity
 import GHC.Base (Applicative)
 import GHC.Generics (Generic)
+import Gargantext.API.Admin.Auth.Types (AuthContext)
+import Gargantext.API.Admin.Settings (newEnv)
+import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, jwtSettings, settings)
+import Gargantext.API.Ngrams (saveRepo)
+import Gargantext.API.Prelude
+import Gargantext.API.Routes
+import Gargantext.API.Server (server)
+import Gargantext.Core.NodeStory
+import Gargantext.Prelude hiding (putStrLn)
 import Network.HTTP.Types hiding (Query)
 import Network.Wai
 import Network.Wai.Handler.Warp hiding (defaultSettings)
@@ -47,17 +56,6 @@ import Network.Wai.Middleware.Cors
 import Network.Wai.Middleware.RequestLogger
 import Servant
 import System.IO (FilePath)
-import Data.Text.IO (putStrLn)
-
-import Gargantext.API.Admin.Auth.Types (AuthContext)
-import Gargantext.API.Admin.Settings (newEnv)
-import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, jwtSettings, settings)
-import Gargantext.API.Ngrams (saveRepo)
-import Gargantext.API.Ngrams.Types (HasRepoSaver(..))
-import Gargantext.API.Prelude
-import Gargantext.API.Routes
-import Gargantext.API.Server (server)
-import Gargantext.Prelude hiding (putStrLn)
 
 
 data Mode = Dev | Mock | Prod 
@@ -79,7 +77,7 @@ portRouteInfo port = do
   putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
 
 -- TODO clean this Monad condition (more generic) ?
-stopGargantext :: HasRepoSaver env => env -> IO ()
+stopGargantext :: HasNodeStorySaver env => env -> IO ()
 stopGargantext env = do
   putStrLn "----- Stopping gargantext -----"
   runReaderT saveRepo env

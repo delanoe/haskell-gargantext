@@ -30,25 +30,27 @@ import qualified Data.Patch.Class    as Patch (Replace(..))
 
 addScorePatches :: NgramsType -> [ListId]
                 -> FlowCont NgramsTerm FlowListScores
-                -> Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])
+                -> Map ListId (Map NgramsType [HashMap NgramsTerm NgramsPatch])
                 -> FlowCont NgramsTerm FlowListScores
-addScorePatches nt listes fl repo = foldl' (addScorePatchesList nt repo) fl listes
+addScorePatches nt listes fl repo =
+  foldl' (addScorePatchesList nt repo) fl listes
 
 
 addScorePatchesList :: NgramsType
-                   -> Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])
+                   -- -> Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])
+                   -> Map ListId (Map NgramsType [HashMap NgramsTerm NgramsPatch])
                    -> FlowCont NgramsTerm FlowListScores
                    -> ListId
                    -> FlowCont NgramsTerm FlowListScores
-addScorePatchesList nt repo fl lid = foldl' addScorePatch fl patches
+addScorePatchesList nt repo fl lid =
+  foldl' addScorePatch fl patches
   where
     patches = maybe [] (List.concat . (map HashMap.toList)) patches'
 
     patches' = do
-      lists      <- Map.lookup nt repo
-      mapPatches <- Map.lookup lid lists
+      lists      <- Map.lookup lid repo
+      mapPatches <- Map.lookup nt lists
       pure mapPatches
-
 
 
 addScorePatch :: FlowCont NgramsTerm FlowListScores

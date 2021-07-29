@@ -29,7 +29,6 @@ import Data.Pool (Pool, createPool)
 import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
 import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Admin.Types
-import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
 import Gargantext.Core.NodeStory
 import Gargantext.Database.Prelude (databaseParameters, HasConfig(..))
 import Gargantext.Prelude
@@ -110,6 +109,7 @@ repoSaverAction repoDir a = do
 
 
 
+{-
 -- The use of mkDebounce makes sure that repoSaverAction is not called too often.
 -- If repoSaverAction start taking more time than the debounceFreq then it should
 -- be increased.
@@ -158,6 +158,7 @@ readRepoEnv repoDir = do
   -- TODO save in DB here
   saver <- mkRepoSaver repoDir mvar
   pure $ RepoEnv { _renv_var = mvar, _renv_saver = saver, _renv_lock = lock }
+-}
 
 devJwkFile :: FilePath
 devJwkFile = "dev.jwk"
@@ -173,7 +174,7 @@ newEnv port file = do
   self_url_env  <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   dbParam       <- databaseParameters file
   pool          <- newPool dbParam
-  repo          <- readRepoEnv (_gc_repofilepath config_env)
+--  repo          <- readRepoEnv (_gc_repofilepath config_env)
   nodeStory_env <- readNodeStoryEnv (_gc_repofilepath config_env)
   scrapers_env  <- newJobEnv defaultSettings manager_env
   logger        <- newStderrLoggerSet defaultBufSize
@@ -182,7 +183,7 @@ newEnv port file = do
     { _env_settings  = settings'
     , _env_logger    = logger
     , _env_pool      = pool
-    , _env_repo      = repo
+--    , _env_repo      = repo
     , _env_nodeStory = nodeStory_env
     , _env_manager   = manager_env
     , _env_scrapers  = scrapers_env
@@ -193,9 +194,10 @@ newEnv port file = do
 newPool :: ConnectInfo -> IO (Pool Connection)
 newPool param = createPool (connect param) close 1 (60*60) 8
 
+{-
 cleanEnv :: (HasConfig env, HasRepo env) => env -> IO ()
 cleanEnv env = do
   r <- takeMVar (env ^. repoEnv . renv_var)
   repoSaverAction (env ^. hasConfig . gc_repofilepath) r
   unlockFile (env ^. repoEnv . renv_lock)
-
+-}

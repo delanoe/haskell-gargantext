@@ -24,22 +24,13 @@ import Data.Set (Set)
 import Data.Swagger (ToSchema, declareNamedSchema, genericDeclareNamedSchema)
 import Data.Text (Text, concat, pack)
 import GHC.Generics (Generic)
-import Network.HTTP.Media ((//), (/:))
-import Servant
-import Servant.Job.Async
-import Servant.Job.Utils (jsonOptions)
-import Web.FormUrlEncoded (FromForm)
-import qualified Data.HashMap.Strict as HashMap
-import qualified Data.List           as List
-import qualified Data.Map            as Map
-import qualified Data.Text           as Text
-
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams (getNgramsTableMap, setListNgrams)
 import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Node.Corpus.New.File (FileType(..))
 import Gargantext.API.Prelude (GargServer)
+import Gargantext.Core.NodeStory
 import Gargantext.Core.Text.Terms (ExtractedNgrams(..))
 import Gargantext.Core.Text.Terms.WithList (buildPatterns, termsInText)
 import Gargantext.Core.Types.Main (ListType(..))
@@ -54,6 +45,15 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Types (Indexed(..))
 import Gargantext.Prelude
+import Network.HTTP.Media ((//), (/:))
+import Servant
+import Servant.Job.Async
+import Servant.Job.Utils (jsonOptions)
+import Web.FormUrlEncoded (FromForm)
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.List           as List
+import qualified Data.Map            as Map
+import qualified Data.Text           as Text
 
 ------------------------------------------------------------------------
 -- | TODO refactor 
@@ -110,7 +110,7 @@ csvApi = csvPostAsync
 
 
 ------------------------------------------------------------------------
-get :: RepoCmdM env err m =>
+get :: HasNodeStory env err m =>
        ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
 get lId = do
   lst <- get' lId
@@ -121,7 +121,7 @@ get lId = do
                              ]
                      ) lst
 
-get' :: RepoCmdM env err m
+get' :: HasNodeStory env err m
     => ListId -> m NgramsList
 get' lId = fromList
        <$> zip ngramsTypes
@@ -153,8 +153,8 @@ csvPost l m  = do
 
 -----------------------------------------------------------------------------
 -- | Re-index documents of a corpus with new ngrams (called orphans here)
-reIndexWith :: ( HasRepo env
-               , FlowCmdM env err m
+reIndexWith :: ( HasNodeStory env err m
+               , FlowCmdM     env err m
                )
             => CorpusId
             -> ListId

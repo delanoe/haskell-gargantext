@@ -35,6 +35,7 @@ import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Admin.Types
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types
+import Gargantext.Core.NodeStory
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (NodeError(..), HasNodeError(..))
 import Gargantext.Database.Query.Tree
@@ -51,10 +52,10 @@ joseError = throwError . (_JoseError #)
 
 type EnvC env =
   ( HasConnectionPool env
-  , HasRepo           env  -- TODO rename HasNgramsRepo
   , HasSettings       env  -- TODO rename HasDbSettings
   , HasJobEnv         env JobLog JobLog
   , HasConfig         env
+  , HasNodeStoryEnv    env
   )
 
 type ErrC err =
@@ -69,6 +70,7 @@ type ErrC err =
 
 type GargServerC env err m =
   ( CmdRandom env err m
+  , HasNodeStory env err m
   , EnvC  env
   , ErrC      err
   , MimeRender JSON err
@@ -91,7 +93,7 @@ type GargNoServer t =
 
 type GargNoServer' env err m =
   ( CmdM           env err m
-  , HasRepo        env
+  , HasNodeStory   env err m
   , HasSettings    env
   , HasNodeError       err
   )

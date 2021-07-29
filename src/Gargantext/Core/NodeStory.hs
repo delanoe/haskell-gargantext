@@ -15,30 +15,32 @@ Portability : POSIX
 
 module Gargantext.Core.NodeStory where
 
-import System.IO (FilePath, hClose)
-import Data.Maybe (fromMaybe)
 import Codec.Serialise (Serialise(), serialise, deserialise)
-import Control.Monad.Reader
-import Control.Monad.Except
 import Control.Concurrent (MVar(), withMVar, newMVar)
+import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Control.Lens (makeLenses, Getter, (^.))
+import Control.Monad.Except
+import Control.Monad.Reader
 import Data.Aeson hiding ((.=))
-import qualified Data.List as List
-import Data.Map as Map
+import Data.Map.Strict (Map)
+import Data.Maybe (fromMaybe)
 import Data.Monoid
 import Data.Semigroup
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (NodeId)
 import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Prelude
-import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
-import qualified Data.Map.Strict.Patch.Internal as Patch
-import qualified Data.ByteString.Lazy as L
-import System.Directory (renameFile, createDirectoryIfMissing, doesFileExist)
-import System.IO.Temp (withTempFile)
-import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Gargantext.Database.Prelude (CmdM', HasConnectionPool, HasConfig)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
+import Gargantext.Prelude
+import System.Directory (renameFile, createDirectoryIfMissing, doesFileExist)
+import System.IO (FilePath, hClose)
+import System.IO.Temp (withTempFile)
+import qualified Data.ByteString.Lazy as L
+import qualified Data.List as List
+import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict.Patch.Internal as Patch
+import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 ------------------------------------------------------------------------
 data NodeStoryEnv = NodeStoryEnv
@@ -56,6 +58,7 @@ type HasNodeStory env err m = ( CmdM' env err m
                               , HasNodeStoryEnv env
                               , HasConfig env
                               , HasConnectionPool env
+                              , HasNodeError err
                               )
 
 class (HasNodeStoryVar env, HasNodeStorySaver env)

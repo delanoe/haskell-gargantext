@@ -30,10 +30,10 @@ import Gargantext.Core.Text.Metrics (Scored(..), {-normalizeGlobal,-} normalizeL
 import Gargantext.Core.Types (CorpusId, Limit, ListId, ListType(..))
 import Gargantext.Core.Viz.Chart
 import Gargantext.Core.Viz.Types
-import Gargantext.Database.Action.Flow
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataList(..), hl_chart, hl_pie, hl_scatter, hl_tree)
 import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..), Metric(..), Metrics(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node (defaultList, getNodeWith)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)

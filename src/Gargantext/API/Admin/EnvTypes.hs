@@ -16,7 +16,6 @@ import qualified Servant.Job.Core
 
 import Gargantext.API.Admin.Types
 import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Ngrams.Types (HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..))
 import Gargantext.Database.Prelude (HasConnectionPool(..), HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..))
@@ -26,7 +25,6 @@ data Env = Env
   { _env_settings  :: !Settings
   , _env_logger    :: !LoggerSet
   , _env_pool      :: !(Pool Connection)
-  , _env_repo      :: !RepoEnv
   , _env_nodeStory :: !NodeStoryEnv
   , _env_manager   :: !Manager
   , _env_self_url  :: !BaseUrl
@@ -43,6 +41,7 @@ instance HasConfig Env where
 instance HasConnectionPool Env where
   connPool = env_pool
 
+{- To be removed
 instance HasRepoVar Env where
   repoVar = repoEnv . repoVar
 
@@ -51,6 +50,13 @@ instance HasRepoSaver Env where
 
 instance HasRepo Env where
   repoEnv = env_repo
+-}
+
+-- TODONS
+instance HasNodeStorySaver Env
+instance HasNodeStoryEnv Env
+instance HasNodeStoryVar Env
+
 
 instance HasSettings Env where
   settings = env_settings
@@ -71,7 +77,7 @@ makeLenses ''MockEnv
 
 data DevEnv = DevEnv
   { _dev_env_pool     :: !(Pool Connection)
-  , _dev_env_repo     :: !RepoEnv
+  , _dev_env_nodeStory :: !NodeStoryEnv
   , _dev_env_settings :: !Settings
   , _dev_env_config   :: !GargConfig
   }
@@ -84,6 +90,10 @@ instance HasConfig DevEnv where
 instance HasConnectionPool DevEnv where
   connPool = dev_env_pool
 
+-- TODONS
+instance HasNodeStorySaver DevEnv
+
+{-
 instance HasRepoVar DevEnv where
   repoVar = repoEnv . repoVar
 
@@ -92,6 +102,7 @@ instance HasRepoSaver DevEnv where
 
 instance HasRepo DevEnv where
   repoEnv = dev_env_repo
+-}
 
 instance HasSettings DevEnv where
   settings = dev_env_settings

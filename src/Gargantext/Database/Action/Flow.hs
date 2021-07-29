@@ -24,8 +24,7 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell         #-}
 
 module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
-  ( FlowCmdM
-  , getDataText
+  ( getDataText
   , flowDataText
   , flow
 

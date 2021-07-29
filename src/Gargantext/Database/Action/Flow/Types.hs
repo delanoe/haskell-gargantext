@@ -25,6 +25,7 @@ import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (HasInvalidError)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
+import Gargantext.Core.NodeStory
 import Gargantext.Core.Text.Terms
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Prelude (CmdM)
@@ -33,10 +34,9 @@ import Gargantext.Database.Query.Tree.Error (HasTreeError)
 
 type FlowCmdM env err m =
   ( CmdM     env err m
-  , RepoCmdM env err m
+  , HasNodeStory env err m
   , HasNodeError err
   , HasInvalidError err
-  , HasRepoVar env
   , HasTreeError err
   )
 

@@ -18,6 +18,8 @@ New corpus means either:
 module Gargantext.API.Node.Corpus.New
       where
 
+-- import Servant.Multipart
+-- import Test.QuickCheck (elements)
 import Control.Lens hiding (elements, Empty)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
@@ -25,36 +27,33 @@ import Data.Either
 import Data.Maybe (fromMaybe)
 import Data.Swagger
 import Data.Text (Text)
-import qualified Data.Text as T
 import GHC.Generics (Generic)
-import Servant
-import Servant.Job.Utils (jsonOptions)
--- import Servant.Multipart
--- import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary
-
-import Gargantext.Prelude
-
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
-import qualified Gargantext.API.Admin.Orchestrator.Types as T
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node.Corpus.New.File
 import Gargantext.API.Node.Types
 import Gargantext.Core (Lang(..){-, allLangs-})
-import Gargantext.Database.Action.Mail (sendMail)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..){-, allDataOrigins-})
-import Gargantext.Database.Action.User (getUserId)
+import Gargantext.Database.Action.Flow (flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..){-, allDataOrigins-})
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)
+import Gargantext.Database.Action.Mail (sendMail)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
+import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node (CorpusId, NodeType(..), UserId)
 import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
-import qualified Gargantext.Database.GargDB as GargDB
+import Gargantext.Prelude
+import Servant
+import Servant.Job.Utils (jsonOptions)
+import Test.QuickCheck.Arbitrary
+import qualified Data.Text as T
+import qualified Gargantext.API.Admin.Orchestrator.Types as T
 import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
+import qualified Gargantext.Database.GargDB as GargDB
 
 ------------------------------------------------------------------------
 {-

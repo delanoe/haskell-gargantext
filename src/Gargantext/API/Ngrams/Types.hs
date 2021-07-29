@@ -719,6 +719,7 @@ data RepoEnv = RepoEnv
 
 makeLenses ''RepoEnv
 
+{-
 type RepoCmdM   env err m =
   ( CmdM'             env err m
   , HasRepo           env
@@ -743,7 +744,7 @@ instance HasRepoVar RepoEnv where
   repoVar = renv_var
 instance HasRepoSaver RepoEnv where
   repoSaver = renv_saver
-
+-}
 
 ------------------------------------------------------------------------
 

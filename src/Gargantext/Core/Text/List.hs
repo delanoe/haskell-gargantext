@@ -23,7 +23,8 @@ import Data.Monoid (mempty)
 import Data.Ord (Down(..))
 import Data.Set (Set)
 import Data.Tuple.Extra (both)
-import Gargantext.API.Ngrams.Types (NgramsElement, RepoCmdM, NgramsTerm(..))
+import Gargantext.API.Ngrams.Types (NgramsElement, NgramsTerm(..))
+import Gargantext.Core.NodeStory
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Text.List.Group
 import Gargantext.Core.Text.List.Group.Prelude
@@ -38,18 +39,18 @@ import Gargantext.Database.Action.Metrics.TFICF (getTficf)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Prelude (CmdM)
 import Gargantext.Database.Query.Table.Ngrams (text2ngrams)
-import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.NgramsPostag (selectLems)
+import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Database.Query.Tree.Error (HasTreeError)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..), Ngrams(..))
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HashMap
+import qualified Data.HashSet as HashSet
 import qualified Data.List    as List
 import qualified Data.Map     as Map
 import qualified Data.Set     as Set
 import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
-import qualified Data.HashSet as HashSet
 
 {-
 -- TODO maybe useful for later
@@ -61,7 +62,7 @@ isStopTerm (StopSize n) x = Text.length x < n || any isStopChar (Text.unpack x)
 
 
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
-buildNgramsLists :: ( RepoCmdM env err m
+buildNgramsLists :: ( HasNodeStory env err m
                     , CmdM     env err m
                     , HasTreeError err
                     , HasNodeError err
@@ -86,7 +87,7 @@ data MapListSize = MapListSize { unMapListSize :: !Int }
 
 buildNgramsOthersList ::( HasNodeError err
                         , CmdM     env err m
-                        , RepoCmdM env err m
+                        , HasNodeStory env err m
                         , HasTreeError err
                         )
                         => User
@@ -128,7 +129,7 @@ buildNgramsOthersList user uCid _groupParams (nt, MapListSize mapListSize) = do
 
 getGroupParams :: ( HasNodeError err
                   , CmdM     env err m
-                  , RepoCmdM env err m
+                  , HasNodeStory env err m
                   , HasTreeError err
                   )
                => GroupParams -> HashSet Ngrams -> m GroupParams
@@ -142,7 +143,7 @@ getGroupParams gp _ = pure gp
 -- TODO use ListIds
 buildNgramsTermsList :: ( HasNodeError err
                         , CmdM     env err m
-                        , RepoCmdM env err m
+                        , HasNodeStory env err m
                         , HasTreeError err
                         )
                         => User

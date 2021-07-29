@@ -15,10 +15,11 @@ module Gargantext.Database.Action.Metrics
 
 import Data.HashMap.Strict (HashMap)
 import Data.Vector (Vector)
-import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo)
+import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo')
 import Gargantext.API.Ngrams.Types (TabType(..), ngramsTypeFromTabType, NgramsTerm)
 import Gargantext.Core.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
 import Gargantext.Core.Types (ListType(..), Limit, NodeType(..))
+import Gargantext.Core.NodeStory
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser{-, getTficfWith-})
 import Gargantext.Database.Admin.Config (userMaster)
@@ -61,7 +62,7 @@ getNgramsCooc cId maybeListId tabType maybeLimit = do
 
 
 
-getNgrams :: (FlowCmdM env err m)
+getNgrams :: (HasNodeStory env err m)
             => CorpusId -> Maybe ListId -> TabType
             -> m ( HashMap NgramsTerm (ListType, Maybe NgramsTerm)
                  , HashMap NgramsTerm (Maybe RootTerm)
@@ -72,8 +73,11 @@ getNgrams cId maybeListId tabType = do
     Nothing   -> defaultList cId
     Just lId' -> pure lId'
 
-  lists <- mapTermListRoot [lId] (ngramsTypeFromTabType tabType) <$> getRepo
+  lists <- mapTermListRoot [lId] (ngramsTypeFromTabType tabType) <$> getRepo' [lId]
   let maybeSyn = HM.unions $ map (\t -> filterListWithRoot t lists)
                              [MapTerm, StopTerm, CandidateTerm]
   pure (lists, maybeSyn)
+
+
+
 

@@ -29,6 +29,7 @@ import Gargantext.Core.Text.Terms.WithList
 import Gargantext.Database.Query.Table.Node(defaultList)
 import Gargantext.Prelude
 import Gargantext.Database.Action.Flow
+import Gargantext.Database.Action.Flow.Types
 import Gargantext.Core.Viz.LegacyPhylo hiding (Svg, Dot)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))

@@ -18,15 +18,18 @@ module Gargantext.Database.Action.Flow.List
     where
 
 import Control.Concurrent
-import Control.Lens (view, (^.), (+~), (%~), at)
+import Control.Lens (view, (^.), (+~), (%~), at, (.~), _Just)
 import Control.Monad.Reader
 import Data.Map (Map, toList)
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
-import Gargantext.API.Ngrams.Types (HasRepoSaver(..), NgramsElement(..), NgramsPatch(..), NgramsRepoElement(..), NgramsTablePatch(..), NgramsTerm(..), RepoCmdM, ne_ngrams, ngramsElementToRepo, r_history, r_state, r_version, repoVar)
+import Gargantext.API.Ngrams (saveRepo)
+import Gargantext.API.Ngrams.Tools (getRepoVar)
+import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (HasInvalidError(..), assertValid)
 import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Core.Utils (something)
+import Gargantext.Core.NodeStory
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
@@ -143,7 +146,7 @@ listInsert lId ngs = mapM_ (\(typeList, ngElmts)
 -- This function is maintained for its usage in Database.Action.Flow.List.
 -- If the given list of ngrams elements contains ngrams already in
 -- the repo, they will be ignored.
-putListNgrams :: (HasInvalidError err, RepoCmdM env err m)
+putListNgrams :: (HasInvalidError err, HasNodeStory env err m)
               => NodeId
               -> TableNgrams.NgramsType
               -> [NgramsElement]
@@ -153,20 +156,18 @@ putListNgrams nodeId ngramsType nes = putListNgrams' nodeId ngramsType m
   where
     m = Map.fromList $ map (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) nes
 
-putListNgrams' :: (HasInvalidError err, RepoCmdM env err m)
+putListNgrams' :: (HasInvalidError err, HasNodeStory env err m)
                => NodeId
                -> TableNgrams.NgramsType
                -> Map NgramsTerm NgramsRepoElement
                -> m ()
-putListNgrams' nodeId ngramsType ns = do
+putListNgrams' listId ngramsType ns = do
   -- printDebug "[putListNgrams'] nodeId" nodeId
   -- printDebug "[putListNgrams'] ngramsType" ngramsType
   -- printDebug "[putListNgrams'] ns" ns
 
   let p1 = NgramsTablePatch . PM.fromMap $ NgramsReplace Nothing . Just <$> ns
-      (p0, p0_validity) = PM.singleton nodeId p1
-      (p, p_validity) = PM.singleton ngramsType p0
-  assertValid p0_validity
+      (p, p_validity) = PM.singleton ngramsType p1
   assertValid p_validity
   {-
   -- TODO
@@ -178,23 +179,11 @@ putListNgrams' nodeId ngramsType ns = do
   -- The modifyMVar_ would test the patch with applicable first.
   -- If valid the rest would be atomic and no merge is required.
   -}
-  var <- view repoVar
+  var <- getRepoVar listId
   liftBase $ modifyMVar_ var $ \r -> do
-    pure $ r & r_version +~ 1
-             & r_history %~ (p :)
-             & r_state . at ngramsType %~
-               (Just .
-                 (at nodeId %~
-                   ( Just
-                   . (<> ns)
-                   . something
-                   )
-                 )
-                 . something
-               )
+    pure $ r & unNodeStory . at listId . _Just . a_version +~ 1
+             & unNodeStory . at listId . _Just . a_history %~ (p :)
+             & unNodeStory . at listId . _Just . a_state . at ngramsType .~ Just ns
   saveRepo
 
 
-saveRepo :: ( MonadReader env m, MonadBase IO m, HasRepoSaver env )
-         => m ()
-saveRepo = liftBase =<< view repoSaver
