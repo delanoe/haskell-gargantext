@@ -102,6 +102,3 @@ triggerSearxSearch cid q l = do
   printDebug "[triggerSearxSearch] res" res
 
   pure ()
-
-
-
