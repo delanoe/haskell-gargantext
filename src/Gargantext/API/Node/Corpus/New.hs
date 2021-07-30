@@ -237,7 +237,6 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> (JobLog -> m ())
                     -> m JobLog
 addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
-
   printDebug "[addToCorpusWithForm] Parsing corpus: " cid
   printDebug "[addToCorpusWithForm] fileType" ft
   logStatus JobLog { _scst_succeeded = Just 0
