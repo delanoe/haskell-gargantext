@@ -262,6 +262,7 @@ setListNgrams listId ngramsType ns = do
                . something
              )
            )
+  printDebug "List modified" NodeList
   saveRepo
 
 
