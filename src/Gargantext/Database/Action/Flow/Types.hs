@@ -21,7 +21,6 @@ module Gargantext.Database.Action.Flow.Types
 
 import Data.Aeson (ToJSON)
 
-import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (HasInvalidError)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text

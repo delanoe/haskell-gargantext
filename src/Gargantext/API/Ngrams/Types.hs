@@ -12,7 +12,7 @@ module Gargantext.API.Ngrams.Types where
 import Codec.Serialise (Serialise())
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~))
+import Control.Lens (makeLenses, makePrisms, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~))
 import Control.Monad.State
 import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
@@ -33,7 +33,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..), ListId, NodeId, TODO)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
-import Gargantext.Database.Prelude (fromField', CmdM', HasConnectionPool, HasConfig)
+import Gargantext.Database.Prelude (fromField')
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (IsHashable(..))
 import Protolude (maybeToEither)

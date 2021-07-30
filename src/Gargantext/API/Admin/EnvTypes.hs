@@ -41,25 +41,20 @@ instance HasConfig Env where
 instance HasConnectionPool Env where
   connPool = env_pool
 
-{- To be removed
-instance HasRepoVar Env where
-  repoVar = repoEnv . repoVar
+instance HasNodeStoryEnv Env where
+  hasNodeStory = env_nodeStory
 
-instance HasRepoSaver Env where
-  repoSaver = repoEnv . repoSaver
+instance HasNodeStoryVar Env where
+  hasNodeStoryVar = hasNodeStory . nse_getter
 
-instance HasRepo Env where
-  repoEnv = env_repo
--}
-
--- TODONS
-instance HasNodeStorySaver Env
-instance HasNodeStoryEnv Env
-instance HasNodeStoryVar Env
-
+instance HasNodeStorySaver Env where
+  hasNodeStorySaver = hasNodeStory . nse_saver
 
 instance HasSettings Env where
   settings = env_settings
+
+
+
 
 instance Servant.Job.Core.HasEnv Env (Job JobLog JobLog) where
   _env = env_scrapers . Servant.Job.Core._env
@@ -75,11 +70,13 @@ data MockEnv = MockEnv
 makeLenses ''MockEnv
 
 
+
+
 data DevEnv = DevEnv
-  { _dev_env_pool     :: !(Pool Connection)
+  { _dev_env_settings  :: !Settings
+  , _dev_env_config    :: !GargConfig
+  , _dev_env_pool      :: !(Pool Connection)
   , _dev_env_nodeStory :: !NodeStoryEnv
-  , _dev_env_settings :: !Settings
-  , _dev_env_config   :: !GargConfig
   }
 
 makeLenses ''DevEnv
@@ -90,19 +87,17 @@ instance HasConfig DevEnv where
 instance HasConnectionPool DevEnv where
   connPool = dev_env_pool
 
--- TODONS
-instance HasNodeStorySaver DevEnv
-
-{-
-instance HasRepoVar DevEnv where
-  repoVar = repoEnv . repoVar
-
-instance HasRepoSaver DevEnv where
-  repoSaver = repoEnv . repoSaver
-
-instance HasRepo DevEnv where
-  repoEnv = dev_env_repo
--}
-
 instance HasSettings DevEnv where
   settings = dev_env_settings
+
+
+
+instance HasNodeStoryEnv DevEnv where
+  hasNodeStory = dev_env_nodeStory
+
+instance HasNodeStoryVar DevEnv where
+  hasNodeStoryVar = hasNodeStory . nse_getter
+
+instance HasNodeStorySaver DevEnv where
+  hasNodeStorySaver = hasNodeStory . nse_saver
+

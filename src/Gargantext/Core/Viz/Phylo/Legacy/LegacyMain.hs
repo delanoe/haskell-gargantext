@@ -28,14 +28,13 @@ import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Terms.WithList
 import Gargantext.Database.Query.Table.Node(defaultList)
 import Gargantext.Prelude
-import Gargantext.Database.Action.Flow
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Core.Viz.LegacyPhylo hiding (Svg, Dot)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Query.Table.NodeNode (selectDocs)
 import Gargantext.Core.Types
-
+import Gargantext.Core (HasDBid)
 
 -- import Gargantext.Core.Viz.Phylo.LevelMaker (toPhylo)
 -- import Gargantext.Core.Viz.Phylo.Tools
@@ -47,7 +46,7 @@ import qualified Data.Text           as Text
 
 type MinSizeBranch = Int
 
-flowPhylo :: FlowCmdM env err m
+flowPhylo :: (FlowCmdM env err m, HasDBid NodeType)
           => CorpusId
           -> m Phylo
 flowPhylo cId = do

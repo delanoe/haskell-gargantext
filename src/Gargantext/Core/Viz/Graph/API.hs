@@ -16,7 +16,7 @@ Portability : POSIX
 module Gargantext.Core.Viz.Graph.API
   where
 
-import Control.Lens (set, (^.), _Just, (^?), at, view)
+import Control.Lens (set, (^.), _Just, (^?), at)
 import Data.Aeson
 import Data.Maybe (fromMaybe)
 import Data.Swagger
@@ -25,7 +25,6 @@ import Debug.Trace (trace)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams.Tools
-import Gargantext.API.Ngrams.Types (NgramsRepo, r_version)
 import Gargantext.API.Prelude
 import Gargantext.Core.Methods.Distances (Distance(..), GraphMetric(..), withMetric)
 import Gargantext.Core.NodeStory
@@ -43,15 +42,13 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.Node.User (getNodeUser)
+import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.Node (node_parent_id, node_hyperdata, node_name, node_user_id)
 import Gargantext.Prelude
 import Servant
 import Servant.Job.Async
 import Servant.XML
-import qualified Gargantext.Database.Schema.Node as Node
 import qualified Data.HashMap.Strict as HashMap
-import qualified Data.List           as List
 
 ------------------------------------------------------------------------
 -- | There is no Delete specific API for Graph since it can be deleted

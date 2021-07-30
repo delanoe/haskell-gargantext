@@ -18,7 +18,7 @@ module Gargantext.Database.Action.Flow.List
     where
 
 import Control.Concurrent
-import Control.Lens (view, (^.), (+~), (%~), at, (.~), _Just)
+import Control.Lens ((^.), (+~), (%~), at, (.~), _Just)
 import Control.Monad.Reader
 import Data.Map (Map, toList)
 import Data.Maybe (catMaybes)
@@ -28,7 +28,6 @@ import Gargantext.API.Ngrams.Tools (getRepoVar)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (HasInvalidError(..), assertValid)
 import Gargantext.Core.Types.Main (ListType(CandidateTerm))
-import Gargantext.Core.Utils (something)
 import Gargantext.Core.NodeStory
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Admin.Types.Node

@@ -55,6 +55,7 @@ library:
   - Gargantext.Core.Types.Main
   - Gargantext.Core.Utils.Prefix
   - Gargantext.Database.Action.Flow
+  - Gargantext.Database.Action.Flow.Types
   - Gargantext.Database.Action.User.New
   - Gargantext.Database.Query.Table.User
   - Gargantext.Database.Query.Table.Node

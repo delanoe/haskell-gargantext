@@ -18,9 +18,9 @@ TODO-SECURITY: Critical
 module Gargantext.API.Admin.Settings
     where
 
-import Codec.Serialise (Serialise(), serialise, deserialise)
-import Control.Concurrent
-import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
+import Codec.Serialise (Serialise(), serialise{-, deserialise-})
+-- import Control.Concurrent
+-- import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Control.Lens
 import Control.Monad.Logger
 import Control.Monad.Reader
@@ -30,15 +30,15 @@ import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
 import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Admin.Types
 import Gargantext.Core.NodeStory
-import Gargantext.Database.Prelude (databaseParameters, HasConfig(..))
+import Gargantext.Database.Prelude (databaseParameters)
 import Gargantext.Prelude
-import Gargantext.Prelude.Config (GargConfig(..), gc_repofilepath, readConfig)
+import Gargantext.Prelude.Config (GargConfig(..), {-gc_repofilepath,-} readConfig)
 import Network.HTTP.Client.TLS (newTlsManager)
 import Servant.Auth.Server (defaultJWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
 import Servant.Client (parseBaseUrl)
 import Servant.Job.Async (newJobEnv, defaultSettings)
 import System.Directory
-import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
+-- import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
 import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
 import System.Log.FastLogger

@@ -33,9 +33,8 @@ import Data.Typeable
 import Data.Validity
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Admin.Types
-import Gargantext.API.Ngrams.Types
-import Gargantext.Core.Types
 import Gargantext.Core.NodeStory
+import Gargantext.Core.Types
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (NodeError(..), HasNodeError(..))
 import Gargantext.Database.Query.Tree

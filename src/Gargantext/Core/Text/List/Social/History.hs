@@ -22,7 +22,6 @@ import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.List           as List
 import qualified Data.Map.Strict     as Map
-import qualified Data.HashMap.Strict as HasMap
 
 -- TODO put this in Prelude
 cons :: a -> [a]
@@ -69,6 +68,5 @@ history' types lists = (Map.map (Map.unionsWith (<>)))
           -> Map NgramsType [HashMap NgramsTerm NgramsPatch]
     toMap m = Map.map (cons . unNgramsTablePatch)
             $ unPatchMapToMap m
-
 
 

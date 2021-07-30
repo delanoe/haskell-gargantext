@@ -49,7 +49,7 @@ withDevEnv iniPath k = do
         }
 
 -- | Run Cmd Sugar for the Repl (GHCI)
-runCmdRepl :: (Show err, HasNodeStorySaver DevEnv) => Cmd'' DevEnv err a -> IO a
+runCmdRepl :: Show err => Cmd'' DevEnv err a -> IO a
 runCmdRepl f = withDevEnv "gargantext.ini" $ \env -> runCmdDev env f
 
 runCmdReplServantErr :: Cmd'' DevEnv ServerError a -> IO a
@@ -59,17 +59,17 @@ runCmdReplServantErr = runCmdRepl
 -- the command.
 -- This function is constrained to the DevEnv rather than
 -- using HasConnectionPool and HasRepoVar.
-runCmdDev :: (Show err, HasNodeStorySaver DevEnv) => DevEnv -> Cmd'' DevEnv err a -> IO a
+runCmdDev :: (Show err) => DevEnv -> Cmd'' DevEnv err a -> IO a
 runCmdDev env f =
   (either (fail . show) pure =<< runCmd env f)
     `finally`
   runReaderT saveRepo env
 
-runCmdDevNoErr :: (HasNodeStorySaver DevEnv) => DevEnv -> Cmd' DevEnv () a -> IO a
+runCmdDevNoErr :: DevEnv -> Cmd' DevEnv () a -> IO a
 runCmdDevNoErr = runCmdDev
 
-runCmdDevServantErr :: (HasNodeStorySaver DevEnv) => DevEnv -> Cmd' DevEnv ServerError a -> IO a
+runCmdDevServantErr :: DevEnv -> Cmd' DevEnv ServerError a -> IO a
 runCmdDevServantErr = runCmdDev
 
-runCmdReplEasy :: (HasNodeStorySaver DevEnv) => Cmd'' DevEnv GargError a -> IO a
+runCmdReplEasy :: Cmd'' DevEnv GargError a -> IO a
 runCmdReplEasy f = withDevEnv "gargantext.ini" $ \env -> runCmdDev env f

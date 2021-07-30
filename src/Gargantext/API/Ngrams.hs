@@ -104,7 +104,6 @@ import Gargantext.API.Prelude
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid, HasInvalidError)
 import Gargantext.API.Ngrams.Tools
-import Gargantext.Core.Utils (something)
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Config (userMaster)

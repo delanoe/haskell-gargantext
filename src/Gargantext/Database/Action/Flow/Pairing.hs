@@ -16,7 +16,7 @@ module Gargantext.Database.Action.Flow.Pairing
   -- (pairing)
     where
 
-import Control.Lens (_Just, (^.), view)
+import Control.Lens (_Just, (^.))
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import Data.Maybe (catMaybes, fromMaybe)
