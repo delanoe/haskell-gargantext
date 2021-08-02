@@ -19,6 +19,11 @@ module Gargantext.API.Node.Corpus.Export
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
+import qualified Data.List as List
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import qualified Data.HashMap.Strict as HashMap
+
 import Gargantext.API.Node.Corpus.Export.Types
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo)
@@ -36,10 +41,6 @@ import Gargantext.Database.Query.Table.NodeNode (selectDocNodes)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Schema.Node (_node_id, _node_hyperdata)
 import Gargantext.Prelude
-import qualified Data.List as List
-import qualified Data.Map as Map
-import qualified Data.Set as Set
-import qualified Data.HashMap.Strict as HashMap
 
 --------------------------------------------------
 -- | Hashes are ordered by Set

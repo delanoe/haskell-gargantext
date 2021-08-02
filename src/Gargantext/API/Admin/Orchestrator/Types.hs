@@ -101,6 +101,8 @@ data JobLog = JobLog
   }
   deriving (Show, Generic)
 
+makeLenses ''JobLog
+
 instance Arbitrary JobLog where
   arbitrary = JobLog
            <$> arbitrary
@@ -128,6 +130,18 @@ instance ToParamSchema Limit -- where
 type ScrapersEnv = JobEnv JobLog JobLog
 
 type ScraperAPI  = AsyncJobsAPI JobLog ScraperInput  JobLog
+
+jobLogInit :: Int -> JobLog
+jobLogInit n = JobLog { _scst_succeeded = Just n
+                      , _scst_failed    = Just 0
+                      , _scst_remaining = Just 0
+                      , _scst_events    = Just [] }
+
+jobLogSucc :: JobLog -> JobLog
+jobLogSucc jl = over (scst_succeeded . _Just) (+ 1) $ over (scst_remaining . _Just) (\c -> c - 1) jl
+
+jobLogErr :: JobLog -> JobLog
+jobLogErr jl = over (scst_failed . _Just) (+ 1) $ over (scst_remaining . _Just) (\c -> c - 1) jl
 
 ------------------------------------------------------------------------
 type AsyncJobs event ctI input output =

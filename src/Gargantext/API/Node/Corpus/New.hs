@@ -35,7 +35,7 @@ import Test.QuickCheck.Arbitrary
 
 import Gargantext.Prelude
 
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs, jobLogSucc)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node.Corpus.New.File
 import Gargantext.API.Node.Corpus.Searx
@@ -234,15 +234,12 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> CorpusId
                     -> NewWithForm
                     -> (JobLog -> m ())
+                    -> JobLog
                     -> m JobLog
-addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
+addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
   printDebug "[addToCorpusWithForm] Parsing corpus: " cid
   printDebug "[addToCorpusWithForm] fileType" ft
-  logStatus JobLog { _scst_succeeded = Just 0
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 2
-                   , _scst_events    = Just []
-                   }
+  logStatus jobLog
   let
     parse = case ft of
       CSV_HAL   -> Parser.parseFormat Parser.CsvHal
@@ -256,12 +253,7 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
       <$> parse (cs d)
 
   printDebug "Parsing corpus finished : " cid
-  logStatus JobLog { _scst_succeeded = Just 1
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 1
-                   , _scst_events    = Just []
-                   }
-
+  logStatus jobLog2
 
   printDebug "Starting extraction     : " cid
   -- TODO granularity of the logStatus
@@ -274,11 +266,10 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
   printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
   sendMail user
 
-  pure      JobLog { _scst_succeeded = Just 2
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 0
-                   , _scst_events    = Just []
-                   }
+  pure jobLog3
+    where
+      jobLog2 = jobLogSucc jobLog
+      jobLog3 = jobLogSucc jobLog2
 
 {-
 addToCorpusWithFile :: FlowCmdM env err m

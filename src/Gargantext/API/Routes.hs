@@ -27,9 +27,23 @@ import Control.Concurrent (threadDelay)
 import Control.Lens (view)
 import Data.Text (Text)
 import Data.Validity
+import Servant
+import Servant.Auth as SA
+import Servant.Auth.Swagger ()
+import Servant.Job.Async
+import Servant.Swagger.UI
+
+import qualified Gargantext.API.Ngrams.List              as List
+import qualified Gargantext.API.Node.Contact             as Contact
+import qualified Gargantext.API.Node.Corpus.Annuaire     as Annuaire
+import qualified Gargantext.API.Node.Corpus.Export       as Export
+import qualified Gargantext.API.Node.Corpus.Export.Types as Export
+import qualified Gargantext.API.Node.Corpus.New          as New
+import qualified Gargantext.API.Public                   as Public
 import Gargantext.API.Admin.Auth.Types (AuthRequest, AuthResponse, AuthenticatedUser(..), PathId(..))
 import Gargantext.API.Admin.Auth (withAccess)
 import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
+import Gargantext.API.Admin.Orchestrator.Types (jobLogInit)
 import Gargantext.API.Count  (CountAPI, count, Query)
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
@@ -41,18 +55,7 @@ import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (gc_max_docs_scrapers)
-import Servant
-import Servant.Auth as SA
-import Servant.Auth.Swagger ()
-import Servant.Job.Async
-import Servant.Swagger.UI
-import qualified Gargantext.API.Ngrams.List              as List
-import qualified Gargantext.API.Node.Contact             as Contact
-import qualified Gargantext.API.Node.Corpus.Annuaire     as Annuaire
-import qualified Gargantext.API.Node.Corpus.Export       as Export
-import qualified Gargantext.API.Node.Corpus.Export.Types as Export
-import qualified Gargantext.API.Node.Corpus.New          as New
-import qualified Gargantext.API.Public                   as Public
+
 
 type GargAPI = "api" :> Summary "API " :> GargAPIVersion
 -- | TODO          :<|> Summary "Latest API" :> GargAPI'
@@ -284,7 +287,7 @@ addCorpusWithForm user cid =
         log'' x = do
           printDebug "addToCorpusWithForm" x
           liftBase $ log' x
-      in New.addToCorpusWithForm user cid i log'')
+      in New.addToCorpusWithForm user cid i log'' (jobLogInit 3))
 
 addCorpusWithFile :: User -> GargServer New.AddWithFile
 addCorpusWithFile user cid =

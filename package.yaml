@@ -224,6 +224,7 @@ library:
   - transformers
   - transformers-base
   - unordered-containers
+  - utf8-string
   - uuid
   - validity
   - vector
