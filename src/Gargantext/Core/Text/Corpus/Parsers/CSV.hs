@@ -85,7 +85,7 @@ toDoc (CsvGargV3 did dt _ dpy dpm dpd dab dau) =
 -- | Types Conversions
 toDocs :: Vector CsvDoc -> [CsvGargV3]
 toDocs v = V.toList
-         $ V.zipWith (\nId (CsvDoc t s py pm pd abst auth)
+         $ V.zipWith (\nId (CsvDoc t s (IntOrDec py) pm pd abst auth)
                        -> CsvGargV3 nId t s py pm pd abst auth )
                        (V.enumFromN 1 (V.length v'')) v''
           where
@@ -96,7 +96,7 @@ toDocs v = V.toList
 fromDocs :: Vector CsvGargV3 -> Vector CsvDoc
 fromDocs docs = V.map fromDocs' docs
   where
-    fromDocs' (CsvGargV3 _ t s py pm pd abst auth) = (CsvDoc t s py pm pd abst auth)
+    fromDocs' (CsvGargV3 _ t s py pm pd abst auth) = (CsvDoc t s (IntOrDec py) pm pd abst auth)
 
 ---------------------------------------------------------------
 -- | Split a document in its context
@@ -139,10 +139,21 @@ docsSize csvDoc = mean ls
 
 
 ---------------------------------------------------------------
+newtype IntOrDec = IntOrDec Int
+  deriving (Show, Eq, Read)
+unIntOrDec :: IntOrDec -> Int
+unIntOrDec (IntOrDec i) = i
+instance FromField IntOrDec where
+  parseField s = case runParser (parseField s :: Parser Int) of
+    Left _err -> IntOrDec <$> Prelude.floor <$> (parseField s :: Parser Double)
+    Right n   -> pure $ IntOrDec n
+instance ToField IntOrDec where
+  toField (IntOrDec i) = toField i
+
 data CsvDoc = CsvDoc
     { csv_title  :: !Text
     , csv_source :: !Text
-    , csv_publication_year  :: !Int
+    , csv_publication_year  :: !IntOrDec
     , csv_publication_month :: !Int
     , csv_publication_day   :: !Int
     , csv_abstract          :: !Text
@@ -151,13 +162,13 @@ data CsvDoc = CsvDoc
     deriving (Show)
 
 instance FromNamedRecord CsvDoc where
-  parseNamedRecord r = CsvDoc <$> r .: "title"
-                              <*> r .: "source"
-                              <*> r .: "publication_year"
-                              <*> r .: "publication_month"
-                              <*> r .: "publication_day"
-                              <*> r .: "abstract"
-                              <*> r .: "authors"
+  parseNamedRecord r = CsvDoc <$> (r .: "title" <|> r .: "Title")
+                              <*> (r .: "source" <|> r .: "Source")
+                              <*> (r .: "publication_year" <|> r .: "Publication Year")
+                              <*> (r .: "publication_month" <|> r .: "Publication Month")
+                              <*> (r .: "publication_day" <|> r .: "Publication Day")
+                              <*> (r .: "abstract" <|> r .: "Abstract")
+                              <*> (r .: "authors" <|> r .: "Authors")
 
 instance ToNamedRecord CsvDoc where
   toNamedRecord (CsvDoc t s py pm pd abst aut) =
@@ -173,7 +184,7 @@ instance ToNamedRecord CsvDoc where
 hyperdataDocument2csvDoc :: HyperdataDocument -> CsvDoc
 hyperdataDocument2csvDoc h = CsvDoc (m  $ _hd_title h)
                                     (m  $ _hd_source h)
-                                    (mI $ _hd_publication_year h)
+                                    (IntOrDec $ mI $ _hd_publication_year h)
                                     (mI $ _hd_publication_month h)
                                     (mI $ _hd_publication_day   h)
                                     (m  $ _hd_abstract h)
@@ -357,7 +368,7 @@ csvHal2doc (CsvHal title source
 
 csv2doc :: CsvDoc -> HyperdataDocument
 csv2doc (CsvDoc title source
-       pub_year pub_month pub_day
+       (IntOrDec pub_year) pub_month pub_day
        abstract authors ) = HyperdataDocument (Just "CsvHal")
                                Nothing
                                Nothing

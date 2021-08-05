@@ -32,7 +32,6 @@ import Data.Time.Calendar (fromGregorian, diffGregorianDurationClip, cdMonths, d
 import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.Vector as Vector
-import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv
 import qualified Data.Text as T
 
 import Gargantext.Prelude
@@ -40,6 +39,7 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year, csv_publication_month, csv_publication_day,
   csv'_source, csv'_title, csv'_abstract, csv'_publication_year, csv'_publication_month, csv'_publication_day, csv'_weight)
+import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv
 import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)
 import Gargantext.Core.Text.List.Formats.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
@@ -152,8 +152,8 @@ csvToDocs parser patterns time path =
         Right r ->
           pure $ Vector.toList
             $ Vector.take limit
-            $ Vector.map (\row -> Document (toPhyloDate  (csv_publication_year row) (csv_publication_month row) (csv_publication_day row) time)
-                                           (toPhyloDate' (csv_publication_year row) (csv_publication_month row) (csv_publication_day row))
+            $ Vector.map (\row -> Document (toPhyloDate  (Csv.unIntOrDec $ csv_publication_year row) (csv_publication_month row) (csv_publication_day row) time)
+                                           (toPhyloDate' (Csv.unIntOrDec $ csv_publication_year row) (csv_publication_month row) (csv_publication_day row))
                                            (termsInText patterns $ (csv_title row) <> " " <> (csv_abstract row))
                                            Nothing
                                            []
