@@ -17,7 +17,8 @@ import Servant
 import Servant.Job.Async
 import Web.FormUrlEncoded (FromForm)
 
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs, jobLogInit, jobLogSucc, jobLogErr)
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
+import Gargantext.API.Job (jobLogInit, jobLogSuccess, jobLogFail)
 import Gargantext.API.Node.Corpus.New (addToCorpusWithForm)
 import Gargantext.API.Node.Corpus.New.File (FileType(..))
 import Gargantext.API.Node.Types (NewWithForm(..))
@@ -82,8 +83,8 @@ frameCalcUploadAsync uId nId _f logStatus jobLog = do
   -- printDebug "[frameCalcUploadAsync] mCId" mCId
 
   jobLog2 <- case mCId of
-    Nothing -> pure $ jobLogErr jobLog
+    Nothing -> pure $ jobLogFail jobLog
     Just cId ->
       addToCorpusWithForm (RootId (NodeId uId)) cId (NewWithForm CSV body Nothing "calc-upload.csv") logStatus jobLog
 
-  pure $ jobLogSucc jobLog2
+  pure $ jobLogSuccess jobLog2

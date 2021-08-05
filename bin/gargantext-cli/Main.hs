@@ -17,30 +17,24 @@ Main specifications to index a corpus with a term list
 
 module Main where
 
-import Data.ByteString.Lazy (writeFile)
-
-import Data.Text (pack)
-import qualified Data.Text as DT
-
-import Data.Tuple.Extra (both)
-import qualified Data.Vector as DV
-
-import Control.Monad (zipWithM)
-import Control.Monad.IO.Class
-
-import Data.Map (Map)
-import qualified Data.Map    as DM
-
-import GHC.Generics
-import Data.Aeson
-
-import Data.Text (Text)
-import Data.List (cycle, concat, unwords)
-import Data.List.Split (chunksOf)
-import System.IO (hPutStr, hFlush, stderr)
-import System.Environment
 import Control.Concurrent.Async as CCA (mapConcurrently)
 import Control.Concurrent (getNumCapabilities, myThreadId, threadCapability)
+import Control.Monad (zipWithM)
+import Control.Monad.IO.Class
+import Data.Aeson
+import Data.ByteString.Lazy (writeFile)
+import Data.Either (Either(..))
+import Data.List (cycle, concat, unwords)
+import Data.List.Split (chunksOf)
+import Data.Map (Map)
+import qualified Data.Map    as DM
+import Data.Text (pack, Text)
+import qualified Data.Text as DT
+import Data.Tuple.Extra (both)
+import qualified Data.Vector as DV
+import GHC.Generics
+import System.IO (hPutStr, hFlush, stderr)
+import System.Environment
 
 import Gargantext.Prelude
 import Gargantext.Core
@@ -92,22 +86,25 @@ main = do
   [corpusFile, termListFile, outputFile] <- getArgs
 
   --corpus :: IO (DM.IntMap [[Text]])
-  corpus <- DM.fromListWith (<>)
-                             . DV.toList
-                             . DV.map (\n -> (csv_publication_year n, [(csv_title n) <> " " <> (csv_abstract n)]))
-                             . snd
-                           <$> readFile corpusFile
+  eCorpusFile <- readFile corpusFile
+  case eCorpusFile of
+    Right cf -> do
+      let corpus = DM.fromListWith (<>)
+                   . DV.toList
+                   . DV.map (\n -> (csv_publication_year n, [(csv_title n) <> " " <> (csv_abstract n)]))
+                   . snd $ cf
 
-  -- termListMap :: [Text]
-  termList <- csvMapTermList termListFile
+      -- termListMap :: [Text]
+      termList <- csvMapTermList termListFile
 
-  putStrLn $ show $ length termList
+      putStrLn $ show $ length termList
 
-  let patterns = buildPatterns termList
+      let patterns = buildPatterns termList
 
-  -- r <- mapConcurrentlyChunked (filterTermsAndCooc patterns) (DM.toList corpus)
-  r <-  mapConcurrently (filterTermsAndCooc patterns) (DM.toList corpus)
-  writeFile outputFile $ encode (CoocByYears r)
+      -- r <- mapConcurrentlyChunked (filterTermsAndCooc patterns) (DM.toList corpus)
+      r <-  mapConcurrently (filterTermsAndCooc patterns) (DM.toList corpus)
+      writeFile outputFile $ encode (CoocByYears r)
+    Left e -> panic $ "Error: " <> (pack e)
 
 
 

@@ -27,6 +27,8 @@ import Data.Swagger
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
+import qualified Prelude as Prelude
+import Protolude (readFile)
 import Servant
 import Servant.Job.Utils (jsonOptions)
 -- import Servant.Multipart
@@ -35,8 +37,9 @@ import Test.QuickCheck.Arbitrary
 
 import Gargantext.Prelude
 
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs, jobLogSucc)
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
+import Gargantext.API.Job (jobLogSuccess, jobLogFailTotal)
 import Gargantext.API.Node.Corpus.New.File
 import Gargantext.API.Node.Corpus.Searx
 import Gargantext.API.Node.Corpus.Types
@@ -248,28 +251,41 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
       PresseRIS -> Parser.parseFormat Parser.RisPresse
 
   -- TODO granularity of the logStatus
-  docs <- liftBase $ splitEvery 500
-      <$> take 1000000
-      <$> parse (cs d)
+  eDocs <- liftBase $ parse $ cs d
+  case eDocs of
+    Right docs' -> do
+      let docs = splitEvery 500 $ take 1000000 docs'
 
-  printDebug "Parsing corpus finished : " cid
-  logStatus jobLog2
+      printDebug "Parsing corpus finished : " cid
+      logStatus jobLog2
 
-  printDebug "Starting extraction     : " cid
-  -- TODO granularity of the logStatus
-  _cid' <- flowCorpus user
-                     (Right [cid])
-                     (Multi $ fromMaybe EN l)
-                     (map (map toHyperdataDocument) docs)
+      printDebug "Starting extraction     : " cid
+      -- TODO granularity of the logStatus
+      _cid' <- flowCorpus user
+                          (Right [cid])
+                          (Multi $ fromMaybe EN l)
+                          (map (map toHyperdataDocument) docs)
 
-  printDebug "Extraction finished   : " cid
-  printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
-  sendMail user
+      printDebug "Extraction finished   : " cid
+      printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
+      sendMail user
 
-  pure jobLog3
+      logStatus jobLog3
+      pure $ jobLog3
+    Left e -> do
+      printDebug "Error" e
+
+      logStatus jobLogE
+      pure jobLogE
     where
-      jobLog2 = jobLogSucc jobLog
-      jobLog3 = jobLogSucc jobLog2
+      jobLog2 = jobLogSuccess jobLog
+      jobLog3 = jobLogSuccess jobLog2
+      jobLogE = jobLogFailTotal jobLog
+
+parseCsvGargV3Path :: [Char] -> IO (Either Prelude.String [HyperdataDocument])
+parseCsvGargV3Path fp = do
+  contents <- readFile fp
+  Parser.parseFormat Parser.CsvGargV3 $ cs contents
 
 {-
 addToCorpusWithFile :: FlowCmdM env err m

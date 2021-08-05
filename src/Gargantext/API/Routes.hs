@@ -43,8 +43,8 @@ import qualified Gargantext.API.Public                   as Public
 import Gargantext.API.Admin.Auth.Types (AuthRequest, AuthResponse, AuthenticatedUser(..), PathId(..))
 import Gargantext.API.Admin.Auth (withAccess)
 import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
-import Gargantext.API.Admin.Orchestrator.Types (jobLogInit)
 import Gargantext.API.Count  (CountAPI, count, Query)
+import Gargantext.API.Job (jobLogInit)
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
 import Gargantext.API.Prelude
@@ -285,7 +285,7 @@ addCorpusWithForm user cid =
     JobFunction (\i log' ->
       let
         log'' x = do
-          printDebug "addToCorpusWithForm" x
+          printDebug "[addToCorpusWithForm] " x
           liftBase $ log' x
       in New.addToCorpusWithForm user cid i log'' (jobLogInit 3))
 
@@ -295,7 +295,7 @@ addCorpusWithFile user cid =
     JobFunction (\i log' ->
       let
         log'' x = do
-          printDebug "addToCorpusWithFile" x
+          printDebug "[addToCorpusWithFile]" x
           liftBase $ log' x
       in New.addToCorpusWithFile user cid i log'')
 

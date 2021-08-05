@@ -19,13 +19,15 @@ import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BL
 import Data.Char (ord)
 import Data.Csv
-import Data.Either (Either(Left, Right))
+import Data.Either (Either(..))
 import Data.Text (Text, pack, length, intercalate)
 import Data.Time.Segment (jour)
 import qualified Data.Vector          as V
 import Data.Vector (Vector)
 import GHC.IO (FilePath)
 import GHC.Word (Word8)
+
+import qualified Prelude as Prelude
 
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Prelude hiding (length)
@@ -192,52 +194,47 @@ delimiter :: Word8
 delimiter = fromIntegral $ ord '\t'
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-readCsvOn' :: [CsvDoc -> Text] -> FilePath -> IO [Text]
-readCsvOn' fields fp = V.toList
-                   <$> V.map (\l -> intercalate (pack " ") $ map (\field -> field l) fields)
-                   <$> snd
-                   <$> readFile fp
+readCsvOn' :: [CsvDoc -> Text] -> FilePath -> IO (Either Prelude.String [Text])
+readCsvOn' fields fp = do
+  r <- readFile fp
+  pure $ ( V.toList
+          . V.map (\l -> intercalate (pack " ") $ map (\field -> field l) fields)
+          . snd ) <$> r
 
 ------------------------------------------------------------------------
 
-readFileLazy :: (FromNamedRecord a) => proxy a -> FilePath -> IO (Header, Vector a)
+readFileLazy :: (FromNamedRecord a) => proxy a -> FilePath -> IO (Either Prelude.String (Header, Vector a))
 readFileLazy f = fmap (readByteStringLazy f) . BL.readFile
 
-readFileStrict :: (FromNamedRecord a) => proxy a -> FilePath -> IO (Header, Vector a)
+readFileStrict :: (FromNamedRecord a) => proxy a -> FilePath -> IO (Either Prelude.String (Header, Vector a))
 readFileStrict f = fmap (readByteStringStrict f) . BS.readFile
 
-readByteStringLazy :: (FromNamedRecord a) => proxy a -> BL.ByteString -> (Header, Vector a)
-readByteStringLazy _f bs = case decodeByNameWith csvDecodeOptions bs of
-      Left e        -> panic (pack e)
-      Right csvDocs -> csvDocs
+readByteStringLazy :: (FromNamedRecord a) => proxy a -> BL.ByteString -> Either Prelude.String (Header, Vector a)
+readByteStringLazy _f bs = decodeByNameWith csvDecodeOptions bs
 
-readByteStringStrict :: (FromNamedRecord a) => proxy a -> BS.ByteString -> (Header, Vector a)
+readByteStringStrict :: (FromNamedRecord a) => proxy a -> BS.ByteString -> Either Prelude.String (Header, Vector a)
 readByteStringStrict ff = (readByteStringLazy ff) . BL.fromStrict
 
 ------------------------------------------------------------------------
 -- | TODO use readFileLazy
-readFile :: FilePath -> IO (Header, Vector CsvDoc)
+readFile :: FilePath -> IO (Either Prelude.String (Header, Vector CsvDoc))
 readFile = fmap readCsvLazyBS . BL.readFile
 
 
 -- | TODO use readByteStringLazy
-readCsvLazyBS :: BL.ByteString -> (Header, Vector CsvDoc)
-readCsvLazyBS bs = case decodeByNameWith csvDecodeOptions bs of
-      Left e        -> panic (pack e)
-      Right csvDocs -> csvDocs
+readCsvLazyBS :: BL.ByteString -> Either Prelude.String (Header, Vector CsvDoc)
+readCsvLazyBS bs = decodeByNameWith csvDecodeOptions bs
 
 ------------------------------------------------------------------------
 -- | TODO use readFileLazy
-readCsvHal :: FilePath -> IO (Header, Vector CsvHal)
+readCsvHal :: FilePath -> IO (Either Prelude.String (Header, Vector CsvHal))
 readCsvHal = fmap readCsvHalLazyBS . BL.readFile
 
 -- | TODO use readByteStringLazy
-readCsvHalLazyBS :: BL.ByteString -> (Header, Vector CsvHal)
-readCsvHalLazyBS bs = case decodeByNameWith csvDecodeOptions bs of
-      Left e        -> panic (pack e)
-      Right csvDocs -> csvDocs
+readCsvHalLazyBS :: BL.ByteString -> Either Prelude.String (Header, Vector CsvHal)
+readCsvHalLazyBS bs = decodeByNameWith csvDecodeOptions bs
 
-readCsvHalBSStrict :: BS.ByteString -> (Header, Vector CsvHal)
+readCsvHalBSStrict :: BS.ByteString -> Either Prelude.String (Header, Vector CsvHal)
 readCsvHalBSStrict = readCsvHalLazyBS . BL.fromStrict
 
 ------------------------------------------------------------------------
@@ -382,18 +379,22 @@ csv2doc (CsvDoc title source
                                Nothing
 
 ------------------------------------------------------------------------
-parseHal :: FilePath -> IO [HyperdataDocument]
-parseHal fp = V.toList <$> V.map csvHal2doc <$> snd <$> readCsvHal fp
+parseHal :: FilePath -> IO (Either Prelude.String [HyperdataDocument])
+parseHal fp = do
+  r <- readCsvHal fp
+  pure $ (V.toList . V.map csvHal2doc . snd) <$> r
 
-parseHal' :: BL.ByteString -> [HyperdataDocument]
-parseHal' = V.toList . V.map csvHal2doc . snd . readCsvHalLazyBS 
+parseHal' :: BL.ByteString -> Either Prelude.String [HyperdataDocument]
+parseHal' bs = (V.toList . V.map csvHal2doc . snd) <$> readCsvHalLazyBS bs
 
 ------------------------------------------------------------------------
-parseCsv :: FilePath -> IO [HyperdataDocument]
-parseCsv fp = V.toList <$> V.map csv2doc <$> snd <$> readFile fp
+parseCsv :: FilePath -> IO (Either Prelude.String [HyperdataDocument])
+parseCsv fp = do
+  r <- readFile fp
+  pure $ (V.toList . V.map csv2doc . snd) <$> r
 
-parseCsv' :: BL.ByteString -> [HyperdataDocument]
-parseCsv' bs = V.toList $ V.map csv2doc $ snd $ readCsvLazyBS bs
+parseCsv' :: BL.ByteString -> Either Prelude.String [HyperdataDocument]
+parseCsv' bs = (V.toList . V.map csv2doc . snd) <$> readCsvLazyBS bs
 
 ------------------------------------------------------------------------
 -- Csv v3 weighted for phylo
