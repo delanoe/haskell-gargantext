@@ -53,14 +53,16 @@ data SearxResponse = SearxResponse
 $(deriveJSON (unPrefix "_srs_") ''SearxResponse)
 
 data FetchSearxParams = FetchSearxParams
-  { _fsp_manager :: Manager
+  { _fsp_language :: Lang
+  , _fsp_manager :: Manager
   , _fsp_pageno  :: Int
   , _fsp_query   :: Text
   , _fsp_url     :: Text
   }
 
 fetchSearxPage :: FetchSearxParams -> IO (Either Prelude.String SearxResponse)
-fetchSearxPage (FetchSearxParams { _fsp_manager
+fetchSearxPage (FetchSearxParams { _fsp_language
+                                 , _fsp_manager
                                  , _fsp_pageno
                                  , _fsp_query
                                  , _fsp_url }) = do
@@ -70,9 +72,10 @@ fetchSearxPage (FetchSearxParams { _fsp_manager
   let request = urlEncodedBody
         [ --("category_general", "1")
           ("q", encodeUtf8 _fsp_query)
+        , ("categories", "news")  -- https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/70#note_3976
         , ("pageno", encodeUtf8 $ T.pack $ show _fsp_pageno)
           --, ("time_range", "None")
-            --, ("language", "en-US")  -- TODO
+        , ("language", encodeUtf8 $ T.pack $ show _fsp_language)
         , ("format", "json")
         ] req
   res <- httpLbs request _fsp_manager
@@ -94,7 +97,8 @@ triggerSearxSearch cid q l = do
   printDebug "[triggerSearxSearch] surl" surl
 
   manager <- liftBase $ newManager tlsManagerSettings
-  res <- liftBase $ fetchSearxPage $ FetchSearxParams { _fsp_manager = manager
+  res <- liftBase $ fetchSearxPage $ FetchSearxParams { _fsp_language = l
+                                                      , _fsp_manager = manager
                                                       , _fsp_pageno = 1
                                                       , _fsp_query = q
                                                       , _fsp_url = surl }
