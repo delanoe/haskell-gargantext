@@ -36,18 +36,20 @@ import Data.String()
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Tuple.Extra (both, first, second)
-import Gargantext.Core (Lang(..))
-import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
-import Gargantext.Prelude
-import Gargantext.Core.Text.Corpus.Parsers.CSV (parseHal, parseHal', parseCsv, parseCsv')
-import Gargantext.Core.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
--- import Gargantext.Core.Text.Learn (detectLangDefault)
 import System.FilePath (FilePath(), takeExtension)
 import qualified Data.ByteString       as DB
 import qualified Data.ByteString.Char8 as DBC
 import qualified Data.ByteString.Lazy  as DBL
 import qualified Data.Map              as DM
 import qualified Data.Text             as DT
+import qualified Prelude as Prelude
+
+import Gargantext.Core (Lang(..))
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import Gargantext.Prelude
+import Gargantext.Core.Text.Corpus.Parsers.CSV (parseHal, parseHal', parseCsv, parseCsv')
+import Gargantext.Core.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
+-- import Gargantext.Core.Text.Learn (detectLangDefault)
 import qualified Gargantext.Core.Text.Corpus.Parsers.Date as Date
 import qualified Gargantext.Core.Text.Corpus.Parsers.RIS  as RIS
 import qualified Gargantext.Core.Text.Corpus.Parsers.WOS  as WOS
@@ -75,30 +77,40 @@ data FileFormat = WOS | RIS | RisPresse
 --                | XML        -- Not Implemented / see :
 
 
-parseFormat :: FileFormat -> DB.ByteString -> IO [HyperdataDocument]
+parseFormat :: FileFormat -> DB.ByteString -> IO (Either Prelude.String [HyperdataDocument])
 parseFormat CsvGargV3 bs = pure $ parseCsv' $ DBL.fromStrict bs
 parseFormat CsvHal    bs = pure $ parseHal' $ DBL.fromStrict bs
-parseFormat RisPresse bs = mapM (toDoc RIS)
-                        <$> snd
-                        <$> enrichWith RisPresse
-                         $ partitionEithers
-                         $ [runParser'  RisPresse bs]
-parseFormat WOS bs = mapM (toDoc WOS)
-                        <$> snd
-                        <$> enrichWith WOS
-                         $ partitionEithers
-                         $ [runParser'  WOS bs]
+parseFormat RisPresse bs = do
+  docs <- mapM (toDoc RIS)
+          <$> snd
+          <$> enrichWith RisPresse
+          $ partitionEithers
+          $ [runParser'  RisPresse bs]
+  pure $ Right docs
+parseFormat WOS bs = do
+  docs <- mapM (toDoc WOS)
+          <$> snd
+          <$> enrichWith WOS
+          $ partitionEithers
+          $ [runParser'  WOS bs]
+  pure $ Right docs
 parseFormat _ _ = undefined
 
 -- | Parse file into documents
 -- TODO manage errors here
 -- TODO: to debug maybe add the filepath in error message
-parseFile :: FileFormat -> FilePath -> IO [HyperdataDocument]
+parseFile :: FileFormat -> FilePath -> IO (Either Prelude.String [HyperdataDocument])
 parseFile CsvHal    p = parseHal p
 parseFile CsvGargV3 p = parseCsv p
-parseFile RisPresse p = join $ mapM (toDoc RIS) <$> snd <$> enrichWith RisPresse <$> readFileWith RIS p
-parseFile WOS       p = join $ mapM (toDoc WOS) <$> snd <$> enrichWith WOS       <$> readFileWith WOS p
-parseFile ff        p = join $ mapM (toDoc ff)  <$> snd <$> enrichWith ff        <$> readFileWith ff  p
+parseFile RisPresse p = do
+  docs <- join $ mapM (toDoc RIS) <$> snd <$> enrichWith RisPresse <$> readFileWith RIS p
+  pure $ Right docs
+parseFile WOS       p = do
+  docs <- join $ mapM (toDoc WOS) <$> snd <$> enrichWith WOS       <$> readFileWith WOS p
+  pure $ Right docs
+parseFile ff        p = do
+  docs <- join $ mapM (toDoc ff)  <$> snd <$> enrichWith ff        <$> readFileWith ff  p
+  pure $ Right docs
 
 toDoc :: FileFormat -> [(Text, Text)] -> IO HyperdataDocument
 -- TODO use language for RIS

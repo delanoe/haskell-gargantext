@@ -101,6 +101,8 @@ data JobLog = JobLog
   }
   deriving (Show, Generic)
 
+makeLenses ''JobLog
+
 instance Arbitrary JobLog where
   arbitrary = JobLog
            <$> arbitrary

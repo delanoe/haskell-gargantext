@@ -46,6 +46,7 @@ import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableCorpus)
 import Gargantext.API.Ngrams.Types (TabType(..))
 import Gargantext.API.Node.File
+import Gargantext.API.Node.FrameCalcUpload (FrameCalcUploadAPI, frameCalcUploadAPI)
 import Gargantext.API.Node.New
 import Gargantext.API.Prelude
 import Gargantext.API.Table
@@ -123,6 +124,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "rename" :> RenameApi
              :<|> PostNodeApi -- TODO move to children POST
              :<|> PostNodeAsync
+             :<|> FrameCalcUploadAPI
              :<|> ReqBody '[JSON] a :> Put    '[JSON] Int
              :<|> "update"     :> Update.API
              :<|> Delete '[JSON] Int
@@ -205,6 +207,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> rename        id'
            :<|> postNode  uId id'
            :<|> postNodeAsyncAPI  uId id'
+           :<|> frameCalcUploadAPI uId id'
            :<|> putNode       id'
            :<|> Update.api  uId id'
            :<|> Action.deleteNode (RootId $ NodeId uId) id'

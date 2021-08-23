@@ -9,6 +9,14 @@ import Control.Lens ((^.))
 import Data.Swagger
 import Data.Text
 import GHC.Generics (Generic)
+import Servant
+import Servant.Job.Async (JobFunction(..), serveJobsAPI)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.MIME.Types as DMT
+import qualified Gargantext.Database.GargDB as GargDB
+import qualified Network.HTTP.Media as M
+
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node.Types
@@ -22,13 +30,6 @@ import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
-import Servant
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.MIME.Types as DMT
-import qualified Gargantext.Database.GargDB as GargDB
-import qualified Network.HTTP.Media as M
 
 data RESPONSE deriving Typeable
 

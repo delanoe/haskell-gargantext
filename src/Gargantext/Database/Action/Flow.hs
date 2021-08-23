@@ -56,7 +56,7 @@ import Data.Map (Map, lookup)
 import Data.Maybe (catMaybes)
 import Data.Monoid
 import Data.Swagger
-import Data.Text (splitOn)
+import qualified Data.Text as T
 import Data.Traversable (traverse)
 import Data.Tuple.Extra (first, second)
 import GHC.Generics (Generic)
@@ -178,11 +178,12 @@ flowCorpusFile :: (FlowCmdM env err m)
            -> TermType Lang -> FileFormat -> FilePath
            -> m CorpusId
 flowCorpusFile u n l la ff fp = do
-  docs <- liftBase ( splitEvery 500
-                 <$> take l
-                 <$> parseFile ff fp
-                 )
-  flowCorpus u n la (map (map toHyperdataDocument) docs)
+  eParsed <- liftBase $ parseFile ff fp
+  case eParsed of
+    Right parsed -> do
+      let docs = splitEvery 500 $ take l parsed
+      flowCorpus u n la (map (map toHyperdataDocument) docs)
+    Left e       -> panic $ "Error: " <> (T.pack e)
 
 ------------------------------------------------------------------------
 -- | TODO improve the needed type to create/update a corpus
@@ -425,11 +426,11 @@ instance ExtractNgramsT HyperdataDocument
                         $ _hd_source doc
 
               institutes = map text2ngrams
-                         $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))
+                         $ maybe ["Nothing"] (map toSchoolName . (T.splitOn ", "))
                          $ _hd_institutes doc
 
               authors    = map text2ngrams
-                         $ maybe ["Nothing"] (splitOn ", ")
+                         $ maybe ["Nothing"] (T.splitOn ", ")
                          $ _hd_authors doc
 
           terms' <- map (enrichedTerms (lang' ^. tt_lang) CoreNLP NP)

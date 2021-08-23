@@ -1,11 +1,12 @@
 module Gargantext.API.Job where
 
+import Control.Lens (over, _Just)
 import Data.IORef
 import Data.Maybe
 
 import Gargantext.Prelude
 
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
+import Gargantext.API.Admin.Orchestrator.Types
 
 
 jobLogInit :: Int -> JobLog
@@ -16,25 +17,29 @@ jobLogInit rem =
          , _scst_events = Just [] }
 
 jobLogSuccess :: JobLog -> JobLog
-jobLogSuccess (JobLog { _scst_succeeded = mSucc
-                      , _scst_remaining = mRem
-                      , _scst_failed = mFail
-                      , _scst_events = evt }) =
-  JobLog { _scst_succeeded = (+ 1) <$> mSucc
-         , _scst_remaining = (\x -> x - 1) <$> mRem
-         , _scst_failed = mFail
-         , _scst_events = evt }
-
+jobLogSuccess jl = over (scst_succeeded . _Just) (+ 1) $
+                   over (scst_remaining . _Just) (\x -> x - 1) jl
 
 jobLogFail :: JobLog -> JobLog
-jobLogFail (JobLog { _scst_succeeded = mSucc
-                   , _scst_remaining = mRem
-                   , _scst_failed = mFail
-                   , _scst_events = evt }) =
+jobLogFail jl = over (scst_failed . _Just) (+ 1) $
+                over (scst_remaining . _Just) (\x -> x - 1) jl
+
+jobLogFailTotal :: JobLog -> JobLog
+jobLogFailTotal (JobLog { _scst_succeeded = mSucc
+                        , _scst_remaining = mRem
+                        , _scst_failed = mFail
+                        , _scst_events = evt }) =
   JobLog { _scst_succeeded = mSucc
-         , _scst_remaining = (\x -> x - 1) <$> mRem
-         , _scst_failed = (+ 1) <$> mFail
+         , _scst_remaining = newRem
+         , _scst_failed = newFail
          , _scst_events = evt }
+  where
+    (newRem, newFail) = case mRem of
+      Nothing -> (Nothing, mFail)
+      Just rem -> (Just 0, (+ rem) <$> mFail)
+
+jobLogEvt :: JobLog -> ScraperEvent -> JobLog
+jobLogEvt jl evt = over (scst_events . _Just) (\evts -> (evt:evts)) jl
 
 runJobLog :: MonadBase IO m => Int -> (JobLog -> m ()) -> m (m (), m (), m JobLog)
 runJobLog num logStatus = do
