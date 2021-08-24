@@ -69,7 +69,7 @@ data TermType lang
                  , _tt_ngramsSize :: !Int
                  , _tt_model      :: !(Maybe (Tries Token ()))
                  }
-  deriving Generic
+  deriving (Generic)
 
 makeLenses ''TermType
 --group :: [Text] -> [Text]

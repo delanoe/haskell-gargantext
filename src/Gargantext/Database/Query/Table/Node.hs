@@ -121,7 +121,7 @@ getClosestParentIdByType :: HasDBid NodeType
 getClosestParentIdByType nId nType = do
   result <- runPGSQuery query (nId, 0 :: Int)
   case result of
-    [DPS.Only parentId, DPS.Only pTypename] -> do
+    [(NodeId parentId, pTypename)] -> do
       if toDBid nType == pTypename then
         pure $ Just $ NodeId parentId
       else
@@ -131,7 +131,7 @@ getClosestParentIdByType nId nType = do
     query :: DPS.Query
     query = [sql|
       SELECT n2.id, n2.typename
-        FROM nodes n1
+      FROM nodes n1
         JOIN nodes n2 ON n1.parent_id = n2.id
         WHERE n1.id = ? AND 0 = ?;
     |]

@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.2.9.6'
+version: '0.0.2.9.6.1'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -189,6 +189,7 @@ library:
   - random
   - rdf4h
   - regex-compat
+  - regex-tdfa
   - resource-pool
   - resourcet
   - safe
@@ -224,6 +225,7 @@ library:
   - transformers
   - transformers-base
   - unordered-containers
+  - utf8-string
   - uuid
   - validity
   - vector

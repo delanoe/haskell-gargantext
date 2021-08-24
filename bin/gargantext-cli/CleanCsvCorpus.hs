@@ -15,6 +15,7 @@ compress the contexts around the main terms of the query.
 module CleanCsvCorpus  where
 
 --import GHC.IO (FilePath)
+import Data.Either (Either(..))
 import Data.SearchEngine as S
 import qualified Data.Set as S
 import Data.Text (pack)
@@ -39,17 +40,19 @@ main = do
   --let q = ["water", "scarcity", "morocco", "shortage","flood"]
   let q = ["gratuit", "gratuité", "culture", "culturel"]
 
-  (h,csvDocs) <- CSV.readFile rPath
+  eDocs <- CSV.readFile rPath
+  case eDocs of
+    Right (h, csvDocs) -> do
+      putStrLn $ "Number of documents before:" <> show (V.length csvDocs)
+      putStrLn $ "Mean size of docs:" <> show ( CSV.docsSize csvDocs)
 
-  putStrLn $ "Number of documents before:" <> show (V.length csvDocs)
-  putStrLn $ "Mean size of docs:" <> show ( CSV.docsSize csvDocs)
+      let docs   = CSV.toDocs csvDocs
+      let engine = insertDocs docs initialDocSearchEngine
+      let docIds = S.query engine (map pack q)
+      let docs'  = CSV.fromDocs $ filterDocs docIds (V.fromList docs)
 
-  let docs   = CSV.toDocs csvDocs
-  let engine = insertDocs docs initialDocSearchEngine
-  let docIds = S.query engine (map pack q)
-  let docs'  = CSV.fromDocs $ filterDocs docIds (V.fromList docs)
+      putStrLn $ "Number of documents after:" <> show (V.length docs')
+      putStrLn $ "Mean size of docs:" <> show (CSV.docsSize docs')
 
-  putStrLn $ "Number of documents after:" <> show (V.length docs')
-  putStrLn $ "Mean size of docs:" <> show (CSV.docsSize docs')
-
-  CSV.writeFile wPath (h, docs')
+      CSV.writeFile wPath (h, docs')
+    Left e -> panic $ "Error: " <> (pack e)

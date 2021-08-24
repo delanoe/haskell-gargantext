@@ -1,0 +1,288 @@
+#+TITLE: Searx API request
+
+This is related to issue
+https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/70
+
+#+begin_src restclient
+  :domain := "https://searx.frame.gargantext.org"
+  POST :domain/
+  Content-Type: application/x-www-form-urlencoded
+  category_general=1&q=banach%20space&pageno=1&time_range=None&language=en-US&format=json
+#+end_src
+
+#+RESULTS:
+#+BEGIN_SRC js
+{
+  "query": "banach space",
+  "number_of_results": 93700.0,
+  "results": [
+    {
+      "url": "https://en.wikipedia.org/wiki/Banach_space",
+      "title": "Banach space",
+      "engine": "wikipedia",
+      "parsed_url": [
+        "https",
+        "en.wikipedia.org",
+        "/wiki/Banach_space",
+        "",
+        "",
+        ""
+      ],
+      "engines": [
+        "wikipedia"
+      ],
+      "positions": [
+        1
+      ],
+      "score": 1.0,
+      "category": "general",
+      "pretty_url": "https://en.wikipedia.org/wiki/Banach_space"
+    },
+    {
+      "url": "http://mathworld.wolfram.com/BanachSpace.html",
+      "title": "Banach Space -- from Wolfram MathWorld",
+      "content": "10/05/2021 · A Banach space is a complete vector space with a norm . Two norms and are called equivalent if they give the same topology , which is equivalent to the existence of constants and such that. (1) and. (2) hold for all . In the finite-dimensional case, all norms are equivalent.",
+      "engine": "bing",
+      "parsed_url": [
+        "http",
+        "mathworld.wolfram.com",
+        "/BanachSpace.html",
+        "",
+        "",
+        ""
+      ],
+      "engines": [
+        "bing"
+      ],
+      "positions": [
+        1
+      ],
+      "score": 1.0,
+      "category": "general",
+      "pretty_url": "http://mathworld.wolfram.com/BanachSpace.html"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/List_of_Banach_spaces",
+      "title": "List of Banach spaces - Wikipedia",
+      "content": "25 lignes · Classical Banach spaces. According to Diestel (1984, Chapter VII), the classical Banach …",
+      "engine": "bing",
+      "parsed_url": [
+        "https",
+        "en.wikipedia.org",
+        "/wiki/List_of_Banach_spaces",
+        "",
+        "",
+        ""
+      ],
+      "engines": [
+        "bing"
+      ],
+      "positions": [
+        2
+      ],
+      "score": 0.5,
+      "category": "general",
+      "pretty_url": "https://en.wikipedia.org/wiki/List_of_Banach_spaces"
+    },
+    {
+      "url": "https://encyclopediaofmath.org/wiki/Banach_space",
+      "title": "Banach space - Encyclopedia of Mathematics",
+      "content": "According to Diestel (1984, Chapter VII), the classical Banach spaces are those defined by Dunford & Schwartz (1958), which is the source for the following table. Here K denotes the field of real numbers or complex numbers and I is a closed and bounded interval [a,b]. The number p is a real number with 1 < p < ∞, and q is its Hölder conjugate (also with 1 < q < ∞), so that the next equation holds: $${\\displaystyle {\\frac {1}{q}}+{\\frac {1}{p}}=1,}$$According to Diestel (1984, Chapter VII), the classical Banach spaces are those defined by Dunford & Schwartz (1958), which is the source for the following table. Here K denotes the field of real numbers or complex numbers and I is a closed and bounded interval [a,b]. The number p is a real number with 1 < p < ∞, and q is its Hölder conjugate (also with 1 < q < ∞), so that the next equation holds: $${\\displaystyle {\\frac {1}{q}}+{\\frac {1}{p}}=1,}$$and thus $${\\displaystyle q={\\frac {p}{p-1}}.}$$The symbol Σ denotes a σ-algebra of sets, and Ξ denotes just an algebra of sets (for spaces only requiring finite additivity, such as the ba space). The symbol μ denotes a positive measure: that is, a real-valued positive set function defined on a σ-algebra which is countably additive.",
+      "engine": "bing",
+      "parsed_url": [
+        "https",
+        "encyclopediaofmath.org",
+        "/wiki/Banach_space",
+        "",
+        "",
+        ""
+      ],
+      "engines": [
+        "bing"
+      ],
+      "positions": [
+        3
+      ],
+      "score": 0.3333333333333333,
+      "category": "general",
+      "pretty_url": "https://encyclopediaofmath.org/wiki/Banach_space"
+    },
+    {
+      "url": "https://www.techopedia.com/definition/17852/banach-space",
+      "title": "What is Banach Space? - Definition from Techopedia",
+      "content": "22/03/2017 · In functional analysis, a Banach space is a normed vector space that allows vector length to be computed. When the vector space is normed, that means that each vector other than the zero vector has a length that is greater than zero. The length and distance between two vectors can thus be computed. The vector space is complete, meaning a Cauchy sequence of vectors in a Banach space …",
+      "engine": "bing",
+      "parsed_url": [
+        "https",
+        "www.techopedia.com",
+        "/definition/17852/banach-space",
+        "",
+        "",
+        ""
+      ],
+      "engines": [
+        "bing"
+      ],
+      "positions": [
+        4
+      ],
+      "score": 0.25,
+      "category": "general",
+      "pretty_url": "https://www.techopedia.com/definition/17852/banach-space"
+    },
+    {
+      "url": "https://www.sciencedirect.com/topics/mathematics/banach-spaces",
+      "title": "Banach Spaces - an overview | ScienceDirect Topics",
+      "content": "A Banach spaceis a complete normed linear space. Example 4.3 The spaces RN,CNare vector spaces which are also complete metric spaces with any of the norms ∥⋅∥p, hence they are Banach spaces. Similarly C(E), Lp(E) are Banach spaces with norms indicated above. □",
+      "engine": "bing",
+      "parsed_url": [
+        "https",
+        "www.sciencedirect.com",
+        "/topics/mathematics/banach-spaces",
+        "",
+        "",
+        ""
+      ],
+      "engines": [
+        "bing"
+      ],
+      "positions": [
+        5
+      ],
+      "score": 0.2,
+      "category": "general",
+      "pretty_url": "https://www.sciencedirect.com/topics/mathematics/banach-spaces"
+    },
+    {
+      "url": "https://people.math.gatech.edu/~heil/handouts/banach.pdf",
+      "title": "Banach Spaces - gatech.edu",
+      "content": "07/09/2006 · have already said that “a Banach space is complete” if every Cauchy sequence in the space converges. The term “complete sequences” deﬁned in this section is a completely separate deﬁnition that applies to sets of vectors in a Hilbert or Banach space (although we …",
+      "engine": "bing",
+      "parsed_url": [
+        "https",
+        "people.math.gatech.edu",
+        "/~heil/handouts/banach.pdf",
+        "",
+        "",
+        ""
+      ],
+      "engines": [
+        "bing"
+      ],
+      "positions": [
+        6
+      ],
+      "score": 0.16666666666666666,
+      "category": "general",
+      "pretty_url": "https://people.math.gatech.edu/~heil/handouts/banach.pdf"
+    },
+    {
+      "url": "https://ncatlab.org/nlab/show/Banach+space",
+      "title": "Banach space in nLab",
+      "content": "",
+      "engine": "bing",
+      "parsed_url": [
+        "https",
+        "ncatlab.org",
+        "/nlab/show/Banach+space",
+        "",
+        "",
+        ""
+      ],
+      "engines": [
+        "bing"
+      ],
+      "positions": [
+        7
+      ],
+      "score": 0.14285714285714285,
+      "category": "general",
+      "pretty_url": "https://ncatlab.org/nlab/show/Banach+space"
+    },
+    {
+      "url": "https://www.numerade.com/books/chapter/structure-of-banach-spaces/",
+      "title": "Structure of Banach Spaces | Functional Analysis",
+      "content": "Structure of Banach Spaces, Functional Analysis and InfiniteDimensional Geometry - Marián Fabian, Petr Habala, Petr Hájek | All the textbook answers and step-b…",
+      "engine": "bing",
+      "parsed_url": [
+        "https",
+        "www.numerade.com",
+        "/books/chapter/structure-of-banach-spaces/",
+        "",
+        "",
+        ""
+      ],
+      "engines": [
+        "bing"
+      ],
+      "positions": [
+        8
+      ],
+      "score": 0.125,
+      "category": "general",
+      "pretty_url": "https://www.numerade.com/books/chapter/structure-of-banach-spaces/"
+    },
+    {
+      "url": "http://www.ma.huji.ac.il/~razk/iWeb/My_Site/Teaching_files/Banach.pdf",
+      "title": "2. Banach spaces - ma.huji.ac.il",
+      "content": "Deﬁnition 2.1A Banach space is a complete, normed, vector space. Comment 2.1Completeness is a metric space concept. In a normed space the metric is d(x,y)=x−y. Note that this metric satisﬁes the following “special\" properties: ¿ The underlying space is a vector space.",
+      "engine": "bing",
+      "parsed_url": [
+        "http",
+        "www.ma.huji.ac.il",
+        "/~razk/iWeb/My_Site/Teaching_files/Banach.pdf",
+        "",
+        "",
+        ""
+      ],
+      "engines": [
+        "bing"
+      ],
+      "positions": [
+        9
+      ],
+      "score": 0.1111111111111111,
+      "category": "general",
+      "pretty_url": "http://www.ma.huji.ac.il/~razk/iWeb/My_Site/Teaching_files/Banach.pdf"
+    }
+  ],
+  "answers": [],
+  "corrections": [],
+  "infoboxes": [
+    {
+      "infobox": "Banach space",
+      "id": "https://en.wikipedia.org/wiki/Banach_space",
+      "content": "In mathematics, more specifically in functional analysis, a Banach space (pronounced [ˈbanax]) is a complete normed vector space. Thus, a Banach space is a vector space with a metric that allows the computation of vector length and distance between vectors and is complete in the sense that a Cauchy sequence of vectors always converges to a well defined limit that is within the space.",
+      "img_src": null,
+      "urls": [
+        {
+          "title": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Banach_space"
+        },
+        {
+          "title": "Wikidata",
+          "url": "https://www.wikidata.org/wiki/Q194397?uselang=en"
+        }
+      ],
+      "engine": "wikidata",
+      "attributes": [
+        {
+          "label": "Inception",
+          "value": "1920"
+        }
+      ]
+    }
+  ],
+  "suggestions": [],
+  "unresponsive_engines": []
+}
+// POST https://searx.frame.gargantext.org/
+// HTTP/1.1 200 OK
+// Server: nginx/1.14.2
+// Date: Tue, 27 Jul 2021 17:20:48 GMT
+// Content-Type: application/json
+// Content-Length: 8020
+// Connection: keep-alive
+// Server-Timing: total;dur=1826.455, total_0_go;dur=248.527, total_1_wp;dur=352.718, total_2_bi;dur=628.671, total_3_wd;dur=1822.518, load_0_go;dur=234.185, load_1_wp;dur=348.323, load_2_bi;dur=595.242, load_3_wd;dur=1778.783
+// Request duration: 2.159931s
+#+END_SRC

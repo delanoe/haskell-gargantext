@@ -16,17 +16,30 @@ Adaptative Phylo binaries
 
 module Main where
 
+import Control.Concurrent.Async (mapConcurrently)
+import Crypto.Hash.SHA256 (hash)
 import Data.Aeson
+import Data.Either (Either(..))
 import Data.List  (concat, nub, isSuffixOf)
 import Data.String (String)
+import GHC.IO (FilePath) 
+import qualified Prelude as Prelude
+import System.Environment
+import System.Directory (listDirectory,doesFileExist)
 import Data.Text  (Text, unwords, unpack, replace, pack)
-import Crypto.Hash.SHA256 (hash)
+import Data.Time.Calendar (fromGregorian, diffGregorianDurationClip, cdMonths, diffDays, showGregorian)
+
+import qualified Data.ByteString.Char8 as C8
+import qualified Data.ByteString.Lazy as Lazy
+import qualified Data.Vector as Vector
+import qualified Data.Text as T
 
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year, csv_publication_month, csv_publication_day,
   csv'_source, csv'_title, csv'_abstract, csv'_publication_year, csv'_publication_month, csv'_publication_day, csv'_weight)
+import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv
 import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)
 import Gargantext.Core.Text.List.Formats.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
@@ -35,20 +48,6 @@ import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo, toPhyloStep)
 import Gargantext.Core.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment, setConfig)
 import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
 -- import Gargantext.API.Ngrams.Prelude (toTermList)
-
-import GHC.IO (FilePath) 
-import Prelude (Either(Left, Right),toInteger)
-import System.Environment
-import System.Directory (listDirectory,doesFileExist)
-import Control.Concurrent.Async (mapConcurrently)
-
-import Data.Time.Calendar (fromGregorian, diffGregorianDurationClip, cdMonths, diffDays, showGregorian)
-
-import qualified Data.ByteString.Char8 as C8
-import qualified Data.ByteString.Lazy as Lazy
-import qualified Data.Vector as Vector
-import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv
-import qualified Data.Text as T
 
 -- import Debug.Trace (trace)
 
@@ -84,13 +83,13 @@ toDays y m d = fromIntegral
 toPhyloDate :: Int -> Int -> Int -> TimeUnit -> Date
 toPhyloDate y m d tu = case tu of 
   Year  _ _ _ -> y
-  Month _ _ _ -> toMonths (toInteger y) m d
-  Week  _ _ _ -> div (toDays (toInteger y) m d) 7
-  Day   _ _ _ -> toDays (toInteger y) m d
+  Month _ _ _ -> toMonths (Prelude.toInteger y) m d
+  Week  _ _ _ -> div (toDays (Prelude.toInteger y) m d) 7
+  Day   _ _ _ -> toDays (Prelude.toInteger y) m d
 
 
 toPhyloDate' :: Int -> Int -> Int -> Text
-toPhyloDate' y m d = pack $ showGregorian $ fromGregorian (toInteger y) m d
+toPhyloDate' y m d = pack $ showGregorian $ fromGregorian (Prelude.toInteger y) m d
 
 
 --------------
@@ -113,43 +112,53 @@ termsInText pats txt = nub $ concat $ map (map unwords) $ extractTermsWithList p
 
 
 -- | To transform a Wos file (or [file]) into a list of Docs
-wosToDocs :: Int -> Patterns -> TimeUnit -> FilePath -> IO ([Document])
+wosToDocs :: Int -> Patterns -> TimeUnit -> FilePath -> IO [Document]
 wosToDocs limit patterns time path = do 
-      files <- getFilesFromPath path
-      take limit
-        <$> map (\d -> let title = fromJust $ _hd_title d
-                           abstr = if (isJust $ _hd_abstract d)
-                                   then fromJust $ _hd_abstract d
-                                   else ""
-                        in Document (toPhyloDate
-                                      (fromIntegral $ fromJust $ _hd_publication_year d) 
-                                      (fromJust $ _hd_publication_month d) 
-                                      (fromJust $ _hd_publication_day d) time)  
-                                    (toPhyloDate'
-                                      (fromIntegral $ fromJust $ _hd_publication_year d) 
-                                      (fromJust $ _hd_publication_month d) 
-                                      (fromJust $ _hd_publication_day d)) 
-                                    (termsInText patterns $ title <> " " <> abstr) Nothing []) 
-        <$> concat 
-        <$> mapConcurrently (\file -> 
-              filter (\d -> (isJust $ _hd_publication_year d)
-                         && (isJust $ _hd_title d))
-                <$> parseFile WOS (path <> file) ) files
+  files <- getFilesFromPath path
+  let parseFile' file = do
+        eParsed <- parseFile WOS (path <> file)
+        case eParsed of
+          Right ps -> pure ps
+          Left e   -> panic $ "Error: " <> (pack e)
+  take limit
+    <$> map (\d -> let title = fromJust $ _hd_title d
+                       abstr = if (isJust $ _hd_abstract d)
+                               then fromJust $ _hd_abstract d
+                               else ""
+                    in Document (toPhyloDate
+                                  (fromIntegral $ fromJust $ _hd_publication_year d) 
+                                  (fromJust $ _hd_publication_month d) 
+                                  (fromJust $ _hd_publication_day d) time)  
+                                (toPhyloDate'
+                                  (fromIntegral $ fromJust $ _hd_publication_year d) 
+                                  (fromJust $ _hd_publication_month d) 
+                                  (fromJust $ _hd_publication_day d)) 
+                                (termsInText patterns $ title <> " " <> abstr) Nothing []) 
+    <$> concat 
+    <$> mapConcurrently (\file -> 
+          filter (\d -> (isJust $ _hd_publication_year d)
+                     && (isJust $ _hd_title d))
+             <$> parseFile' file) files
 
 
 -- To transform a Csv file into a list of Document
-csvToDocs :: CorpusParser -> Patterns -> TimeUnit -> FilePath -> IO ([Document])
+csvToDocs :: CorpusParser -> Patterns -> TimeUnit -> FilePath -> IO [Document]
 csvToDocs parser patterns time path = 
   case parser of
     Wos  _     -> undefined
-    Csv  limit -> Vector.toList
-      <$> Vector.take limit
-      <$> Vector.map (\row -> Document (toPhyloDate  (csv_publication_year row) (csv_publication_month row) (csv_publication_day row) time)
-                                       (toPhyloDate' (csv_publication_year row) (csv_publication_month row) (csv_publication_day row))
-                                       (termsInText patterns $ (csv_title row) <> " " <> (csv_abstract row))
-                                       Nothing
-                                       []
-                     ) <$> snd <$> Csv.readFile path
+    Csv  limit -> do
+      eR <- Csv.readFile path
+      case eR of
+        Right r ->
+          pure $ Vector.toList
+            $ Vector.take limit
+            $ Vector.map (\row -> Document (toPhyloDate  (Csv.unIntOrDec $ csv_publication_year row) (csv_publication_month row) (csv_publication_day row) time)
+                                           (toPhyloDate' (Csv.unIntOrDec $ csv_publication_year row) (csv_publication_month row) (csv_publication_day row))
+                                           (termsInText patterns $ (csv_title row) <> " " <> (csv_abstract row))
+                                           Nothing
+                                           []
+                         ) $ snd r
+        Left e -> panic $ "Error: " <> (pack e)
     Csv' limit -> Vector.toList
       <$> Vector.take limit
       <$> Vector.map (\row -> Document (toPhyloDate  (csv'_publication_year row) (csv'_publication_month row) (csv'_publication_day row) time)

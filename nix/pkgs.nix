@@ -12,6 +12,8 @@ rec {
     git
     gmp
     gsl
+    haskell-language-server
+    hlint
     igraph
     liblapack
     lzma
