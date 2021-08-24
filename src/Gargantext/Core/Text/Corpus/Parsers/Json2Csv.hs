@@ -28,7 +28,7 @@ import System.IO (FilePath)
 import Gargantext.Core.Text.Corpus.Parsers.CSV (CsvDoc(..), writeFile, headerCsvGargV3)
 import Data.Vector (fromList)
 
-data Patent = Patent { _patent_title :: Text
+data Patent = Patent { _patent_title    :: Text
                      , _patent_abstract :: Text
                      , _patent_year     :: Text
                      , _patent_id       :: Text
@@ -49,7 +49,7 @@ json2csv fin fout = do
 
 patent2csvDoc :: Patent -> CsvDoc
 patent2csvDoc (Patent title abstract year _) =
-  CsvDoc title "Source" (read (unpack year)) 1 1 abstract "Authors"
+  CsvDoc title "Source" (Just $ read (unpack year)) (Just 1) (Just 1) abstract "Authors"
 
 
 

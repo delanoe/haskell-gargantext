@@ -21,6 +21,7 @@ import Crypto.Hash.SHA256 (hash)
 import Data.Aeson
 import Data.Either (Either(..))
 import Data.List  (concat, nub, isSuffixOf)
+import Data.Maybe (fromMaybe)
 import Data.String (String)
 import GHC.IO (FilePath) 
 import qualified Prelude as Prelude
@@ -152,8 +153,13 @@ csvToDocs parser patterns time path =
         Right r ->
           pure $ Vector.toList
             $ Vector.take limit
-            $ Vector.map (\row -> Document (toPhyloDate  (Csv.unIntOrDec $ csv_publication_year row) (csv_publication_month row) (csv_publication_day row) time)
-                                           (toPhyloDate' (Csv.unIntOrDec $ csv_publication_year row) (csv_publication_month row) (csv_publication_day row))
+            $ Vector.map (\row -> Document (toPhyloDate  (Csv.fromMIntOrDec Csv.defaultYear $ csv_publication_year row)
+                                                         (fromMaybe Csv.defaultMonth $ csv_publication_month row)
+                                                         (fromMaybe Csv.defaultDay $ csv_publication_day row)
+                                                         time)
+                                           (toPhyloDate' (Csv.fromMIntOrDec Csv.defaultYear $ csv_publication_year row)
+                                                         (fromMaybe Csv.defaultMonth $ csv_publication_month row)
+                                                         (fromMaybe Csv.defaultDay $ csv_publication_day row))
                                            (termsInText patterns $ (csv_title row) <> " " <> (csv_abstract row))
                                            Nothing
                                            []

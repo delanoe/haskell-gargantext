@@ -283,7 +283,7 @@ csvPost l m  = do
   let lst = readCsvText m
   let p = parseCsvData lst
   --printDebug "[csvPost] lst" lst
-  --printDebug "[csvPost] p" p
+  printDebug "[csvPost] p" p
   _ <- setListNgrams l NgramsTerms p
   pure True
 ------------------------------------------------------------------------
