@@ -134,7 +134,8 @@ type NodeStoryDir = FilePath
 
 writeNodeStories :: NodeStoryDir -> NodeListStory -> IO ()
 writeNodeStories fp nls = do
-  _ <- mapM (writeNodeStory fp) $ splitByNode nls
+  done <- mapM (writeNodeStory fp) $ splitByNode nls
+  printDebug "[writeNodeStories]" done
   pure ()
 
 writeNodeStory :: NodeStoryDir -> (NodeId, NodeListStory) -> IO ()
@@ -145,10 +146,10 @@ splitByNode (NodeStory m) =
   List.map (\(n,a) -> (n, NodeStory $ Map.singleton n a)) $ Map.toList m
 
 
-saverAction' :: NodeStoryDir -> NodeId -> Serialise a => a -> IO ()
+saverAction' :: Serialise a => NodeStoryDir -> NodeId -> a -> IO ()
 saverAction' repoDir nId a = do
   withTempFile repoDir ((cs $ show nId) <> "-tmp-repo.cbor") $ \fp h -> do
-    printDebug "repoSaverAction" fp
+    printDebug "[repoSaverAction]" fp
     DBL.hPut h $ serialise a
     hClose h
     renameFile fp (nodeStoryPath repoDir nId)

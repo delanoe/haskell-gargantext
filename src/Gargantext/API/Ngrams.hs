@@ -248,6 +248,7 @@ setListNgrams ::  HasNodeStory env err m
               -> Map NgramsTerm NgramsRepoElement
               -> m ()
 setListNgrams listId ngramsType ns = do
+  printDebug "[setListNgrams]" (listId, ngramsType)
   getter <- view hasNodeStory
   var <- liftBase $ (getter ^. nse_getter) listId
   liftBase $ modifyMVar_ var $
@@ -278,12 +279,14 @@ newNgramsFromNgramsStatePatch p =
   ]
 
 
--- tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
+
+
 commitStatePatch :: HasNodeStory env err m
                  => ListId
                  ->    Versioned NgramsStatePatch'
                  -> m (Versioned NgramsStatePatch')
 commitStatePatch listId (Versioned p_version p) = do
+  printDebug "[commitStatePatch]" listId
   var <- getRepoVar listId
   vq' <- liftBase $ modifyMVar var $ \ns -> do
     let
@@ -293,6 +296,19 @@ commitStatePatch listId (Versioned p_version p) = do
       a' = a & a_version +~ 1
              & a_state   %~ act p'
              & a_history %~ (p' :)
+
+    {-
+    -- Ideally we would like to check these properties. However:
+    -- * They should be checked only to debug the code. The client data
+    --   should be able to trigger these.
+    -- * What kind of error should they throw (we are in IO here)?
+    -- * Should we keep modifyMVar?
+    -- * Should we throw the validation in an Exception, catch it around
+    --   modifyMVar and throw it back as an Error?
+    assertValid $ transformable p q
+    assertValid $ applicable p' (r ^. r_state)
+    -}
+    printDebug "a version" (a ^. a_version)
     pure ( ns & unNodeStory . at listId .~ (Just a')
          , Versioned (a' ^. a_version) q'
          )
@@ -300,7 +316,7 @@ commitStatePatch listId (Versioned p_version p) = do
   -- Save new ngrams
   _ <- insertNgrams (newNgramsFromNgramsStatePatch p)
 
-  pure $ vq'
+  pure vq'
 
 
 
@@ -311,6 +327,7 @@ tableNgramsPull :: HasNodeStory env err m
                 -> Version
                 -> m (Versioned NgramsTablePatch)
 tableNgramsPull listId ngramsType p_version = do
+  printDebug "[tableNgramsPull]" (listId, ngramsType)
   var <- getRepoVar listId
   r <- liftBase $ readMVar var
 
@@ -324,6 +341,7 @@ tableNgramsPull listId ngramsType p_version = do
 
 
 
+-- tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
 -- TODO-ACCESS check
@@ -337,10 +355,12 @@ tableNgramsPut :: ( HasNodeStory env err m
                  -> m (Versioned NgramsTablePatch)
 tableNgramsPut tabType listId (Versioned p_version p_table)
   | p_table == mempty = do
+      printDebug "[tableNgramsPut]" ("TableEmpty" :: Text)
       let ngramsType        = ngramsTypeFromTabType tabType
       tableNgramsPull listId ngramsType p_version
 
   | otherwise         = do
+      printDebug "[tableNgramsPut]" ("TableNonEmpty" :: Text)
       let ngramsType        = ngramsTypeFromTabType tabType
           (p, p_validity)   = PM.singleton ngramsType p_table
 
@@ -370,17 +390,17 @@ tableNgramsPostChartsAsync utn logStatus = do
           _uId = node ^. node_user_id
           mCId = node ^. node_parent_id
 
-      printDebug "[tableNgramsPut] tabType" tabType
-      printDebug "[tableNgramsPut] listId" listId
+      -- printDebug "[tableNgramsPostChartsAsync] tabType" tabType
+      -- printDebug "[tableNgramsPostChartsAsync] listId" listId
 
       case mCId of
         Nothing -> do
-          printDebug "[tableNgramsPut] can't update charts, no parent, nId" nId
+          printDebug "[tableNgramsPostChartsAsync] can't update charts, no parent, nId" nId
           pure $ jobLogFail $ jobLogInit 1
         Just cId -> do
           case tabType of
             Authors -> do
-              -- printDebug "[tableNgramsPut] Authors, updating Pie, cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] Authors, updating Pie, cId" cId
               (logRef, logRefSuccess, getRef) <- runJobLog 1 logStatus
               logRef
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
@@ -388,22 +408,22 @@ tableNgramsPostChartsAsync utn logStatus = do
 
               getRef
             Institutes -> do
-              -- printDebug "[tableNgramsPut] Institutes, updating Tree, cId" cId
-              -- printDebug "[tableNgramsPut] updating tree StopTerm, cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] Institutes, updating Tree, cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] updating tree StopTerm, cId" cId
               (logRef, logRefSuccess, getRef) <- runJobLog 3 logStatus
               logRef
               _ <- Metrics.updateTree cId (Just listId) tabType StopTerm
-              -- printDebug "[tableNgramsPut] updating tree CandidateTerm, cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] updating tree CandidateTerm, cId" cId
               logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType CandidateTerm
-              -- printDebug "[tableNgramsPut] updating tree MapTerm, cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] updating tree MapTerm, cId" cId
               logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
               logRefSuccess
 
               getRef
             Sources -> do
-              -- printDebug "[tableNgramsPut] Sources, updating chart, cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] Sources, updating chart, cId" cId
               (logRef, logRefSuccess, getRef) <- runJobLog 1 logStatus
               logRef
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
@@ -411,7 +431,7 @@ tableNgramsPostChartsAsync utn logStatus = do
 
               getRef
             Terms -> do
-              -- printDebug "[tableNgramsPut] Terms, updating Metrics (Histo), cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] Terms, updating Metrics (Histo), cId" cId
               (logRef, logRefSuccess, getRef) <- runJobLog 6 logStatus
               logRef
 {-
@@ -431,7 +451,7 @@ tableNgramsPostChartsAsync utn logStatus = do
 
               getRef
             _ -> do
-              printDebug "[tableNgramsPut] no update for tabType = " tabType
+              printDebug "[tableNgramsPostChartsAsync] no update for tabType = " tabType
               pure $ jobLogFail $ jobLogInit 1
 
   {-
