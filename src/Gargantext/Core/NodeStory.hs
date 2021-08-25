@@ -15,13 +15,15 @@ Portability : POSIX
 
 module Gargantext.Core.NodeStory where
 
-import Codec.Serialise (Serialise(), serialise, deserialise)
+-- import Debug.Trace (traceShow)
+import Codec.Serialise (serialise, deserialise)
+import Codec.Serialise.Class 
 import Control.Concurrent (MVar(), withMVar, newMVar)
 import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Control.Lens (makeLenses, Getter, (^.))
 import Control.Monad.Except
 import Control.Monad.Reader
-import Data.Aeson hiding ((.=))
+import Data.Aeson hiding ((.=), decode)
 import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe)
 import Data.Monoid
@@ -36,10 +38,10 @@ import Gargantext.Prelude
 import System.Directory (renameFile, createDirectoryIfMissing, doesFileExist)
 import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
-import qualified Data.ByteString.Lazy as L
-import qualified Data.List as List
-import qualified Data.Map.Strict as Map
-import qualified Data.Map.Strict.Patch.Internal as Patch
+import qualified Data.ByteString.Lazy                   as DBL
+import qualified Data.List                              as List
+import qualified Data.Map.Strict                        as Map
+import qualified Data.Map.Strict.Patch.Internal         as Patch
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 ------------------------------------------------------------------------
@@ -84,7 +86,7 @@ mkNodeStorySaver nsd mvns = mkDebounce settings
   where
     settings = defaultDebounceSettings
                  { debounceAction = withMVar mvns (writeNodeStories nsd)
-                 , debounceFreq = 10 * minute
+                 , debounceFreq = 1 * minute
 --                 , debounceEdge = trailingEdge -- Trigger on the trailing edge
                  }
     minute = 60 * second
@@ -117,8 +119,15 @@ nodeStoryRead nsd ni = do
   let nsp = nodeStoryPath nsd ni
   exists <- doesFileExist nsp
   if exists
-     then deserialise <$> L.readFile nsp
+     then deserialise <$> DBL.readFile nsp
      else pure (initNodeStory ni)
+
+nodeStoryRead_test :: NodeStoryDir -> NodeId -> IO (Maybe [ TableNgrams.NgramsType ])
+nodeStoryRead_test nsd ni = nodeStoryRead nsd ni >>= \n -> pure
+                          $ fmap Map.keys
+                          $ fmap _a_state
+                          $ Map.lookup ni
+                          $ _unNodeStory n
 
 ------------------------------------------------------------------------
 type NodeStoryDir = FilePath
@@ -140,7 +149,7 @@ saverAction' :: NodeStoryDir -> NodeId -> Serialise a => a -> IO ()
 saverAction' repoDir nId a = do
   withTempFile repoDir ((cs $ show nId) <> "-tmp-repo.cbor") $ \fp h -> do
     printDebug "repoSaverAction" fp
-    L.hPut h $ serialise a
+    DBL.hPut h $ serialise a
     hClose h
     renameFile fp (nodeStoryPath repoDir nId)
 
@@ -148,7 +157,6 @@ nodeStoryPath :: NodeStoryDir -> NodeId -> FilePath
 nodeStoryPath repoDir nId = repoDir <> "/" <> filename
   where
     filename = "repo" <> "-" <> (cs $ show nId) <> ".cbor"
-
 
 
 ------------------------------------------------------------------------
@@ -165,24 +173,34 @@ repoToNodeListStory (Repo _v s h) = NodeStory $ Map.fromList ns
                     -> (n, let hs = fromMaybe [] (Map.lookup n h') in
                                Archive (List.length hs) ns' hs
                        )
-                  ) s'
+                  ) $ Map.toList s'
 
 ngramsState_migration :: NgramsState
-                      -> [(NodeId,NgramsState')]
+                      -> Map NodeId NgramsState'
 ngramsState_migration ns =
-    [ (nid, Map.singleton nt table)
-    | (nt, nTable) <- Map.toList ns
-    , (nid, table) <- Map.toList nTable
-    ]
+  Map.fromListWith (Map.union) $ 
+  List.concat $
+    map (\(nt, nTable)
+          -> map (\(nid, table)
+                   -> (nid, Map.singleton nt table)
+                 ) $ Map.toList nTable
+        ) $ Map.toList ns
+
 
 ngramsStatePatch_migration :: [NgramsStatePatch]
                            -> Map NodeId [NgramsStatePatch']
 ngramsStatePatch_migration np' = Map.fromListWith (<>)
-    [ (nid, [fst $ Patch.singleton nt table])
-    | np <- np'
-    , (nt, nTable) <- Patch.toList np
-    , (nid, table) <- Patch.toList nTable
-    ]
+                               $ List.concat
+                               $ map toPatch np'
+  where
+    toPatch :: NgramsStatePatch -> [(NodeId, [NgramsStatePatch'])]
+    toPatch p = 
+      List.concat $
+        map (\(nt, nTable)
+              -> map (\(nid, table)
+                       -> (nid, [fst $ Patch.singleton nt table])
+                     ) $ Patch.toList nTable
+            ) $ Patch.toList p
 
 ------------------------------------------------------------------------
 
@@ -230,7 +248,6 @@ instance (ToJSON s, ToJSON p) => ToJSON (Archive s p) where
   toEncoding = genericToEncoding $ unPrefix "_a_"
 
 ------------------------------------------------------------------------
-
 initNodeStory :: Monoid s => NodeId -> NodeStory s p
 initNodeStory ni = NodeStory $ Map.singleton ni initArchive
 
@@ -240,13 +257,16 @@ initArchive = Archive 0 mempty []
 initNodeListStoryMock :: NodeListStory
 initNodeListStoryMock = NodeStory $ Map.singleton nodeListId archive
   where
-    nodeListId = 10
+    nodeListId = 0
     archive        = Archive 0 ngramsTableMap []
     ngramsTableMap = Map.singleton TableNgrams.NgramsTerms
                    $ Map.fromList
                    [ (n ^. ne_ngrams, ngramsElementToRepo n)
                    | n <- mockTable ^. _NgramsTable
                    ]
+
+------------------------------------------------------------------------
+
 
 ------------------------------------------------------------------------
 -- | Lenses at the bottom of the file because Template Haskell would reorder order of execution in others cases

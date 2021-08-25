@@ -12,7 +12,7 @@ module Gargantext.API.Ngrams.Types where
 import Codec.Serialise (Serialise())
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~))
+import Control.Lens (makeLenses, makePrisms, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~), Getter)
 import Control.Monad.State
 import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
@@ -33,7 +33,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..), ListId, NodeId, TODO)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
-import Gargantext.Database.Prelude (fromField')
+import Gargantext.Database.Prelude (fromField', HasConnectionPool, HasConfig, CmdM')
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (IsHashable(..))
 import Protolude (maybeToEither)
@@ -719,7 +719,6 @@ data RepoEnv = RepoEnv
 
 makeLenses ''RepoEnv
 
-{-
 type RepoCmdM   env err m =
   ( CmdM'             env err m
   , HasRepo           env
@@ -744,7 +743,6 @@ instance HasRepoVar RepoEnv where
   repoVar = renv_var
 instance HasRepoSaver RepoEnv where
   repoSaver = renv_saver
--}
 
 ------------------------------------------------------------------------
 

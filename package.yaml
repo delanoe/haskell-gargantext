@@ -121,6 +121,7 @@ library:
   - case-insensitive
   - cassava
   - cereal     # (IGraph)
+  - cborg
   - conduit
   - conduit-extra
   - containers
