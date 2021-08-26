@@ -17,24 +17,23 @@ module Gargantext.API.Ngrams.List
 
 import Control.Lens hiding (elements, Indexed)
 import Data.Aeson
+import Data.Either (Either(..))
 import Data.HashMap.Strict (HashMap)
-import Data.Map (toList, fromList)
+import Data.Map (Map, toList, fromList)
 import Data.Maybe (catMaybes)
 import Data.Set (Set)
-import Data.Swagger (ToSchema, declareNamedSchema, genericDeclareNamedSchema)
 import Data.Text (Text, concat, pack)
-import GHC.Generics (Generic)
+import Data.Vector (Vector)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams (getNgramsTableMap, setListNgrams)
 import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.API.Ngrams.Types
-import Gargantext.API.Node.Corpus.New.File (FileType(..))
+import Gargantext.API.Ngrams.List.Types
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Text.Terms (ExtractedNgrams(..))
 import Gargantext.Core.Text.Terms.WithList (buildPatterns, termsInText)
 import Gargantext.Core.Types.Main (ListType(..))
-import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow (saveDocNgramsWith)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
@@ -48,29 +47,25 @@ import Gargantext.Prelude
 import Network.HTTP.Media ((//), (/:))
 import Servant
 import Servant.Job.Async
-import Servant.Job.Utils (jsonOptions)
-import Web.FormUrlEncoded (FromForm)
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Csv as Csv
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List           as List
 import qualified Data.Map            as Map
 import qualified Data.Text           as Text
-
+import qualified Data.Vector         as Vec
+import qualified Prelude             as Prelude
+import qualified Protolude           as P
 ------------------------------------------------------------------------
 -- | TODO refactor 
+{-
 type API =  Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
        -- :<|> ReqBody '[JSON] NgramsList :> Post '[JSON] Bool
        :<|> PostAPI
        :<|> CSVPostAPI
-
-data HTML
-instance Accept HTML where
-  contentType _ = "text" // "html" /: ("charset", "utf-8")
-instance ToJSON a => MimeRender HTML a where
-  mimeRender _ = encode
-
-
 api :: ListId -> GargServer API
 api l = get l :<|> postAsync l :<|> csvPostAsync l
+-}
 
 ----------------------
 type GETAPI = Summary "Get List"
@@ -79,6 +74,12 @@ type GETAPI = Summary "Get List"
             :> Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
 getApi :: GargServer GETAPI
 getApi = get
+
+data HTML
+instance Accept HTML where
+  contentType _ = "text" // "html" /: ("charset", "utf-8")
+instance ToJSON a => MimeRender HTML a where
+  mimeRender _ = encode
 
 ----------------------
 type JSONAPI = Summary "Update List"
@@ -100,14 +101,10 @@ type CSVAPI = Summary "Update List (legacy v3 CSV)"
           :> "add"
           :> "form"
           :> "async"
-            :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
+            :> AsyncJobs JobLog '[FormUrlEncoded] WithTextFile JobLog
 
 csvApi :: GargServer CSVAPI
 csvApi = csvPostAsync
-
-----------------------
-
-
 
 ------------------------------------------------------------------------
 get :: HasNodeStory env err m =>
@@ -142,16 +139,6 @@ post l m  = do
   pure True
 
 ------------------------------------------------------------------------
-csvPost :: FlowCmdM env err m
-        => ListId
-        -> NgramsList
-        -> m Bool
-csvPost l m  = do
-  printDebug "[csvPost] l" l
-  printDebug "[csvPost] m" m
-  pure True
-
------------------------------------------------------------------------------
 -- | Re-index documents of a corpus with new ngrams (called orphans here)
 reIndexWith :: ( HasNodeStory env err m
                , FlowCmdM     env err m
@@ -254,6 +241,7 @@ postAsync' l (WithFile _ m _) logStatus = do
               , _scst_events    = Just []
               }
 ------------------------------------------------------------------------
+
 type CSVPostAPI = Summary "Update List (legacy v3 CSV)"
         :> "csv"
         :> "add"
@@ -261,20 +249,61 @@ type CSVPostAPI = Summary "Update List (legacy v3 CSV)"
         :> "async"
         :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
 
+readCsvText :: Text -> [(Text, Text, Text)]
+readCsvText t = case eDec of
+  Left _ -> []
+  Right dec -> Vec.toList dec
+  where
+    lt = BSL.fromStrict $ P.encodeUtf8 t
+    eDec = Csv.decodeWith
+             (Csv.defaultDecodeOptions { Csv.decDelimiter = fromIntegral (P.ord '\t') })
+             Csv.HasHeader lt :: Either Prelude.String (Vector (Text, Text, Text))
+
+parseCsvData :: [(Text, Text, Text)] -> Map NgramsTerm NgramsRepoElement
+parseCsvData lst = Map.fromList $ conv <$> lst
+  where
+    conv (_status, label, _forms) =
+        (NgramsTerm label, NgramsRepoElement { _nre_size = 1
+                                             , _nre_list = CandidateTerm
+                                             , _nre_root = Nothing
+                                             , _nre_parent = Nothing
+                                             , _nre_children = MSet Map.empty })
+
+csvPost :: FlowCmdM env err m
+        => ListId
+        -> Text
+        -> m Bool
+csvPost l m  = do
+  printDebug "[csvPost] l" l
+  -- printDebug "[csvPost] m" m
+  -- status label forms
+  let lst = readCsvText m
+  let p = parseCsvData lst
+  --printDebug "[csvPost] lst" lst
+  printDebug "[csvPost] p" p
+  _ <- setListNgrams l NgramsTerms p
+  pure True
+------------------------------------------------------------------------
+
+
+
 csvPostAsync :: GargServer CSVAPI
 csvPostAsync lId =
   serveJobsAPI $
-    JobFunction $ \f@(WithFile ft _ n) log' -> do
-      printDebug "[csvPostAsync] filetype" ft
-      printDebug "[csvPostAsync] name" n
-      csvPostAsync' lId f (liftBase . log')
+    JobFunction $ \f@(WithTextFile ft _ n) log' -> do
+      let log'' x = do
+            printDebug "[csvPostAsync] filetype" ft
+            printDebug "[csvPostAsync] name" n
+            liftBase $ log' x
+      csvPostAsync' lId f log''
+
 
 csvPostAsync' :: FlowCmdM env err m
              => ListId
-             -> WithFile
+             -> WithTextFile
              -> (JobLog -> m ())
              -> m JobLog
-csvPostAsync' l (WithFile _ m _) logStatus = do
+csvPostAsync' l (WithTextFile _ m _) logStatus = do
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
                    , _scst_remaining = Just 1
@@ -288,18 +317,3 @@ csvPostAsync' l (WithFile _ m _) logStatus = do
               , _scst_events    = Just []
               }
 ------------------------------------------------------------------------
-
-data WithFile = WithFile
-  { _wf_filetype :: !FileType
-  , _wf_data     :: !NgramsList
-  , _wf_name     :: !Text
-  } deriving (Eq, Show, Generic)
-
-makeLenses ''WithFile
-instance FromForm WithFile
-instance FromJSON WithFile where
-  parseJSON = genericParseJSON $ jsonOptions "_wf_"
-instance ToJSON WithFile where
-  toJSON = genericToJSON $ jsonOptions "_wf_"
-instance ToSchema WithFile where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wf_")

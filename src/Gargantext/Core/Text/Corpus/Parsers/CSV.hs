@@ -20,6 +20,7 @@ import qualified Data.ByteString.Lazy as BL
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(..))
+import Data.Maybe (fromMaybe)
 import Data.Text (Text, pack, length, intercalate)
 import Data.Time.Segment (jour)
 import qualified Data.Vector          as V
@@ -85,8 +86,10 @@ toDoc (CsvGargV3 did dt _ dpy dpm dpd dab dau) =
 -- | Types Conversions
 toDocs :: Vector CsvDoc -> [CsvGargV3]
 toDocs v = V.toList
-         $ V.zipWith (\nId (CsvDoc t s (IntOrDec py) pm pd abst auth)
-                       -> CsvGargV3 nId t s py pm pd abst auth )
+         $ V.zipWith (\nId (CsvDoc t s mPy pm pd abst auth)
+                       -> CsvGargV3 nId t s
+                          (fromMIntOrDec defaultYear mPy) (fromMaybe defaultMonth pm) (fromMaybe defaultDay pd)
+                          abst auth )
                        (V.enumFromN 1 (V.length v'')) v''
           where
             v'' = V.foldl (\v' sep -> V.concatMap (splitDoc (docsSize v') sep) v') v seps
@@ -96,7 +99,7 @@ toDocs v = V.toList
 fromDocs :: Vector CsvGargV3 -> Vector CsvDoc
 fromDocs docs = V.map fromDocs' docs
   where
-    fromDocs' (CsvGargV3 _ t s py pm pd abst auth) = (CsvDoc t s (IntOrDec py) pm pd abst auth)
+    fromDocs' (CsvGargV3 _ t s py pm pd abst auth) = (CsvDoc t s (Just $ IntOrDec py) (Just pm) (Just pd) abst auth)
 
 ---------------------------------------------------------------
 -- | Split a document in its context
@@ -150,12 +153,21 @@ instance FromField IntOrDec where
 instance ToField IntOrDec where
   toField (IntOrDec i) = toField i
 
+fromMIntOrDec :: Int -> Maybe IntOrDec -> Int
+fromMIntOrDec default' mVal = unIntOrDec $ fromMaybe (IntOrDec default') mVal
+defaultYear :: Int
+defaultYear = 1973
+defaultMonth :: Int
+defaultMonth = 1
+defaultDay :: Int
+defaultDay = 1
+
 data CsvDoc = CsvDoc
-    { csv_title  :: !Text
-    , csv_source :: !Text
-    , csv_publication_year  :: !IntOrDec
-    , csv_publication_month :: !Int
-    , csv_publication_day   :: !Int
+    { csv_title             :: !Text
+    , csv_source            :: !Text
+    , csv_publication_year  :: !(Maybe IntOrDec)
+    , csv_publication_month :: !(Maybe Int)
+    , csv_publication_day   :: !(Maybe Int)
     , csv_abstract          :: !Text
     , csv_authors           :: !Text
     }
@@ -172,21 +184,21 @@ instance FromNamedRecord CsvDoc where
 
 instance ToNamedRecord CsvDoc where
   toNamedRecord (CsvDoc t s py pm pd abst aut) =
-    namedRecord [ "title"  .= t
-                , "source" .= s
+    namedRecord [ "title"             .= t
+                , "source"            .= s
                 , "publication_year"  .= py
                 , "publication_month" .= pm
                 , "publication_day"   .= pd
                 , "abstract"          .= abst
                 , "authors"           .= aut
-               ]
+                ]
 
 hyperdataDocument2csvDoc :: HyperdataDocument -> CsvDoc
 hyperdataDocument2csvDoc h = CsvDoc (m  $ _hd_title h)
                                     (m  $ _hd_source h)
-                                    (IntOrDec $ mI $ _hd_publication_year h)
-                                    (mI $ _hd_publication_month h)
-                                    (mI $ _hd_publication_day   h)
+                                    (Just $ IntOrDec $ mI $ _hd_publication_year h)
+                                    (Just $ mI $ _hd_publication_month h)
+                                    (Just $ mI $ _hd_publication_day   h)
                                     (m  $ _hd_abstract h)
                                     (m  $ _hd_authors h)
 
@@ -368,7 +380,7 @@ csvHal2doc (CsvHal title source
 
 csv2doc :: CsvDoc -> HyperdataDocument
 csv2doc (CsvDoc title source
-       (IntOrDec pub_year) pub_month pub_day
+       mPubYear mPubMonth mPubDay
        abstract authors ) = HyperdataDocument (Just "CsvHal")
                                Nothing
                                Nothing
@@ -380,14 +392,18 @@ csv2doc (CsvDoc title source
                                Nothing
                                (Just source)
                                (Just abstract)
-                               (Just $ pack . show $ jour (fromIntegral pub_year) pub_month pub_day)
-                               (Just $ fromIntegral pub_year)
-                               (Just pub_month)
-                               (Just pub_day)
+                               (Just $ pack . show $ jour (fromIntegral pubYear) pubMonth pubDay)
+                               (Just pubYear)
+                               (Just pubMonth)
+                               (Just pubDay)
                                Nothing
                                Nothing
                                Nothing
                                Nothing
+  where
+    pubYear = fromMIntOrDec defaultYear mPubYear
+    pubMonth = fromMaybe defaultMonth mPubMonth
+    pubDay = fromMaybe defaultDay mPubDay
 
 ------------------------------------------------------------------------
 parseHal :: FilePath -> IO (Either Prelude.String [HyperdataDocument])
