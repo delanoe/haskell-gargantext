@@ -19,33 +19,37 @@ import Gargantext.API.Admin.EnvTypes (DevEnv)
 import Gargantext.API.Dev (withDevEnv, runCmdDev)
 import Gargantext.API.Prelude (GargError)
 import Gargantext.API.Node () -- instances only
+import Gargantext.API.Ngrams.Tools (getRepo)
 import Gargantext.Database.Prelude (Cmd'', )
+import Gargantext.Core.NodeStory
 import Gargantext.Prelude
+import Gargantext.Prelude.Config (GargConfig(..), readConfig)
 import System.Environment (getArgs)
 import Prelude (getLine)
-
--- PosTag
-import Gargantext.Database.Action.Flow (indexAllDocumentsWithPosTag)
+import GHC.IO.Exception (IOException)
 
 main :: IO ()
 main = do
-  [iniPath] <- getArgs
 
-  putStrLn "Manual method (for now):"
-  putStrLn "Upgrade your schema database with the script:"
-  putStrLn "psql gargandbV5 < ./devops/postgres/upgrade/0.0.2.6.sql"
-  putStrLn "Then press enter key when you are done"
+  putStrLn "Manual method:"
+  putStrLn "Upgrade your GarganText instance with the script:"
+  putStrLn "Then press enter key to launch upgrade."
   _ok  <- getLine
 
+  [iniPath] <- getArgs
+  cfg       <- readConfig         iniPath
+
   let
-    upgrade :: Cmd'' DevEnv GargError ()
+    -- upgrade :: Cmd'' DevEnv GargError ()
+    upgrade :: Cmd'' DevEnv IOException ()
     upgrade = do
-      -- This method does not work for now
-      -- _ <- createTable_NgramsPostag
-      _ <- indexAllDocumentsWithPosTag
+      let repo_filepath = _gc_repofilepath cfg
+      repo <- getRepo
+      _ <- liftBase $ repoMigration repo_filepath repo
       pure ()
+      
 
   withDevEnv iniPath $ \env -> do
     _ <- runCmdDev env upgrade
-    putStrLn "Uprade"
+    putStrLn "Uprade done with success"
   pure ()
