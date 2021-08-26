@@ -18,7 +18,7 @@ module Gargantext.Core.NodeStory where
 -- import Debug.Trace (traceShow)
 import Codec.Serialise (serialise, deserialise)
 import Codec.Serialise.Class 
-import Control.Concurrent (MVar(), withMVar, newMVar)
+import Control.Concurrent (MVar(), withMVar, newMVar, modifyMVar_)
 import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Control.Lens (makeLenses, Getter, (^.))
 import Control.Monad.Except
@@ -98,8 +98,8 @@ nodeStoryVar :: NodeStoryDir
              -> IO (MVar NodeListStory)
 nodeStoryVar nsd Nothing ni = nodeStoryInc nsd Nothing ni >>= newMVar
 nodeStoryVar nsd (Just mv) ni = do
-  mv' <- withMVar mv pure
-  nodeStoryInc nsd (Just mv') ni >>= newMVar
+  _ <- modifyMVar_ mv $ \mv' -> (nodeStoryInc nsd (Just mv') ni)
+  pure mv
 
 
 nodeStoryInc :: NodeStoryDir -> Maybe NodeListStory -> NodeId -> IO NodeListStory

@@ -183,7 +183,6 @@ saveRepo :: ( MonadReader env m, MonadBase IO m, HasNodeStorySaver env )
 saveRepo = liftBase =<< view hasNodeStorySaver
 
 
-
 listTypeConflictResolution :: ListType -> ListType -> ListType
 listTypeConflictResolution _ _ = undefined -- TODO Use Map User ListType
 
@@ -308,7 +307,8 @@ commitStatePatch listId (Versioned p_version p) = do
     assertValid $ transformable p q
     assertValid $ applicable p' (r ^. r_state)
     -}
-    printDebug "a version" (a ^. a_version)
+    printDebug "[commitStatePatch] a version" (a ^. a_version)
+    printDebug "[commitStatePatch] a' version" (a' ^. a_version)
     pure ( ns & unNodeStory . at listId .~ (Just a')
          , Versioned (a' ^. a_version) q'
          )
@@ -780,7 +780,6 @@ apiNgramsTableDoc dId =  getTableNgramsDoc          dId
                     :<|> scoresRecomputeTableNgrams dId
                     :<|> getTableNgramsVersion      dId
                     :<|> apiNgramsAsync             dId
-                    -- > index all the corpus accordingly (TODO AD)
 
 apiNgramsAsync :: NodeId -> GargServer TableNgramsAsyncApi
 apiNgramsAsync _dId =
