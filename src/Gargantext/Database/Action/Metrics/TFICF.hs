@@ -21,7 +21,7 @@ import qualified Data.HashMap.Strict as HM
 import Data.Maybe (fromMaybe)
 import Gargantext.Core
 import Gargantext.Core.Text.Metrics.TFICF
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getOccByNgramsOnlyFast)
+import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getOccByNgramsOnlyFast, getOccByNgramsOnlyFast_withSample)
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.NodeNode (selectCountDocs)
@@ -52,3 +52,29 @@ getTficf cId mId nt = do
             (TficfSupra (Count $ fromMaybe 0 $ HM.lookup t mapTextDoubleGlobal)
                         (Total $ fromIntegral countGlobal))
     ) mapTextDoubleLocal
+
+
+getTficf_withSample :: HasDBid NodeType 
+         => UserCorpusId
+         -> MasterCorpusId
+         -> NgramsType
+         -> Cmd err (HashMap NgramsTerm Double)
+getTficf_withSample cId mId nt = do
+  mapTextDoubleLocal <- HM.filter (> 1)
+     <$> HM.map (fromIntegral . Set.size)
+     <$> getNodesByNgramsUser cId nt
+
+  countLocal  <- selectCountDocs cId
+  let countGlobal = countLocal * 10
+
+  mapTextDoubleGlobal <- HM.map fromIntegral
+                     <$> getOccByNgramsOnlyFast_withSample mId countGlobal nt
+                            (HM.keys mapTextDoubleLocal)
+
+  pure $ HM.mapWithKey (\t n ->
+      tficf (TficfInfra (Count n                                               )
+                        (Total $ fromIntegral countLocal))
+            (TficfSupra (Count $ fromMaybe 0 $ HM.lookup t mapTextDoubleGlobal)
+                        (Total $ fromIntegral countGlobal))
+    ) mapTextDoubleLocal
+

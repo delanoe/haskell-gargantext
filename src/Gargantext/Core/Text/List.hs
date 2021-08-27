@@ -35,7 +35,7 @@ import Gargantext.Core.Text.Metrics (scored', Scored(..), scored_speExc, scored_
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getNodesByNgramsOnlyUser)
-import Gargantext.Database.Action.Metrics.TFICF (getTficf)
+import Gargantext.Database.Action.Metrics.TFICF (getTficf_withSample)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Prelude (CmdM)
 import Gargantext.Database.Query.Table.Ngrams (text2ngrams)
@@ -156,8 +156,11 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
 -- Filter 0 With Double
 -- Computing global speGen score
-  allTerms :: HashMap NgramsTerm Double <- getTficf uCid mCid nt
+  printDebug "[buldNgramsTermsList: Sample List] / start" nt
+  allTerms :: HashMap NgramsTerm Double <- getTficf_withSample uCid mCid nt
+  printDebug "[buldNgramsTermsList: Sample List / end]" nt
 
+  printDebug "[buldNgramsTermsList: Flow Social List / start]" nt
   -- PrivateFirst for first developments since Public NodeMode is not implemented yet
   socialLists :: FlowCont NgramsTerm FlowListScores
     <- flowSocialList MySelfFirst user nt ( FlowCont HashMap.empty
@@ -165,6 +168,8 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
                                                       $ List.zip (HashMap.keys   allTerms)
                                                                  (List.cycle     [mempty])
                                            )
+  printDebug "[buldNgramsTermsList: Flow Social List / end]" nt
+
   let ngramsKeys = HashMap.keysSet allTerms
 
   groupParams' <- getGroupParams groupParams (HashSet.map (text2ngrams . unNgramsTerm) ngramsKeys)
