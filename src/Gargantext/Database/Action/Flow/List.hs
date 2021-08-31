@@ -178,7 +178,7 @@ putListNgrams' listId ngramsType ns = do
   -- The modifyMVar_ would test the patch with applicable first.
   -- If valid the rest would be atomic and no merge is required.
   -}
-  var <- getRepoVar listId
+  var <- getRepoVar [listId]
   liftBase $ modifyMVar_ var $ \r -> do
     pure $ r & unNodeStory . at listId . _Just . a_version +~ 1
              & unNodeStory . at listId . _Just . a_history %~ (p :)

@@ -28,7 +28,6 @@ import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
-import qualified Data.List           as List
 import Gargantext.Core.NodeStory
 
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
@@ -46,43 +45,32 @@ getRepo = do
 getRepo' :: HasNodeStory env err m
          => [ListId] -> m NodeListStory
 getRepo' listIds = do
-  maybeNodeListStory <- head <$> List.reverse <$> mapM getNodeListStory'' listIds
-  case maybeNodeListStory of
-    Nothing  -> panic "[G.A.N.Tools.getRepo']"
-    Just nls -> pure nls 
+  f <- getNodeListStory
+  v  <- liftBase $ f listIds
+  v' <- liftBase $ readMVar v
+  pure $ v'
+
 
 getRepoVar :: HasNodeStory env err m
-           => ListId -> m (MVar NodeListStory)
+           => [ListId] -> m (MVar NodeListStory)
 getRepoVar l = do
   f <- getNodeListStory
   v  <- liftBase $ f l
   pure v
 
+
 getNodeListStory :: HasNodeStory env err m
-                 => m (NodeId -> IO (MVar NodeListStory))
+                 => m ([NodeId] -> IO (MVar NodeListStory))
 getNodeListStory = do
   env <- view hasNodeStory
   pure $ view nse_getter env
 
-getNodeListStory' :: HasNodeStory env err m
-                 => NodeId -> m (IO NodeListStory)
-getNodeListStory' n = do
-  f <- getNodeListStory
-  v <- liftBase $ f n
-  pure $ readMVar v
-
-getNodeListStory'' :: HasNodeStory env err m
-                 => NodeId -> m NodeListStory
-getNodeListStory'' n = do
-  f <- getNodeListStory
-  v  <- liftBase $ f n
-  v' <- liftBase $ readMVar v
-  pure $ v'
 
 
-
-listNgramsFromRepo :: [ListId] -> NgramsType
-                   -> NodeListStory -> HashMap NgramsTerm NgramsRepoElement
+listNgramsFromRepo :: [ListId]
+                   -> NgramsType
+                   -> NodeListStory
+                   -> HashMap NgramsTerm NgramsRepoElement
 listNgramsFromRepo nodeIds ngramsType repo =
   HM.fromList $ Map.toList
               $ Map.unionsWith mergeNgramsElement ngrams

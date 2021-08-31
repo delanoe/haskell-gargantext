@@ -249,7 +249,7 @@ setListNgrams ::  HasNodeStory env err m
 setListNgrams listId ngramsType ns = do
   printDebug "[setListNgrams]" (listId, ngramsType)
   getter <- view hasNodeStory
-  var <- liftBase $ (getter ^. nse_getter) listId
+  var <- liftBase $ (getter ^. nse_getter) [listId]
   liftBase $ modifyMVar_ var $
     pure . ( unNodeStory
            . at listId . _Just
@@ -286,7 +286,7 @@ commitStatePatch :: HasNodeStory env err m
                  -> m (Versioned NgramsStatePatch')
 commitStatePatch listId (Versioned p_version p) = do
   printDebug "[commitStatePatch]" listId
-  var <- getRepoVar listId
+  var <- getRepoVar [listId]
   vq' <- liftBase $ modifyMVar var $ \ns -> do
     let
       a = ns ^. unNodeStory . at listId . _Just
@@ -328,7 +328,7 @@ tableNgramsPull :: HasNodeStory env err m
                 -> m (Versioned NgramsTablePatch)
 tableNgramsPull listId ngramsType p_version = do
   printDebug "[tableNgramsPull]" (listId, ngramsType)
-  var <- getRepoVar listId
+  var <- getRepoVar [listId]
   r <- liftBase $ readMVar var
 
   let
@@ -467,7 +467,7 @@ getNgramsTableMap :: HasNodeStory env err m
                   -> TableNgrams.NgramsType
                   -> m (Versioned NgramsTableMap)
 getNgramsTableMap nodeId ngramsType = do
-  v    <- getRepoVar nodeId
+  v    <- getRepoVar [nodeId]
   repo <- liftBase $ readMVar v
   pure $ Versioned (repo ^. unNodeStory . at nodeId . _Just . a_version)
                    (repo ^. unNodeStory . at nodeId . _Just . a_state . at ngramsType . _Just)

@@ -7,6 +7,10 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+TODO:
+- remove
+- filter
+- charger les listes
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -35,7 +39,7 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Prelude (CmdM', HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Prelude
-import System.Directory (renameFile, createDirectoryIfMissing, doesFileExist)
+import System.Directory (renameFile, createDirectoryIfMissing, doesFileExist, removeFile)
 import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
 import qualified Data.ByteString.Lazy                   as DBL
@@ -48,7 +52,7 @@ import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 data NodeStoryEnv = NodeStoryEnv
   { _nse_var    :: !(MVar NodeListStory)
   , _nse_saver  :: !(IO ())
-  , _nse_getter :: NodeId -> IO (MVar NodeListStory)
+  , _nse_getter :: [NodeId] -> IO (MVar NodeListStory)
   --, _nse_cleaner :: !(IO ()) -- every 12 hours: cleans the repos of unused NodeStories
   -- , _nse_lock  :: !FileLock -- TODO (it depends on the option: if with database or file only)
   }
@@ -68,7 +72,7 @@ class (HasNodeStoryVar env, HasNodeStorySaver env)
     hasNodeStory :: Getter env NodeStoryEnv
 
 class HasNodeStoryVar env where
-  hasNodeStoryVar :: Getter env (NodeId -> IO (MVar NodeListStory))
+  hasNodeStoryVar :: Getter env ([NodeId] -> IO (MVar NodeListStory))
 
 class HasNodeStorySaver env where
   hasNodeStorySaver :: Getter env (IO ())
@@ -76,7 +80,7 @@ class HasNodeStorySaver env where
 ------------------------------------------------------------------------
 readNodeStoryEnv :: NodeStoryDir -> IO NodeStoryEnv
 readNodeStoryEnv nsd = do
-  mvar  <- nodeStoryVar nsd Nothing 0
+  mvar  <- nodeStoryVar nsd Nothing [0]
   saver <- mkNodeStorySaver nsd mvar
   pure $ NodeStoryEnv mvar saver (nodeStoryVar nsd (Just mvar))
 
@@ -94,11 +98,11 @@ mkNodeStorySaver nsd mvns = mkDebounce settings
 
 nodeStoryVar :: NodeStoryDir
              -> Maybe (MVar NodeListStory)
-             -> NodeId
+             -> [NodeId]
              -> IO (MVar NodeListStory)
-nodeStoryVar nsd Nothing ni = nodeStoryInc nsd Nothing ni >>= newMVar
+nodeStoryVar nsd Nothing ni = nodeStoryIncs nsd Nothing ni >>= newMVar
 nodeStoryVar nsd (Just mv) ni = do
-  _ <- modifyMVar_ mv $ \mv' -> (nodeStoryInc nsd (Just mv') ni)
+  _ <- modifyMVar_ mv $ \mv' -> (nodeStoryIncs nsd (Just mv') ni)
   pure mv
 
 
@@ -112,6 +116,32 @@ nodeStoryInc nsd (Just ns@(NodeStory nls)) ni = do
 nodeStoryInc nsd Nothing ni = nodeStoryRead nsd ni
 
 
+nodeStoryIncs :: NodeStoryDir
+              -> Maybe NodeListStory
+              -> [NodeId]
+              -> IO NodeListStory
+nodeStoryIncs _ Nothing    []        = panic "nodeStoryIncs: Empty"
+nodeStoryIncs nsd (Just nls) ns      = foldM (\m n -> nodeStoryInc nsd (Just m) n) nls ns
+nodeStoryIncs nsd Nothing    (ni:ns) = do
+  m <- nodeStoryRead nsd ni
+  nodeStoryIncs nsd (Just m) ns
+
+
+nodeStoryDec :: NodeStoryDir
+             -> NodeListStory
+             -> NodeId
+             -> IO NodeListStory
+nodeStoryDec nsd ns@(NodeStory nls) ni = do
+  case Map.lookup ni nls of
+    Nothing -> do
+      -- we make sure the corresponding file repo is really removed
+      _ <- nodeStoryRemove nsd ni
+      pure ns
+    Just _  -> do
+      let ns' = Map.filterWithKey (\k _v -> k /= ni) nls
+      _ <- nodeStoryRemove nsd ni
+      pure $ NodeStory ns'
+
 -- | TODO lock
 nodeStoryRead :: NodeStoryDir -> NodeId -> IO NodeListStory
 nodeStoryRead nsd ni = do
@@ -121,6 +151,16 @@ nodeStoryRead nsd ni = do
   if exists
      then deserialise <$> DBL.readFile nsp
      else pure (initNodeStory ni)
+
+nodeStoryRemove :: NodeStoryDir -> NodeId -> IO ()
+nodeStoryRemove nsd ni = do
+  let nsp = nodeStoryPath nsd ni
+  exists <- doesFileExist nsp
+  if exists
+     then removeFile nsp
+     else pure ()
+
+
 
 nodeStoryRead_test :: NodeStoryDir -> NodeId -> IO (Maybe [ TableNgrams.NgramsType ])
 nodeStoryRead_test nsd ni = nodeStoryRead nsd ni >>= \n -> pure
