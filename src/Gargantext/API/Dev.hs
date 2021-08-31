@@ -17,7 +17,7 @@ import Control.Monad (fail)
 import Control.Monad.Reader (runReaderT)
 import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Admin.Settings
-import Gargantext.API.Ngrams (saveRepo)
+import Gargantext.API.Ngrams (saveNodeStory)
 import Gargantext.API.Prelude
 import Gargantext.Core.NodeStory
 import Gargantext.Database.Prelude
@@ -64,7 +64,7 @@ runCmdDev :: (Show err) => DevEnv -> Cmd'' DevEnv err a -> IO a
 runCmdDev env f =
   (either (fail . show) pure =<< runCmd env f)
     `finally`
-  runReaderT saveRepo env
+  runReaderT saveNodeStory env
 
 runCmdDevNoErr :: DevEnv -> Cmd' DevEnv () a -> IO a
 runCmdDevNoErr = runCmdDev

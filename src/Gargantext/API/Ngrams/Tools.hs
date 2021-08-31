@@ -51,9 +51,9 @@ getRepo' listIds = do
   pure $ v'
 
 
-getRepoVar :: HasNodeStory env err m
+getNodeStoryVar :: HasNodeStory env err m
            => [ListId] -> m (MVar NodeListStory)
-getRepoVar l = do
+getNodeStoryVar l = do
   f <- getNodeListStory
   v  <- liftBase $ f l
   pure v

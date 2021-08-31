@@ -54,7 +54,7 @@ module Gargantext.API.Ngrams
   , r_history
   , NgramsRepo
   , NgramsRepoElement(..)
-  , saveRepo
+  , saveNodeStory
   , initRepo
 
   , RepoEnv(..)
@@ -178,9 +178,9 @@ mkChildrenGroups addOrRem nt patches =
 
 ------------------------------------------------------------------------
 
-saveRepo :: ( MonadReader env m, MonadBase IO m, HasNodeStorySaver env )
+saveNodeStory :: ( MonadReader env m, MonadBase IO m, HasNodeStorySaver env )
          => m ()
-saveRepo = liftBase =<< view hasNodeStorySaver
+saveNodeStory = liftBase =<< view hasNodeStorySaver
 
 
 listTypeConflictResolution :: ListType -> ListType -> ListType
@@ -217,7 +217,7 @@ copyListNgrams srcListId dstListId ngramsType = do
   var <- view repoVar
   liftBase $ modifyMVar_ var $
     pure . (r_state . at ngramsType %~ (Just . f . something))
-  saveRepo
+  saveNodeStory
   where
     f :: Map NodeId NgramsTableMap -> Map NodeId NgramsTableMap
     f m = m & at dstListId %~ insertNewOnly (m ^. at srcListId)
@@ -232,7 +232,7 @@ addListNgrams listId ngramsType nes = do
   var <- view repoVar
   liftBase $ modifyMVar_ var $
     pure . (r_state . at ngramsType . _Just . at listId . _Just <>~ m)
-  saveRepo
+  saveNodeStory
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
 -}
@@ -257,7 +257,7 @@ setListNgrams listId ngramsType ns = do
               . at ngramsType
               .~ Just ns
            )
-  saveRepo
+  saveNodeStory
 
 
 currentVersion :: HasNodeStory env err m
@@ -286,7 +286,7 @@ commitStatePatch :: HasNodeStory env err m
                  -> m (Versioned NgramsStatePatch')
 commitStatePatch listId (Versioned p_version p) = do
   printDebug "[commitStatePatch]" listId
-  var <- getRepoVar [listId]
+  var <- getNodeStoryVar [listId]
   vq' <- liftBase $ modifyMVar var $ \ns -> do
     let
       a = ns ^. unNodeStory . at listId . _Just
@@ -312,7 +312,7 @@ commitStatePatch listId (Versioned p_version p) = do
     pure ( ns & unNodeStory . at listId .~ (Just a')
          , Versioned (a' ^. a_version) q'
          )
-  saveRepo
+  saveNodeStory
   -- Save new ngrams
   _ <- insertNgrams (newNgramsFromNgramsStatePatch p)
 
@@ -328,7 +328,7 @@ tableNgramsPull :: HasNodeStory env err m
                 -> m (Versioned NgramsTablePatch)
 tableNgramsPull listId ngramsType p_version = do
   printDebug "[tableNgramsPull]" (listId, ngramsType)
-  var <- getRepoVar [listId]
+  var <- getNodeStoryVar [listId]
   r <- liftBase $ readMVar var
 
   let
@@ -467,7 +467,7 @@ getNgramsTableMap :: HasNodeStory env err m
                   -> TableNgrams.NgramsType
                   -> m (Versioned NgramsTableMap)
 getNgramsTableMap nodeId ngramsType = do
-  v    <- getRepoVar [nodeId]
+  v    <- getNodeStoryVar [nodeId]
   repo <- liftBase $ readMVar v
   pure $ Versioned (repo ^. unNodeStory . at nodeId . _Just . a_version)
                    (repo ^. unNodeStory . at nodeId . _Just . a_state . at ngramsType . _Just)

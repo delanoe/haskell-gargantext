@@ -43,7 +43,7 @@ import GHC.Generics (Generic)
 import Gargantext.API.Admin.Auth.Types (AuthContext)
 import Gargantext.API.Admin.Settings (newEnv)
 import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, jwtSettings, settings)
-import Gargantext.API.Ngrams (saveRepo)
+import Gargantext.API.Ngrams (saveNodeStory)
 import Gargantext.API.Prelude
 import Gargantext.API.Routes
 import Gargantext.API.Server (server)
@@ -80,7 +80,7 @@ portRouteInfo port = do
 stopGargantext :: HasNodeStorySaver env => env -> IO ()
 stopGargantext env = do
   putStrLn "----- Stopping gargantext -----"
-  runReaderT saveRepo env
+  runReaderT saveNodeStory env
 
 {-
 startGargantextMock :: PortNumber -> IO ()

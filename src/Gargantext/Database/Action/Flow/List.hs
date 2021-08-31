@@ -23,8 +23,8 @@ import Control.Monad.Reader
 import Data.Map (Map, toList)
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
-import Gargantext.API.Ngrams (saveRepo)
-import Gargantext.API.Ngrams.Tools (getRepoVar)
+import Gargantext.API.Ngrams (saveNodeStory)
+import Gargantext.API.Ngrams.Tools (getNodeStoryVar)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (HasInvalidError(..), assertValid)
 import Gargantext.Core.Types.Main (ListType(CandidateTerm))
@@ -138,8 +138,6 @@ listInsert lId ngs = mapM_ (\(typeList, ngElmts)
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-
-
 -- NOTE
 -- This is no longer part of the API.
 -- This function is maintained for its usage in Database.Action.Flow.List.
@@ -155,34 +153,33 @@ putListNgrams nodeId ngramsType nes = putListNgrams' nodeId ngramsType m
   where
     m = Map.fromList $ map (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) nes
 
-putListNgrams' :: (HasInvalidError err, HasNodeStory env err m)
-               => NodeId
-               -> TableNgrams.NgramsType
-               -> Map NgramsTerm NgramsRepoElement
-               -> m ()
-putListNgrams' listId ngramsType ns = do
-  -- printDebug "[putListNgrams'] nodeId" nodeId
-  -- printDebug "[putListNgrams'] ngramsType" ngramsType
-  -- printDebug "[putListNgrams'] ns" ns
+    putListNgrams' :: (HasInvalidError err, HasNodeStory env err m)
+                   => NodeId
+                   -> TableNgrams.NgramsType
+                   -> Map NgramsTerm NgramsRepoElement
+                   -> m ()
+    putListNgrams' listId ngramsType' ns = do
+      -- printDebug "[putListNgrams'] nodeId" nodeId
+      -- printDebug "[putListNgrams'] ngramsType" ngramsType
+      -- printDebug "[putListNgrams'] ns" ns
 
-  let p1 = NgramsTablePatch . PM.fromMap $ NgramsReplace Nothing . Just <$> ns
-      (p, p_validity) = PM.singleton ngramsType p1
-  assertValid p_validity
-  {-
-  -- TODO
-  v <- currentVersion
-  q <- commitStatePatch (Versioned v p)
-  assert empty q
-  -- What if another commit comes in between?
-  -- Shall we have a blindCommitStatePatch? It would not ask for a version but just a patch.
-  -- The modifyMVar_ would test the patch with applicable first.
-  -- If valid the rest would be atomic and no merge is required.
-  -}
-  var <- getRepoVar [listId]
-  liftBase $ modifyMVar_ var $ \r -> do
-    pure $ r & unNodeStory . at listId . _Just . a_version +~ 1
-             & unNodeStory . at listId . _Just . a_history %~ (p :)
-             & unNodeStory . at listId . _Just . a_state . at ngramsType .~ Just ns
-  saveRepo
-
+      let p1 = NgramsTablePatch . PM.fromMap $ NgramsReplace Nothing . Just <$> ns
+          (p, p_validity) = PM.singleton ngramsType' p1
+      assertValid p_validity
+      {-
+      -- TODO
+      v <- currentVersion
+      q <- commitStatePatch (Versioned v p)
+      assert empty q
+      -- What if another commit comes in between?
+      -- Shall we have a blindCommitStatePatch? It would not ask for a version but just a patch.
+      -- The modifyMVar_ would test the patch with applicable first.
+      -- If valid the rest would be atomic and no merge is required.
+      -}
+      var <- getNodeStoryVar [listId]
+      liftBase $ modifyMVar_ var $ \r -> do
+        pure $ r & unNodeStory . at listId . _Just . a_version +~ 1
+                 & unNodeStory . at listId . _Just . a_history %~ (p :)
+                 & unNodeStory . at listId . _Just . a_state . at ngramsType' .~ Just ns
+      saveNodeStory
 

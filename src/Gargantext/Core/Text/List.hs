@@ -220,7 +220,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
                                 $ setScoresWithMap mapTextDocIds (groupedMonoHead <> groupedMultHead)
 
 
-  printDebug "groupedTreeScores_SetNodeId" groupedTreeScores_SetNodeId
+  --printDebug "groupedTreeScores_SetNodeId" groupedTreeScores_SetNodeId
 
   -- Coocurrences computation
   --, t1 >= t2 -- permute byAxis diag  -- since matrix symmetric
