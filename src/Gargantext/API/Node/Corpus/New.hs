@@ -49,7 +49,8 @@ import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..){-, allDataOrigins-})
+import Gargantext.Database.Action.Flow (flowCorpus, getDataText, flowDataText, TermType(..){-, allDataOrigins-})
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Mail (sendMail)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Action.User (getUserId)
@@ -136,6 +137,7 @@ data WithQuery = WithQuery
   , _wq_datafield :: !Datafield
   , _wq_lang      :: !Lang
   , _wq_node_id   :: !Int
+  -- , _wq_flowListWith :: !FlowSocialListWith
   }
   deriving Generic
 
@@ -212,7 +214,7 @@ addToCorpusWithQuery user cid (WithQuery q dbs datafield l _nid) maybeLimit logS
                        , _scst_events    = Just []
                        }
 
-      cids <- mapM (\txt -> flowDataText user txt (Multi l) cid) txts
+      cids <- mapM (\txt -> flowDataText user txt (Multi l) cid Nothing) txts
       printDebug "corpus id" cids
       printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
       sendMail user
@@ -264,6 +266,7 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
       _cid' <- flowCorpus user
                           (Right [cid])
                           (Multi $ fromMaybe EN l)
+                          Nothing
                           (map (map toHyperdataDocument) docs)
 
       printDebug "Extraction finished   : " cid

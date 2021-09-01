@@ -27,6 +27,8 @@ import Control.Monad.Reader
 import Data.Maybe (fromMaybe)
 import Data.Pool (Pool, createPool)
 import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
+import Gargantext.Core.NodeStory
+import Gargantext.Prelude.Config (GargConfig(..), {-gc_repofilepath,-} readConfig)
 import Network.HTTP.Client.TLS (newTlsManager)
 import Servant.Auth.Server (defaultJWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
 import Servant.Client (parseBaseUrl)
@@ -38,12 +40,13 @@ import System.IO.Temp (withTempFile)
 import System.Log.FastLogger
 import qualified Data.ByteString.Lazy as L
 
+
 import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Admin.Types
 import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
 import Gargantext.Database.Prelude (databaseParameters, HasConfig(..))
 import Gargantext.Prelude
-import Gargantext.Prelude.Config (GargConfig(..), gc_repofilepath, readConfig)
+import Gargantext.Prelude.Config (gc_repofilepath)
 
 devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
@@ -97,16 +100,20 @@ type RepoDirFilePath = FilePath
 repoSnapshot :: RepoDirFilePath -> FilePath
 repoSnapshot repoDir = repoDir <> "/repo.cbor"
 
--- | TODO add hard coded file in Settings
+
+
 -- This assumes we own the lock on repoSnapshot.
 repoSaverAction :: RepoDirFilePath -> Serialise a => a -> IO ()
 repoSaverAction repoDir a = do
-  withTempFile "repos" "tmp-repo.cbor" $ \fp h -> do
+  withTempFile repoDir "tmp-repo.cbor" $ \fp h -> do
     printDebug "repoSaverAction" fp
     L.hPut h $ serialise a
     hClose h
     renameFile fp (repoSnapshot repoDir)
 
+
+
+--{-
 -- The use of mkDebounce makes sure that repoSaverAction is not called too often.
 -- If repoSaverAction start taking more time than the debounceFreq then it should
 -- be increased.
@@ -155,43 +162,46 @@ readRepoEnv repoDir = do
   -- TODO save in DB here
   saver <- mkRepoSaver repoDir mvar
   pure $ RepoEnv { _renv_var = mvar, _renv_saver = saver, _renv_lock = lock }
+--}
 
 devJwkFile :: FilePath
 devJwkFile = "dev.jwk"
 
 newEnv :: PortNumber -> FilePath -> IO Env
 newEnv port file = do
-  manager     <- newTlsManager
+  manager_env  <- newTlsManager
   settings'    <- devSettings devJwkFile <&> appPort .~ port -- TODO read from 'file'
   when (port /= settings' ^. appPort) $
     panic "TODO: conflicting settings of port"
 
-  config'      <- readConfig file
-  self_url     <- parseBaseUrl $ "http://0.0.0.0:" <> show port
-  dbParam      <- databaseParameters file
-  pool         <- newPool dbParam
-  repo         <- readRepoEnv (_gc_repofilepath config')
-  scrapers_env <- newJobEnv defaultSettings manager
-  logger       <- newStderrLoggerSet defaultBufSize
+  config_env    <- readConfig file
+  self_url_env  <- parseBaseUrl $ "http://0.0.0.0:" <> show port
+  dbParam       <- databaseParameters file
+  pool          <- newPool dbParam
+  repo          <- readRepoEnv (_gc_repofilepath config_env)
+  nodeStory_env <- readNodeStoryEnv (_gc_repofilepath config_env)
+  scrapers_env  <- newJobEnv defaultSettings manager_env
+  logger        <- newStderrLoggerSet defaultBufSize
 
   pure $ Env
-    { _env_settings = settings'
-    , _env_logger   = logger
-    , _env_pool     = pool
-    , _env_repo     = repo
-    , _env_manager  = manager
-    , _env_scrapers = scrapers_env
-    , _env_self_url = self_url
-    , _env_config   = config'
+    { _env_settings  = settings'
+    , _env_logger    = logger
+    , _env_pool      = pool
+    , _env_repo      = repo
+    , _env_nodeStory = nodeStory_env
+    , _env_manager   = manager_env
+    , _env_scrapers  = scrapers_env
+    , _env_self_url  = self_url_env
+    , _env_config    = config_env
     }
 
 newPool :: ConnectInfo -> IO (Pool Connection)
 newPool param = createPool (connect param) close 1 (60*60) 8
 
+--{-
 cleanEnv :: (HasConfig env, HasRepo env) => env -> IO ()
 cleanEnv env = do
   r <- takeMVar (env ^. repoEnv . renv_var)
   repoSaverAction (env ^. hasConfig . gc_repofilepath) r
   unlockFile (env ^. repoEnv . renv_lock)
-
-type IniPath  = FilePath
+--}

@@ -43,18 +43,21 @@ library:
   - Gargantext.API.Node
   - Gargantext.API.Node.File
   - Gargantext.API.Ngrams
+  - Gargantext.API.Ngrams.Tools
   - Gargantext.API.Ngrams.Types
   - Gargantext.API.Admin.Settings
   - Gargantext.API.Admin.EnvTypes
   - Gargantext.API.Admin.Types
   - Gargantext.API.Prelude
   - Gargantext.Core
+  - Gargantext.Core.NodeStory
   - Gargantext.Core.Methods.Distances
   - Gargantext.Core.Types
   - Gargantext.Core.Types.Individu
   - Gargantext.Core.Types.Main
   - Gargantext.Core.Utils.Prefix
   - Gargantext.Database.Action.Flow
+  - Gargantext.Database.Action.Flow.Types
   - Gargantext.Database.Action.User.New
   - Gargantext.Database.Query.Table.User
   - Gargantext.Database.Query.Table.Node
@@ -120,6 +123,7 @@ library:
   - case-insensitive
   - cassava
   - cereal     # (IGraph)
+  - cborg
   - conduit
   - conduit-extra
   - containers

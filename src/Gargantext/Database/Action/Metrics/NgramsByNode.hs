@@ -105,6 +105,18 @@ getOccByNgramsOnlyFast cId nt ngs =
   HM.fromListWith (+) <$> selectNgramsOccurrencesOnlyByNodeUser cId nt ngs
 
 
+getOccByNgramsOnlyFast_withSample :: HasDBid NodeType
+                       => CorpusId
+                       -> Int
+                       -> NgramsType
+                       -> [NgramsTerm]
+                       -> Cmd err (HashMap NgramsTerm Int)
+getOccByNgramsOnlyFast_withSample cId int nt ngs =
+  HM.fromListWith (+) <$> selectNgramsOccurrencesOnlyByNodeUser_withSample cId int nt ngs
+
+
+
+
 getOccByNgramsOnlyFast' :: CorpusId
                        -> ListId
                        -> NgramsType
@@ -190,6 +202,8 @@ selectNgramsOccurrencesOnlyByNodeUser cId nt tms =
     where
       fields = [QualifiedIdentifier Nothing "text"]
 
+
+
 -- same as queryNgramsOnlyByNodeUser but using COUNT on the node ids.
 -- Question: with the grouping is the result exactly the same (since Set NodeId for 
 -- equivalent ngrams intersections are not empty)
@@ -207,6 +221,46 @@ queryNgramsOccurrencesOnlyByNodeUser = [sql|
       AND nn.category     > 0
       GROUP BY nng.node2_id, ng.terms
   |]
+
+
+selectNgramsOccurrencesOnlyByNodeUser_withSample :: HasDBid NodeType
+                                      => CorpusId
+                                      -> Int
+                                      -> NgramsType
+                                      -> [NgramsTerm]
+                                      -> Cmd err [(NgramsTerm, Int)]
+selectNgramsOccurrencesOnlyByNodeUser_withSample cId int nt tms =
+  fmap (first NgramsTerm) <$>
+  runPGSQuery queryNgramsOccurrencesOnlyByNodeUser_withSample
+                ( int
+                , toDBid NodeDocument
+                , cId
+                , Values fields ((DPS.Only . unNgramsTerm) <$> tms)
+                , cId
+                , ngramsTypeId nt
+                )
+    where
+      fields = [QualifiedIdentifier Nothing "text"]
+
+queryNgramsOccurrencesOnlyByNodeUser_withSample :: DPS.Query
+queryNgramsOccurrencesOnlyByNodeUser_withSample = [sql|
+  WITH nodes_sample AS (SELECT id FROM nodes n TABLESAMPLE SYSTEM_ROWS (?)
+                          JOIN nodes_nodes nn ON n.id = nn.node2_id
+                            WHERE n.typename  = ?
+                            AND nn.node1_id = ?),
+       input_rows(terms) AS (?)
+  SELECT ng.terms, COUNT(nng.node2_id) FROM node_node_ngrams nng
+    JOIN ngrams ng      ON nng.ngrams_id = ng.id
+    JOIN input_rows  ir ON ir.terms      = ng.terms
+    JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
+    JOIN nodes_sample n ON nn.node2_id   = n.id
+    WHERE nn.node1_id     = ? -- CorpusId
+      AND nng.ngrams_type = ? -- NgramsTypeId
+      AND nn.category     > 0
+      GROUP BY nng.node2_id, ng.terms
+  |]
+
+
 
 queryNgramsOccurrencesOnlyByNodeUser' :: DPS.Query
 queryNgramsOccurrencesOnlyByNodeUser' = [sql|

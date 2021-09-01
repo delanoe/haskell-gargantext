@@ -25,7 +25,7 @@ import Gargantext.Prelude
 -- | Swagger Specifications
 swaggerDoc :: Swagger
 swaggerDoc = toSwagger (Proxy :: Proxy GargAPI)
-  & info.title       .~ "Gargantext"
+  & info.title       .~ "GarganText"
   & info.version     .~ (cs $ showVersion PG.version)
   -- & info.base_url     ?~ (URL "http://gargantext.org/")
   & info.description ?~ "REST API specifications"

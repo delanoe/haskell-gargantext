@@ -9,7 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 
@@ -18,33 +17,20 @@ module Gargantext.API.Ngrams.List
 
 import Control.Lens hiding (elements, Indexed)
 import Data.Aeson
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.Csv as Csv
 import Data.Either (Either(..))
 import Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HashMap
-import qualified Data.List           as List
 import Data.Map (Map, toList, fromList)
-import qualified Data.Map            as Map
 import Data.Maybe (catMaybes)
 import Data.Set (Set)
 import Data.Text (Text, concat, pack)
-import qualified Data.Text           as Text
 import Data.Vector (Vector)
-import qualified Data.Vector as Vec
-import Network.HTTP.Media ((//), (/:))
-import qualified Prelude as Prelude
-import Servant
-import Servant.Job.Async
-
-import qualified Protolude as P
-
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams (getNgramsTableMap, setListNgrams)
-import Gargantext.API.Ngrams.List.Types
 import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.API.Ngrams.Types
+import Gargantext.API.Ngrams.List.Types
 import Gargantext.API.Prelude (GargServer)
+import Gargantext.Core.NodeStory
 import Gargantext.Core.Text.Terms (ExtractedNgrams(..))
 import Gargantext.Core.Text.Terms.WithList (buildPatterns, termsInText)
 import Gargantext.Core.Types.Main (ListType(..))
@@ -58,19 +44,28 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Types (Indexed(..))
 import Gargantext.Prelude
-
+import Network.HTTP.Media ((//), (/:))
+import Servant
+import Servant.Job.Async
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Csv as Csv
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.List           as List
+import qualified Data.Map            as Map
+import qualified Data.Text           as Text
+import qualified Data.Vector         as Vec
+import qualified Prelude             as Prelude
+import qualified Protolude           as P
 ------------------------------------------------------------------------
-{-
 -- | TODO refactor 
+{-
 type API =  Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
        -- :<|> ReqBody '[JSON] NgramsList :> Post '[JSON] Bool
        :<|> PostAPI
        :<|> CSVPostAPI
-
 api :: ListId -> GargServer API
 api l = get l :<|> postAsync l :<|> csvPostAsync l
 -}
-
 
 ----------------------
 type GETAPI = Summary "Get List"
@@ -85,7 +80,6 @@ instance Accept HTML where
   contentType _ = "text" // "html" /: ("charset", "utf-8")
 instance ToJSON a => MimeRender HTML a where
   mimeRender _ = encode
-
 
 ----------------------
 type JSONAPI = Summary "Update List"
@@ -112,12 +106,8 @@ type CSVAPI = Summary "Update List (legacy v3 CSV)"
 csvApi :: GargServer CSVAPI
 csvApi = csvPostAsync
 
-----------------------
-
-
-
 ------------------------------------------------------------------------
-get :: RepoCmdM env err m =>
+get :: HasNodeStory env err m =>
        ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
 get lId = do
   lst <- get' lId
@@ -128,7 +118,7 @@ get lId = do
                              ]
                      ) lst
 
-get' :: RepoCmdM env err m
+get' :: HasNodeStory env err m
     => ListId -> m NgramsList
 get' lId = fromList
        <$> zip ngramsTypes
@@ -148,11 +138,10 @@ post l m  = do
   -- TODO reindex
   pure True
 
-
------------------------------------------------------------------------------
+------------------------------------------------------------------------
 -- | Re-index documents of a corpus with new ngrams (called orphans here)
-reIndexWith :: ( HasRepo env
-               , FlowCmdM env err m
+reIndexWith :: ( HasNodeStory env err m
+               , FlowCmdM     env err m
                )
             => CorpusId
             -> ListId
@@ -252,6 +241,14 @@ postAsync' l (WithFile _ m _) logStatus = do
               , _scst_events    = Just []
               }
 ------------------------------------------------------------------------
+
+type CSVPostAPI = Summary "Update List (legacy v3 CSV)"
+        :> "csv"
+        :> "add"
+        :> "form"
+        :> "async"
+        :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
+
 readCsvText :: Text -> [(Text, Text, Text)]
 readCsvText t = case eDec of
   Left _ -> []
@@ -300,6 +297,7 @@ csvPostAsync lId =
             liftBase $ log' x
       csvPostAsync' lId f log''
 
+
 csvPostAsync' :: FlowCmdM env err m
              => ListId
              -> WithTextFile
@@ -318,5 +316,4 @@ csvPostAsync' l (WithTextFile _ m _) logStatus = do
               , _scst_remaining = Just 0
               , _scst_events    = Just []
               }
-
 ------------------------------------------------------------------------

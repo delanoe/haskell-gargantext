@@ -66,7 +66,7 @@ api nId (SearchQuery q SearchContact) o l order = do
             <$> SearchResultContact
             <$> map (toRow aId)
             <$> searchInCorpusWithContacts nId aId q o l order
-api _ _ _ _ _ = undefined
+api _ _ _ _ _ = panic "[G.A.Search.api] undefined"
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------

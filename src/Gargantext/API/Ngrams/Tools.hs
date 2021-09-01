@@ -28,59 +28,101 @@ import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
+import Gargantext.Core.NodeStory
 
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
 mergeNgramsElement _neOld neNew = neNew
 
 type RootTerm = NgramsTerm
 
+
 getRepo :: RepoCmdM env err m => m NgramsRepo
 getRepo = do
   v <- view repoVar
   liftBase $ readMVar v
 
-listNgramsFromRepo :: [ListId] -> NgramsType
-                   -> NgramsRepo -> HashMap NgramsTerm NgramsRepoElement
-listNgramsFromRepo nodeIds ngramsType repo = ngrams
-  where
-    ngramsMap = repo ^. r_state . at ngramsType . _Just
 
-    -- TODO HashMap linked
-    ngrams    = HM.fromList $ Map.toList $ Map.unionsWith mergeNgramsElement
-                [ ngramsMap ^. at nodeId . _Just | nodeId <- nodeIds ]
+getRepo' :: HasNodeStory env err m
+         => [ListId] -> m NodeListStory
+getRepo' listIds = do
+  f <- getNodeListStory
+  v  <- liftBase $ f listIds
+  v' <- liftBase $ readMVar v
+  pure $ v'
+
+
+getNodeStoryVar :: HasNodeStory env err m
+           => [ListId] -> m (MVar NodeListStory)
+getNodeStoryVar l = do
+  f <- getNodeListStory
+  v  <- liftBase $ f l
+  pure v
+
+
+getNodeListStory :: HasNodeStory env err m
+                 => m ([NodeId] -> IO (MVar NodeListStory))
+getNodeListStory = do
+  env <- view hasNodeStory
+  pure $ view nse_getter env
+
+
+
+listNgramsFromRepo :: [ListId]
+                   -> NgramsType
+                   -> NodeListStory
+                   -> HashMap NgramsTerm NgramsRepoElement
+listNgramsFromRepo nodeIds ngramsType repo =
+  HM.fromList $ Map.toList
+              $ Map.unionsWith mergeNgramsElement ngrams
+    where
+      ngrams = [ repo
+               ^. unNodeStory
+                . at nodeId . _Just
+                . a_state
+                . at ngramsType . _Just
+                | nodeId <- nodeIds
+                ]
+
 
 
 -- TODO-ACCESS: We want to do the security check before entering here.
 --              Add a static capability parameter would be nice.
 --              Ideally this is the access to `repoVar` which needs to
 --              be properly guarded.
-getListNgrams :: RepoCmdM env err m
+getListNgrams :: HasNodeStory env err m
               => [ListId] -> NgramsType
               -> m (HashMap NgramsTerm NgramsRepoElement)
-getListNgrams nodeIds ngramsType = listNgramsFromRepo nodeIds ngramsType <$> getRepo
+getListNgrams nodeIds ngramsType = listNgramsFromRepo nodeIds ngramsType
+                                 <$> getRepo' nodeIds
 
-getTermsWith :: (RepoCmdM env err m, Eq a, Hashable a)
+
+getTermsWith :: (HasNodeStory env err m, Eq a, Hashable a)
           => (NgramsTerm -> a) -> [ListId]
           -> NgramsType -> Set ListType
           -> m (HashMap a [a])
-getTermsWith f ls ngt lts = HM.fromListWith (<>)
+getTermsWith f ls ngt lts  = HM.fromListWith (<>)
                       <$> map toTreeWith
                       <$> HM.toList
                       <$> HM.filter (\f' -> Set.member (fst f') lts)
                       <$> mapTermListRoot ls ngt
-                      <$> getRepo
+                      <$> getRepo' ls
   where
     toTreeWith (t, (_lt, maybeRoot)) = case maybeRoot of
       Nothing -> (f t, [])
       Just  r -> (f r, [f t])
 
+
+
 mapTermListRoot :: [ListId]
                 -> NgramsType
-                -> NgramsRepo
+                -> NodeListStory
                 -> HashMap NgramsTerm (ListType, Maybe NgramsTerm)
 mapTermListRoot nodeIds ngramsType repo =
       (\nre -> (_nre_list nre, _nre_root nre))
   <$> listNgramsFromRepo nodeIds ngramsType repo
+
+
+
 
 filterListWithRootHashMap :: ListType
                           -> HashMap NgramsTerm (ListType, Maybe NgramsTerm)
@@ -122,11 +164,17 @@ groupNodesByNgrams syn occs = HM.fromListWith (<>) occs'
 
 data Diagonal = Diagonal Bool
 
-getCoocByNgrams :: Diagonal -> HashMap NgramsTerm (Set NodeId) -> HashMap (NgramsTerm, NgramsTerm) Int
+getCoocByNgrams :: Diagonal
+                -> HashMap NgramsTerm (Set NodeId)
+                -> HashMap (NgramsTerm, NgramsTerm) Int
 getCoocByNgrams = getCoocByNgrams' identity
 
 
-getCoocByNgrams' :: (Hashable a, Ord a, Ord c) => (b -> Set c) -> Diagonal -> HashMap a b -> HashMap (a, a) Int
+getCoocByNgrams' :: (Hashable a, Ord a, Ord c)
+                 => (b -> Set c)
+                 -> Diagonal
+                 -> HashMap a b
+                 -> HashMap (a, a) Int
 getCoocByNgrams' f (Diagonal diag) m =
   HM.fromList [( (t1,t2)
                , maybe 0 Set.size $ Set.intersection

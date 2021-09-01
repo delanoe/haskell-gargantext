@@ -54,7 +54,7 @@ module Gargantext.API.Ngrams
   , r_history
   , NgramsRepo
   , NgramsRepoElement(..)
-  , saveRepo
+  , saveNodeStory
   , initRepo
 
   , RepoEnv(..)
@@ -63,10 +63,6 @@ module Gargantext.API.Ngrams
 
   , TabType(..)
 
-  , HasRepoVar(..)
-  , HasRepoSaver(..)
-  , HasRepo(..)
-  , RepoCmdM
   , QueryParamR
   , TODO
 
@@ -102,10 +98,12 @@ import Formatting (hprint, int, (%))
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
+import Gargantext.API.Job
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude
-import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid)
-import Gargantext.Core.Utils (something)
+import Gargantext.Core.NodeStory
+import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid, HasInvalidError)
+import Gargantext.API.Ngrams.Tools
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Config (userMaster)
@@ -117,7 +115,6 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Schema.Node (node_id, node_parent_id, node_user_id)
 import Gargantext.Prelude hiding (log)
-import Gargantext.API.Job
 import Gargantext.Prelude.Clock (hasTime, getTime)
 import Prelude (error)
 import Servant hiding (Patch)
@@ -181,24 +178,27 @@ mkChildrenGroups addOrRem nt patches =
 
 ------------------------------------------------------------------------
 
-saveRepo :: ( MonadReader env m, MonadBase IO m, HasRepoSaver env )
+saveNodeStory :: ( MonadReader env m, MonadBase IO m, HasNodeStorySaver env )
          => m ()
-saveRepo = liftBase =<< view repoSaver
+saveNodeStory = liftBase =<< view hasNodeStorySaver
+
 
 listTypeConflictResolution :: ListType -> ListType -> ListType
 listTypeConflictResolution _ _ = undefined -- TODO Use Map User ListType
 
+
 ngramsStatePatchConflictResolution
   :: TableNgrams.NgramsType
-  -> NodeId
   -> NgramsTerm
   -> ConflictResolutionNgramsPatch
-ngramsStatePatchConflictResolution _ngramsType _nodeId _ngramsTerm
+ngramsStatePatchConflictResolution _ngramsType _ngramsTerm
   = (ours, (const ours, ours), (False, False))
                              -- (False, False) mean here that Mod has always priority.
                              -- (True, False) <- would mean priority to the left (same as ours).
-
   -- undefined {- TODO think this through -}, listTypeConflictResolution)
+
+
+
 
 -- Current state:
 --   Insertions are not considered as patches,
@@ -217,7 +217,7 @@ copyListNgrams srcListId dstListId ngramsType = do
   var <- view repoVar
   liftBase $ modifyMVar_ var $
     pure . (r_state . at ngramsType %~ (Just . f . something))
-  saveRepo
+  saveNodeStory
   where
     f :: Map NodeId NgramsTableMap -> Map NodeId NgramsTableMap
     f m = m & at dstListId %~ insertNewOnly (m ^. at srcListId)
@@ -232,65 +232,70 @@ addListNgrams listId ngramsType nes = do
   var <- view repoVar
   liftBase $ modifyMVar_ var $
     pure . (r_state . at ngramsType . _Just . at listId . _Just <>~ m)
-  saveRepo
+  saveNodeStory
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
 -}
 
--- UNSAFE
-rmListNgrams ::  RepoCmdM env err m
-              => ListId
-              -> TableNgrams.NgramsType
-              -> m ()
-rmListNgrams l nt = setListNgrams l nt mempty
-
 -- | TODO: incr the Version number
 -- && should use patch
 -- UNSAFE
-setListNgrams ::  RepoCmdM env err m
+
+setListNgrams ::  HasNodeStory env err m
               => NodeId
               -> TableNgrams.NgramsType
               -> Map NgramsTerm NgramsRepoElement
               -> m ()
 setListNgrams listId ngramsType ns = do
-  var <- view repoVar
+  printDebug "[setListNgrams]" (listId, ngramsType)
+  getter <- view hasNodeStory
+  var <- liftBase $ (getter ^. nse_getter) [listId]
   liftBase $ modifyMVar_ var $
-    pure . ( r_state
-           . at ngramsType %~
-             (Just .
-               (at listId .~ ( Just ns))
-               . something
-             )
+    pure . ( unNodeStory
+           . at listId . _Just
+            . a_state
+              . at ngramsType
+              .~ Just ns
            )
-  printDebug "List modified" NodeList
-  saveRepo
+  saveNodeStory
 
 
-currentVersion :: RepoCmdM env err m
-               => m Version
-currentVersion = do
-  var <- view repoVar
-  r   <- liftBase $ readMVar var
-  pure $ r ^. r_version
+currentVersion :: HasNodeStory env err m
+               => ListId -> m Version
+currentVersion listId = do
+  nls <- getRepo' [listId]
+  pure $ nls ^. unNodeStory . at listId . _Just . a_version
 
-newNgramsFromNgramsStatePatch :: NgramsStatePatch -> [Ngrams]
+
+newNgramsFromNgramsStatePatch :: NgramsStatePatch' -> [Ngrams]
 newNgramsFromNgramsStatePatch p =
   [ text2ngrams (unNgramsTerm n)
-  | (n,np) <- p ^.. _PatchMap . each . _PatchMap . each . _NgramsTablePatch . _PatchMap . ifolded . withIndex
+  | (n,np) <- p ^.. _PatchMap
+                -- . each . _PatchMap
+                . each . _NgramsTablePatch
+                . _PatchMap . ifolded . withIndex
   , _ <- np ^.. patch_new . _Just
   ]
 
--- tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
-commitStatePatch :: RepoCmdM env err m => Versioned NgramsStatePatch -> m (Versioned NgramsStatePatch)
-commitStatePatch (Versioned p_version p) = do
-  var <- view repoVar
-  vq' <- liftBase $ modifyMVar var $ \r -> do
+
+
+
+commitStatePatch :: HasNodeStory env err m
+                 => ListId
+                 ->    Versioned NgramsStatePatch'
+                 -> m (Versioned NgramsStatePatch')
+commitStatePatch listId (Versioned p_version p) = do
+  printDebug "[commitStatePatch]" listId
+  var <- getNodeStoryVar [listId]
+  vq' <- liftBase $ modifyMVar var $ \ns -> do
     let
-      q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
+      a = ns ^. unNodeStory . at listId . _Just
+      q = mconcat $ take (a ^. a_version - p_version) (a ^. a_history)
       (p', q') = transformWith ngramsStatePatchConflictResolution p q
-      r' = r & r_version +~ 1
-             & r_state   %~ act p'
-             & r_history %~ (p' :)
+      a' = a & a_version +~ 1
+             & a_state   %~ act p'
+             & a_history %~ (p' :)
+
     {-
     -- Ideally we would like to check these properties. However:
     -- * They should be checked only to debug the code. The client data
@@ -302,35 +307,46 @@ commitStatePatch (Versioned p_version p) = do
     assertValid $ transformable p q
     assertValid $ applicable p' (r ^. r_state)
     -}
-    pure (r', Versioned (r' ^. r_version) q')
-
-  saveRepo
-
+    printDebug "[commitStatePatch] a version" (a ^. a_version)
+    printDebug "[commitStatePatch] a' version" (a' ^. a_version)
+    pure ( ns & unNodeStory . at listId .~ (Just a')
+         , Versioned (a' ^. a_version) q'
+         )
+  saveNodeStory
   -- Save new ngrams
   _ <- insertNgrams (newNgramsFromNgramsStatePatch p)
 
   pure vq'
 
+
+
 -- This is a special case of tableNgramsPut where the input patch is empty.
-tableNgramsPull :: RepoCmdM env err m
+tableNgramsPull :: HasNodeStory env err m
                 => ListId
                 -> TableNgrams.NgramsType
                 -> Version
                 -> m (Versioned NgramsTablePatch)
 tableNgramsPull listId ngramsType p_version = do
-  var <- view repoVar
+  printDebug "[tableNgramsPull]" (listId, ngramsType)
+  var <- getNodeStoryVar [listId]
   r <- liftBase $ readMVar var
 
   let
-    q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
-    q_table = q ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
+    a = r ^. unNodeStory . at listId . _Just
+    q = mconcat $ take (a ^. a_version - p_version) (a ^. a_history)
+    q_table = q ^. _PatchMap . at ngramsType . _Just
 
-  pure (Versioned (r ^. r_version) q_table)
+  pure (Versioned (a ^. a_version) q_table)
 
+
+
+
+-- tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
 -- TODO-ACCESS check
-tableNgramsPut :: ( FlowCmdM env err m
+tableNgramsPut :: ( HasNodeStory env err m
+                   , HasInvalidError err
                   , HasSettings env
                   )
                  => TabType
@@ -339,24 +355,26 @@ tableNgramsPut :: ( FlowCmdM env err m
                  -> m (Versioned NgramsTablePatch)
 tableNgramsPut tabType listId (Versioned p_version p_table)
   | p_table == mempty = do
+      printDebug "[tableNgramsPut]" ("TableEmpty" :: Text)
       let ngramsType        = ngramsTypeFromTabType tabType
       tableNgramsPull listId ngramsType p_version
 
   | otherwise         = do
+      printDebug "[tableNgramsPut]" ("TableNonEmpty" :: Text)
       let ngramsType        = ngramsTypeFromTabType tabType
-          (p0, p0_validity) = PM.singleton listId p_table
-          (p, p_validity)   = PM.singleton ngramsType p0
+          (p, p_validity)   = PM.singleton ngramsType p_table
 
-      assertValid p0_validity
       assertValid p_validity
 
-      ret <- commitStatePatch (Versioned p_version p)
-        <&> v_data %~ (view (_PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just))
+      ret <- commitStatePatch listId (Versioned p_version p)
+        <&> v_data %~ (view (_PatchMap . at ngramsType . _Just))
 
       pure ret
 
 
-tableNgramsPostChartsAsync :: ( FlowCmdM env err m
+
+tableNgramsPostChartsAsync :: ( HasNodeStory env err m
+                              , FlowCmdM     env err m
                               , HasNodeError err
                               , HasSettings env
                               )
@@ -372,17 +390,17 @@ tableNgramsPostChartsAsync utn logStatus = do
           _uId = node ^. node_user_id
           mCId = node ^. node_parent_id
 
-      printDebug "[tableNgramsPut] tabType" tabType
-      printDebug "[tableNgramsPut] listId" listId
+      -- printDebug "[tableNgramsPostChartsAsync] tabType" tabType
+      -- printDebug "[tableNgramsPostChartsAsync] listId" listId
 
       case mCId of
         Nothing -> do
-          printDebug "[tableNgramsPut] can't update charts, no parent, nId" nId
+          printDebug "[tableNgramsPostChartsAsync] can't update charts, no parent, nId" nId
           pure $ jobLogFail $ jobLogInit 1
         Just cId -> do
           case tabType of
             Authors -> do
-              -- printDebug "[tableNgramsPut] Authors, updating Pie, cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] Authors, updating Pie, cId" cId
               (logRef, logRefSuccess, getRef) <- runJobLog 1 logStatus
               logRef
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
@@ -390,22 +408,22 @@ tableNgramsPostChartsAsync utn logStatus = do
 
               getRef
             Institutes -> do
-              -- printDebug "[tableNgramsPut] Institutes, updating Tree, cId" cId
-              -- printDebug "[tableNgramsPut] updating tree StopTerm, cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] Institutes, updating Tree, cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] updating tree StopTerm, cId" cId
               (logRef, logRefSuccess, getRef) <- runJobLog 3 logStatus
               logRef
               _ <- Metrics.updateTree cId (Just listId) tabType StopTerm
-              -- printDebug "[tableNgramsPut] updating tree CandidateTerm, cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] updating tree CandidateTerm, cId" cId
               logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType CandidateTerm
-              -- printDebug "[tableNgramsPut] updating tree MapTerm, cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] updating tree MapTerm, cId" cId
               logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
               logRefSuccess
 
               getRef
             Sources -> do
-              -- printDebug "[tableNgramsPut] Sources, updating chart, cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] Sources, updating chart, cId" cId
               (logRef, logRefSuccess, getRef) <- runJobLog 1 logStatus
               logRef
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
@@ -413,7 +431,7 @@ tableNgramsPostChartsAsync utn logStatus = do
 
               getRef
             Terms -> do
-              -- printDebug "[tableNgramsPut] Terms, updating Metrics (Histo), cId" cId
+              -- printDebug "[tableNgramsPostChartsAsync] Terms, updating Metrics (Histo), cId" cId
               (logRef, logRefSuccess, getRef) <- runJobLog 6 logStatus
               logRef
 {-
@@ -433,7 +451,7 @@ tableNgramsPostChartsAsync utn logStatus = do
 
               getRef
             _ -> do
-              printDebug "[tableNgramsPut] no update for tabType = " tabType
+              printDebug "[tableNgramsPostChartsAsync] no update for tabType = " tabType
               pure $ jobLogFail $ jobLogInit 1
 
   {-
@@ -444,17 +462,18 @@ tableNgramsPostChartsAsync utn logStatus = do
   }
   -}
 
-getNgramsTableMap :: RepoCmdM env err m
+getNgramsTableMap :: HasNodeStory env err m
                   => NodeId
                   -> TableNgrams.NgramsType
                   -> m (Versioned NgramsTableMap)
 getNgramsTableMap nodeId ngramsType = do
-  v    <- view repoVar
+  v    <- getNodeStoryVar [nodeId]
   repo <- liftBase $ readMVar v
-  pure $ Versioned (repo ^. r_version)
-                   (repo ^. r_state . at ngramsType . _Just . at nodeId . _Just)
+  pure $ Versioned (repo ^. unNodeStory . at nodeId . _Just . a_version)
+                   (repo ^. unNodeStory . at nodeId . _Just . a_state . at ngramsType . _Just)
 
-dumpJsonTableMap :: RepoCmdM env err m
+
+dumpJsonTableMap :: HasNodeStory env err m
                  => Text
                  -> NodeId
                  -> TableNgrams.NgramsType
@@ -463,6 +482,7 @@ dumpJsonTableMap fpath nodeId ngramsType = do
   m <- getNgramsTableMap nodeId ngramsType
   liftBase $ DTL.writeFile (unpack fpath) (DAT.encodeToLazyText m)
   pure ()
+
 
 type MinSize = Int
 type MaxSize = Int
@@ -474,7 +494,7 @@ type MaxSize = Int
 
 
 getTableNgrams :: forall env err m.
-                  (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+                  (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
                => NodeType -> NodeId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
@@ -595,8 +615,9 @@ getTableNgrams _nType nId tabType listId limit_ offset
   pure $ toVersionedWithCount fltrCount tableMap3
 
 
+
 scoresRecomputeTableNgrams :: forall env err m.
-  (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+  (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
   => NodeId -> TabType -> ListId -> m Int
 scoresRecomputeTableNgrams nId tabType listId = do
   tableMap <- getNgramsTableMap listId ngramsType
@@ -618,6 +639,7 @@ scoresRecomputeTableNgrams nId tabType listId = do
         setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 
       pure $ table & each %~ setOcc
+
 
 
 
@@ -690,7 +712,7 @@ type TableNgramsAsyncApi = Summary "Table Ngrams Async API"
                            :> "update"
                            :> AsyncJobs JobLog '[JSON] UpdateTableNgramsCharts JobLog
 
-getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+getTableNgramsCorpus :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
                => NodeId
                -> TabType
                -> ListId
@@ -706,12 +728,17 @@ getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize o
     where
       searchQuery (NgramsTerm nt) = maybe (const True) isInfixOf mt nt
 
-getTableNgramsVersion :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+
+
+getTableNgramsVersion :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
                => NodeId
                -> TabType
                -> ListId
                -> m Version
-getTableNgramsVersion _nId _tabType _listId = currentVersion
+getTableNgramsVersion _nId _tabType listId = currentVersion listId
+
+
+
   -- TODO: limit?
   -- Versioned { _v_version = v } <- getTableNgramsCorpus nId tabType listId 100000 Nothing Nothing Nothing Nothing Nothing Nothing
   -- This line above looks like a waste of computation to finally get only the version.
@@ -719,7 +746,7 @@ getTableNgramsVersion _nId _tabType _listId = currentVersion
 
 
 -- | Text search is deactivated for now for ngrams by doc only
-getTableNgramsDoc :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+getTableNgramsDoc :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
                => DocId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
@@ -753,7 +780,6 @@ apiNgramsTableDoc dId =  getTableNgramsDoc          dId
                     :<|> scoresRecomputeTableNgrams dId
                     :<|> getTableNgramsVersion      dId
                     :<|> apiNgramsAsync             dId
-                    -- > index all the corpus accordingly (TODO AD)
 
 apiNgramsAsync :: NodeId -> GargServer TableNgramsAsyncApi
 apiNgramsAsync _dId =
@@ -777,14 +803,12 @@ apiNgramsAsync _dId =
 -- * currentVersion: good computation, good bandwidth, bad precision.
 -- * listNgramsChangedSince: good precision, good bandwidth, bad computation.
 -- * tableNgramsPull: good precision, good bandwidth (if you use the received data!), bad computation.
-listNgramsChangedSince :: RepoCmdM env err m
+listNgramsChangedSince :: HasNodeStory env err m
                        => ListId -> TableNgrams.NgramsType -> Version -> m (Versioned Bool)
 listNgramsChangedSince listId ngramsType version
   | version < 0 =
-      Versioned <$> currentVersion <*> pure True
+      Versioned <$> currentVersion listId <*> pure True
   | otherwise   =
       tableNgramsPull listId ngramsType version & mapped . v_data %~ (== mempty)
-
-
 
 

@@ -15,6 +15,7 @@ import Control.Lens hiding (cons)
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Gargantext.API.Ngrams.Types
+import Gargantext.Core.NodeStory
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Types (ListId)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
@@ -37,8 +38,8 @@ data History = History_User
 history :: History
         -> [NgramsType]
         -> [ListId]
-        -> Repo s NgramsStatePatch
-        -> Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])
+        -> NodeStory s NgramsStatePatch'
+        -> Map ListId (Map NgramsType [HashMap NgramsTerm NgramsPatch])
 history History_User t l = clean . (history' t l)
   where
     clean = Map.map (Map.map List.init)
@@ -53,35 +54,19 @@ history _ t l = history' t l
 ------------------------------------------------------------------------
 history' :: [NgramsType]
         -> [ListId]
-        -> Repo s NgramsStatePatch
-        -> Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])
-history' types lists = merge
-                    . map (Map.map ( Map.map cons))
-                    . map (Map.map ((Map.filterWithKey (\k _ -> List.elem k lists))))
-                    . map           (Map.filterWithKey (\k _ -> List.elem k types))
-                    . map toMap
-                    . view r_history
-
-
-merge :: [Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])]
-      ->  Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])
-merge = Map.unionsWith merge'
+        -> NodeStory s NgramsStatePatch'
+        -> Map ListId (Map NgramsType [HashMap NgramsTerm NgramsPatch])
+history' types lists = (Map.map (Map.unionsWith (<>)))
+                    . (Map.map (map (Map.filterWithKey (\k _ -> List.elem k types))))
+                    . (Map.map (map toMap))
+                    . (Map.map (view a_history))
+                    . (Map.filterWithKey (\k _ -> List.elem k lists))
+                    . (view unNodeStory)
   where
-    merge' :: Map ListId [HashMap NgramsTerm NgramsPatch]
-           -> Map ListId [HashMap NgramsTerm NgramsPatch]
-           -> Map ListId [HashMap NgramsTerm NgramsPatch]
-    merge' = Map.unionWith (<>)
 
+    toMap :: PatchMap NgramsType NgramsTablePatch
+          -> Map NgramsType [HashMap NgramsTerm NgramsPatch]
+    toMap m = Map.map (cons . unNgramsTablePatch)
+            $ unPatchMapToMap m
 
-toMap :: PatchMap NgramsType
-           (PatchMap ListId
-            (NgramsTablePatch
-            )
-          )
-        -> Map NgramsType
-           (Map ListId
-            (HashMap NgramsTerm NgramsPatch
-            )
-           )
-toMap = Map.map (Map.map unNgramsTablePatch) . (Map.map unPatchMapToMap) . unPatchMapToMap
 

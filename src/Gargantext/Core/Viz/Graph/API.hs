@@ -16,18 +16,18 @@ Portability : POSIX
 module Gargantext.Core.Viz.Graph.API
   where
 
-import Control.Lens (set, (^.), _Just, (^?))
+import Control.Lens (set, (^.), _Just, (^?), at)
 import Data.Aeson
 import Data.Maybe (fromMaybe)
 import Data.Swagger
-import Data.Text
+import Data.Text hiding (head)
 import Debug.Trace (trace)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams.Tools
-import Gargantext.API.Ngrams.Types (NgramsRepo, r_version)
 import Gargantext.API.Prelude
 import Gargantext.Core.Methods.Distances (Distance(..), GraphMetric(..), withMetric)
+import Gargantext.Core.NodeStory
 import Gargantext.Core.Types.Main
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.GEXF ()
@@ -42,13 +42,14 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.Node.User (getNodeUser)
+import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.Node (node_parent_id, node_hyperdata, node_name, node_user_id)
 import Gargantext.Prelude
 import Servant
 import Servant.Job.Async
 import Servant.XML
 import qualified Data.HashMap.Strict as HashMap
+
 ------------------------------------------------------------------------
 -- | There is no Delete specific API for Graph since it can be deleted
 -- as simple Node.
@@ -80,7 +81,6 @@ graphAPI u n = getGraph         u n
 getGraph :: UserId -> NodeId -> GargNoServer HyperdataGraphAPI
 getGraph _uId nId = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
-  repo <- getRepo
 
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
@@ -88,6 +88,9 @@ getGraph _uId nId = do
     cId = maybe (panic "[G.V.G.API] Node has no parent")
                   identity
                   $ nodeGraph ^. node_parent_id
+
+  listId <- defaultList cId
+  repo <- getRepo' [listId]
 
   -- TODO Distance in Graph params
   case graph of
@@ -118,15 +121,17 @@ recomputeGraph _uId nId maybeDistance = do
                       Nothing -> graph ^? _Just . graph_metadata . _Just . gm_metric
                       _       -> maybeDistance
 
-  repo <- getRepo
   let
-    v   = repo ^. r_version
     cId = maybe (panic "[G.V.G.API.recomputeGraph] Node has no parent")
                   identity
                   $ nodeGraph ^. node_parent_id
     similarity = case graphMetric of
                    Nothing -> withMetric Order1
                    Just m  -> withMetric m
+
+  listId  <- defaultList cId
+  repo <- getRepo' [listId]
+  let v   = repo ^. unNodeStory . at listId . _Just . a_version
 
   case graph of
     Nothing     -> do
@@ -150,7 +155,7 @@ computeGraph :: HasNodeError err
              => CorpusId
              -> Distance
              -> NgramsType
-             -> NgramsRepo
+             -> NodeListStory
              -> Cmd err Graph
 computeGraph cId d nt repo = do
   lId  <- defaultList cId
@@ -175,7 +180,7 @@ computeGraph cId d nt repo = do
 defaultGraphMetadata :: HasNodeError err
                      => CorpusId
                      -> Text
-                     -> NgramsRepo
+                     -> NodeListStory
                      -> GraphMetric
                      -> Cmd err GraphMetadata
 defaultGraphMetadata cId t repo gm = do
@@ -191,7 +196,7 @@ defaultGraphMetadata cId t repo gm = do
         , LegendField 3 "#FFF" "Cluster3"
         , LegendField 4 "#FFF" "Cluster4"
         ]
-      , _gm_list = (ListForGraph lId (repo ^. r_version))
+      , _gm_list = (ListForGraph lId (repo ^. unNodeStory . at lId . _Just . a_version))
       , _gm_startForceAtlas = True
     }
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
@@ -252,8 +257,13 @@ graphVersions nId = do
                 . gm_list
                 . lfg_version
 
-  repo <- getRepo
-  let v = repo ^. r_version
+    cId = maybe (panic "[G.V.G.API] Node has no parent")
+                  identity
+                  $ nodeGraph ^. node_parent_id
+
+  listId <- defaultList cId
+  repo <- getRepo' [listId]
+  let v = repo ^. unNodeStory . at listId . _Just . a_version
 
   pure $ GraphVersions { gv_graph = listVersion
                        , gv_repo = v }

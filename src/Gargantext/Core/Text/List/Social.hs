@@ -16,6 +16,7 @@ import Data.Map (Map)
 import Data.Monoid (mconcat)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Ngrams.Types
+import Gargantext.Core.NodeStory
 import Gargantext.Core.Text.List.Social.Find
 import Gargantext.Core.Text.List.Social.History
 import Gargantext.Core.Text.List.Social.Patch
@@ -35,8 +36,12 @@ import Gargantext.Prelude
 -- | FlowSocialListPriority
 -- Sociological assumption: either private or others (public) first
 -- This parameter depends on the user choice
-data FlowSocialListPriority = MySelfFirst | OthersFirst
 
+data FlowSocialListWith = FlowSocialListWithPriority { fslw_priority :: FlowSocialListPriority }
+                        | FlowSocialListWithLists    { fslw_lists :: [ListId] }
+
+
+data FlowSocialListPriority = MySelfFirst | OthersFirst
 flowSocialListPriority :: FlowSocialListPriority -> [NodeMode]
 flowSocialListPriority MySelfFirst = [Private{-, Shared, Public -}]
 flowSocialListPriority OthersFirst = reverse $ flowSocialListPriority MySelfFirst
@@ -49,7 +54,21 @@ keepAllParents _           = KeepAllParents True
 -}
 
 ------------------------------------------------------------------------
-flowSocialList :: ( RepoCmdM env err m
+flowSocialList :: ( HasNodeStory env err m
+                   , CmdM     env err m
+                   , HasNodeError err
+                   , HasTreeError err
+                   )
+                  => Maybe FlowSocialListWith
+                  -> User
+                  -> NgramsType
+                  -> FlowCont NgramsTerm FlowListScores
+                  -> m (FlowCont NgramsTerm FlowListScores)
+flowSocialList Nothing u = flowSocialList' MySelfFirst u
+flowSocialList (Just (FlowSocialListWithPriority p)) u = flowSocialList' p u
+flowSocialList (Just (FlowSocialListWithLists    ls)) _ = getHistoryScores ls History_User
+
+flowSocialList' :: ( HasNodeStory env err m
                    , CmdM     env err m
                    , HasNodeError err
                    , HasTreeError err
@@ -58,12 +77,12 @@ flowSocialList :: ( RepoCmdM env err m
                   -> User -> NgramsType
                   -> FlowCont NgramsTerm FlowListScores
                   -> m (FlowCont NgramsTerm FlowListScores)
-flowSocialList flowPriority user nt flc =
+flowSocialList' flowPriority user nt flc =
   mconcat <$> mapM (flowSocialListByMode'   user nt flc)
                    (flowSocialListPriority flowPriority)
     where
 
-      flowSocialListByMode' :: ( RepoCmdM env err m
+      flowSocialListByMode' :: ( HasNodeStory env err m
                                , CmdM     env err m
                                , HasNodeError err
                                , HasTreeError err
@@ -77,7 +96,7 @@ flowSocialList flowPriority user nt flc =
         >>= flowSocialListByModeWith nt' flc'
 
 
-      flowSocialListByModeWith :: ( RepoCmdM env err m
+      flowSocialListByModeWith :: ( HasNodeStory env err m
                                   , CmdM     env err m
                                   , HasNodeError err
                                   , HasTreeError err
@@ -87,27 +106,24 @@ flowSocialList flowPriority user nt flc =
                                -> [ListId]
                                -> m (FlowCont NgramsTerm FlowListScores)
       flowSocialListByModeWith nt'' flc'' listes =
-        getHistoryScores History_User nt'' flc'' listes
-        {-
-            mapM (\l -> getListNgrams [l] nt'') listes
-        >>= pure
-          . toFlowListScores (keepAllParents nt'') flc''
-        -}
+        getHistoryScores listes History_User nt'' flc''
+
+
 -----------------------------------------------------------------
-getHistoryScores :: ( RepoCmdM env err m
-                    , CmdM     env err m
-                    , HasNodeError err
-                    , HasTreeError err
+getHistoryScores :: ( HasNodeStory env err m
+                    , CmdM         env err m
+                    , HasNodeError     err
+                    , HasTreeError     err
                     )
-                 => History
+                 => [ListId]
+                 -> History
                  -> NgramsType
                  -> FlowCont NgramsTerm FlowListScores
-                 -> [ListId]
                  -> m (FlowCont NgramsTerm FlowListScores)
-getHistoryScores hist nt fl listes =
-  addScorePatches nt listes fl <$> getHistory hist nt listes
+getHistoryScores lists hist nt fl =
+  addScorePatches nt lists fl <$> getHistory hist nt lists
 
-getHistory :: ( RepoCmdM env err m
+getHistory :: ( HasNodeStory env err m
               , CmdM     env err m
               , HasNodeError err
               , HasTreeError err
@@ -115,7 +131,7 @@ getHistory :: ( RepoCmdM env err m
            => History
            -> NgramsType
            -> [ListId]
-           -> m (Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch]))
+           -> m (Map ListId (Map NgramsType [HashMap NgramsTerm NgramsPatch]))
 getHistory hist nt listes =
-  history hist [nt] listes  <$> getRepo
+  history hist [nt] listes  <$> getRepo' listes
 

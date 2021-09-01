@@ -24,8 +24,7 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell         #-}
 
 module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
-  ( FlowCmdM
-  , getDataText
+  ( getDataText
   , flowDataText
   , flow
 
@@ -73,6 +72,7 @@ import Gargantext.Core.Text
 import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
 import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Core.Text.List (buildNgramsLists)
+import Gargantext.Core.Text.List.Social (FlowSocialListWith)
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Types (POS(NP))
@@ -152,11 +152,12 @@ flowDataText :: ( FlowCmdM env err m
                 -> DataText
                 -> TermType Lang
                 -> CorpusId
+                -> Maybe FlowSocialListWith
                 -> m CorpusId
-flowDataText u (DataOld ids) tt cid = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids
+flowDataText u (DataOld ids) tt cid mfslw = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids mfslw
   where
     corpusType = (Nothing :: Maybe HyperdataCorpus)
-flowDataText u (DataNew txt) tt cid = flowCorpus u (Right [cid]) tt txt
+flowDataText u (DataNew txt) tt cid mfslw = flowCorpus u (Right [cid]) tt mfslw txt
 
 ------------------------------------------------------------------------
 -- TODO use proxy
@@ -168,7 +169,7 @@ flowAnnuaire :: (FlowCmdM env err m)
              -> m AnnuaireId
 flowAnnuaire u n l filePath = do
   docs <- liftBase $ (( splitEvery 500 <$> readFile_Annuaire filePath) :: IO [[HyperdataContact]])
-  flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
+  flow (Nothing :: Maybe HyperdataAnnuaire) u n l Nothing docs
 
 ------------------------------------------------------------------------
 flowCorpusFile :: (FlowCmdM env err m)
@@ -176,13 +177,14 @@ flowCorpusFile :: (FlowCmdM env err m)
            -> Either CorpusName [CorpusId]
            -> Limit -- Limit the number of docs (for dev purpose)
            -> TermType Lang -> FileFormat -> FilePath
+           -> Maybe FlowSocialListWith
            -> m CorpusId
-flowCorpusFile u n l la ff fp = do
+flowCorpusFile u n l la ff fp mfslw = do
   eParsed <- liftBase $ parseFile ff fp
   case eParsed of
     Right parsed -> do
       let docs = splitEvery 500 $ take l parsed
-      flowCorpus u n la (map (map toHyperdataDocument) docs)
+      flowCorpus u n la mfslw (map (map toHyperdataDocument) docs)
     Left e       -> panic $ "Error: " <> (T.pack e)
 
 ------------------------------------------------------------------------
@@ -192,6 +194,7 @@ flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
            => User
            -> Either CorpusName [CorpusId]
            -> TermType Lang
+           -> Maybe FlowSocialListWith
            -> [[a]]
            -> m CorpusId
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
@@ -205,12 +208,13 @@ flow :: ( FlowCmdM env err m
         -> User
         -> Either CorpusName [CorpusId]
         -> TermType Lang
+        -> Maybe FlowSocialListWith
         -> [[a]]
         -> m CorpusId
-flow c u cn la docs = do
+flow c u cn la mfslw docs = do
   -- TODO if public insertMasterDocs else insertUserDocs
   ids <- traverse (insertMasterDocs c la) docs
-  flowCorpusUser (la ^. tt_lang) u cn c (concat ids)
+  flowCorpusUser (la ^. tt_lang) u cn c (concat ids) mfslw
 
 ------------------------------------------------------------------------
 flowCorpusUser :: ( FlowCmdM env err m
@@ -221,8 +225,9 @@ flowCorpusUser :: ( FlowCmdM env err m
                -> Either CorpusName [CorpusId]
                -> Maybe c
                -> [NodeId]
+               -> Maybe FlowSocialListWith
                -> m CorpusId
-flowCorpusUser l user corpusName ctype ids = do
+flowCorpusUser l user corpusName ctype ids mfslw = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus user corpusName ctype
   -- NodeTexts is first
@@ -243,7 +248,7 @@ flowCorpusUser l user corpusName ctype ids = do
 
   --let gp = (GroupParams l 2 3 (StopSize 3)) 
   let gp = GroupWithPosTag l CoreNLP HashMap.empty 
-  ngs         <- buildNgramsLists gp user userCorpusId masterCorpusId
+  ngs         <- buildNgramsLists user userCorpusId masterCorpusId mfslw gp
 
   _userListId <- flowList_DbRepo listId ngs
   _mastListId <- getOrMkList masterCorpusId masterUserId

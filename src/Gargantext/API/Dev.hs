@@ -15,16 +15,18 @@ module Gargantext.API.Dev where
 import Control.Exception (finally)
 import Control.Monad (fail)
 import Control.Monad.Reader (runReaderT)
-import Servant
-
-import Gargantext.API.Prelude
-import Gargantext.API.Admin.Settings
 import Gargantext.API.Admin.EnvTypes
-import Gargantext.API.Ngrams (saveRepo)
+import Gargantext.API.Admin.Settings
+import Gargantext.API.Ngrams (saveNodeStory)
+import Gargantext.API.Prelude
+import Gargantext.Core.NodeStory
 import Gargantext.Database.Prelude
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..), readConfig)
+import Servant
+import System.IO (FilePath)
 
+type IniPath  = FilePath
 -------------------------------------------------------------------
 withDevEnv :: IniPath -> (DevEnv -> IO a) -> IO a
 withDevEnv iniPath k = do
@@ -35,12 +37,14 @@ withDevEnv iniPath k = do
     newDevEnv = do
       cfg     <- readConfig         iniPath
       dbParam <- databaseParameters iniPath
+      nodeStory_env <- readNodeStoryEnv (_gc_repofilepath cfg)
       pool    <- newPool            dbParam
       repo    <- readRepoEnv        (_gc_repofilepath cfg)
       setts   <- devSettings devJwkFile
       pure $ DevEnv
         { _dev_env_pool     = pool
         , _dev_env_repo     = repo
+        , _dev_env_nodeStory  = nodeStory_env
         , _dev_env_settings = setts
         , _dev_env_config   = cfg
         }
@@ -56,11 +60,11 @@ runCmdReplServantErr = runCmdRepl
 -- the command.
 -- This function is constrained to the DevEnv rather than
 -- using HasConnectionPool and HasRepoVar.
-runCmdDev :: Show err => DevEnv -> Cmd'' DevEnv err a -> IO a
+runCmdDev :: (Show err) => DevEnv -> Cmd'' DevEnv err a -> IO a
 runCmdDev env f =
   (either (fail . show) pure =<< runCmd env f)
     `finally`
-  runReaderT saveRepo env
+  runReaderT saveNodeStory env
 
 runCmdDevNoErr :: DevEnv -> Cmd' DevEnv () a -> IO a
 runCmdDevNoErr = runCmdDev

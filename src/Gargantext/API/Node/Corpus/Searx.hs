@@ -3,6 +3,8 @@
 
 module Gargantext.API.Node.Corpus.Searx where
 
+
+
 import Control.Lens (view)
 import qualified Data.Aeson as Aeson
 import Data.Aeson.TH (deriveJSON)
@@ -19,7 +21,7 @@ import Gargantext.Prelude.Config
 import Gargantext.Core (Lang(..))
 import qualified Gargantext.Core.Text.Corpus.API as API
 import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Database.Action.Flow (FlowCmdM)
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Prelude (hasConfig)
 

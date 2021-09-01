@@ -35,7 +35,7 @@ import Gargantext.API.Ngrams.NgramsTree
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types
-import Gargantext.Database.Action.Flow
+import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Metrics.NgramsByNode
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Core.Viz.Types
@@ -59,7 +59,7 @@ chartData :: FlowCmdM env err m
 chartData cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
-  ts <- mapTermListRoot ls nt <$> getRepo
+  ts <- mapTermListRoot ls nt <$> getRepo' ls
   let
     dico = filterListWithRoot lt ts
     terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ HashMap.toList dico
@@ -79,7 +79,7 @@ treeData :: FlowCmdM env err m
 treeData cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
-  ts <- mapTermListRoot ls nt <$> getRepo
+  ts <- mapTermListRoot ls nt <$> getRepo' ls
 
   let
     dico = filterListWithRoot lt ts

@@ -9,10 +9,10 @@ import Control.Monad.Logger
 import Data.ByteString (ByteString)
 import GHC.Enum
 import GHC.Generics (Generic)
+import Gargantext.Prelude
 import Servant.Auth.Server (JWTSettings, CookieSettings(..))
 import Servant.Client (BaseUrl)
 
-import Gargantext.Prelude
 
 type PortNumber = Int
 

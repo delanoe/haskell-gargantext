@@ -26,10 +26,11 @@ import qualified Data.HashMap.Strict as HashMap
 
 import Gargantext.API.Node.Corpus.Export.Types
 import Gargantext.API.Ngrams.Types
-import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo)
+import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo')
 import Gargantext.API.Prelude (GargNoServer)
 import Gargantext.Prelude.Crypto.Hash (hash)
 import Gargantext.Core.Types
+import Gargantext.Core.NodeStory
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNgramsByNodeOnlyUser)
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
@@ -58,7 +59,8 @@ getCorpus cId lId nt' = do
   ns   <- Map.fromList
        <$> map (\n -> (_node_id n, n))
        <$> selectDocNodes cId
-  repo <- getRepo
+
+  repo <- getRepo' [fromMaybe (panic "[Gargantext.API.Node.Corpus.Export]") lId]
   ngs  <- getNodeNgrams cId lId nt repo
   let  -- uniqId is hash computed already for each document imported in database
     r = Map.intersectionWith (\a b -> Document a (Ngrams (Set.toList b) (hash b)) (d_hash a b)
@@ -75,7 +77,7 @@ getNodeNgrams :: HasNodeError err
         => CorpusId
         -> Maybe ListId
         -> NgramsType
-        -> NgramsRepo
+        -> NodeListStory
         -> Cmd err (Map NodeId (Set NgramsTerm))
 getNodeNgrams cId lId' nt repo = do
   lId <- case lId' of
