@@ -66,7 +66,6 @@ api nId (SearchQuery q SearchContact) o l order = do
             <$> SearchResultContact
             <$> map (toRow aId)
             <$> searchInCorpusWithContacts nId aId q o l order
-api _ _ _ _ _ = panic "[G.A.Search.api] undefined"
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
@@ -74,15 +73,12 @@ api _ _ _ _ _ = panic "[G.A.Search.api] undefined"
 -----------------------------------------------------------------------
 data SearchType = SearchDoc | SearchContact
   deriving (Generic)
-
 instance FromJSON  SearchType
   where
     parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
-
 instance ToJSON  SearchType
   where
     toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
-
 instance ToSchema SearchType
 instance Arbitrary SearchType where
   arbitrary = elements [SearchDoc, SearchContact]
@@ -92,17 +88,13 @@ data SearchQuery =
   SearchQuery { query    :: ![Text]
               , expected :: !SearchType
               }
-  | SearchQueryErr !Text
     deriving (Generic)
-
 instance FromJSON  SearchQuery
   where
     parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
-
 instance ToJSON  SearchQuery
   where
     toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
-
 instance ToSchema SearchQuery
 {-
   where
@@ -115,7 +107,6 @@ instance Arbitrary SearchQuery where
 -----------------------------------------------------------------------
 data SearchResult =
   SearchResult { result :: !SearchResultTypes}
-  | SearchResultErr !Text
     deriving (Generic)
 
 instance FromJSON  SearchResult
