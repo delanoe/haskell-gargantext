@@ -67,14 +67,15 @@ buildNgramsLists :: ( HasNodeStory env err m
                     , HasTreeError err
                     , HasNodeError err
                     )
-                 => GroupParams
-                 -> User
+                 => User
                  -> UserCorpusId
                  -> MasterCorpusId
+                 -> Maybe FlowSocialListWith
+                 -> GroupParams
                  -> m (Map NgramsType [NgramsElement])
-buildNgramsLists gp user uCid mCid = do
-  ngTerms     <- buildNgramsTermsList user uCid mCid gp (NgramsTerms, MapListSize 350)
-  othersTerms <- mapM (buildNgramsOthersList user uCid GroupIdentity)
+buildNgramsLists user uCid mCid mfslw gp = do
+  ngTerms     <- buildNgramsTermsList user uCid mCid mfslw gp (NgramsTerms, MapListSize 350)
+  othersTerms <- mapM (buildNgramsOthersList user uCid mfslw GroupIdentity)
                       [ (Authors   , MapListSize 9)
                       , (Sources   , MapListSize 9)
                       , (Institutes, MapListSize 9)
@@ -92,15 +93,16 @@ buildNgramsOthersList ::( HasNodeError err
                         )
                         => User
                         -> UserCorpusId
+                        -> Maybe FlowSocialListWith
                         -> GroupParams
                         -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
-buildNgramsOthersList user uCid _groupParams (nt, MapListSize mapListSize) = do
+buildNgramsOthersList user uCid mfslw _groupParams (nt, MapListSize mapListSize) = do
   allTerms  :: HashMap NgramsTerm (Set NodeId) <- getNodesByNgramsUser uCid nt
 
   -- PrivateFirst for first developments since Public NodeMode is not implemented yet
   socialLists :: FlowCont NgramsTerm FlowListScores
-    <- flowSocialList MySelfFirst user nt ( FlowCont HashMap.empty
+    <- flowSocialList mfslw user nt ( FlowCont HashMap.empty
                                                       $ HashMap.fromList
                                                       $ List.zip (HashMap.keys allTerms)
                                                                  (List.cycle [mempty])
@@ -149,10 +151,11 @@ buildNgramsTermsList :: ( HasNodeError err
                         => User
                         -> UserCorpusId
                         -> MasterCorpusId
+                        -> Maybe FlowSocialListWith
                         -> GroupParams
                         -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
-buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
+buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
 
 -- Filter 0 With Double
 -- Computing global speGen score
@@ -163,7 +166,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
   printDebug "[buldNgramsTermsList: Flow Social List / start]" nt
   -- PrivateFirst for first developments since Public NodeMode is not implemented yet
   socialLists :: FlowCont NgramsTerm FlowListScores
-    <- flowSocialList MySelfFirst user nt ( FlowCont HashMap.empty
+    <- flowSocialList mfslw user nt ( FlowCont HashMap.empty
                                                       $ HashMap.fromList
                                                       $ List.zip (HashMap.keys   allTerms)
                                                                  (List.cycle     [mempty])

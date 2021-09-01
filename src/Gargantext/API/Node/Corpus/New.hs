@@ -137,6 +137,7 @@ data WithQuery = WithQuery
   , _wq_datafield :: !Datafield
   , _wq_lang      :: !Lang
   , _wq_node_id   :: !Int
+  -- , _wq_flowListWith :: !FlowSocialListWith
   }
   deriving Generic
 
@@ -213,7 +214,7 @@ addToCorpusWithQuery user cid (WithQuery q dbs datafield l _nid) maybeLimit logS
                        , _scst_events    = Just []
                        }
 
-      cids <- mapM (\txt -> flowDataText user txt (Multi l) cid) txts
+      cids <- mapM (\txt -> flowDataText user txt (Multi l) cid Nothing) txts
       printDebug "corpus id" cids
       printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
       sendMail user
@@ -265,6 +266,7 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
       _cid' <- flowCorpus user
                           (Right [cid])
                           (Multi $ fromMaybe EN l)
+                          Nothing
                           (map (map toHyperdataDocument) docs)
 
       printDebug "Extraction finished   : " cid
