@@ -17,7 +17,7 @@ Count API part of Gargantext.
 module Gargantext.API.Search
       where
 
-import Data.Aeson
+import Data.Aeson hiding (defaultTaggedObject)
 import Data.Maybe (fromMaybe)
 import Data.Swagger hiding (fieldLabelModifier, Contact)
 import Data.Text (Text)
@@ -32,6 +32,7 @@ import Gargantext.Database.Admin.Types.Hyperdata.Contact (_cw_organization)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Facet
 import Gargantext.Prelude
+import Gargantext.Utils.Aeson (defaultTaggedObject)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
@@ -127,19 +128,17 @@ instance Arbitrary SearchResult where
   arbitrary = SearchResult <$> arbitrary
 
 
-data SearchResultTypes = SearchResultDoc { docs     :: ![Row]}
-                  | SearchResultContact  { contacts :: ![Row] }
-                  | SearchNoResult      { message  :: !Text }
-
+data SearchResultTypes =
+    SearchResultDoc { docs     :: ![Row] }
+  | SearchResultContact  { contacts :: ![Row] }
+  | SearchNoResult      { message  :: !Text }
   deriving (Generic)
-
 instance FromJSON  SearchResultTypes
   where
-    parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
-
+    parseJSON = genericParseJSON (defaultOptions { sumEncoding = defaultTaggedObject })
 instance ToJSON  SearchResultTypes
   where
-    toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+    toJSON = genericToJSON (defaultOptions { sumEncoding = defaultTaggedObject })
  
 instance Arbitrary SearchResultTypes where
   arbitrary = do
@@ -155,13 +154,13 @@ instance ToSchema SearchResultTypes where
 --------------------------------------------------------------------
 
 data Row =
-  Document { id         :: !NodeId
-           , created    :: !UTCTime
-           , title      :: !Text
-           , hyperdata  :: !HyperdataRow
-           , category   :: !Int
-           , score      :: !Int
-           }
+    Document { id         :: !NodeId
+             , created    :: !UTCTime
+             , title      :: !Text
+             , hyperdata  :: !HyperdataRow
+             , category   :: !Int
+             , score      :: !Int
+             }
   | Contact  { c_id         :: !Int
              , c_created    :: !UTCTime
              , c_hyperdata  :: !HyperdataRow
@@ -169,18 +168,13 @@ data Row =
              , c_annuaireId :: !NodeId
              }
   deriving (Generic)
-
 instance FromJSON  Row
   where
     parseJSON = genericParseJSON 
-                 ( defaultOptions { sumEncoding = ObjectWithSingleField 
-                                  }
-                 )
-
+                 ( defaultOptions { sumEncoding = defaultTaggedObject } )
 instance ToJSON  Row
   where
-    toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
- 
+    toJSON = genericToJSON (defaultOptions { sumEncoding = defaultTaggedObject })
 instance Arbitrary Row where
   arbitrary = arbitrary
 
@@ -203,47 +197,45 @@ instance ToRow FacetContact where
 
 --------------------------------------------------------------------
 data HyperdataRow =
-  HyperdataRowDocument { _hr_bdd                :: !Text
-                       , _hr_doi                :: !Text
-                       , _hr_url                :: !Text
-                       , _hr_uniqId             :: !Text
-                       , _hr_uniqIdBdd          :: !Text
-                       , _hr_page               :: !Int
-                       , _hr_title              :: !Text
+  HyperdataRowDocument { _hr_abstract           :: !Text
                        , _hr_authors            :: !Text
+                       , _hr_bdd                :: !Text
+                       , _hr_doi                :: !Text
                        , _hr_institutes         :: !Text
-                       , _hr_source             :: !Text
-                       , _hr_abstract           :: !Text
+                       , _hr_language_iso2      :: !Text
+                       , _hr_page               :: !Int
                        , _hr_publication_date   :: !Text
-                       , _hr_publication_year   :: !Int
-                       , _hr_publication_month  :: !Int
                        , _hr_publication_day    :: !Int
                        , _hr_publication_hour   :: !Int
                        , _hr_publication_minute :: !Int
+                       , _hr_publication_month  :: !Int
                        , _hr_publication_second :: !Int
-                       , _hr_language_iso2      :: !Text
+                       , _hr_publication_year   :: !Int
+                       , _hr_source             :: !Text
+                       , _hr_title              :: !Text
+                       , _hr_url                :: !Text
+                       , _hr_uniqId             :: !Text
+                       , _hr_uniqIdBdd          :: !Text
                        }
   | HyperdataRowContact { _hr_firstname :: !Text
                         , _hr_lastname  :: !Text
                         , _hr_labs      :: !Text
                         }
   deriving (Generic)
-
 instance FromJSON  HyperdataRow
   where
     parseJSON = genericParseJSON
               ( defaultOptions
-                { sumEncoding = ObjectWithSingleField
+                { sumEncoding = defaultTaggedObject
                 , fieldLabelModifier = unCapitalize . dropPrefix "_hr_"
                 , omitNothingFields = False
                 }
               )
-
 instance ToJSON  HyperdataRow
   where
     toJSON = genericToJSON
                ( defaultOptions
-                { sumEncoding = ObjectWithSingleField
+                { sumEncoding = defaultTaggedObject
                 , fieldLabelModifier = unCapitalize . dropPrefix "_hr_"
                 , omitNothingFields = False
                 }
