@@ -251,27 +251,45 @@ class ToHyperdataRow a where
   toHyperdataRow :: a -> HyperdataRow
 
 instance ToHyperdataRow HyperdataDocument where
-  toHyperdataRow (HyperdataDocument b d u ui ub p t a i s abs' pd py pm pda ph pmin psec l) =
+  toHyperdataRow (HyperdataDocument { _hd_bdd = bdd
+                                    , _hd_doi = doi
+                                    , _hd_url = url'
+                                    , _hd_uniqId = uniqId
+                                    , _hd_uniqIdBdd = uniqIdBdd
+                                    , _hd_page = page
+                                    , _hd_title = t
+                                    , _hd_authors = authors
+                                    , _hd_institutes = institutes
+                                    , _hd_source = source
+                                    , _hd_abstract = abstract
+                                    , _hd_publication_date = pdate
+                                    , _hd_publication_year = pyear
+                                    , _hd_publication_month = pmonth
+                                    , _hd_publication_day = pday
+                                    , _hd_publication_hour = phour
+                                    , _hd_publication_minute = pminute
+                                    , _hd_publication_second = psecond
+                                    , _hd_language_iso2 = language }) =
     HyperdataRowDocument
-      (fromMaybe "" b)
-      (fromMaybe "" d)
-      (fromMaybe "" u)
-      (fromMaybe "" ui)
-      (fromMaybe "" ub)
-      (fromMaybe 0 p)
-      (fromMaybe "Title" t)
-      (fromMaybe "" a)
-      (fromMaybe "" i)
-      (fromMaybe "" s)
-      (fromMaybe "" abs')
-      (fromMaybe "" pd)
-      (fromMaybe 2020 py)
-      (fromMaybe 1 pm)
-      (fromMaybe 1 pda)
-      (fromMaybe 1 ph)
-      (fromMaybe 1 pmin)
-      (fromMaybe 1 psec)
-      (fromMaybe "EN" l)
+      { _hr_abstract = fromMaybe "" abstract
+      , _hr_authors = fromMaybe "" authors
+      , _hr_bdd = fromMaybe "" bdd
+      , _hr_doi = fromMaybe "" doi
+      , _hr_institutes = fromMaybe "" institutes
+      , _hr_language_iso2 = fromMaybe "EN" language
+      , _hr_page = fromMaybe 0 page
+      , _hr_publication_date = fromMaybe "" pdate
+      , _hr_publication_day = fromMaybe 1 pday
+      , _hr_publication_hour = fromMaybe 1 phour
+      , _hr_publication_minute = fromMaybe 1 pminute
+      , _hr_publication_month = fromMaybe 1 pmonth
+      , _hr_publication_second = fromMaybe 1 psecond
+      , _hr_publication_year = fromMaybe 2020 pyear
+      , _hr_source = fromMaybe "" source
+      , _hr_title = fromMaybe "Title" t
+      , _hr_url = fromMaybe "" url'
+      , _hr_uniqId = fromMaybe "" uniqId
+      , _hr_uniqIdBdd = fromMaybe "" uniqIdBdd }
 
 instance ToHyperdataRow HyperdataContact where
   toHyperdataRow (HyperdataContact _ (Just (ContactWho _ fn ln _ _)) ou _ _ _ _ _ ) =
