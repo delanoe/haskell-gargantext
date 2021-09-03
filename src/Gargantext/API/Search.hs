@@ -10,6 +10,7 @@ Portability : POSIX
 Count API part of Gargantext.
 -}
 
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
 {-# LANGUAGE DeriveAnyClass     #-}
@@ -185,8 +186,13 @@ class ToRow a where
   toRow :: NodeId -> a -> Row
 
 instance ToRow FacetDoc where
-  toRow _ (FacetDoc nId utc t h mc _md sc) =
-    Document nId utc t (toHyperdataRow h) (fromMaybe 0 mc) (round $ fromMaybe 0 sc)
+  toRow _ (FacetDoc { .. }) =
+    Document { id = facetDoc_id
+             , created = facetDoc_created
+             , title = facetDoc_title
+             , hyperdata = toHyperdataRow facetDoc_hyperdata
+             , category = fromMaybe 0 facetDoc_category
+             , score = round $ fromMaybe 0 facetDoc_score }
 
 -- | TODO rename FacetPaired
 type FacetContact = FacetPaired Int UTCTime HyperdataContact Int
@@ -251,50 +257,32 @@ class ToHyperdataRow a where
   toHyperdataRow :: a -> HyperdataRow
 
 instance ToHyperdataRow HyperdataDocument where
-  toHyperdataRow (HyperdataDocument { _hd_bdd = bdd
-                                    , _hd_doi = doi
-                                    , _hd_url = url'
-                                    , _hd_uniqId = uniqId
-                                    , _hd_uniqIdBdd = uniqIdBdd
-                                    , _hd_page = page
-                                    , _hd_title = t
-                                    , _hd_authors = authors
-                                    , _hd_institutes = institutes
-                                    , _hd_source = source
-                                    , _hd_abstract = abstract
-                                    , _hd_publication_date = pdate
-                                    , _hd_publication_year = pyear
-                                    , _hd_publication_month = pmonth
-                                    , _hd_publication_day = pday
-                                    , _hd_publication_hour = phour
-                                    , _hd_publication_minute = pminute
-                                    , _hd_publication_second = psecond
-                                    , _hd_language_iso2 = language }) =
+  toHyperdataRow (HyperdataDocument { .. }) =
     HyperdataRowDocument
-      { _hr_abstract = fromMaybe "" abstract
-      , _hr_authors = fromMaybe "" authors
-      , _hr_bdd = fromMaybe "" bdd
-      , _hr_doi = fromMaybe "" doi
-      , _hr_institutes = fromMaybe "" institutes
-      , _hr_language_iso2 = fromMaybe "EN" language
-      , _hr_page = fromMaybe 0 page
-      , _hr_publication_date = fromMaybe "" pdate
-      , _hr_publication_day = fromMaybe 1 pday
-      , _hr_publication_hour = fromMaybe 1 phour
-      , _hr_publication_minute = fromMaybe 1 pminute
-      , _hr_publication_month = fromMaybe 1 pmonth
-      , _hr_publication_second = fromMaybe 1 psecond
-      , _hr_publication_year = fromMaybe 2020 pyear
-      , _hr_source = fromMaybe "" source
-      , _hr_title = fromMaybe "Title" t
-      , _hr_url = fromMaybe "" url'
-      , _hr_uniqId = fromMaybe "" uniqId
-      , _hr_uniqIdBdd = fromMaybe "" uniqIdBdd }
+      { _hr_abstract = fromMaybe "" _hd_abstract
+      , _hr_authors = fromMaybe "" _hd_authors
+      , _hr_bdd = fromMaybe "" _hd_bdd
+      , _hr_doi = fromMaybe "" _hd_doi
+      , _hr_institutes = fromMaybe "" _hd_institutes
+      , _hr_language_iso2 = fromMaybe "EN" _hd_language_iso2
+      , _hr_page = fromMaybe 0 _hd_page
+      , _hr_publication_date = fromMaybe "" _hd_publication_date
+      , _hr_publication_day = fromMaybe 1 _hd_publication_day
+      , _hr_publication_hour = fromMaybe 1 _hd_publication_hour
+      , _hr_publication_minute = fromMaybe 1 _hd_publication_minute
+      , _hr_publication_month = fromMaybe 1 _hd_publication_month
+      , _hr_publication_second = fromMaybe 1 _hd_publication_second
+      , _hr_publication_year = fromMaybe 2020 _hd_publication_year
+      , _hr_source = fromMaybe "" _hd_source
+      , _hr_title = fromMaybe "Title" _hd_title
+      , _hr_url = fromMaybe "" _hd_url
+      , _hr_uniqId = fromMaybe "" _hd_uniqId
+      , _hr_uniqIdBdd = fromMaybe "" _hd_uniqIdBdd }
 
 instance ToHyperdataRow HyperdataContact where
-  toHyperdataRow (HyperdataContact _ (Just (ContactWho _ fn ln _ _)) ou _ _ _ _ _ ) =
+  toHyperdataRow (HyperdataContact { _hc_who = Just (ContactWho _ fn ln _ _), _hc_where = ou} ) =
     HyperdataRowContact (fromMaybe "FirstName" fn) (fromMaybe "LastName" ln) ou'
       where
         ou' = maybe "CNRS" (Text.intercalate " " . _cw_organization) (head ou)
-  toHyperdataRow (HyperdataContact _ _ _ _ _ _ _ _ ) =
+  toHyperdataRow (HyperdataContact {}) =
     HyperdataRowContact "FirstName" "LastName" "Labs"
