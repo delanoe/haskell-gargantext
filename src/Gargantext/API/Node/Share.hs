@@ -30,6 +30,7 @@ import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Tree (findNodesWithType)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Prelude
+import qualified Gargantext.Utils.Aeson as GUA
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
@@ -42,9 +43,9 @@ data ShareNodeParams = ShareTeamParams   { username :: Text  }
 ------------------------------------------------------------------------
 -- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.
 instance FromJSON  ShareNodeParams where
-  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+  parseJSON = genericParseJSON (defaultOptions { sumEncoding = GUA.defaultTaggedObject })
 instance ToJSON    ShareNodeParams where
-  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+  toJSON = genericToJSON (defaultOptions { sumEncoding = GUA.defaultTaggedObject })
 instance ToSchema  ShareNodeParams
 instance Arbitrary ShareNodeParams where
   arbitrary = elements [ ShareTeamParams "user1"
