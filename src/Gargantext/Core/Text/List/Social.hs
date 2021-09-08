@@ -11,6 +11,8 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Social
   where
 
+import Control.Monad (mzero)
+import Data.Aeson
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Monoid (mconcat)
@@ -39,7 +41,16 @@ import Gargantext.Prelude
 
 data FlowSocialListWith = FlowSocialListWithPriority { fslw_priority :: FlowSocialListPriority }
                         | FlowSocialListWithLists    { fslw_lists :: [ListId] }
-
+instance FromJSON FlowSocialListWith where
+  parseJSON (Object v) = do
+    typ <- v .: "type"
+    value <- v .:? "value" .!= []
+    case typ of
+      "MyListsFirst" -> pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
+      "OtherListsFirst" -> pure $ FlowSocialListWithPriority { fslw_priority = OthersFirst }
+      "SelectedLists" -> pure $ FlowSocialListWithLists { fslw_lists = v }
+      _ -> pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
+  parseJSON _ = mzero
 
 data FlowSocialListPriority = MySelfFirst | OthersFirst
 flowSocialListPriority :: FlowSocialListPriority -> [NodeMode]

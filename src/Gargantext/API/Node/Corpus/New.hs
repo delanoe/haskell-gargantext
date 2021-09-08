@@ -45,6 +45,7 @@ import Gargantext.API.Node.Corpus.Searx
 import Gargantext.API.Node.Corpus.Types
 import Gargantext.API.Node.Types
 import Gargantext.Core (Lang(..){-, allLangs-})
+import Gargantext.Core.Text.List.Social (FlowSocialListWith(..))
 import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 import Gargantext.Core.Types.Individu (User(..))
@@ -132,12 +133,12 @@ info _u = pure $ ApiInfo API.externalAPIs
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 data WithQuery = WithQuery
-  { _wq_query     :: !Text
-  , _wq_databases :: !Database
-  , _wq_datafield :: !Datafield
-  , _wq_lang      :: !Lang
-  , _wq_node_id   :: !Int
-  -- , _wq_flowListWith :: !FlowSocialListWith
+  { _wq_query        :: !Text
+  , _wq_databases    :: !Database
+  , _wq_datafield    :: !(Maybe Datafield)
+  , _wq_lang         :: !Lang
+  , _wq_node_id      :: !Int
+  , _wq_flowListWith :: !FlowSocialListWith
   }
   deriving Generic
 
@@ -190,7 +191,7 @@ addToCorpusWithQuery user cid (WithQuery q dbs datafield l _nid) maybeLimit logS
   printDebug "[addToCorpusWithQuery] datafield" datafield
 
   case datafield of
-    Web -> do
+    Just Web -> do
       printDebug "[addToCorpusWithQuery] processing web request" datafield
 
       _ <- triggerSearxSearch cid q l
