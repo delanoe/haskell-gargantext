@@ -180,7 +180,11 @@ addToCorpusWithQuery :: FlowCmdM env err m
                        -> Maybe Integer
                        -> (JobLog -> m ())
                        -> m JobLog
-addToCorpusWithQuery user cid (WithQuery q dbs datafield l _nid) maybeLimit logStatus = do
+addToCorpusWithQuery user cid (WithQuery { _wq_query = q
+                                         , _wq_databases = dbs
+                                         , _wq_datafield = datafield
+                                         , _wq_lang = l
+                                         , _wq_flowListWith = flw }) maybeLimit logStatus = do
   -- TODO ...
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
@@ -189,6 +193,7 @@ addToCorpusWithQuery user cid (WithQuery q dbs datafield l _nid) maybeLimit logS
                    }
   printDebug "[addToCorpusWithQuery] (cid, dbs)" (cid, dbs)
   printDebug "[addToCorpusWithQuery] datafield" datafield
+  printDebug "[addToCorpusWithQuery] flowListWith" flw
 
   case datafield of
     Just Web -> do

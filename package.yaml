@@ -196,6 +196,7 @@ library:
   - resource-pool
   - resourcet
   - safe
+  - scientific
   - semigroups
   - serialise
   - servant

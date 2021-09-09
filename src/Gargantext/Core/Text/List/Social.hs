@@ -8,14 +8,21 @@ Stability   : experimental
 Portability : POSIX
 -}
 
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Gargantext.Core.Text.List.Social
   where
 
 import Control.Monad (mzero)
 import Data.Aeson
+import GHC.Generics
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Monoid (mconcat)
+import qualified Data.Scientific as Scientific
+import Data.Swagger
+import qualified Data.Text as T
+import qualified Data.Vector as V
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.NodeStory
@@ -30,6 +37,7 @@ import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Query.Tree
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Prelude
+import qualified Prelude as Prelude
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -41,18 +49,33 @@ import Gargantext.Prelude
 
 data FlowSocialListWith = FlowSocialListWithPriority { fslw_priority :: FlowSocialListPriority }
                         | FlowSocialListWithLists    { fslw_lists :: [ListId] }
+  deriving (Show, Generic)
 instance FromJSON FlowSocialListWith where
   parseJSON (Object v) = do
-    typ <- v .: "type"
+    typ :: T.Text <- v .: "type"
     value <- v .:? "value" .!= []
     case typ of
       "MyListsFirst" -> pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
       "OtherListsFirst" -> pure $ FlowSocialListWithPriority { fslw_priority = OthersFirst }
-      "SelectedLists" -> pure $ FlowSocialListWithLists { fslw_lists = v }
+      "SelectedLists" -> pure $ FlowSocialListWithLists { fslw_lists = value }
       _ -> pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
   parseJSON _ = mzero
+instance ToJSON FlowSocialListWith where
+  toJSON (FlowSocialListWithPriority { fslw_priority = MySelfFirst }) =
+    object [ ("type", String "MyListsFirst") ]
+  toJSON (FlowSocialListWithPriority { fslw_priority = OthersFirst }) =
+    object [ ("type", String "ListsFirst") ]
+  toJSON (FlowSocialListWithLists { fslw_lists = ids }) =
+    object [ ("type", String "SelectedLists")
+           , ("value", Array $ V.fromList $ (map (\(NodeId id) -> Number $ Scientific.scientific (Prelude.toInteger id) 1) ids)) ]
+instance ToSchema FlowSocialListWith where
+  declareNamedSchema = genericDeclareNamedSchema defaultSchemaOptions
 
 data FlowSocialListPriority = MySelfFirst | OthersFirst
+  deriving (Show, Generic)
+instance ToSchema FlowSocialListPriority where
+  declareNamedSchema = genericDeclareNamedSchema defaultSchemaOptions
+
 flowSocialListPriority :: FlowSocialListPriority -> [NodeMode]
 flowSocialListPriority MySelfFirst = [Private{-, Shared, Public -}]
 flowSocialListPriority OthersFirst = reverse $ flowSocialListPriority MySelfFirst

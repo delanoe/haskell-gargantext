@@ -132,26 +132,21 @@ pgNodeId = O.pgInt4 . id2int
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
   deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable)
-
 instance Show NodeId where
   show (NodeId n) = "nodeId-" <> show n
-
-unNodeId :: NodeId -> Int
-unNodeId (NodeId n) = n
-
 instance Serialise NodeId
-
 instance ToField NodeId where
   toField (NodeId n) = toField n
-
 instance FromField NodeId where
   fromField field mdata = do
     n <- fromField field mdata
     if (n :: Int) > 0
        then return $ NodeId n
        else mzero
-
 instance ToSchema NodeId
+
+unNodeId :: NodeId -> Int
+unNodeId (NodeId n) = n
 
 type NodeTypeId   = Int
 type NodeName     = Text
