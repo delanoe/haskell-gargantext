@@ -46,6 +46,7 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAnnuaire(..), Hyperda
 import Gargantext.Database.Admin.Types.Hyperdata.Contact (hyperdataContact)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude (($), liftBase, (.), printDebug, pure)
+import qualified Gargantext.Utils.Aeson as GUA
 
 ------------------------------------------------------------------------
 type API = "contact" :> Summary "Contact endpoint"
@@ -105,10 +106,10 @@ addContact _uId _nId _p logStatus = do
 ------------------------------------------------------------------------
 -- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.
 instance FromJSON  AddContactParams where
-  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+  parseJSON = genericParseJSON (defaultOptions { sumEncoding = GUA.defaultTaggedObject })
 
 instance ToJSON    AddContactParams where
-  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+  toJSON = genericToJSON (defaultOptions { sumEncoding = GUA.defaultTaggedObject })
   
 instance ToSchema  AddContactParams
 instance Arbitrary AddContactParams where

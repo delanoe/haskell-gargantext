@@ -75,12 +75,10 @@ api nId (SearchQuery q SearchContact) o l order = do
 -----------------------------------------------------------------------
 data SearchType = SearchDoc | SearchContact
   deriving (Generic)
-instance FromJSON  SearchType
-  where
-    parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
-instance ToJSON  SearchType
-  where
-    toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+instance FromJSON SearchType where
+  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+instance ToJSON SearchType where
+  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
 instance ToSchema SearchType
 instance Arbitrary SearchType where
   arbitrary = elements [SearchDoc, SearchContact]
@@ -91,12 +89,10 @@ data SearchQuery =
               , expected :: !SearchType
               }
     deriving (Generic)
-instance FromJSON  SearchQuery
-  where
-    parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
-instance ToJSON  SearchQuery
-  where
-    toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+instance FromJSON SearchQuery where
+  parseJSON = genericParseJSON defaultOptions
+instance ToJSON SearchQuery where
+  toJSON = genericToJSON defaultOptions
 instance ToSchema SearchQuery
 {-
   where
@@ -111,13 +107,11 @@ data SearchResult =
   SearchResult { result :: !SearchResultTypes}
     deriving (Generic)
 
-instance FromJSON  SearchResult
-  where
-    parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+instance FromJSON SearchResult where
+  parseJSON = genericParseJSON defaultOptions
 
-instance ToJSON  SearchResult
-  where
-    toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+instance ToJSON SearchResult where
+  toJSON = genericToJSON defaultOptions
 
 instance ToSchema SearchResult
 {-
@@ -134,12 +128,10 @@ data SearchResultTypes =
   | SearchResultContact  { contacts :: ![Row] }
   | SearchNoResult      { message  :: !Text }
   deriving (Generic)
-instance FromJSON  SearchResultTypes
-  where
-    parseJSON = genericParseJSON (defaultOptions { sumEncoding = defaultTaggedObject })
-instance ToJSON  SearchResultTypes
-  where
-    toJSON = genericToJSON (defaultOptions { sumEncoding = defaultTaggedObject })
+instance FromJSON SearchResultTypes where
+  parseJSON = genericParseJSON (defaultOptions { sumEncoding = defaultTaggedObject })
+instance ToJSON SearchResultTypes where
+  toJSON = genericToJSON (defaultOptions { sumEncoding = defaultTaggedObject })
  
 instance Arbitrary SearchResultTypes where
   arbitrary = do
