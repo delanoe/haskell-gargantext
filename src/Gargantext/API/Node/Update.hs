@@ -35,6 +35,7 @@ import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic)
+import qualified Gargantext.Utils.Aeson as GUA
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)
@@ -149,10 +150,10 @@ updateNode _uId _nId _p logStatus = do
 ------------------------------------------------------------------------
 -- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.
 instance FromJSON  UpdateNodeParams where
-  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+  parseJSON = genericParseJSON (defaultOptions { sumEncoding = GUA.defaultTaggedObject })
 
 instance ToJSON    UpdateNodeParams where
-  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+  toJSON = genericToJSON (defaultOptions { sumEncoding = GUA.defaultTaggedObject })
   
 instance ToSchema  UpdateNodeParams
 instance Arbitrary UpdateNodeParams where
