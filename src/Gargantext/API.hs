@@ -59,7 +59,7 @@ import System.IO (FilePath)
 
 
 data Mode = Dev | Mock | Prod 
-       deriving (Show, Read, Generic)
+  deriving (Show, Read, Generic)
 
 -- | startGargantext takes as parameters port number and Ini file.
 startGargantext :: Mode -> PortNumber -> FilePath -> IO ()

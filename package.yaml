@@ -22,9 +22,11 @@ default-extensions:
   - FlexibleInstances
   - GeneralizedNewtypeDeriving
   - MultiParamTypeClasses
+  - NamedFieldPuns
   - NoImplicitPrelude
   - OverloadedStrings
   - RankNTypes
+  - RecordWildCards
 library:
   source-dirs: src
   ghc-options:

@@ -82,7 +82,9 @@ readNodeStoryEnv :: NodeStoryDir -> IO NodeStoryEnv
 readNodeStoryEnv nsd = do
   mvar  <- nodeStoryVar nsd Nothing [0]
   saver <- mkNodeStorySaver nsd mvar
-  pure $ NodeStoryEnv mvar saver (nodeStoryVar nsd (Just mvar))
+  pure $ NodeStoryEnv { _nse_var = mvar
+                      , _nse_saver = saver
+                      , _nse_getter = nodeStoryVar nsd (Just mvar) }
 
 ------------------------------------------------------------------------
 mkNodeStorySaver :: NodeStoryDir -> MVar NodeListStory -> IO (IO ())
@@ -212,7 +214,9 @@ repoToNodeListStory (Repo _v s h) = NodeStory $ Map.fromList ns
     h' = ngramsStatePatch_migration h
     ns = List.map (\(n,ns')
                     -> (n, let hs = fromMaybe [] (Map.lookup n h') in
-                               Archive (List.length hs) ns' hs
+                               Archive { _a_version = List.length hs
+                                       , _a_state = ns'
+                                       , _a_history = hs }
                        )
                   ) $ Map.toList s'
 
@@ -276,10 +280,17 @@ instance Serialise NgramsStatePatch'
 -- TODO Semigroup instance for unions
 -- TODO check this
 instance (Semigroup s, Semigroup p) => Semigroup (Archive s p) where
-  (<>) (Archive _v _s p) (Archive v' s' p') = Archive v' s' (p' <> p)
+  (<>) (Archive { _a_history = p }) (Archive { _a_version = v'
+                                             , _a_state = s'
+                                             , _a_history = p'}) =
+    Archive { _a_version = v'
+            , _a_state = s'
+            , _a_history = p' <> p }
 
 instance Monoid (Archive NgramsState' NgramsStatePatch') where
-  mempty = Archive 0 mempty []
+  mempty = Archive { _a_version = 0
+                   , _a_state = mempty
+                   , _a_history = [] }
 
 instance (FromJSON s, FromJSON p) => FromJSON (Archive s p) where
   parseJSON = genericParseJSON $ unPrefix "_a_"
@@ -293,13 +304,17 @@ initNodeStory :: Monoid s => NodeId -> NodeStory s p
 initNodeStory ni = NodeStory $ Map.singleton ni initArchive
 
 initArchive :: Monoid s => Archive s p
-initArchive = Archive 0 mempty []
+initArchive = Archive { _a_version = 0
+                      , _a_state = mempty
+                      , _a_history = [] }
 
 initNodeListStoryMock :: NodeListStory
 initNodeListStoryMock = NodeStory $ Map.singleton nodeListId archive
   where
     nodeListId = 0
-    archive        = Archive 0 ngramsTableMap []
+    archive        = Archive { _a_version = 0
+                             , _a_state = ngramsTableMap
+                             , _a_history = [] }
     ngramsTableMap = Map.singleton TableNgrams.NgramsTerms
                    $ Map.fromList
                    [ (n ^. ne_ngrams, ngramsElementToRepo n)

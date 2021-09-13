@@ -33,73 +33,74 @@ data School = School { school_shortName :: Text
 
 schools :: [School]
 schools = [ School
-            ("Mines Albi-Carmaux")
-            ("Mines Albi-Carmaux - École nationale supérieure des Mines d'Albi‐Carmaux")
-            ("469216")
+            { school_shortName = "Mines Albi-Carmaux"
+            , school_longName = "Mines Albi-Carmaux - École nationale supérieure des Mines d'Albi‐Carmaux"
+            , school_id = "469216" }
           , School
-            ("Mines Alès")
-            ("EMA - École des Mines d'Alès")
-            ("6279")
+            { school_shortName = "Mines Alès"
+            , school_longName = "EMA - École des Mines d'Alès"
+            , school_id = "6279" }
           , School
-            ("Mines Douai")
-            ("Mines Douai EMD - École des Mines de Douai")
-            ("224096")
+            { school_shortName = "Mines Douai"
+            , school_longName = "Mines Douai EMD - École des Mines de Douai"
+            , school_id = "224096" }
           , School
-            ("Mines Lille")
-            ("Mines Lille - École des Mines de Lille")
-            ("144103")
+            { school_shortName = "Mines Lille"
+            , school_longName = "Mines Lille - École des Mines de Lille"
+            , school_id = "144103" }
           , School
-            ("IMT Lille Douai")
-            ("IMT Lille Douai")
-            ("497330")
+            { school_shortName = "IMT Lille Douai"
+            , school_longName = "IMT Lille Douai"
+            , school_id = "497330" }
           , School
-            ("Mines Nantes")
-            ("Mines Nantes - Mines Nantes")
-            ("84538")
+            { school_shortName = "Mines Nantes"
+            , school_longName = "Mines Nantes - Mines Nantes"
+            , school_id = "84538" }
           , School
-            ("Télécom Bretagne")
-            ("Télécom Bretagne")
-            ("301262")
+            { school_shortName = "Télécom Bretagne"
+            , school_longName = "Télécom Bretagne"
+            , school_id = "301262" }
           , School
-            ("IMT Atlantique")
-            ("IMT Atlantique - IMT Atlantique Bretagne-Pays de la Loire")
-            ("481355")
+            { school_shortName = "IMT Atlantique"
+            , school_longName = "IMT Atlantique - IMT Atlantique Bretagne-Pays de la Loire"
+            , school_id = "481355" }
           , School
-            ("Mines Saint-Étienne")
-            ("Mines Saint-Étienne MSE - École des Mines de Saint-Étienne")
-            ("29212")
+            { school_shortName = "Mines Saint-Étienne"
+            , school_longName = "Mines Saint-Étienne MSE - École des Mines de Saint-Étienne"
+            , school_id = "29212" }
           , School
-            ("Télécom École de Management")
-            ("TEM - Télécom Ecole de Management")
-            ("301442")
+            { school_shortName = "Télécom École de Management"
+            , school_longName = "TEM - Télécom Ecole de Management"
+            , school_id = "301442" }
           , School
-            ("IMT Business School")
-            ("IMT Business School")
-            ("542824")
+            { school_shortName = "IMT Business School"
+            , school_longName = "IMT Business School"
+            , school_id = "542824" }
           , School
-            ("Télécom ParisTech")
-            ("Télécom ParisTech")
-            ("300362")
+            { school_shortName = "Télécom ParisTech"
+            , school_longName = "Télécom ParisTech"
+            , school_id = "300362" }
           , School
-            ("Télécom SudParis")
-            ("TSP - Télécom SudParis")
-            ("352124")
+            { school_shortName = "Télécom SudParis"
+            , school_longName = "TSP - Télécom SudParis"
+            , school_id = "352124" }
           , School
-            ("ARMINES")
-            ("ARMINES")
-            ("300362")
+            { school_shortName = "ARMINES"
+            , school_longName = "ARMINES"
+            , school_id = "300362" }
           , School
-            ("Eurecom")
-            ("Eurecom")
-            ("421532")
+            { school_shortName = "Eurecom"
+            , school_longName = "Eurecom"
+            , school_id = "421532" }
           , School
-            ("Mines ParisTech")
-            ("MINES ParisTech - École nationale supérieure des mines de Paris")
-            ("301492")
+            { school_shortName = "Mines ParisTech"
+            , school_longName = "MINES ParisTech - École nationale supérieure des mines de Paris"
+            , school_id = "301492" }
             ]
 
 mapIdSchool :: Map Text Text
-mapIdSchool = M.fromList $ Gargantext.Prelude.map (\(School n _ i) -> (i,n)) schools
+mapIdSchool = M.fromList $ Gargantext.Prelude.map
+                (\(School { school_shortName, school_id }) -> (school_id, school_shortName)) schools
 
 hal_data :: IO (Either Prelude.String (DV.Vector CsvHal))
 hal_data = do
