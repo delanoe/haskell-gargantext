@@ -122,25 +122,25 @@ toDoc ff d = do
 
       (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit lang  dateToParse
 
-      pure $ HyperdataDocument (Just $ DT.pack $ show ff)
-                               (lookup "doi" d)
-                               (lookup "URL" d)
-                                Nothing
-                                Nothing
-                                Nothing
-                               (lookup "title" d)
-                                Nothing
-                               (lookup "authors" d)
-                               (lookup "source" d)
-                               (lookup "abstract" d)
-                               (fmap (DT.pack . show) utcTime)
-                               (pub_year)
-                               (pub_month)
-                               (pub_day)
-                               Nothing
-                               Nothing
-                               Nothing
-                               (Just $ (DT.pack . show) lang)
+      pure $ HyperdataDocument { _hd_bdd = Just $ DT.pack $ show ff
+                               , _hd_doi = lookup "doi" d
+                               , _hd_url = lookup "URL" d
+                               , _hd_uniqId = Nothing
+                               , _hd_uniqIdBdd = Nothing
+                               , _hd_page = Nothing
+                               , _hd_title = lookup "title" d
+                               , _hd_authors = Nothing
+                               , _hd_institutes = lookup "authors" d
+                               , _hd_source = lookup "source" d
+                               , _hd_abstract = lookup "abstract" d
+                               , _hd_publication_date = fmap (DT.pack . show) utcTime
+                               , _hd_publication_year = pub_year
+                               , _hd_publication_month = pub_month
+                               , _hd_publication_day = pub_day
+                               , _hd_publication_hour = Nothing
+                               , _hd_publication_minute = Nothing
+                               , _hd_publication_second = Nothing
+                               , _hd_language_iso2 = Just $ (DT.pack . show) lang }
 
 enrichWith :: FileFormat
            ->  (a, [[[(DB.ByteString, DB.ByteString)]]]) -> (a, [[(Text, Text)]])

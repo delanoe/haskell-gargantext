@@ -75,18 +75,26 @@ instance ToJSON GrandDebatReference
 
 instance ToHyperdataDocument GrandDebatReference
   where
-    toHyperdataDocument (GrandDebatReference id' _ref title'
-                                   _createdAt' publishedAt' _updatedAt
-                                   _trashed _trashedStatus
-                                   _authorId authorType' authorZipCode'
-                                   responses') =
-      HyperdataDocument (Just "GrandDebat") id'
-                         Nothing Nothing Nothing Nothing
-                         title' authorType' authorType' authorZipCode'
-                        (toAbstract <$> responses')
-                         publishedAt'
-                         Nothing Nothing Nothing Nothing Nothing Nothing
-                        (Just $ Text.pack $ show FR)
+    toHyperdataDocument (GrandDebatReference { id, title, publishedAt, authorType, authorZipCode, responses }) =
+      HyperdataDocument { _hd_bdd = Just "GrandDebat"
+                        , _hd_doi = id
+                        , _hd_url = Nothing
+                        , _hd_uniqId = Nothing
+                        , _hd_uniqIdBdd = Nothing
+                        , _hd_page = Nothing
+                        , _hd_title = title
+                        , _hd_authors = authorType
+                        , _hd_institutes = authorType
+                        , _hd_source = authorZipCode
+                        , _hd_abstract = toAbstract <$> responses
+                        , _hd_publication_date = publishedAt
+                        , _hd_publication_year = Nothing
+                        , _hd_publication_month = Nothing
+                        , _hd_publication_day = Nothing
+                        , _hd_publication_hour = Nothing
+                        , _hd_publication_minute = Nothing
+                        , _hd_publication_second = Nothing
+                        , _hd_language_iso2 = Just $ Text.pack $ show FR }
         where
           toAbstract = (Text.intercalate " . ") . ((filter (/= "")) . (map toSentence))
           toSentence (GrandDebatResponse _id _qtitle _qvalue r) = case r of
