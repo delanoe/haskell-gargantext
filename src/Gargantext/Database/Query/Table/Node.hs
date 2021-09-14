@@ -336,6 +336,9 @@ defaultList :: (HasNodeError err, HasDBid NodeType) => CorpusId -> Cmd err ListI
 defaultList cId =
   maybe (nodeError NoListFound) (pure . view node_id) . headMay =<< getListsWithParentId cId
 
+defaultListMaybe :: (HasNodeError err, HasDBid NodeType) => CorpusId -> Cmd err (Maybe NodeId)
+defaultListMaybe cId = headMay <$> map (view node_id ) <$> getListsWithParentId cId
+
 
 getListsWithParentId :: HasDBid NodeType => NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
