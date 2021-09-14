@@ -315,7 +315,10 @@ type PairWith = Summary "Pair a Corpus with an Annuaire"
 pairWith :: CorpusId -> GargServer PairWith
 pairWith cId aId lId = do
   r <- pairing cId aId lId
-  _ <- insertNodeNode [ NodeNode cId aId Nothing Nothing]
+  _ <- insertNodeNode [ NodeNode { _nn_node1_id = cId
+                                 , _nn_node2_id = aId
+                                 , _nn_score = Nothing
+                                 , _nn_category = Nothing }]
   pure r
 
 
