@@ -44,6 +44,8 @@ import Control.Arrow (returnA)
 import Control.Lens ((^.))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
+import qualified Database.PostgreSQL.Simple as DPS
+import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Swagger
 import qualified Data.Text as T
@@ -67,6 +69,9 @@ import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
+
+--import qualified Opaleye.Internal.Column as C
+--import qualified Opaleye.Internal.HaskellDB.PrimQuery as HPQ
 
 ------------------------------------------------------------------------
 -- | DocFacet
@@ -302,11 +307,30 @@ runViewDocuments :: HasDBid NodeType
                  -> Maybe OrderBy
                  -> Maybe Text
                  -> Cmd err [FacetDoc]
-runViewDocuments cId t o l order query = do
-    runOpaQuery $ filterWith o l order sqlQuery
+runViewDocuments cId t _o _l _order query = do
+  docs <- runPGSQuery viewDocuments'
+    ( cId
+    , ntId
+    , (if t then 0 else 1) :: Int
+    , fromMaybe "" query
+    , fromMaybe "" query)
+  pure $ (\(id, date, name', hyperdata, category, score) -> FacetDoc id date name' hyperdata category score score) <$> docs
+--    runOpaQuery $ filterWith o l order sqlQuery
   where
+    ntId :: Int
     ntId = toDBid NodeDocument
-    sqlQuery = viewDocuments cId t ntId query
+--    sqlQuery = viewDocuments cId t ntId query
+    viewDocuments' :: DPS.Query
+    viewDocuments' = [sql|
+      SELECT n.id, n.date, n.name, n.hyperdata, nn.category, nn.score
+        FROM nodes AS n
+        JOIN nodes_nodes AS nn
+        ON n.id = nn.node2_id
+        WHERE nn.node1_id = ?  -- corpusId
+          AND n.typename = ?   -- NodeTypeId
+          AND nn.category = ?  -- isTrash or not
+          AND (n.search_title @@ to_tsquery(?) OR ? = '')  -- query with an OR hack for empty to_tsquery('') results
+      |]
 
 runCountDocuments :: HasDBid NodeType => CorpusId -> IsTrash -> Maybe Text -> Cmd err Int
 runCountDocuments cId t mQuery = do
