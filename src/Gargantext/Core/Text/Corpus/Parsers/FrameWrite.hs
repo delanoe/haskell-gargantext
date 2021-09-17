@@ -5,7 +5,8 @@ import Control.Monad (void)
 import Data.Maybe
 import Data.Text
 import Gargantext.Prelude
-import Text.Parsec
+import Prelude (String, (++))
+import Text.Parsec hiding (Line)
 import Text.Parsec.Combinator
 import Text.Parsec.String
 
@@ -33,7 +34,22 @@ sample =
     , "document contents 2"
     ]
 
+sampleUnordered =
+  unlines
+    [ "title1"
+    , "title2"
+    , "=="
+    , "document contents 1"
+    , "^@@date: 2021-09-10"
+    , "^@@authors: FirstName1, LastName1; FirstName2, LastName2"
+    , "^@@source: someSource"
+    , "document contents 2"
+    ]
+
 parseSample = parse documentP "sample" (unpack sample)
+parseSampleUnordered = parse documentP "sampleUnordered" (unpack sampleUnordered)
+parseLinesSample = parse documentLinesP "sample" (unpack sample)
+parseLinesSampleUnordered = parse documentLinesP "sampleUnordered" (unpack sampleUnordered)
 
 data Author =
     Author { firstName :: Text
@@ -47,6 +63,61 @@ data Parsed =
          , source :: Maybe Text
          , contents :: Text }
   deriving (Show)
+
+emptyParsed =
+  Parsed { title = ""
+         , authors = []
+         , date = Nothing
+         , source = Nothing
+         , contents = "" }
+
+data Line =
+    LAuthors [Author]
+  | LDate Text
+  | LSource Text
+  | LContents Text
+  | LTitle Text
+  deriving (Show)
+
+parseLines :: Text -> Parsed
+parseLines text = foldl f emptyParsed lst
+  where
+    lst = parse documentLinesP "" (unpack text)
+    f (Parsed { .. }) (LAuthors as) = Parsed { authors = as, .. }
+    f (Parsed { .. }) (LDate    d ) = Parsed { date = d, .. }
+    f (Parsed { .. }) (LSource  s ) = Parsed { source = s, .. }
+    f (Parsed { .. }) (LContents c) = Parsed { contents = contents ++ c, .. }
+    f (Parsed { .. }) (LTitle   t ) = Parsed { title = t, .. }
+
+documentLinesP = do
+  t <- titleP
+  lines <- lineP `sepBy` newline
+  pure $ [LTitle $ pack t] ++ lines
+
+lineP :: Parser Line
+lineP = do
+  choice [ try authorsLineP
+         , try dateLineP
+         , try sourceLineP
+         , contentsLineP ]
+
+authorsLineP = do
+  authors <- authorsP
+  pure $ LAuthors authors
+
+dateLineP = do
+  date <- dateP
+  pure $ LDate $ pack date
+
+sourceLineP = do
+  source <- sourceP
+  pure $ LSource $ pack source
+
+contentsLineP = do
+  contents <- many (noneOf "\n")
+  pure $ LContents $ pack contents
+
+--------------------
 
 documentP = do
   t <- titleP
@@ -77,7 +148,8 @@ authorP = do
   fn <- manyTill anyChar (char ',')
   _ <- many (char ' ')
   --ln <- manyTill anyChar (void (char ';') <|> tokenEnd)
-  ln <- manyTill anyChar (tokenEnd)
+  --ln <- manyTill anyChar (tokenEnd)
+  ln <- many (noneOf "\n")
   pure $ Author { firstName = pack fn, lastName = pack ln }
   -- manyTill anyChar (void (char '\n') <|> eof)
 
@@ -86,15 +158,16 @@ datePrefixP = do
   many (char ' ')
 dateP :: Parser [Char]
 dateP = try datePrefixP
-        *> manyTill anyChar tokenEnd
+        *> many (noneOf "\n")
 
 sourcePrefixP = do
   _ <- string "^@@source:"
   many (char ' ')
 sourceP :: Parser [Char]
 sourceP = try sourcePrefixP
-          *> manyTill anyChar tokenEnd
+          *> many (noneOf "\n")
 
+contentsP :: Parser String
 contentsP = many anyChar
 
 tokenEnd = void (char '\n') <|> eof
