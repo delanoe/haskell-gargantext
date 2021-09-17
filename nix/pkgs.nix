@@ -12,7 +12,7 @@ rec {
     git
     gmp
     gsl
-    haskell-language-server
+    #haskell-language-server
     hlint
     igraph
     liblapack

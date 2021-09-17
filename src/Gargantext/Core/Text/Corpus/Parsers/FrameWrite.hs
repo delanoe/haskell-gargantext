@@ -2,12 +2,12 @@ module Gargantext.Core.Text.Corpus.Parsers.FrameWrite where
 
 import Control.Applicative ((*>))
 import Control.Monad (void)
+import Data.Either
 import Data.Maybe
-import Data.Text
+import Data.Text hiding (foldl)
 import Gargantext.Prelude
-import Prelude (String, (++))
+import Prelude ((++))
 import Text.Parsec hiding (Line)
-import Text.Parsec.Combinator
 import Text.Parsec.String
 
 
@@ -22,6 +22,7 @@ import Text.Parsec.String
 -- par défaut: un doc == 1 NodeWrite
 -- ## mean each ## section will be a new document with title the subsubsection title. Either it features options for author, date etc. or it will inherit the document's option.
 
+sample :: Text
 sample =
   unlines
     [ "title1"
@@ -34,6 +35,7 @@ sample =
     , "document contents 2"
     ]
 
+sampleUnordered :: Text
 sampleUnordered =
   unlines
     [ "title1"
@@ -46,10 +48,12 @@ sampleUnordered =
     , "document contents 2"
     ]
 
-parseSample = parse documentP "sample" (unpack sample)
-parseSampleUnordered = parse documentP "sampleUnordered" (unpack sampleUnordered)
-parseLinesSample = parse documentLinesP "sample" (unpack sample)
-parseLinesSampleUnordered = parse documentLinesP "sampleUnordered" (unpack sampleUnordered)
+-- parseSample = parse documentP "sample" (unpack sample)
+-- parseSampleUnordered = parse documentP "sampleUnordered" (unpack sampleUnordered)
+parseLinesSample :: Either ParseError Parsed
+parseLinesSample = parseLines sample
+parseLinesSampleUnordered :: Either ParseError Parsed
+parseLinesSampleUnordered = parseLines sampleUnordered
 
 data Author =
     Author { firstName :: Text
@@ -64,6 +68,7 @@ data Parsed =
          , contents :: Text }
   deriving (Show)
 
+emptyParsed :: Parsed
 emptyParsed =
   Parsed { title = ""
          , authors = []
@@ -73,26 +78,27 @@ emptyParsed =
 
 data Line =
     LAuthors [Author]
+  | LContents Text
   | LDate Text
   | LSource Text
-  | LContents Text
   | LTitle Text
   deriving (Show)
 
-parseLines :: Text -> Parsed
-parseLines text = foldl f emptyParsed lst
+parseLines :: Text -> Either ParseError Parsed
+parseLines text = foldl f emptyParsed <$> lst
   where
     lst = parse documentLinesP "" (unpack text)
     f (Parsed { .. }) (LAuthors as) = Parsed { authors = as, .. }
-    f (Parsed { .. }) (LDate    d ) = Parsed { date = d, .. }
-    f (Parsed { .. }) (LSource  s ) = Parsed { source = s, .. }
-    f (Parsed { .. }) (LContents c) = Parsed { contents = contents ++ c, .. }
+    f (Parsed { .. }) (LContents c) = Parsed { contents = concat [contents, c], .. }
+    f (Parsed { .. }) (LDate    d ) = Parsed { date = Just d, .. }
+    f (Parsed { .. }) (LSource  s ) = Parsed { source = Just s, .. }
     f (Parsed { .. }) (LTitle   t ) = Parsed { title = t, .. }
 
+documentLinesP :: Parser [Line]
 documentLinesP = do
   t <- titleP
-  lines <- lineP `sepBy` newline
-  pure $ [LTitle $ pack t] ++ lines
+  ls <- lineP `sepBy` newline
+  pure $ [LTitle $ pack t] ++ ls
 
 lineP :: Parser Line
 lineP = do
@@ -101,43 +107,49 @@ lineP = do
          , try sourceLineP
          , contentsLineP ]
 
+authorsLineP :: Parser Line
 authorsLineP = do
   authors <- authorsP
   pure $ LAuthors authors
 
+dateLineP :: Parser Line
 dateLineP = do
   date <- dateP
   pure $ LDate $ pack date
 
+sourceLineP :: Parser Line
 sourceLineP = do
   source <- sourceP
   pure $ LSource $ pack source
 
+contentsLineP :: Parser Line
 contentsLineP = do
   contents <- many (noneOf "\n")
   pure $ LContents $ pack contents
 
 --------------------
 
-documentP = do
-  t <- titleP
-  a <- optionMaybe authorsP
-  d <- optionMaybe dateP
-  s <- optionMaybe sourceP
-  c <- contentsP
-  pure $ Parsed { title = pack t
-                , authors = fromMaybe [] a
-                , date = pack <$> d
-                , source = pack <$> s
-                , contents = pack c }
+-- documentP = do
+--   t <- titleP
+--   a <- optionMaybe authorsP
+--   d <- optionMaybe dateP
+--   s <- optionMaybe sourceP
+--   c <- contentsP
+--   pure $ Parsed { title = pack t
+--                 , authors = fromMaybe [] a
+--                 , date = pack <$> d
+--                 , source = pack <$> s
+--                 , contents = pack c }
 
+titleDelimiterP :: Parser ()
 titleDelimiterP = do
-  newline
-  string "=="
+  _ <- newline
+  _ <- string "=="
   tokenEnd
 titleP :: Parser [Char]
 titleP = manyTill anyChar (try titleDelimiterP)
 
+authorsPrefixP :: Parser [Char]
 authorsPrefixP = do
   _ <- string "^@@authors:"
   many (char ' ')
@@ -153,6 +165,7 @@ authorP = do
   pure $ Author { firstName = pack fn, lastName = pack ln }
   -- manyTill anyChar (void (char '\n') <|> eof)
 
+datePrefixP :: Parser [Char]
 datePrefixP = do
   _ <- string "^@@date:"
   many (char ' ')
@@ -160,6 +173,7 @@ dateP :: Parser [Char]
 dateP = try datePrefixP
         *> many (noneOf "\n")
 
+sourcePrefixP :: Parser [Char]
 sourcePrefixP = do
   _ <- string "^@@source:"
   many (char ' ')
@@ -167,7 +181,8 @@ sourceP :: Parser [Char]
 sourceP = try sourcePrefixP
           *> many (noneOf "\n")
 
-contentsP :: Parser String
-contentsP = many anyChar
+-- contentsP :: Parser String
+-- contentsP = many anyChar
 
+tokenEnd :: Parser ()
 tokenEnd = void (char '\n') <|> eof
