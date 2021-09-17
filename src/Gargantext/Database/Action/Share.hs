@@ -53,7 +53,10 @@ shareNodeWith (ShareNodeWith_User NodeFolderShared u) n = do
         then errorWith "[G.D.A.S.shareNodeWith] Can share to others only"
         else do
           folderSharedId  <- getFolderId u NodeFolderShared
-          insertDB ([NodeNode folderSharedId n Nothing Nothing]:: [NodeNode])
+          insertDB ([NodeNode { _nn_node1_id = folderSharedId
+                              , _nn_node2_id = n
+                              , _nn_score = Nothing
+                              , _nn_category = Nothing }]:: [NodeNode])
 
 shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId) n = do
   nodeToCheck <- getNode n
@@ -63,7 +66,10 @@ shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId) n = do
     else do
       folderToCheck <- getNode nId
       if hasNodeType folderToCheck NodeFolderPublic
-         then insertDB ([NodeNode nId n Nothing Nothing] :: [NodeNode])
+         then insertDB ([NodeNode { _nn_node1_id = nId
+                                  , _nn_node2_id = n
+                                  , _nn_score = Nothing
+                                  , _nn_category = Nothing }] :: [NodeNode])
          else errorWith "[G.D.A.S.shareNodeWith] Can share NodeWith NodeFolderPublic only"
 
 shareNodeWith _ _ = errorWith "[G.D.A.S.shareNodeWith] Not implemented for this NodeType"

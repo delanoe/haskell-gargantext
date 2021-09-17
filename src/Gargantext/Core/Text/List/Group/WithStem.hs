@@ -72,7 +72,7 @@ groupWith :: GroupParams
             -> NgramsTerm
             -> NgramsTerm
 groupWith GroupIdentity  t = identity t
-groupWith (GroupParams l _m _n _) t =
+groupWith (GroupParams { unGroupParams_lang = l }) t =
                     NgramsTerm
                   $ Text.intercalate " "
                   $ map (stem l)
@@ -86,7 +86,7 @@ groupWith (GroupParams l _m _n _) t =
                   $ unNgramsTerm t
 
 -- | This lemmatization group done with CoreNLP algo (or others)
-groupWith (GroupWithPosTag _ _ m) t = 
+groupWith (GroupWithPosTag { _gwl_map = m }) t = 
   case HashMap.lookup (unNgramsTerm t) m of
       Nothing -> clean t
       Just t' -> clean $ NgramsTerm t'

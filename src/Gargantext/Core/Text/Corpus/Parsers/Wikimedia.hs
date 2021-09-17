@@ -95,7 +95,9 @@ parsePage =
   revision <-
     parseRevision
   many_ $ ignoreAnyTreeContent
-  return $ Page Mediawiki title revision
+  return $ Page { _markupFormat = Mediawiki
+                , _title = title
+                , _text = revision }
 
 parseMediawiki :: MonadThrow m => ConduitT Event Page m (Maybe ())
 parseMediawiki =
@@ -108,7 +110,7 @@ mediawikiPageToPlain :: Page -> IO Page
 mediawikiPageToPlain page = do
   title <- mediaToPlain $ _title page
   revision <- mediaToPlain $ _text page
-  return $ Page Plaintext title revision
+  return $ Page { _markupFormat = Plaintext, _title = title, _text = revision }
   where mediaToPlain media =
           case media of
             (Nothing) -> return Nothing

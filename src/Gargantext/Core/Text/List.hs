@@ -86,17 +86,17 @@ buildNgramsLists user uCid mCid mfslw gp = do
 
 data MapListSize = MapListSize { unMapListSize :: !Int }
 
-buildNgramsOthersList ::( HasNodeError err
-                        , CmdM     env err m
-                        , HasNodeStory env err m
-                        , HasTreeError err
-                        )
-                        => User
-                        -> UserCorpusId
-                        -> Maybe FlowSocialListWith
-                        -> GroupParams
-                        -> (NgramsType, MapListSize)
-                        -> m (Map NgramsType [NgramsElement])
+buildNgramsOthersList :: ( HasNodeError err
+                         , CmdM     env err m
+                         , HasNodeStory env err m
+                         , HasTreeError err
+                         )
+                      => User
+                      -> UserCorpusId
+                      -> Maybe FlowSocialListWith
+                      -> GroupParams
+                      -> (NgramsType, MapListSize)
+                      -> m (Map NgramsType [NgramsElement])
 buildNgramsOthersList user uCid mfslw _groupParams (nt, MapListSize mapListSize) = do
   allTerms  :: HashMap NgramsTerm (Set NodeId) <- getNodesByNgramsUser uCid nt
 
@@ -106,7 +106,7 @@ buildNgramsOthersList user uCid mfslw _groupParams (nt, MapListSize mapListSize)
                                                       $ HashMap.fromList
                                                       $ List.zip (HashMap.keys allTerms)
                                                                  (List.cycle [mempty])
-                                           )
+                                    )
   let
     groupedWithList = toGroupedTree {- groupParams -} socialLists allTerms
 
@@ -148,13 +148,13 @@ buildNgramsTermsList :: ( HasNodeError err
                         , HasNodeStory env err m
                         , HasTreeError err
                         )
-                        => User
-                        -> UserCorpusId
-                        -> MasterCorpusId
-                        -> Maybe FlowSocialListWith
-                        -> GroupParams
-                        -> (NgramsType, MapListSize)
-                        -> m (Map NgramsType [NgramsElement])
+                     => User
+                     -> UserCorpusId
+                     -> MasterCorpusId
+                     -> Maybe FlowSocialListWith
+                     -> GroupParams
+                     -> (NgramsType, MapListSize)
+                     -> m (Map NgramsType [NgramsElement])
 buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
 
 -- Filter 0 With Double
@@ -170,7 +170,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
                                                       $ HashMap.fromList
                                                       $ List.zip (HashMap.keys   allTerms)
                                                                  (List.cycle     [mempty])
-                                           )
+                                    )
   printDebug "[buldNgramsTermsList: Flow Social List / end]" nt
 
   let ngramsKeys = HashMap.keysSet allTerms

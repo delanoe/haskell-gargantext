@@ -118,11 +118,11 @@ instance (Arbitrary i, Arbitrary l) => Arbitrary (Pair i l) where
   arbitrary = Pair <$> arbitrary <*> arbitrary
 
 data FacetPaired id date hyperdata score =
-  FacetPaired {_fp_id        :: id
-              ,_fp_date      :: date
-              ,_fp_hyperdata :: hyperdata
-              ,_fp_score     :: score
-  } deriving (Show, Generic)
+  FacetPaired { _fp_id        :: id
+              , _fp_date      :: date
+              , _fp_hyperdata :: hyperdata
+              , _fp_score     :: score }
+  deriving (Show, Generic)
 $(deriveJSON (unPrefix "_fp_") ''FacetPaired)
 $(makeAdaptorAndInstance "pFacetPaired" ''FacetPaired)
 

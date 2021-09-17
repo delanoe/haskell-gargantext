@@ -111,7 +111,10 @@ updateScatter' cId maybeListId tabType maybeLimit = do
   (ngs', scores) <- Metrics.getMetrics cId maybeListId tabType maybeLimit
 
   let
-    metrics      = fmap (\(Scored t s1 s2) -> Metric (unNgramsTerm t) s1 s2 (listType t ngs'))
+    metrics      = fmap (\(Scored t s1 s2) -> Metric { m_label = unNgramsTerm t
+                                                     , m_x = s1
+                                                     , m_y = s2
+                                                     , m_cat = listType t ngs' })
                  $ fmap normalizeLocal scores
     listType t m = maybe (panic errorMsg) fst $ HashMap.lookup t m
     errorMsg     = "API.Node.metrics: key absent"

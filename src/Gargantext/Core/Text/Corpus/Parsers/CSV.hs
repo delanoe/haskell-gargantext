@@ -62,34 +62,39 @@ data CsvGargV3 = CsvGargV3
 -- | Doc 2 HyperdataDocument
 toDoc :: CsvGargV3 -> HyperdataDocument
 toDoc (CsvGargV3 did dt _ dpy dpm dpd dab dau) =
-  HyperdataDocument (Just "CSV")
-                    (Just . pack . show $ did)
-                    Nothing
-                    Nothing
-                    Nothing
-                    Nothing
-                    (Just dt)
-                    Nothing
-                    (Just dau)
-                    (Just dab)
-                    (Nothing)
-                    Nothing
-                    (Just dpy)
-                    (Just dpm)
-                    (Just dpd)
-                    Nothing
-                    Nothing
-                    Nothing
-                    Nothing
+  HyperdataDocument { _hd_bdd = Just "CSV"
+                    , _hd_doi = Just . pack . show $ did
+                    , _hd_url = Nothing
+                    , _hd_uniqId = Nothing
+                    , _hd_uniqIdBdd = Nothing
+                    , _hd_page = Nothing
+                    , _hd_title = Just dt
+                    , _hd_authors = Nothing
+                    , _hd_institutes = Just dau
+                    , _hd_source = Just dab
+                    , _hd_abstract = Nothing
+                    , _hd_publication_date = Nothing
+                    , _hd_publication_year = Just dpy
+                    , _hd_publication_month = Just dpm
+                    , _hd_publication_day = Just dpd
+                    , _hd_publication_hour = Nothing
+                    , _hd_publication_minute = Nothing
+                    , _hd_publication_second = Nothing
+                    , _hd_language_iso2 = Nothing }
 
 ---------------------------------------------------------------
 -- | Types Conversions
 toDocs :: Vector CsvDoc -> [CsvGargV3]
 toDocs v = V.toList
-         $ V.zipWith (\nId (CsvDoc t s mPy pm pd abst auth)
-                       -> CsvGargV3 nId t s
-                          (fromMIntOrDec defaultYear mPy) (fromMaybe defaultMonth pm) (fromMaybe defaultDay pd)
-                          abst auth )
+         $ V.zipWith (\nId (CsvDoc { .. }) -- (CsvDoc t s mPy pm pd abst auth)
+                       -> CsvGargV3 { d_docId = nId
+                                    , d_title = csv_title
+                                    , d_source = csv_source
+                                    , d_publication_year = fromMIntOrDec defaultYear csv_publication_year
+                                    , d_publication_month = fromMaybe defaultMonth csv_publication_month
+                                    , d_publication_day = fromMaybe defaultDay csv_publication_day
+                                    , d_abstract = csv_abstract
+                                    , d_authors = csv_authors })
                        (V.enumFromN 1 (V.length v'')) v''
           where
             v'' = V.foldl (\v' sep -> V.concatMap (splitDoc (docsSize v') sep) v') v seps
@@ -99,7 +104,13 @@ toDocs v = V.toList
 fromDocs :: Vector CsvGargV3 -> Vector CsvDoc
 fromDocs docs = V.map fromDocs' docs
   where
-    fromDocs' (CsvGargV3 _ t s py pm pd abst auth) = (CsvDoc t s (Just $ IntOrDec py) (Just pm) (Just pd) abst auth)
+    fromDocs' (CsvGargV3 { .. }) = CsvDoc { csv_title = d_title
+                                          , csv_source = d_source
+                                          , csv_publication_year = Just $ IntOrDec d_publication_year
+                                          , csv_publication_month = Just d_publication_month
+                                          , csv_publication_day = Just d_publication_day
+                                          , csv_abstract = d_abstract
+                                          , csv_authors = d_authors }
 
 ---------------------------------------------------------------
 -- | Split a document in its context
@@ -117,19 +128,17 @@ splitDoc m splt doc = let docSize = (length $ csv_abstract doc) in
                               V.fromList [doc]
   where
     splitDoc' :: SplitContext -> CsvDoc -> Vector CsvDoc
-    splitDoc' contextSize (CsvDoc t s py pm pd abst auth) = V.fromList $ [firstDoc] <> nextDocs
+    splitDoc' contextSize (CsvDoc { .. }) = V.fromList $ [firstDoc] <> nextDocs
         where
-          firstDoc = CsvDoc t s py pm pd firstAbstract auth
+          firstDoc = CsvDoc { csv_abstract = firstAbstract, .. }
           firstAbstract = head' "splitDoc'1" abstracts
 
-          nextDocs = map (\txt -> CsvDoc
-                                    (head' "splitDoc'2" $ sentences txt)
-                                    s py pm pd 
-                                    (unsentences $ tail' "splitDoc'1" $ sentences txt)
-                                    auth
+          nextDocs = map (\txt -> CsvDoc { csv_title = head' "splitDoc'2" $ sentences txt
+                                         , csv_abstract = unsentences $ tail' "splitDoc'1" $ sentences txt
+                                         , .. }
                           ) (tail' "splitDoc'2" abstracts)
 
-          abstracts    = (splitBy $ contextSize) abst
+          abstracts    = (splitBy $ contextSize) csv_abstract
 
 ---------------------------------------------------------------
 ---------------------------------------------------------------
@@ -174,33 +183,35 @@ data CsvDoc = CsvDoc
     deriving (Show)
 
 instance FromNamedRecord CsvDoc where
-  parseNamedRecord r = CsvDoc <$> (r .: "title" <|> r .: "Title")
-                              <*> (r .: "source" <|> r .: "Source")
-                              <*> (r .: "publication_year" <|> r .: "Publication Year")
-                              <*> (r .: "publication_month" <|> r .: "Publication Month")
-                              <*> (r .: "publication_day" <|> r .: "Publication Day")
-                              <*> (r .: "abstract" <|> r .: "Abstract")
-                              <*> (r .: "authors" <|> r .: "Authors")
+  parseNamedRecord r = do
+    csv_title <- r .: "title" <|> r .: "Title"
+    csv_source <- r .: "source" <|> r .: "Source"
+    csv_publication_year <- r .: "publication_year" <|> r .: "Publication Year"
+    csv_publication_month <- r .: "publication_month" <|> r .: "Publication Month"
+    csv_publication_day <- r .: "publication_day" <|> r .: "Publication Day"
+    csv_abstract <- r .: "abstract" <|> r .: "Abstract"
+    csv_authors <- r .: "authors" <|> r .: "Authors"
+    pure $ CsvDoc { .. }
 
 instance ToNamedRecord CsvDoc where
-  toNamedRecord (CsvDoc t s py pm pd abst aut) =
-    namedRecord [ "title"             .= t
-                , "source"            .= s
-                , "publication_year"  .= py
-                , "publication_month" .= pm
-                , "publication_day"   .= pd
-                , "abstract"          .= abst
-                , "authors"           .= aut
+  toNamedRecord (CsvDoc{ .. }) =
+    namedRecord [ "title"             .= csv_title
+                , "source"            .= csv_source
+                , "publication_year"  .= csv_publication_year
+                , "publication_month" .= csv_publication_month
+                , "publication_day"   .= csv_publication_day
+                , "abstract"          .= csv_abstract
+                , "authors"           .= csv_authors
                 ]
 
 hyperdataDocument2csvDoc :: HyperdataDocument -> CsvDoc
-hyperdataDocument2csvDoc h = CsvDoc (m  $ _hd_title h)
-                                    (m  $ _hd_source h)
-                                    (Just $ IntOrDec $ mI $ _hd_publication_year h)
-                                    (Just $ mI $ _hd_publication_month h)
-                                    (Just $ mI $ _hd_publication_day   h)
-                                    (m  $ _hd_abstract h)
-                                    (m  $ _hd_authors h)
+hyperdataDocument2csvDoc h = CsvDoc { csv_title = m $ _hd_title h
+                                    , csv_source = m $ _hd_source h
+                                    , csv_publication_year = Just $ IntOrDec $ mI $ _hd_publication_year h
+                                    , csv_publication_month = Just $ mI $ _hd_publication_month h
+                                    , csv_publication_day = Just $ mI $ _hd_publication_day   h
+                                    , csv_abstract = m $ _hd_abstract h
+                                    , csv_authors = m $ _hd_authors h }
 
   where
     m = maybe "" identity
@@ -300,110 +311,109 @@ data CsvHal = CsvHal
     deriving (Show)
 
 instance FromNamedRecord CsvHal where
-  parseNamedRecord r = CsvHal <$> r .: "title"
-                              <*> r .: "source"
-                              <*> r .: "publication_year"
-                              <*> r .: "publication_month"
-                              <*> r .: "publication_day"
-                              <*> r .: "abstract"
-                              <*> r .: "authors"
-
-                              <*> r .: "url"
-                              <*> r .: "isbn_s"
-                              <*> r .: "issue_s"
-                              <*> r .: "journalPublisher_s"
-                              <*> r .: "language_s"
-
-                              <*> r .: "doiId_s"
-                              <*> r .: "authId_i"
-                              <*> r .: "instStructId_i"
-                              <*> r .: "deptStructId_i"
-                              <*> r .: "labStructId_i"
-
-                              <*> r .: "rteamStructId_i"
-                              <*> r .: "docType_s"
+  parseNamedRecord r = do
+    csvHal_title <- r .: "title"
+    csvHal_source <- r .: "source"
+    csvHal_publication_year <- r .: "publication_year"
+    csvHal_publication_month <- r .: "publication_month"
+    csvHal_publication_day <- r .: "publication_day"
+    csvHal_abstract <- r .: "abstract"
+    csvHal_authors <- r .: "authors"
+    csvHal_url <- r .: "url"
+    csvHal_isbn_s <- r .: "isbn_s"
+    csvHal_issue_s <- r .: "issue_s"
+    csvHal_journalPublisher_s <- r .: "journalPublisher_s"
+    csvHal_language_s <- r .: "language_s"
+    csvHal_doiId_s <- r .: "doiId_s"
+    csvHal_authId_i <- r .: "authId_i"
+    csvHal_instStructId_i <- r .: "instStructId_i"
+    csvHal_deptStructId_i <- r .: "deptStructId_i"
+    csvHal_labStructId_i <- r .: "labStructId_i"
+    csvHal_rteamStructId_i <- r .: "rteamStructId_i"
+    csvHal_docType_s <- r .: "docType_s"
+    pure $ CsvHal { .. }
 
 instance ToNamedRecord CsvHal where
-  toNamedRecord (CsvHal t s py  pm pd abst aut  url isbn iss j lang  doi auth inst dept lab team doct) = 
-    namedRecord [ "title"  .= t
-                , "source" .= s
+  --toNamedRecord (CsvHal t s py  pm pd abst aut  url isbn iss j lang  doi auth inst dept lab team doct) =
+  toNamedRecord (CsvHal { .. }) =
+    namedRecord [ "title"  .= csvHal_title
+                , "source" .= csvHal_source
 
-                , "publication_year"  .= py
-                , "publication_month" .= pm
-                , "publication_day"   .= pd
+                , "publication_year"  .= csvHal_publication_year
+                , "publication_month" .= csvHal_publication_month
+                , "publication_day"   .= csvHal_publication_day
 
-                , "abstract"          .= abst
-                , "authors"           .= aut
+                , "abstract"          .= csvHal_abstract
+                , "authors"           .= csvHal_authors
 
-                , "url"                .= url
-                , "isbn_s"             .= isbn
-                , "issue_s"            .= iss
-                , "journalPublisher_s" .= j
-                , "language_s"         .= lang
+                , "url"                .= csvHal_url
+                , "isbn_s"             .= csvHal_isbn_s
+                , "issue_s"            .= csvHal_issue_s
+                , "journalPublisher_s" .= csvHal_journalPublisher_s
+                , "language_s"         .= csvHal_language_s
 
-                , "doiId_s"            .= doi
-                , "authId_i"           .= auth
-                , "instStructId_i"     .= inst
-                , "deptStructId_i"     .= dept
-                , "labStructId_i"      .= lab
+                , "doiId_s"            .= csvHal_doiId_s
+                , "authId_i"           .= csvHal_authId_i
+                , "instStructId_i"     .= csvHal_instStructId_i
+                , "deptStructId_i"     .= csvHal_deptStructId_i
+                , "labStructId_i"      .= csvHal_labStructId_i
  
-                , "rteamStructId_i"    .= team
-                , "docType_s"          .= doct
+                , "rteamStructId_i"    .= csvHal_rteamStructId_i
+                , "docType_s"          .= csvHal_docType_s
                ]
 
 csvHal2doc :: CsvHal -> HyperdataDocument
-csvHal2doc (CsvHal title source
-       pub_year pub_month pub_day
-       abstract authors
-       url _ _ _ _
-       doi _ inst _ _
-       _ _ ) = HyperdataDocument (Just "CsvHal")
-                               (Just doi)
-                               (Just url)
-                               Nothing
-                               Nothing
-                               Nothing
-                               (Just title)
-                               (Just authors)
-                               (Just inst)
-                               (Just source)
-                               (Just abstract)
-                               (Just $ pack . show $ jour pub_year pub_month pub_day)
-                               (Just $ fromIntegral pub_year)
-                               (Just pub_month)
-                               (Just pub_day)
-                               Nothing
-                               Nothing
-                               Nothing
-                               Nothing
+csvHal2doc (CsvHal { .. }) =
+  HyperdataDocument { _hd_bdd = Just "CsvHal"
+                    , _hd_doi = Just csvHal_doiId_s
+                    , _hd_url = Just csvHal_url
+                    , _hd_uniqId = Nothing
+                    , _hd_uniqIdBdd = Nothing
+                    , _hd_page = Nothing
+                    , _hd_title = Just csvHal_title
+                    , _hd_authors = Just csvHal_authors
+                    , _hd_institutes = Just csvHal_instStructId_i
+                    , _hd_source = Just csvHal_source
+                    , _hd_abstract = Just csvHal_abstract
+                    , _hd_publication_date = Just $ pack . show $ jour csvHal_publication_year
+                                                                      csvHal_publication_month
+                                                                      csvHal_publication_day
+                    , _hd_publication_year = Just $ fromIntegral csvHal_publication_year
+                    , _hd_publication_month = Just csvHal_publication_month
+                    , _hd_publication_day = Just csvHal_publication_day
+                    , _hd_publication_hour = Nothing
+                    , _hd_publication_minute = Nothing
+                    , _hd_publication_second = Nothing
+                    , _hd_language_iso2 = Nothing }
 
 
 csv2doc :: CsvDoc -> HyperdataDocument
-csv2doc (CsvDoc title source
-       mPubYear mPubMonth mPubDay
-       abstract authors ) = HyperdataDocument (Just "CsvHal")
-                               Nothing
-                               Nothing
-                               Nothing
-                               Nothing
-                               Nothing
-                               (Just title)
-                               (Just authors)
-                               Nothing
-                               (Just source)
-                               (Just abstract)
-                               (Just $ pack . show $ jour (fromIntegral pubYear) pubMonth pubDay)
-                               (Just pubYear)
-                               (Just pubMonth)
-                               (Just pubDay)
-                               Nothing
-                               Nothing
-                               Nothing
-                               Nothing
+csv2doc (CsvDoc { .. })
+  = HyperdataDocument { _hd_bdd = Just "CsvHal"
+                      , _hd_doi = Nothing
+                      , _hd_url = Nothing
+                      , _hd_uniqId = Nothing
+                      , _hd_uniqIdBdd = Nothing
+                      , _hd_page = Nothing
+                      , _hd_title = Just csv_title
+                      , _hd_authors = Just csv_authors
+                      , _hd_institutes = Nothing
+                      , _hd_source = Just csv_source
+                      , _hd_abstract = Just csv_abstract
+                      , _hd_publication_date = Just $ pack . show $ jour (fromIntegral pubYear)
+                                                                         pubMonth
+                                                                         pubDay
+                      , _hd_publication_year = Just pubYear
+                      , _hd_publication_month = Just pubMonth
+                      , _hd_publication_day = Just pubDay
+                      , _hd_publication_hour = Nothing
+                      , _hd_publication_minute = Nothing
+                      , _hd_publication_second = Nothing
+                      , _hd_language_iso2 = Nothing }
   where
-    pubYear = fromMIntOrDec defaultYear mPubYear
-    pubMonth = fromMaybe defaultMonth mPubMonth
-    pubDay = fromMaybe defaultDay mPubDay
+    pubYear = fromMIntOrDec defaultYear csv_publication_year
+    pubMonth = fromMaybe defaultMonth csv_publication_month
+    pubDay = fromMaybe defaultDay csv_publication_day
 
 ------------------------------------------------------------------------
 parseHal :: FilePath -> IO (Either Prelude.String [HyperdataDocument])
@@ -438,14 +448,16 @@ data Csv' = Csv'
 
 
 instance FromNamedRecord Csv' where
-  parseNamedRecord r = Csv' <$> r .: "title"
-                            <*> r .: "source"
-                            <*> r .: "publication_year"
-                            <*> r .: "publication_month"
-                            <*> r .: "publication_day"
-                            <*> r .: "abstract"
-                            <*> r .: "authors"
-                            <*> r .: "weight"   
+  parseNamedRecord r = do
+    csv'_title <- r .: "title"
+    csv'_source <- r .: "source"
+    csv'_publication_year <- r .: "publication_year"
+    csv'_publication_month <- r .: "publication_month"
+    csv'_publication_day <- r .: "publication_day"
+    csv'_abstract <- r .: "abstract"
+    csv'_authors <- r .: "authors"
+    csv'_weight <- r .: "weight"
+    pure $ Csv' { .. }
 
 readWeightedCsv :: FilePath -> IO (Header, Vector Csv')
 readWeightedCsv fp = 

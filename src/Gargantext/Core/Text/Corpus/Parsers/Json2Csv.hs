@@ -48,8 +48,14 @@ json2csv fin fout = do
   writeFile fout (headerCsvGargV3, fromList $ map patent2csvDoc patents)
 
 patent2csvDoc :: Patent -> CsvDoc
-patent2csvDoc (Patent title abstract year _) =
-  CsvDoc title "Source" (Just $ read (unpack year)) (Just 1) (Just 1) abstract "Authors"
+patent2csvDoc (Patent { .. }) =
+  CsvDoc { csv_title = _patent_title
+         , csv_source = "Source"
+         , csv_publication_year = Just $ read (unpack _patent_year)
+         , csv_publication_month = Just 1
+         , csv_publication_day = Just 1
+         , csv_abstract = _patent_abstract
+         , csv_authors = "Authors" }
 
 
 

@@ -70,9 +70,11 @@ Children are not modified in this specific case.
 -- | Old list get -1 score
 -- New list get +1 score
 -- Hence others lists lay around 0 score
-addScorePatch fl (t, (NgramsPatch children' (Patch.Replace old_list new_list))) =
+addScorePatch fl (t, (NgramsPatch { _patch_children
+                                  , _patch_list = Patch.Replace old_list new_list })) =
   -- Adding new 'Children' score
-  addScorePatch fl' (t, NgramsPatch children' Patch.Keep)
+  addScorePatch fl' (t, NgramsPatch { _patch_children
+                                    , _patch_list = Patch.Keep })
     where
       -- | Adding new 'ListType' score
       fl' = fl & flc_scores . at t %~ (score fls_listType old_list (-1))
@@ -80,8 +82,9 @@ addScorePatch fl (t, (NgramsPatch children' (Patch.Replace old_list new_list))) 
           & flc_cont   %~ (HashMap.delete t)
 
 -- | Patching existing Ngrams with children
-addScorePatch fl (p, NgramsPatch children' Patch.Keep) =
-  foldl' addChild fl $ patchMSet_toList children'
+addScorePatch fl (p, NgramsPatch { _patch_children
+                                 , _patch_list = Patch.Keep }) =
+  foldl' addChild fl $ patchMSet_toList _patch_children
     where
       -- | Adding a child
       addChild fl' (t, Patch.Replace Nothing (Just _)) = doLink ( 1) p t fl'
@@ -92,20 +95,24 @@ addScorePatch fl (p, NgramsPatch children' Patch.Keep) =
       addChild fl' _ = fl'
 
 -- | Inserting a new Ngrams
-addScorePatch fl (t, NgramsReplace Nothing (Just nre)) =
+addScorePatch fl (t, NgramsReplace { _patch_old = Nothing
+                                   , _patch_new = Just nre }) =
   childrenScore 1 t (nre ^. nre_children) 
   $ fl & flc_scores . at t %~ (score fls_listType $ nre ^. nre_list) 1
        & flc_cont   %~ (HashMap.delete t)
 
-addScorePatch fl (t, NgramsReplace (Just old_nre) maybe_new_nre) =
+addScorePatch fl (t, NgramsReplace { _patch_old = Just old_nre
+                                   , _patch_new = maybe_new_nre }) =
   let fl' = childrenScore (-1) t (old_nre ^. nre_children) 
             $ fl & flc_scores . at t %~ (score fls_listType $ old_nre ^. nre_list) (-1)
                  & flc_cont   %~ (HashMap.delete t)
     in case maybe_new_nre of
       Nothing      -> fl'
-      Just new_nre -> addScorePatch fl' (t, NgramsReplace Nothing (Just new_nre))
+      Just new_nre -> addScorePatch fl' (t, NgramsReplace { _patch_old = Nothing
+                                                          , _patch_new = Just new_nre })
 
-addScorePatch fl (_, NgramsReplace Nothing Nothing) = fl
+addScorePatch fl (_, NgramsReplace { _patch_old = Nothing
+                                   , _patch_new = Nothing }) = fl
 
 -------------------------------------------------------------------------------
 -- | Utils

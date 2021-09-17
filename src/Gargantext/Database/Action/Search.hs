@@ -92,13 +92,13 @@ queryInCorpus cId t q = proc () -> do
                  else (nn^.nn_category) .>= (toNullable $ pgInt4 1)
   restrict -< (n ^. ns_search)           @@ (pgTSQuery (unpack q))
   restrict -< (n ^. ns_typename )       .== (pgInt4 $ toDBid NodeDocument)
-  returnA  -< FacetDoc (n^.ns_id        )
-                       (n^.ns_date      )
-                       (n^.ns_name      )
-                       (n^.ns_hyperdata )
-                       (nn^.nn_category )
-                       (nn^.nn_score    )
-                       (nn^.nn_score    )
+  returnA  -< FacetDoc { facetDoc_id = n^.ns_id        
+                       , facetDoc_created = n^.ns_date
+                       , facetDoc_title = n^.ns_name
+                       , facetDoc_hyperdata = n^.ns_hyperdata
+                       , facetDoc_category = nn^.nn_category
+                       , facetDoc_ngramCount = nn^.nn_score
+                       , facetDoc_score = nn^.nn_score }
 
 joinInCorpus :: O.Query (NodeSearchRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
@@ -156,7 +156,10 @@ selectGroup :: HasDBid NodeType
 selectGroup cId aId q = proc () -> do
   (a, b, c, d) <- aggregate (p4 (groupBy, groupBy, groupBy, O.sum))
                             (selectContactViaDoc cId aId q) -< ()
-  returnA -< FacetPaired a b c d
+  returnA -< FacetPaired { _fp_id = a
+                         , _fp_date = b
+                         , _fp_hyperdata = c
+                         , _fp_score = d }
 
 
 queryContactViaDoc :: O.Query ( NodeSearchRead
@@ -270,7 +273,7 @@ textSearchQuery = "SELECT n.id, n.hyperdata->'publication_year'     \
 textSearch :: HasDBid NodeType
            => TSQuery -> ParentId
            -> Limit -> Offset -> Order
-           -> Cmd err [(Int,Value,Value,Value, Value, Maybe Int)]
+           -> Cmd err [(Int, Value, Value, Value, Value, Maybe Int)]
 textSearch q p l o ord = runPGSQuery textSearchQuery (q,p,p,typeId,ord,o,l)
   where
     typeId = toDBid NodeDocument

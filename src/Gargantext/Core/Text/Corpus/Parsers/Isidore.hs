@@ -119,17 +119,24 @@ unbound _ _ = Nothing
 
 bind2doc :: Lang -> [BindingValue] -> HyperdataDocument
 bind2doc l [ link, date, langDoc, authors, _source, publisher, title, abstract ] =
-  HyperdataDocument (Just "Isidore")
-                      Nothing
-                      (unbound l link)
-                      Nothing Nothing Nothing
-                      (unbound l title)
-                      (unbound l authors)
-                      Nothing
-                      (unbound l publisher)
-                      (unbound l abstract)
-                      (unbound l date)
-                      Nothing Nothing Nothing Nothing Nothing Nothing
-                      (unbound l langDoc)
+  HyperdataDocument { _hd_bdd = Just "Isidore"
+                    , _hd_doi = Nothing
+                    , _hd_url = unbound l link
+                    , _hd_uniqId = Nothing
+                    , _hd_uniqIdBdd = Nothing
+                    , _hd_page = Nothing
+                    , _hd_title = unbound l title
+                    , _hd_authors = unbound l authors
+                    , _hd_institutes = Nothing
+                    , _hd_source = unbound l publisher
+                    , _hd_abstract = unbound l abstract
+                    , _hd_publication_date = unbound l date
+                    , _hd_publication_year = Nothing
+                    , _hd_publication_month = Nothing
+                    , _hd_publication_day = Nothing
+                    , _hd_publication_hour = Nothing
+                    , _hd_publication_minute = Nothing
+                    , _hd_publication_second = Nothing
+                    , _hd_language_iso2 = unbound l langDoc }
 
 bind2doc _ _  = undefined

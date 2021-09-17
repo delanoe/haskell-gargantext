@@ -75,37 +75,39 @@ data IMTUser = IMTUser
 
 -- | CSV instance
 instance FromNamedRecord IMTUser where
-  parseNamedRecord r = IMTUser <$> r .: "id"
-                               <*> r .: "entite"
-                               <*> r .: "mail"
-                               <*> r .: "nom"
-                               <*> r .: "prenom"
-                               <*> r .: "fonction"
-                               <*> r .: "fonction2"
-                               <*> r .: "tel"
-                               <*> r .: "fax"
-                               <*> r .: "service"
-                               <*> r .: "groupe"
-                               <*> r .: "entite2"
-                               <*> r .: "service2"
-                               <*> r .: "groupe2"
-                               <*> r .: "bureau"
-                               <*> r .: "url"
-                               <*> r .: "pservice"
-                               <*> r .: "pfonction"
-                               <*> r .: "afonction"
-                               <*> r .: "afonction2"
-                               <*> r .: "grprech"
-                               <*> r .: "appellation"
-                               <*> r .: "lieu"
-                               <*> r .: "aprecision"
-                               <*> r .: "atel"
-                               <*> r .: "sexe"
-                               <*> r .: "statut"
-                               <*> r .: "idutilentite"
-                               <*> r .: "actif"
-                               <*> r .: "idutilsiecoles"
-                               <*> r .: "date_modification"
+  parseNamedRecord r = do
+    id <- r .: "id"
+    entite <- r .: "entite"
+    mail <- r .: "mail"
+    nom <- r .: "nom"
+    prenom <- r .: "prenom"
+    fonction <- r .: "fonction"
+    fonction2 <- r .: "fonction2"
+    tel <- r .: "tel"
+    fax <- r .: "fax"
+    service <- r .: "service"
+    groupe <- r .: "groupe"
+    entite2 <- r .: "entite2"
+    service2 <- r .: "service2"
+    groupe2 <- r .: "groupe2"
+    bureau <- r .: "bureau"
+    url <- r .: "url"
+    pservice <- r .: "pservice"
+    pfonction <- r .: "pfonction"
+    afonction <- r .: "afonction"
+    afonction2 <- r .: "afonction2"
+    grprech <- r .: "grprech"
+    appellation <- r .: "appellation"
+    lieu <- r .: "lieu"
+    aprecision <- r .: "aprecision"
+    atel <- r .: "atel"
+    sexe <- r .: "sexe"
+    statut <- r .: "statut"
+    idutilentite <- r .: "idutilentite"
+    actif <- r .: "actif"
+    idutilsiecoles <- r .: "idutilsiecoles"
+    date_modification <- r .: "date_modification"
+    pure $ IMTUser {..}
 
 headerCSVannuaire :: Header
 headerCSVannuaire =
@@ -136,15 +138,54 @@ deserialiseFromFile' filepath = deserialise <$> BL.readFile filepath
 
 ------------------------------------------------------------------------
 imtUser2gargContact :: IMTUser -> HyperdataContact
-imtUser2gargContact (IMTUser id' entite' mail' nom' prenom' fonction' _fonction2' tel' _fax'
-                     service' _groupe' _entite2 _service2 _group2 bureau' url' _pservice' _pfonction' _afonction' _afonction2'
-                     _grprech' _appellation' lieu' _aprecision' _atel' _sexe' _statut' _idutilentite'
-                     _actif' _idutilsiecoles' date_modification')
-                  = HyperdataContact (Just "IMT Annuaire") (Just qui) [ou] ((<>) <$> (fmap (\p -> p <> " ") prenom') <*> nom') entite' date_modification' Nothing Nothing
-                    where
-                      qui = ContactWho id' prenom' nom' (catMaybes [service']) []
-                      ou  = ContactWhere (toList entite') (toList service') fonction' bureau' (Just "France") lieu' contact Nothing Nothing
-                      contact = Just $ ContactTouch mail' tel' url'
-                      -- meta    = ContactMetaData (Just "IMT annuaire") date_modification'
-                      toList Nothing  = []
-                      toList (Just x) = [x]
+--imtUser2gargContact (IMTUser id' entite' mail' nom' prenom' fonction' _fonction2' tel' _fax'
+--                     service' _groupe' _entite2 _service2 _group2 bureau' url' _pservice' _pfonction' _afonction' _afonction2'
+--                     _grprech' _appellation' lieu' _aprecision' _atel' _sexe' _statut' _idutilentite'
+--                     _actif' _idutilsiecoles' date_modification')
+--                  = HyperdataContact (Just "IMT Annuaire") (Just qui) [ou] ((<>) <$> (fmap (\p -> p <> " ") prenom') <*> nom') entite' date_modification' Nothing Nothing
+imtUser2gargContact (IMTUser { id
+                             , entite
+                             , mail
+                             , nom
+                             , prenom
+                             , fonction
+                             , tel
+                             , service
+                             , bureau
+                             , url
+                             , lieu
+                             , date_modification }) =
+                        HyperdataContact { _hc_bdd = Just "IMT Annuaire"
+                                         , _hc_who = Just qui
+                                         , _hc_where = [ou]
+                                         , _hc_title = title
+                                         , _hc_source = entite
+                                         , _hc_lastValidation = date_modification
+                                         , _hc_uniqIdBdd = Nothing
+                                         , _hc_uniqId = Nothing }
+  where
+    title = (<>) <$> (fmap (\p -> p <> " ") prenom) <*> nom
+    qui = ContactWho { _cw_id = id
+                     , _cw_firstName = prenom
+                     , _cw_lastName = nom
+                     , _cw_keywords = catMaybes [service]
+                     , _cw_freetags = [] }
+    ou  = ContactWhere { _cw_organization = toList entite
+                       , _cw_labTeamDepts = toList service
+                       , _cw_role = fonction
+                       , _cw_office = bureau
+                       , _cw_country = Just "France"
+                       , _cw_city = lieu
+                       , _cw_touch = contact
+                       , _cw_entry = Nothing
+                       , _cw_exit = Nothing }
+    contact = Just $ ContactTouch { _ct_mail = mail
+                                  , _ct_phone = tel
+                                  , _ct_url = url }
+    -- meta    = ContactMetaData (Just "IMT annuaire") date_modification'
+    toList Nothing  = []
+    toList (Just x) = [x]
+  
+
+
+
