@@ -40,7 +40,7 @@ CREATE TABLE public.nodes (
 ALTER TABLE public.nodes OWNER TO gargantua;
 ALTER TABLE nodes
     ADD COLUMN search_title tsvector
-               GENERATED ALWAYS AS (to_tsvector('english', coalesce("name", '') || ' ' || coalesce("hyperdata"->>'abstract', ''))) STORED;
+               GENERATED ALWAYS AS (to_tsvector('english', coalesce("hyperdata"->>'title', '') || ' ' || coalesce("hyperdata"->>'abstract', ''))) STORED;
 
 --------------------------------------------------------------
 -- | Ngrams
