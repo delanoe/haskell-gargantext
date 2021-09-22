@@ -38,9 +38,6 @@ CREATE TABLE public.nodes (
     FOREIGN KEY (user_id)  REFERENCES public.auth_user(id) ON DELETE CASCADE
 );
 ALTER TABLE public.nodes OWNER TO gargantua;
-ALTER TABLE nodes
-    ADD COLUMN search_title tsvector
-               GENERATED ALWAYS AS (to_tsvector('english', coalesce("name", '') || ' ' || coalesce("hyperdata"->>'abstract', ''))) STORED;
 
 --------------------------------------------------------------
 -- | Ngrams
