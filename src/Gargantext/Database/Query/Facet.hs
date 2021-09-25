@@ -73,9 +73,6 @@ import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude (printDebug)
 
---import qualified Opaleye.Internal.Column as C
---import qualified Opaleye.Internal.HaskellDB.PrimQuery as HPQ
-
 ------------------------------------------------------------------------
 -- | DocFacet
 
@@ -321,7 +318,6 @@ runViewDocuments cId t o l order query = do
     printDebug "[runViewDocuments] sqlQuery" $ showSql sqlQuery
     runOpaQuery $ filterWith o l order sqlQuery
   where
-    ntId :: Int
     ntId = toDBid NodeDocument
     sqlQuery = viewDocuments cId t ntId query
 --    viewDocuments' :: DPS.Query

@@ -24,6 +24,7 @@ import Gargantext.Database.Prelude (Cmd, execPGSQuery)
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as DPS
 
+
 triggerSearchUpdate :: HasDBid NodeType => Cmd err Int64
 triggerSearchUpdate = execPGSQuery query ( toDBid NodeDocument
                                          , toDBid NodeDocument
