@@ -14,18 +14,13 @@ module Gargantext.Database.Action.Search where
 
 import Control.Arrow (returnA)
 import Control.Lens ((^.))
-import Data.Aeson
-import Data.List (intersperse)
 import Data.Maybe
-import Data.String (IsString(..))
-import Data.Text (Text, words, unpack, intercalate)
+import Data.Text (Text, unpack, intercalate)
 import Data.Time (UTCTime)
-import Database.PostgreSQL.Simple (Query)
-import Database.PostgreSQL.Simple.ToField
 import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..), HyperdataContact(..))
-import Gargantext.Database.Prelude (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
+import Gargantext.Database.Prelude (Cmd, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Join (leftJoin5)

@@ -61,7 +61,7 @@ import qualified Opaleye.Internal.Unpackspec()
 import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
-import Gargantext.Database.Action.TSQuery (toTSQuery)
+-- import Gargantext.Database.Action.TSQuery (toTSQuery)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Join (leftJoin5)
@@ -359,8 +359,8 @@ viewDocuments cId t ntId mQuery = proc () -> do
   -- restrict -< (n^.node_name) `ilike` (pgStrictText iLikeQuery)
   restrict -< if query == ""
     then pgBool True
-    else (n^.ns_search_title) @@ (pgTSQuery (T.unpack query))
-    --else (n^.ns_search_title) @@ (toTSQuery [query])
+    --else (n^.ns_search_title) @@ (pgTSQuery (T.unpack query))
+    else (n^.ns_search_title) @@ (toTSQuery $ T.unpack query)
  
   returnA  -< FacetDoc (_ns_id        n)
                        (_ns_date      n)
