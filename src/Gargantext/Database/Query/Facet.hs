@@ -44,6 +44,8 @@ import Control.Arrow (returnA)
 import Control.Lens ((^.))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
+--import qualified Database.PostgreSQL.Simple as DPS
+--import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Swagger
 import qualified Data.Text as T
@@ -59,14 +61,17 @@ import qualified Opaleye.Internal.Unpackspec()
 import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
+-- import Gargantext.Database.Action.TSQuery (toTSQuery)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Query.Table.Ngrams
+import Gargantext.Database.Query.Table.Node (queryNodeSearchTable)
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
+import Gargantext.Prelude (printDebug)
 
 ------------------------------------------------------------------------
 -- | DocFacet
@@ -303,10 +308,29 @@ runViewDocuments :: HasDBid NodeType
                  -> Maybe Text
                  -> Cmd err [FacetDoc]
 runViewDocuments cId t o l order query = do
+--  docs <- runPGSQuery viewDocuments'
+--    ( cId
+--    , ntId
+--    , (if t then 0 else 1) :: Int
+--    , fromMaybe "" query
+--    , fromMaybe "" query)
+--  pure $ (\(id, date, name', hyperdata, category, score) -> FacetDoc id date name' hyperdata category score score) <$> docs
+    printDebug "[runViewDocuments] sqlQuery" $ showSql sqlQuery
     runOpaQuery $ filterWith o l order sqlQuery
   where
     ntId = toDBid NodeDocument
     sqlQuery = viewDocuments cId t ntId query
+--    viewDocuments' :: DPS.Query
+--    viewDocuments' = [sql|
+--      SELECT n.id, n.date, n.name, n.hyperdata, nn.category, nn.score
+--        FROM nodes AS n
+--        JOIN nodes_nodes AS nn
+--        ON n.id = nn.node2_id
+--        WHERE nn.node1_id = ?  -- corpusId
+--          AND n.typename = ?   -- NodeTypeId
+--          AND nn.category = ?  -- isTrash or not
+--          AND (n.search_title @@ to_tsquery(?) OR ? = '')  -- query with an OR hack for empty to_tsquery('') results
+--      |]
 
 runCountDocuments :: HasDBid NodeType => CorpusId -> IsTrash -> Maybe Text -> Cmd err Int
 runCountDocuments cId t mQuery = do
@@ -321,22 +345,27 @@ viewDocuments :: CorpusId
               -> Maybe Text
               -> Query FacetDocRead
 viewDocuments cId t ntId mQuery = proc () -> do
-  n  <- queryNodeTable     -< ()
+  --n  <- queryNodeTable     -< ()
+  n  <- queryNodeSearchTable -< ()
   nn <- queryNodeNodeTable -< ()
-  restrict -< n^.node_id       .== nn^.nn_node2_id
+  restrict -< n^.ns_id       .== nn^.nn_node2_id
   restrict -< nn^.nn_node1_id  .== (pgNodeId cId)
-  restrict -< n^.node_typename .== (pgInt4 ntId)
+  restrict -< n^.ns_typename .== (pgInt4 ntId)
   restrict -< if t then nn^.nn_category .== (pgInt4 0)
                    else nn^.nn_category .>= (pgInt4 1)
                        
   let query = (fromMaybe "" mQuery)
-      iLikeQuery = T.intercalate "" ["%", query, "%"]
-  restrict -< (n^.node_name) `ilike` (pgStrictText iLikeQuery)
+      -- iLikeQuery = T.intercalate "" ["%", query, "%"]
+  -- restrict -< (n^.node_name) `ilike` (pgStrictText iLikeQuery)
+  restrict -< if query == ""
+    then pgBool True
+    --else (n^.ns_search_title) @@ (pgTSQuery (T.unpack query))
+    else (n^.ns_search_title) @@ (toTSQuery $ T.unpack query)
  
-  returnA  -< FacetDoc (_node_id        n)
-                       (_node_date      n)
-                       (_node_name      n)
-                       (_node_hyperdata n)
+  returnA  -< FacetDoc (_ns_id        n)
+                       (_ns_date      n)
+                       (_ns_name      n)
+                       (_ns_hyperdata n)
                        (toNullable $ nn^.nn_category)
                        (toNullable $ nn^.nn_score)
                        (toNullable $ nn^.nn_score)

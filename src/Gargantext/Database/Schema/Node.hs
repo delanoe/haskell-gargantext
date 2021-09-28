@@ -144,16 +144,17 @@ data NodePolySearch id
                     date
                     hyperdata
                     search =
-     NodeSearch { _ns_id        :: id
-                , _ns_typename  :: typename
-                , _ns_user_id   :: user_id
-                                          --   , nodeUniqId    :: shaId
-                , _ns_parent_id  :: parent_id
-                , _ns_name       :: name
-                , _ns_date       :: date
+     NodeSearch { _ns_id           :: id
+                , _ns_typename     :: typename
+                , _ns_user_id      :: user_id
+           --   , nodeUniqId       :: shaId
+                , _ns_parent_id    :: parent_id
+                , _ns_name         :: name
+                , _ns_date         :: date
 
-                , _ns_hyperdata :: hyperdata
-                , _ns_search    :: search
+                , _ns_hyperdata    :: hyperdata
+                , _ns_search       :: search
+                , _ns_search_title :: search
                 } deriving (Show, Generic)
 
 $(makeAdaptorAndInstance "pNodeSearch" ''NodePolySearch)
@@ -163,16 +164,17 @@ $(makeLenses ''NodePolySearch)
 
 nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
 nodeTableSearch = Table "nodes" ( pNodeSearch
-                                   NodeSearch { _ns_id         = optional "id"
-                                              , _ns_typename   = required "typename"
-                                              , _ns_user_id    = required "user_id"
+                                   NodeSearch { _ns_id           = optional "id"
+                                              , _ns_typename     = required "typename"
+                                              , _ns_user_id      = required "user_id"
 
-                                              , _ns_parent_id  = required "parent_id"
-                                              , _ns_name       = required "name"
-                                              , _ns_date       = optional "date"
+                                              , _ns_parent_id    = required "parent_id"
+                                              , _ns_name         = required "name"
+                                              , _ns_date         = optional "date"
 
-                                              , _ns_hyperdata  = required "hyperdata"
-                                              , _ns_search     = optional "search"
+                                              , _ns_hyperdata    = required "hyperdata"
+                                              , _ns_search       = optional "search"
+                                              , _ns_search_title = optional "search_title"
                                               }
                                 )
 ------------------------------------------------------------------------

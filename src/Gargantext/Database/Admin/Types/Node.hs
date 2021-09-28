@@ -82,18 +82,26 @@ instance (Typeable hyperdata, ToSchema hyperdata) =>
   declareNamedSchema = wellNamedSchema "_node_"
 
 instance (Typeable hyperdata, ToSchema hyperdata) =>
-         ToSchema (NodePolySearch NodeId NodeTypeId
-                            (Maybe UserId)
-                            ParentId NodeName
-                            UTCTime hyperdata (Maybe TSVector)
+         ToSchema (NodePolySearch NodeId
+                                  NodeTypeId
+                                  (Maybe UserId)
+                                  ParentId
+                                  NodeName
+                                  UTCTime
+                                  hyperdata
+                                  (Maybe TSVector)
                   ) where
   declareNamedSchema = wellNamedSchema "_ns_"
 
 instance (Typeable hyperdata, ToSchema hyperdata) =>
-         ToSchema (NodePolySearch NodeId NodeTypeId
-                            UserId
-                            (Maybe ParentId) NodeName
-                            UTCTime hyperdata (Maybe TSVector)
+         ToSchema (NodePolySearch NodeId
+                                  NodeTypeId
+                                  UserId
+                                  (Maybe ParentId)
+                                  NodeName
+                                  UTCTime
+                                  hyperdata
+                                  (Maybe TSVector)
                   ) where
   declareNamedSchema = wellNamedSchema "_ns_"
 
@@ -115,12 +123,25 @@ instance (Arbitrary hyperdata
          ,Arbitrary toDBid
          ,Arbitrary userId
          ,Arbitrary nodeParentId
-         ) => Arbitrary (NodePolySearch nodeId toDBid userId nodeParentId
-                                  NodeName UTCTime hyperdata (Maybe TSVector)) where
+         ) => Arbitrary (NodePolySearch nodeId
+                                        toDBid
+                                        userId
+                                        nodeParentId
+                                        NodeName
+                                        UTCTime
+                                        hyperdata
+                                        (Maybe TSVector)
+                        ) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
-    arbitrary = NodeSearch <$> arbitrary <*> arbitrary <*> arbitrary
-                     <*> arbitrary <*> arbitrary <*> arbitrary
-                     <*> arbitrary <*> arbitrary
+    arbitrary = NodeSearch <$> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
 
 ------------------------------------------------------------------------
 pgNodeId :: NodeId -> O.Column O.PGInt4
