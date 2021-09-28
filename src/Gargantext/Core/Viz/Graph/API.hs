@@ -257,9 +257,8 @@ graphVersions n nId = do
                 . gm_list
                 . lfg_version
 
-    cId = maybe (panic "[G.V.G.API] Node has no parent")
-                  identity
-                  $ nodeGraph ^. node_parent_id
+  mcId <- getClosestParentIdByType nId NodeCorpus
+  let cId = maybe (panic "[G.V.G.API] Node has no parent") identity mcId
 
   maybeListId <- defaultListMaybe cId
   case maybeListId of
