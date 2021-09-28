@@ -38,9 +38,9 @@ CREATE TABLE public.nodes (
     FOREIGN KEY (user_id)  REFERENCES public.auth_user(id) ON DELETE CASCADE
 );
 ALTER TABLE public.nodes OWNER TO gargantua;
-ALTER TABLE nodes
-    ADD COLUMN search_title tsvector
-               GENERATED ALWAYS AS (to_tsvector('english', coalesce("hyperdata"->>'title', '') || ' ' || coalesce("hyperdata"->>'abstract', ''))) STORED;
+ALTER TABLE nodes ADD COLUMN search_title tsvector;
+UPDATE nodes SET search_title = to_tsvector('english', coalesce("hyperdata"->>'title', '') || ' ' || coalesce("hyperdata"->>'abstract', ''));
+CREATE INDEX search_title_idx ON nodes USING GIN (search_title);
 
 --------------------------------------------------------------
 -- | Ngrams
