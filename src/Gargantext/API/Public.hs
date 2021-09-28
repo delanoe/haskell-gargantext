@@ -42,6 +42,7 @@ import Gargantext.Database.Query.Table.NodeNode (selectPublicNodes)
 import Gargantext.Core.Utils.DateUtils (utc2year)
 import Gargantext.Database.Schema.Node -- (NodePoly(..))
 import Gargantext.Prelude
+import qualified Gargantext.Utils.Aeson as GUA
 
 ------------------------------------------------------------------------
 type API =  API_Home
@@ -140,10 +141,10 @@ data PublicData = PublicData
 
 
 instance FromJSON  PublicData where
-  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+  parseJSON = genericParseJSON (defaultOptions { sumEncoding = GUA.defaultTaggedObject })
 
 instance ToJSON    PublicData where
-  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+  toJSON = genericToJSON (defaultOptions { sumEncoding = GUA.defaultTaggedObject })
 
 instance ToSchema  PublicData
 instance Arbitrary PublicData where
