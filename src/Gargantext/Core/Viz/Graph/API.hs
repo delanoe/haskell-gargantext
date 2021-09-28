@@ -239,11 +239,11 @@ type GraphVersionsAPI = Summary "Graph versions"
 
 graphVersionsAPI :: UserId -> NodeId -> GargServer GraphVersionsAPI
 graphVersionsAPI u n =
-           graphVersions n
+           graphVersions 0 n
       :<|> recomputeVersions u n
 
-graphVersions :: NodeId -> GargNoServer GraphVersions
-graphVersions nId = do
+graphVersions :: Int -> NodeId -> GargNoServer GraphVersions
+graphVersions n nId = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let
     graph =  nodeGraph
@@ -257,16 +257,22 @@ graphVersions nId = do
                 . gm_list
                 . lfg_version
 
-    cId = maybe (panic "[G.V.G.API] Node has no parent")
-                  identity
-                  $ nodeGraph ^. node_parent_id
+  mcId <- getClosestParentIdByType nId NodeCorpus
+  let cId = maybe (panic "[G.V.G.API] Node has no parent") identity mcId
 
-  listId <- defaultList cId
-  repo <- getRepo' [listId]
-  let v = repo ^. unNodeStory . at listId . _Just . a_version
+  maybeListId <- defaultListMaybe cId
+  case maybeListId of
+    Nothing     -> if n <= 2
+                      then graphVersions (n+1) cId
+                      else panic "[G.V.G.API] list not found after iterations"
 
-  pure $ GraphVersions { gv_graph = listVersion
-                       , gv_repo = v }
+    Just listId -> do
+      repo <- getRepo' [listId]
+      let v = repo ^. unNodeStory . at listId . _Just . a_version
+      printDebug "graphVersions" v
+
+      pure $ GraphVersions { gv_graph = listVersion
+                           , gv_repo = v }
 
 recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
 recomputeVersions uId nId = recomputeGraph uId nId Nothing

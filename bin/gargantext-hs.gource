@@ -6,10 +6,10 @@ DATE="2018-03-08 07:18:18"
 # use tutoriel code
 
 #tmux -d video
-xterm -e "tutoriel"
+#xterm -e "tutoriel"
 
 gource --start-date $DATE ../gargantext-hs &
-gource --start-date $DATE gargantext-hs/purescript-gargantext
+gource --start-date $DATE ../gargantext-hs/purescript-gargantext
 #tmux -a video
 
 # Share video ?

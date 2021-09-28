@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.3.3'
+version: '0.0.3.9'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -10,8 +10,6 @@ copyright:
 license: AGPL-3
 homepage: https://gargantext.org
 ghc-options: -Wall
-extra-libraries:
-  - gfortran
 dependencies:
   - extra
   - text
