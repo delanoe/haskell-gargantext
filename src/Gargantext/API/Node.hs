@@ -68,6 +68,7 @@ import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Prelude
 import Gargantext.Core.Viz.Phylo.Legacy.LegacyAPI (PhyloAPI, phyloAPI)
+import qualified Gargantext.API.Node.DocumentsFromWriteNodes as DocumentsFromWriteNodes
 import qualified Gargantext.API.Node.Share  as Share
 import qualified Gargantext.API.Node.Update as Update
 import qualified Gargantext.API.Search as Search
@@ -157,6 +158,8 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "file"      :> FileApi
              :<|> "async"     :> FileAsyncApi
 
+             :<|> "documents-from-write-nodes" :> DocumentsFromWriteNodes.API
+
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
 type RenameApi = Summary " Rename Node"
@@ -239,6 +242,8 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
 
            :<|> fileApi uId id'
            :<|> fileAsyncApi uId id'
+
+           :<|> DocumentsFromWriteNodes.api uId id'
 
 
 ------------------------------------------------------------------------
