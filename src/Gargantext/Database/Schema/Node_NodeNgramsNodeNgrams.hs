@@ -72,16 +72,16 @@ node_NodeNgrams_NodeNgrams_Table :: Table Node_NodeNgrams_NodeNgrams_Write Node_
 node_NodeNgrams_NodeNgrams_Table =
   Table "node_nodengrams_nodengrams"
        ( pNode_NodeNgrams_NodeNgrams Node_NodeNgrams_NodeNgrams
-                       { _nnn_node_id = required "node_id"
-                       , _nnn_nng1_id = optional "node_ngrams1_id"
-                       , _nnn_nng2_id = required "node_ngrams2_id"
-                       , _nnn_weight  = optional "weight"
+                       { _nnn_node_id = requiredTableField "node_id"
+                       , _nnn_nng1_id = optionalTableField "node_ngrams1_id"
+                       , _nnn_nng2_id = requiredTableField "node_ngrams2_id"
+                       , _nnn_weight  = optionalTableField "weight"
                        }
        )
 
-instance QueryRunnerColumnDefault PGInt4 (Maybe Int) where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance DefaultFromField PGInt4 (Maybe Int) where
+    defaultFromField = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance DefaultFromField PGFloat8 (Maybe Double) where
+    defaultFromField = fieldQueryRunnerColumn
 

@@ -268,13 +268,13 @@ viewAuthorsDoc cId _ nt = proc () -> do
   -}
 
   restrict -< _node_id   contact'  .== (toNullable $ pgNodeId cId)
-  restrict -< _node_typename doc   .== (pgInt4 $ toDBid nt)
+  restrict -< _node_typename doc   .== (sqlInt4 $ toDBid nt)
 
   returnA  -< FacetDoc (_node_id        doc)
                        (_node_date      doc)
                        (_node_name      doc)
                        (_node_hyperdata doc)
-                       (toNullable $ pgInt4 1)
+                       (toNullable $ sqlInt4 1)
                        (toNullable $ pgDouble 1)
                        (toNullable $ pgDouble 1)
 
@@ -350,13 +350,13 @@ viewDocuments cId t ntId mQuery = proc () -> do
   nn <- queryNodeNodeTable -< ()
   restrict -< n^.ns_id       .== nn^.nn_node2_id
   restrict -< nn^.nn_node1_id  .== (pgNodeId cId)
-  restrict -< n^.ns_typename .== (pgInt4 ntId)
-  restrict -< if t then nn^.nn_category .== (pgInt4 0)
-                   else nn^.nn_category .>= (pgInt4 1)
+  restrict -< n^.ns_typename .== (sqlInt4 ntId)
+  restrict -< if t then nn^.nn_category .== (sqlInt4 0)
+                   else nn^.nn_category .>= (sqlInt4 1)
                        
   let query = (fromMaybe "" mQuery)
       -- iLikeQuery = T.intercalate "" ["%", query, "%"]
-  -- restrict -< (n^.node_name) `ilike` (pgStrictText iLikeQuery)
+  -- restrict -< (n^.node_name) `ilike` (sqlStrictText iLikeQuery)
   restrict -< if query == ""
     then pgBool True
     --else (n^.ns_search_title) @@ (pgTSQuery (T.unpack query))
@@ -371,7 +371,7 @@ viewDocuments cId t ntId mQuery = proc () -> do
                        (toNullable $ nn^.nn_score)
 
 ------------------------------------------------------------------------
-filterWith :: (PGOrd date, PGOrd title, PGOrd category, PGOrd score, hyperdata ~ Column SqlJsonb) =>
+filterWith :: (SqlOrd date, SqlOrd title, SqlOrd category, SqlOrd score, hyperdata ~ Column SqlJsonb) =>
         Maybe Gargantext.Core.Types.Offset
      -> Maybe Gargantext.Core.Types.Limit
      -> Maybe OrderBy
@@ -380,7 +380,7 @@ filterWith :: (PGOrd date, PGOrd title, PGOrd category, PGOrd score, hyperdata ~
 filterWith o l order q = limit' l $ offset' o $ orderBy (orderWith order) q
 
 
-orderWith :: (PGOrd b1, PGOrd b2, PGOrd b3, PGOrd b4)
+orderWith :: (SqlOrd b1, SqlOrd b2, SqlOrd b3, SqlOrd b4)
           => Maybe OrderBy
           -> Order (Facet id (Column b1) (Column b2) (Column SqlJsonb) (Column b3) ngramCount (Column b4))
 orderWith (Just DateAsc)   = asc  facetDoc_created
@@ -397,7 +397,7 @@ orderWith (Just SourceDesc) = desc facetDoc_source
 
 orderWith _                = asc facetDoc_created
 
-facetDoc_source :: PGIsJson a
+facetDoc_source :: SqlIsJson a
                 => Facet id created title (Column a) favorite ngramCount score
                 -> Column (Nullable PGText)
 facetDoc_source x = toNullable (facetDoc_hyperdata x) .->> pgString "source"

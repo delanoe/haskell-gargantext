@@ -39,7 +39,7 @@ import Gargantext.Database.Types
 import Gargantext.Prelude
 
 queryNgramsTable :: Query NgramsRead
-queryNgramsTable = queryTable ngramsTable
+queryNgramsTable = selectTable ngramsTable
 
 selectNgramsByDoc :: [ListId] -> DocId -> NgramsType -> Cmd err [Text]
 selectNgramsByDoc lIds dId nt = runOpaQuery (query lIds dId nt)

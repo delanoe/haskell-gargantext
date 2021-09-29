@@ -188,9 +188,9 @@ instance FromField HyperdataGraph
   where
     fromField = fromField'
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataGraph
+instance DefaultFromField PGJsonb HyperdataGraph
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+    defaultFromField = fieldQueryRunnerColumn
 
 -----------------------------------------------------------
 -- This type is used to return graph via API

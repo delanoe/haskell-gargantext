@@ -71,7 +71,7 @@ instance ToSchema HyperdataDashboard where
 instance FromField HyperdataDashboard where
     fromField = fromField'
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataDashboard
+instance DefaultFromField PGJsonb HyperdataDashboard
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+    defaultFromField = fieldQueryRunnerColumn
 

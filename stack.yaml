@@ -43,10 +43,8 @@ extra-deps:
   commit: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
 
   # Databases libs
-#- git: https://github.com/delanoe/haskell-opaleye.git  #- opaleye-0.6.7002.0)
-#  commit: 63ee65d974e9d20eaaf17a2e83652175988cbb79
-- git: https://github.com/cgenie/haskell-opaleye.git
-  commit: 41e3212e7da83d295cd6d0fa4f0a2b55b86bbbca
+- git: https://github.com/delanoe/haskell-opaleye.git
+  commit: 9089fa71006d99d01916375818620d78a565b743
 - git: https://github.com/delanoe/hsparql.git
   commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
 - git: https://github.com/robstewart57/rdf4h.git

@@ -45,7 +45,7 @@ searchDocInDatabase _p t = runOpaQuery (queryDocInDatabase t)
     queryDocInDatabase q = proc () -> do
         row <- queryNodeSearchTable -< ()
         restrict -< (_ns_search row)    @@ (pgTSQuery (unpack q))
-        restrict -< (_ns_typename row) .== (pgInt4 $ toDBid NodeDocument)
+        restrict -< (_ns_typename row) .== (sqlInt4 $ toDBid NodeDocument)
         returnA  -< (_ns_id row, _ns_hyperdata row)
 
 ------------------------------------------------------------------------
@@ -83,10 +83,10 @@ queryInCorpus cId t q = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< (nn^.nn_node1_id) .== (toNullable $ pgNodeId cId)
   restrict -< if t
-                 then (nn^.nn_category) .== (toNullable $ pgInt4 0)
-                 else (nn^.nn_category) .>= (toNullable $ pgInt4 1)
+                 then (nn^.nn_category) .== (toNullable $ sqlInt4 0)
+                 else (nn^.nn_category) .>= (toNullable $ sqlInt4 1)
   restrict -< (n ^. ns_search)           @@ (pgTSQuery (unpack q))
-  restrict -< (n ^. ns_typename )       .== (pgInt4 $ toDBid NodeDocument)
+  restrict -< (n ^. ns_typename )       .== (sqlInt4 $ toDBid NodeDocument)
   returnA  -< FacetDoc (n^.ns_id        )
                        (n^.ns_date      )
                        (n^.ns_name      )
@@ -133,14 +133,14 @@ selectContactViaDoc
 selectContactViaDoc cId aId q = proc () -> do
   (doc, (corpus_doc, (_contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
   restrict -< (doc^.ns_search)           @@ (pgTSQuery  $ unpack q  )
-  restrict -< (doc^.ns_typename)        .== (pgInt4 $ toDBid NodeDocument)
+  restrict -< (doc^.ns_typename)        .== (sqlInt4 $ toDBid NodeDocument)
   restrict -< (corpus_doc^.nn_node1_id)  .== (toNullable $ pgNodeId cId)
   restrict -< (annuaire_contact^.nn_node1_id) .== (toNullable $ pgNodeId aId)
-  restrict -< (contact^.node_typename)        .== (toNullable $ pgInt4 $ toDBid NodeContact)
+  restrict -< (contact^.node_typename)        .== (toNullable $ sqlInt4 $ toDBid NodeContact)
   returnA  -< ( contact^.node_id
               , contact^.node_date
               , contact^.node_hyperdata
-              , toNullable $ pgInt4 1
+              , toNullable $ sqlInt4 1
               )
 
 selectGroup :: HasDBid NodeType

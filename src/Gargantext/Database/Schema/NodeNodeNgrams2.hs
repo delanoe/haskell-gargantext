@@ -53,9 +53,9 @@ makeLenses ''NodeNodeNgrams2Poly
 nodeNodeNgrams2Table :: Table NodeNodeNgrams2Write NodeNodeNgrams2Read
 nodeNodeNgrams2Table  = Table "node_node_ngrams2"
                           ( pNodeNodeNgrams2 NodeNodeNgrams2
-                               { _nnng2_node_id        = required "node_id"
-                               , _nnng2_nodengrams_id  = required "nodengrams_id"
-                               , _nnng2_weight         = required "weight"
+                               { _nnng2_node_id        = requiredTableField "node_id"
+                               , _nnng2_nodengrams_id  = requiredTableField "nodengrams_id"
+                               , _nnng2_weight         = requiredTableField "weight"
                                }
                           )
 

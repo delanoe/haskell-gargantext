@@ -54,7 +54,7 @@ instance ToSchema HyperdataTexts where
 instance FromField HyperdataTexts where
     fromField = fromField'
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataTexts
+instance DefaultFromField PGJsonb HyperdataTexts
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+    defaultFromField = fieldQueryRunnerColumn
 

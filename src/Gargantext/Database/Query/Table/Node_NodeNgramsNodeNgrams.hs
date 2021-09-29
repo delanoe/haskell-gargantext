@@ -43,7 +43,7 @@ import Gargantext.Prelude
 
 
 queryNode_NodeNgrams_NodeNgrams_Table :: Query Node_NodeNgrams_NodeNgrams_Read
-queryNode_NodeNgrams_NodeNgrams_Table = queryTable node_NodeNgrams_NodeNgrams_Table
+queryNode_NodeNgrams_NodeNgrams_Table = selectTable node_NodeNgrams_NodeNgrams_Table
 
 -- | Select NodeNgramsNgrams
 -- TODO not optimized (get all ngrams without filters)
@@ -56,8 +56,8 @@ insert_Node_NodeNgrams_NodeNgrams :: [Node_NodeNgrams_NodeNgrams] -> Cmd err Int
 insert_Node_NodeNgrams_NodeNgrams = insert_Node_NodeNgrams_NodeNgrams_W
                  . map (\(Node_NodeNgrams_NodeNgrams n ng1 ng2 maybeWeight) ->
                           Node_NodeNgrams_NodeNgrams (pgNodeId n  )
-                                           (pgInt4 <$> ng1)
-                                           (pgInt4 ng2)
+                                           (sqlInt4 <$> ng1)
+                                           (sqlInt4 ng2)
                                            (pgDouble <$> maybeWeight)
                         )
 

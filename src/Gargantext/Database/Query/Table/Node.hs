@@ -44,7 +44,7 @@ import Gargantext.Prelude hiding (sum, head)
 
 
 queryNodeSearchTable :: Query NodeSearchRead
-queryNodeSearchTable = queryTable nodeTableSearch
+queryNodeSearchTable = selectTable nodeTableSearch
 
 selectNode :: Column PGInt4 -> Query NodeRead
 selectNode id' = proc () -> do
@@ -78,20 +78,26 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
       let typeId' = maybe 0 toDBid maybeNodeType
 
       restrict -< if typeId' > 0
-                     then typeId   .== (pgInt4 (typeId' :: Int))
+                     then typeId   .== (sqlInt4 (typeId' :: Int))
                      else (pgBool True)
       returnA  -< row ) -< ()
     returnA -< node'
 
 deleteNode :: NodeId -> Cmd err Int
 deleteNode n = mkCmd $ \conn ->
-  fromIntegral <$> runDelete conn nodeTable
-                 (\(Node n_id _ _ _ _ _ _ _) -> n_id .== pgNodeId n)
+  fromIntegral <$> runDelete_ conn
+                 (Delete nodeTable
+                         (\(Node n_id _ _ _ _ _ _ _) -> n_id .== pgNodeId n)
+                         rCount
+                 )
 
 deleteNodes :: [NodeId] -> Cmd err Int
 deleteNodes ns = mkCmd $ \conn ->
-  fromIntegral <$> runDelete conn nodeTable
-                   (\(Node n_id _ _ _ _ _ _ _) -> in_ ((map pgNodeId ns)) n_id)
+  fromIntegral <$> runDelete_ conn
+                   (Delete nodeTable
+                           (\(Node n_id _ _ _ _ _ _ _) -> in_ ((map pgNodeId ns)) n_id)
+                           rCount
+                   )
 
 -- TODO: NodeType should match with `a'
 getNodesWith :: (JSONB a, HasDBid NodeType) => NodeId -> proxy a -> Maybe NodeType
@@ -168,7 +174,7 @@ getNodesWithType nt _ = runOpaQuery $ selectNodesWithType nt
                          => NodeType -> Query NodeRead
     selectNodesWithType nt' = proc () -> do
         row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
-        restrict -< tn .== (pgInt4 $ toDBid nt')
+        restrict -< tn .== (sqlInt4 $ toDBid nt')
         returnA -< row
 
 getNodesIdWithType :: (HasNodeError err, HasDBid NodeType) => NodeType -> Cmd err [NodeId]
@@ -180,7 +186,7 @@ selectNodesIdWithType :: HasDBid NodeType
                       => NodeType -> Query (Column PGInt4)
 selectNodesIdWithType nt = proc () -> do
     row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
-    restrict -< tn .== (pgInt4 $ toDBid nt)
+    restrict -< tn .== (sqlInt4 $ toDBid nt)
     returnA -< _node_id row
 
 ------------------------------------------------------------------------
@@ -229,10 +235,10 @@ node :: (ToJSON a, Hyperdata a, HasDBid NodeType)
      -> NodeWrite
 node nodeType name hyperData parentId userId =
   Node Nothing Nothing
-       (pgInt4 typeId)
-       (pgInt4 userId)
+       (sqlInt4 typeId)
+       (sqlInt4 userId)
        (pgNodeId <$> parentId)
-       (pgStrictText name)
+       (sqlStrictText name)
        Nothing
        (pgJSONB $ cs $ encode hyperData)
     where
@@ -250,10 +256,10 @@ insertNodes' ns = mkCmd $ \conn -> runInsert_ conn
     ns' :: [NodeWrite]
     ns' = map (\(Node i t u p n d h)
                 -> Node (pgNodeId          <$> i)
-                        (pgInt4 $ toDBid      t)
-                        (pgInt4                u)
+                        (sqlInt4 $ toDBid      t)
+                        (sqlInt4                u)
                         (pgNodeId          <$> p)
-                        (pgStrictText          n)
+                        (sqlStrictText          n)
                         (pgUTCTime         <$> d)
                         (pgJSONB $ cs $ encode h)
               ) ns
@@ -275,7 +281,7 @@ insertNodesWithParentR pid ns = insertNodesR (set node_parent_id (pgNodeId <$> p
 
 node2table :: HasDBid NodeType
            => UserId -> Maybe ParentId -> Node' -> NodeWrite
-node2table uid pid (Node' nt txt v []) = Node Nothing Nothing (pgInt4 $ toDBid nt) (pgInt4 uid) (fmap pgNodeId pid) (pgStrictText txt) Nothing (pgStrictJSONB $ cs $ encode v)
+node2table uid pid (Node' nt txt v []) = Node Nothing Nothing (sqlInt4 $ toDBid nt) (sqlInt4 uid) (fmap pgNodeId pid) (sqlStrictText txt) Nothing (pgStrictJSONB $ cs $ encode v)
 node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"
 
 
