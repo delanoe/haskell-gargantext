@@ -38,6 +38,9 @@ CREATE TABLE public.nodes (
     FOREIGN KEY (user_id)  REFERENCES public.auth_user(id) ON DELETE CASCADE
 );
 ALTER TABLE public.nodes OWNER TO gargantua;
+ALTER TABLE nodes ADD COLUMN IF NOT EXISTS search_title tsvector;
+UPDATE nodes SET search_title = to_tsvector('english', coalesce("hyperdata"->>'title', '') || ' ' || coalesce("hyperdata"->>'abstract', ''));
+CREATE INDEX IF NOT EXISTS search_title_idx ON nodes USING GIN (search_title);
 
 --------------------------------------------------------------
 -- | Ngrams
@@ -207,5 +210,5 @@ CREATE OR REPLACE function node_pos(int, int) returns bigint
    LANGUAGE SQL immutable;
 
 --drop index node_by_pos;
-create index node_by_pos on nodes using btree(node_pos(id,typename));
+--create index node_by_pos on nodes using btree(node_pos(id,typename));
 

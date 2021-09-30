@@ -65,9 +65,9 @@ makeLenses ''NgramsPoly
 
 
 ngramsTable :: Table NgramsWrite NgramsRead
-ngramsTable = Table "ngrams" (pNgramsDb NgramsDB { _ngrams_id    = optional "id"
-                                                 , _ngrams_terms = required "terms"
-                                                 , _ngrams_n     = required "n"
+ngramsTable = Table "ngrams" (pNgramsDb NgramsDB { _ngrams_id    = optionalTableField "id"
+                                                 , _ngrams_terms = requiredTableField "terms"
+                                                 , _ngrams_n     = requiredTableField "n"
                                                  }
                               )
 
@@ -117,15 +117,15 @@ instance ToParamSchema NgramsType where
   toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
 
 
-instance QueryRunnerColumnDefault (Nullable PGInt4) NgramsTypeId
+instance DefaultFromField (Nullable PGInt4) NgramsTypeId
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+    defaultFromField = fieldQueryRunnerColumn
 
 pgNgramsType :: NgramsType -> Column PGInt4
 pgNgramsType = pgNgramsTypeId . ngramsTypeId
 
 pgNgramsTypeId :: NgramsTypeId -> Column PGInt4
-pgNgramsTypeId (NgramsTypeId n) = pgInt4 n
+pgNgramsTypeId (NgramsTypeId n) = sqlInt4 n
 
 ngramsTypeId :: NgramsType -> NgramsTypeId
 ngramsTypeId Authors     = 1

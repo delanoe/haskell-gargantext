@@ -31,7 +31,7 @@ import Prelude
 
 
 queryNodeNodeNgramsTable :: Query NodeNodeNgramsRead
-queryNodeNodeNgramsTable = queryTable nodeNodeNgramsTable
+queryNodeNodeNgramsTable = selectTable nodeNodeNgramsTable
 
 -- | Insert utils
 insertNodeNodeNgrams :: [NodeNodeNgrams] -> Cmd err Int
@@ -39,7 +39,7 @@ insertNodeNodeNgrams = insertNodeNodeNgramsW
                      . map (\(NodeNodeNgrams n1 n2 ng nt w) ->
                               NodeNodeNgrams (pgNodeId n1)
                                              (pgNodeId n2)
-                                             (pgInt4   ng)
+                                             (sqlInt4   ng)
                                              (pgNgramsTypeId nt)
                                              (pgDouble w)
                                                   )

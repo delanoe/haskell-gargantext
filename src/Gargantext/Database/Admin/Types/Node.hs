@@ -33,7 +33,7 @@ import Database.PostgreSQL.Simple.ToField (ToField, toField)
 import GHC.Generics (Generic)
 import Servant
 import qualified Opaleye as O
-import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGInt4, PGText, PGTSVector, Nullable, fieldQueryRunnerColumn)
+import Opaleye (DefaultFromField, defaultFromField, PGInt4, PGText, PGTSVector, Nullable, fieldQueryRunnerColumn)
 import Test.QuickCheck (elements)
 import Gargantext.Prelude.Crypto.Hash (Hash)
 import Test.QuickCheck.Arbitrary
@@ -82,18 +82,26 @@ instance (Typeable hyperdata, ToSchema hyperdata) =>
   declareNamedSchema = wellNamedSchema "_node_"
 
 instance (Typeable hyperdata, ToSchema hyperdata) =>
-         ToSchema (NodePolySearch NodeId NodeTypeId
-                            (Maybe UserId)
-                            ParentId NodeName
-                            UTCTime hyperdata (Maybe TSVector)
+         ToSchema (NodePolySearch NodeId
+                                  NodeTypeId
+                                  (Maybe UserId)
+                                  ParentId
+                                  NodeName
+                                  UTCTime
+                                  hyperdata
+                                  (Maybe TSVector)
                   ) where
   declareNamedSchema = wellNamedSchema "_ns_"
 
 instance (Typeable hyperdata, ToSchema hyperdata) =>
-         ToSchema (NodePolySearch NodeId NodeTypeId
-                            UserId
-                            (Maybe ParentId) NodeName
-                            UTCTime hyperdata (Maybe TSVector)
+         ToSchema (NodePolySearch NodeId
+                                  NodeTypeId
+                                  UserId
+                                  (Maybe ParentId)
+                                  NodeName
+                                  UTCTime
+                                  hyperdata
+                                  (Maybe TSVector)
                   ) where
   declareNamedSchema = wellNamedSchema "_ns_"
 
@@ -115,16 +123,29 @@ instance (Arbitrary hyperdata
          ,Arbitrary toDBid
          ,Arbitrary userId
          ,Arbitrary nodeParentId
-         ) => Arbitrary (NodePolySearch nodeId toDBid userId nodeParentId
-                                  NodeName UTCTime hyperdata (Maybe TSVector)) where
+         ) => Arbitrary (NodePolySearch nodeId
+                                        toDBid
+                                        userId
+                                        nodeParentId
+                                        NodeName
+                                        UTCTime
+                                        hyperdata
+                                        (Maybe TSVector)
+                        ) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
-    arbitrary = NodeSearch <$> arbitrary <*> arbitrary <*> arbitrary
-                     <*> arbitrary <*> arbitrary <*> arbitrary
-                     <*> arbitrary <*> arbitrary
+    arbitrary = NodeSearch <$> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
 
 ------------------------------------------------------------------------
 pgNodeId :: NodeId -> O.Column O.PGInt4
-pgNodeId = O.pgInt4 . id2int
+pgNodeId = O.sqlInt4 . id2int
   where
     id2int :: NodeId -> Int
     id2int (NodeId n) = n
@@ -333,28 +354,28 @@ instance FromField (NodeId, Text)
     fromField = fromField'
 -}
 ------------------------------------------------------------------------
-instance QueryRunnerColumnDefault PGTSVector (Maybe TSVector)
+instance DefaultFromField PGTSVector (Maybe TSVector)
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+    defaultFromField = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGInt4 (Maybe NodeId)
+instance DefaultFromField PGInt4 (Maybe NodeId)
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+    defaultFromField = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGInt4 NodeId
+instance DefaultFromField PGInt4 NodeId
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+    defaultFromField = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
+instance DefaultFromField (Nullable PGInt4) NodeId
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+    defaultFromField = fieldQueryRunnerColumn
 
-instance (QueryRunnerColumnDefault (Nullable O.PGTimestamptz) UTCTime)
+instance (DefaultFromField (Nullable O.PGTimestamptz) UTCTime)
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+    defaultFromField = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGText (Maybe Hash)
+instance DefaultFromField PGText (Maybe Hash)
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+    defaultFromField = fieldQueryRunnerColumn
 
 

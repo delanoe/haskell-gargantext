@@ -44,6 +44,8 @@ import Control.Arrow (returnA)
 import Control.Lens ((^.))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
+--import qualified Database.PostgreSQL.Simple as DPS
+--import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Swagger
 import qualified Data.Text as T
@@ -59,14 +61,17 @@ import qualified Opaleye.Internal.Unpackspec()
 import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
+-- import Gargantext.Database.Action.TSQuery (toTSQuery)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Query.Table.Ngrams
+import Gargantext.Database.Query.Table.Node (queryNodeSearchTable)
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
+import Gargantext.Prelude (printDebug)
 
 ------------------------------------------------------------------------
 -- | DocFacet
@@ -263,13 +268,13 @@ viewAuthorsDoc cId _ nt = proc () -> do
   -}
 
   restrict -< _node_id   contact'  .== (toNullable $ pgNodeId cId)
-  restrict -< _node_typename doc   .== (pgInt4 $ toDBid nt)
+  restrict -< _node_typename doc   .== (sqlInt4 $ toDBid nt)
 
   returnA  -< FacetDoc (_node_id        doc)
                        (_node_date      doc)
                        (_node_name      doc)
                        (_node_hyperdata doc)
-                       (toNullable $ pgInt4 1)
+                       (toNullable $ sqlInt4 1)
                        (toNullable $ pgDouble 1)
                        (toNullable $ pgDouble 1)
 
@@ -303,10 +308,29 @@ runViewDocuments :: HasDBid NodeType
                  -> Maybe Text
                  -> Cmd err [FacetDoc]
 runViewDocuments cId t o l order query = do
+--  docs <- runPGSQuery viewDocuments'
+--    ( cId
+--    , ntId
+--    , (if t then 0 else 1) :: Int
+--    , fromMaybe "" query
+--    , fromMaybe "" query)
+--  pure $ (\(id, date, name', hyperdata, category, score) -> FacetDoc id date name' hyperdata category score score) <$> docs
+    printDebug "[runViewDocuments] sqlQuery" $ showSql sqlQuery
     runOpaQuery $ filterWith o l order sqlQuery
   where
     ntId = toDBid NodeDocument
     sqlQuery = viewDocuments cId t ntId query
+--    viewDocuments' :: DPS.Query
+--    viewDocuments' = [sql|
+--      SELECT n.id, n.date, n.name, n.hyperdata, nn.category, nn.score
+--        FROM nodes AS n
+--        JOIN nodes_nodes AS nn
+--        ON n.id = nn.node2_id
+--        WHERE nn.node1_id = ?  -- corpusId
+--          AND n.typename = ?   -- NodeTypeId
+--          AND nn.category = ?  -- isTrash or not
+--          AND (n.search_title @@ to_tsquery(?) OR ? = '')  -- query with an OR hack for empty to_tsquery('') results
+--      |]
 
 runCountDocuments :: HasDBid NodeType => CorpusId -> IsTrash -> Maybe Text -> Cmd err Int
 runCountDocuments cId t mQuery = do
@@ -321,28 +345,33 @@ viewDocuments :: CorpusId
               -> Maybe Text
               -> Query FacetDocRead
 viewDocuments cId t ntId mQuery = proc () -> do
-  n  <- queryNodeTable     -< ()
+  --n  <- queryNodeTable     -< ()
+  n  <- queryNodeSearchTable -< ()
   nn <- queryNodeNodeTable -< ()
-  restrict -< n^.node_id       .== nn^.nn_node2_id
+  restrict -< n^.ns_id       .== nn^.nn_node2_id
   restrict -< nn^.nn_node1_id  .== (pgNodeId cId)
-  restrict -< n^.node_typename .== (pgInt4 ntId)
-  restrict -< if t then nn^.nn_category .== (pgInt4 0)
-                   else nn^.nn_category .>= (pgInt4 1)
+  restrict -< n^.ns_typename .== (sqlInt4 ntId)
+  restrict -< if t then nn^.nn_category .== (sqlInt4 0)
+                   else nn^.nn_category .>= (sqlInt4 1)
                        
   let query = (fromMaybe "" mQuery)
-      iLikeQuery = T.intercalate "" ["%", query, "%"]
-  restrict -< (n^.node_name) `ilike` (pgStrictText iLikeQuery)
+      -- iLikeQuery = T.intercalate "" ["%", query, "%"]
+  -- restrict -< (n^.node_name) `ilike` (sqlStrictText iLikeQuery)
+  restrict -< if query == ""
+    then pgBool True
+    --else (n^.ns_search_title) @@ (pgTSQuery (T.unpack query))
+    else (n^.ns_search_title) @@ (toTSQuery $ T.unpack query)
  
-  returnA  -< FacetDoc (_node_id        n)
-                       (_node_date      n)
-                       (_node_name      n)
-                       (_node_hyperdata n)
+  returnA  -< FacetDoc (_ns_id        n)
+                       (_ns_date      n)
+                       (_ns_name      n)
+                       (_ns_hyperdata n)
                        (toNullable $ nn^.nn_category)
                        (toNullable $ nn^.nn_score)
                        (toNullable $ nn^.nn_score)
 
 ------------------------------------------------------------------------
-filterWith :: (PGOrd date, PGOrd title, PGOrd category, PGOrd score, hyperdata ~ Column SqlJsonb) =>
+filterWith :: (SqlOrd date, SqlOrd title, SqlOrd category, SqlOrd score, hyperdata ~ Column SqlJsonb) =>
         Maybe Gargantext.Core.Types.Offset
      -> Maybe Gargantext.Core.Types.Limit
      -> Maybe OrderBy
@@ -351,7 +380,7 @@ filterWith :: (PGOrd date, PGOrd title, PGOrd category, PGOrd score, hyperdata ~
 filterWith o l order q = limit' l $ offset' o $ orderBy (orderWith order) q
 
 
-orderWith :: (PGOrd b1, PGOrd b2, PGOrd b3, PGOrd b4)
+orderWith :: (SqlOrd b1, SqlOrd b2, SqlOrd b3, SqlOrd b4)
           => Maybe OrderBy
           -> Order (Facet id (Column b1) (Column b2) (Column SqlJsonb) (Column b3) ngramCount (Column b4))
 orderWith (Just DateAsc)   = asc  facetDoc_created
@@ -368,7 +397,7 @@ orderWith (Just SourceDesc) = desc facetDoc_source
 
 orderWith _                = asc facetDoc_created
 
-facetDoc_source :: PGIsJson a
+facetDoc_source :: SqlIsJson a
                 => Facet id created title (Column a) favorite ngramCount score
                 -> Column (Nullable PGText)
 facetDoc_source x = toNullable (facetDoc_hyperdata x) .->> pgString "source"
