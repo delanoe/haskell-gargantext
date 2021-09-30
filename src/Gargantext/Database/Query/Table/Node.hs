@@ -136,6 +136,24 @@ getClosestParentIdByType nId nType = do
         WHERE n1.id = ? AND 0 = ?;
     |]
 
+-- | Given a node id, find all it's children (no matter how deep) of
+-- given node type.
+getChildrenByType :: HasDBid NodeType
+                  => NodeId
+                  -> NodeType
+                  -> Cmd err [NodeId]
+getChildrenByType nId nType = do
+  result <- runPGSQuery query (nId, 0 :: Int)
+  children_lst <- mapM (\(id, _) -> getChildrenByType id nType) result
+  pure $ concat $ [fst <$> filter (\(_, pTypename) -> pTypename == toDBid nType) result] ++ children_lst
+  where
+    query :: DPS.Query
+    query = [sql|
+      SELECT n.id, n.typename
+      FROM nodes n
+        WHERE n.parent_id = ? AND 0 = ?;
+    |]
+
 ------------------------------------------------------------------------
 getDocumentsV3WithParentId :: HasDBid NodeType => NodeId -> Cmd err [Node HyperdataDocumentV3]
 getDocumentsV3WithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocument)

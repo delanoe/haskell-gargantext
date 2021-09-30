@@ -21,15 +21,20 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Hyperdata.Frame
   where
 
+import Control.Lens
+import Data.ByteString.Lazy (toStrict)
+import qualified Data.Text as T
+import Data.Text.Encoding (decodeUtf8)
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
+import qualified Network.Wreq as Wreq
 
 ------------------------------------------------------------------------
 data HyperdataFrame =
   HyperdataFrame { _hf_base     :: !Text
                  , _hf_frame_id :: !Text
                  }
-    deriving (Generic)
+    deriving (Generic, Show)
 
 
 defaultHyperdataFrame :: HyperdataFrame
@@ -63,3 +68,8 @@ instance ToSchema HyperdataFrame where
     & mapped.schema.description ?~ "Frame Hyperdata"
     & mapped.schema.example ?~ toJSON defaultHyperdataFrame
 
+getHyperdataFrameContents :: HyperdataFrame -> IO Text
+getHyperdataFrameContents (HyperdataFrame { _hf_base, _hf_frame_id }) = do
+  let path = T.concat [_hf_base, "/", _hf_frame_id, "/download"]
+  r <- Wreq.get $ T.unpack path
+  pure $ decodeUtf8 $ toStrict $ r ^. Wreq.responseBody

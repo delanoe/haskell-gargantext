@@ -17,13 +17,25 @@ Portability : POSIX
 module Gargantext.API.Node.DocumentsFromWriteNodes
       where
 
+import Control.Lens ((^.))
 import Data.Aeson
+import Data.Either (Either(..), rights)
 import Data.Swagger
+import qualified Data.Text as T
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Prelude (GargServer)
+import Gargantext.Core (Lang(..))
+import Gargantext.Core.Text.Corpus.Parsers.FrameWrite
+import Gargantext.Core.Text.Terms (TermType(..))
+import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Action.Flow (flowDataText, DataText(..))
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
+import Gargantext.Database.Admin.Types.Hyperdata.Document (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Hyperdata.Frame
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Query.Table.Node (getChildrenByType, getNodeWith)
+import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
 import GHC.Generics (Generic)
 import Servant
@@ -71,9 +83,54 @@ documentsFromWriteNodes uId nId p logStatus = do
   _ <- printDebug "[documentsFromWriteNodes] inside job, nId" nId
   _ <- printDebug "[documentsFromWriteNodes] inside job, p" p
 
+  frameWriteIds <- getChildrenByType nId NodeFrameWrite
+  _ <- printDebug "[documentsFromWriteNodes] children" frameWriteIds
+
+  -- https://write.frame.gargantext.org/<frame_id>/download
+  frameWrites <- mapM (\id -> getNodeWith id (Proxy :: Proxy HyperdataFrame)) frameWriteIds
+
+  frameWritesWithContents <- liftBase $
+    mapM (\node -> do
+             contents <- getHyperdataFrameContents (node ^. node_hyperdata)
+             pure (node, contents)
+         ) frameWrites
+  _ <- printDebug "[documentsFromWriteNodes] frameWritesWithContents" frameWritesWithContents
+
+  let parsedE = (\(node, contents) -> hyperdataDocumentFromFrameWrite (node ^. node_hyperdata, contents)) <$> frameWritesWithContents
+  let parsed = rights parsedE
+  _ <- printDebug "[documentsFromWriteNodes] parsed" parsed
+
+  _ <- flowDataText (RootId (NodeId uId)) (DataNew [parsed]) (Multi EN) nId Nothing
+
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
                , _scst_events    = Just []
                }
 ------------------------------------------------------------------------
+hyperdataDocumentFromFrameWrite :: (HyperdataFrame, T.Text) -> Either T.Text HyperdataDocument
+hyperdataDocumentFromFrameWrite (HyperdataFrame { _hf_base, _hf_frame_id }, contents) =
+  case parseLines contents of
+    Left _ -> Left "Error parsing node"
+    Right (Parsed { authors, contents = c, date, source, title = t }) ->
+      let authorJoinSingle (Author { firstName, lastName }) = T.concat [ lastName, ", ", firstName ] in
+      let authors' = T.concat $ authorJoinSingle <$> authors in
+      Right HyperdataDocument { _hd_bdd = Just "FrameWrite"
+                                     , _hd_doi = Nothing
+                                     , _hd_url = Nothing
+                                     , _hd_uniqId = Nothing
+                                     , _hd_uniqIdBdd = Nothing
+                                     , _hd_page = Nothing
+                                     , _hd_title = Just t
+                                     , _hd_authors = Just authors'
+                                     , _hd_institutes = Nothing
+                                     , _hd_source = source
+                                     , _hd_abstract = Just c
+                                     , _hd_publication_date = date
+                                     , _hd_publication_year = Nothing  -- TODO
+                                     , _hd_publication_month = Nothing  -- TODO
+                                     , _hd_publication_day = Nothing  -- TODO
+                                     , _hd_publication_hour = Nothing
+                                     , _hd_publication_minute = Nothing
+                                     , _hd_publication_second = Nothing
+                                     , _hd_language_iso2 = Just $ T.pack $ show EN }

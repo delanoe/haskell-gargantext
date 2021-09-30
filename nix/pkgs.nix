@@ -9,6 +9,7 @@ rec {
   ];
   nonhsBuildInputs = with pkgs; [
     bzip2
+    docker-compose
     git
     gmp
     gsl
