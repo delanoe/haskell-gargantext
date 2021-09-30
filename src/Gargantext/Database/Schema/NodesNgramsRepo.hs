@@ -46,17 +46,17 @@ type RepoDbNgrams = RepoDbPoly Int NgramsStatePatch
 $(makeAdaptorAndInstance "pRepoDbNgrams" ''RepoDbPoly)
 makeLenses ''RepoDbPoly
 
-instance QueryRunnerColumnDefault PGJsonb
+instance DefaultFromField PGJsonb
                           (PatchMap NgramsType
                           (PatchMap NodeId NgramsTablePatch))
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+    defaultFromField = fieldQueryRunnerColumn
 
 repoTable :: Table RepoDbWrite RepoDbRead
 repoTable = Table "nodes_ngrams_repo"
     (pRepoDbNgrams RepoDbNgrams
-                   { _rdp_version = required "version"
-                   , _rdp_patches = required "patches"
+                   { _rdp_version = requiredTableField "version"
+                   , _rdp_patches = requiredTableField "patches"
                    }
     )
 

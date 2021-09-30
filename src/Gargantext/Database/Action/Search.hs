@@ -14,18 +14,13 @@ module Gargantext.Database.Action.Search where
 
 import Control.Arrow (returnA)
 import Control.Lens ((^.))
-import Data.Aeson
-import Data.List (intersperse)
 import Data.Maybe
-import Data.String (IsString(..))
-import Data.Text (Text, words, unpack, intercalate)
+import Data.Text (Text, unpack, intercalate)
 import Data.Time (UTCTime)
-import Database.PostgreSQL.Simple (Query)
-import Database.PostgreSQL.Simple.ToField
 import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..), HyperdataContact(..))
-import Gargantext.Database.Prelude (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
+import Gargantext.Database.Prelude (Cmd, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Join (leftJoin5)
@@ -43,14 +38,14 @@ searchDocInDatabase :: HasDBid NodeType
                     => ParentId
                     -> Text
                     -> Cmd err [(NodeId, HyperdataDocument)]
-searchDocInDatabase p t = runOpaQuery (queryDocInDatabase p t)
+searchDocInDatabase _p t = runOpaQuery (queryDocInDatabase t)
   where
     -- | Global search query where ParentId is Master Node Corpus Id 
-    queryDocInDatabase :: ParentId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
-    queryDocInDatabase _ q = proc () -> do
+    queryDocInDatabase :: Text -> O.Query (Column PGInt4, Column PGJsonb)
+    queryDocInDatabase q = proc () -> do
         row <- queryNodeSearchTable -< ()
         restrict -< (_ns_search row)    @@ (pgTSQuery (unpack q))
-        restrict -< (_ns_typename row) .== (pgInt4 $ toDBid NodeDocument)
+        restrict -< (_ns_typename row) .== (sqlInt4 $ toDBid NodeDocument)
         returnA  -< (_ns_id row, _ns_hyperdata row)
 
 ------------------------------------------------------------------------
@@ -88,10 +83,10 @@ queryInCorpus cId t q = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< (nn^.nn_node1_id) .== (toNullable $ pgNodeId cId)
   restrict -< if t
-                 then (nn^.nn_category) .== (toNullable $ pgInt4 0)
-                 else (nn^.nn_category) .>= (toNullable $ pgInt4 1)
+                 then (nn^.nn_category) .== (toNullable $ sqlInt4 0)
+                 else (nn^.nn_category) .>= (toNullable $ sqlInt4 1)
   restrict -< (n ^. ns_search)           @@ (pgTSQuery (unpack q))
-  restrict -< (n ^. ns_typename )       .== (pgInt4 $ toDBid NodeDocument)
+  restrict -< (n ^. ns_typename )       .== (sqlInt4 $ toDBid NodeDocument)
   returnA  -< FacetDoc (n^.ns_id        )
                        (n^.ns_date      )
                        (n^.ns_name      )
@@ -138,14 +133,14 @@ selectContactViaDoc
 selectContactViaDoc cId aId q = proc () -> do
   (doc, (corpus_doc, (_contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
   restrict -< (doc^.ns_search)           @@ (pgTSQuery  $ unpack q  )
-  restrict -< (doc^.ns_typename)        .== (pgInt4 $ toDBid NodeDocument)
+  restrict -< (doc^.ns_typename)        .== (sqlInt4 $ toDBid NodeDocument)
   restrict -< (corpus_doc^.nn_node1_id)  .== (toNullable $ pgNodeId cId)
   restrict -< (annuaire_contact^.nn_node1_id) .== (toNullable $ pgNodeId aId)
-  restrict -< (contact^.node_typename)        .== (toNullable $ pgInt4 $ toDBid NodeContact)
+  restrict -< (contact^.node_typename)        .== (toNullable $ sqlInt4 $ toDBid NodeContact)
   returnA  -< ( contact^.node_id
               , contact^.node_date
               , contact^.node_hyperdata
-              , toNullable $ pgInt4 1
+              , toNullable $ sqlInt4 1
               )
 
 selectGroup :: HasDBid NodeType
@@ -213,66 +208,3 @@ queryContactViaDoc =
 
 
 ------------------------------------------------------------------------
-
-newtype TSQuery = UnsafeTSQuery [Text]
-
--- | TODO [""] -> panic "error"
-toTSQuery :: [Text] -> TSQuery
-toTSQuery txt = UnsafeTSQuery $ map stemIt txt
-
-
-instance IsString TSQuery
-  where
-    fromString = UnsafeTSQuery . words . cs
-
-
-instance ToField TSQuery
-  where
-    toField (UnsafeTSQuery xs)
-      = Many  $ intersperse (Plain " && ")
-              $ map (\q -> Many [ Plain "plainto_tsquery("
-                                , Escape (cs q)
-                                , Plain ")"
-                                ]
-                    ) xs
-
-data Order    = Asc | Desc
-
-instance ToField Order
-  where
-    toField Asc  = Plain "ASC"
-    toField Desc = Plain "DESC"
-
--- TODO
--- FIX fav
--- ADD ngrams count
--- TESTS
-textSearchQuery :: Query
-textSearchQuery = "SELECT n.id, n.hyperdata->'publication_year'     \
-\                   , n.hyperdata->'title'                          \
-\                   , n.hyperdata->'source'                         \
-\                   , n.hyperdata->'authors'                        \
-\                   , COALESCE(nn.score,null)                       \
-\                      FROM nodes n                                 \
-\            LEFT JOIN nodes_nodes nn  ON nn.node2_id = n.id        \
-\              WHERE                                                \
-\                n.search @@ (?::tsquery)                           \
-\                AND (n.parent_id = ? OR nn.node1_id = ?)           \
-\                AND n.typename  = ?                                \
-\                ORDER BY n.hyperdata -> 'publication_date' ?       \
-\            offset ? limit ?;"
-
--- | Text Search Function for Master Corpus
--- TODO : text search for user corpus
--- Example:
--- textSearchTest :: ParentId -> TSQuery -> Cmd err [(Int, Value, Value, Value, Value, Maybe Int)]
--- textSearchTest pId q = textSearch q pId 5 0 Asc
-textSearch :: HasDBid NodeType
-           => TSQuery -> ParentId
-           -> Limit -> Offset -> Order
-           -> Cmd err [(Int,Value,Value,Value, Value, Maybe Int)]
-textSearch q p l o ord = runPGSQuery textSearchQuery (q,p,p,typeId,ord,o,l)
-  where
-    typeId = toDBid NodeDocument
-
-

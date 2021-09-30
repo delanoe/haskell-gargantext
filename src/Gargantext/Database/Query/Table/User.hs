@@ -54,8 +54,10 @@ insertUsers us = mkCmd $ \c -> runInsert_ c insert
     insert = Insert userTable us rCount Nothing
 
 deleteUsers :: [Username] -> Cmd err Int64
-deleteUsers us = mkCmd $ \c -> runDelete c userTable
-    (\user -> in_ (map pgStrictText us) (user_username user))
+deleteUsers us = mkCmd $ \c -> runDelete_ c
+                       $ Delete userTable
+                                (\user -> in_ (map sqlStrictText us) (user_username user))
+                                rCount
 
 -- Updates email or password only (for now)
 updateUserDB :: UserWrite -> Cmd err Int64
@@ -76,11 +78,11 @@ updateUserDB us = mkCmd $ \c -> runUpdate_ c (updateUserQuery us)
 -----------------------------------------------------------------------
 toUserWrite :: NewUser HashPassword -> UserWrite
 toUserWrite (NewUser u m (Auth.PasswordHash p)) = 
-  UserDB (Nothing) (pgStrictText p)
-         (Nothing) (pgBool True) (pgStrictText u)
-         (pgStrictText "first_name")
-         (pgStrictText "last_name")
-         (pgStrictText m)
+  UserDB (Nothing) (sqlStrictText p)
+         (Nothing) (pgBool True) (sqlStrictText u)
+         (sqlStrictText "first_name")
+         (sqlStrictText "last_name")
+         (sqlStrictText m)
          (pgBool True)
          (pgBool True) Nothing
 
@@ -91,25 +93,23 @@ getUsersWith u = map toUserLight <$> runOpaQuery (selectUsersLightWith u)
 selectUsersLightWith :: Username -> Query UserRead
 selectUsersLightWith u = proc () -> do
       row      <- queryUserTable -< ()
-      restrict -< user_username row .== pgStrictText u
+      restrict -< user_username row .== sqlStrictText u
       returnA  -< row
 
 ----------------------------------------------------------
-
-
 getUsersWithId :: Int -> Cmd err [UserLight]
 getUsersWithId i = map toUserLight <$> runOpaQuery (selectUsersLightWithId i)
   where
     selectUsersLightWithId :: Int -> Query UserRead
     selectUsersLightWithId i' = proc () -> do
           row      <- queryUserTable -< ()
-          restrict -< user_id row .== pgInt4 i'
+          restrict -< user_id row .== sqlInt4 i'
           returnA  -< row
 
 
 
 queryUserTable :: Query UserRead
-queryUserTable = queryTable userTable
+queryUserTable = selectTable userTable
 
 ------------------------------------------------------------------
 -- | Select User with some parameters
@@ -147,5 +147,5 @@ insertNewUsers newUsers = do
   insertUsers $ map toUserWrite users'
 
 ----------------------------------------------------------------------
-instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance DefaultFromField PGTimestamptz (Maybe UTCTime) where
+  defaultFromField = fieldQueryRunnerColumn

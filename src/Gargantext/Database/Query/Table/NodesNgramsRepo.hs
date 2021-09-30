@@ -30,7 +30,7 @@ import Gargantext.Prelude
 
 selectPatches :: Query RepoDbRead
 selectPatches = proc () -> do
-  repos <- queryTable repoTable -< ()
+  repos <- selectTable repoTable -< ()
   returnA -< repos
 
 _selectRepo :: Cmd err [RepoDbNgrams]
@@ -41,5 +41,5 @@ _insertRepos ns = mkCmd $ \conn -> runInsert_ conn $ Insert repoTable (toWrite n
   where
     toWrite :: [NgramsStatePatch] -> [RepoDbWrite]
     toWrite = undefined
-    --ns' = map (\(RepoDbNgrams v ps) -> RepoDbWrite (pgInt4 v) (pgJSONB ps)) ns
+    --ns' = map (\(RepoDbNgrams v ps) -> RepoDbWrite (sqlInt4 v) (pgJSONB ps)) ns
 

@@ -54,7 +54,7 @@ import Gargantext.Prelude
 
 
 queryNodeNodeTable :: Query NodeNodeRead
-queryNodeNodeTable = queryTable nodeNodeTable
+queryNodeNodeTable = selectTable nodeNodeTable
 
 -- | not optimized (get all ngrams without filters)
 _nodesNodes :: Cmd err [NodeNode]
@@ -87,7 +87,7 @@ getNodeNodeWith pId _ maybeNodeType = runOpaQuery query
         (NodeNode _ n1id n2id _ _) <- queryNodeNodeTable -< ()
 
         let nodeType = maybe 0 toDBid maybeNodeType
-        restrict -< typeName  .== pgInt4 nodeType
+        restrict -< typeName  .== sqlInt4 nodeType
 
         restrict -< (.||) (parent_id .== (pgNodeId parentId))
                           ( (.&&) (n1id .== pgNodeId parentId)
@@ -105,7 +105,7 @@ insertNodeNode ns = mkCmd $ \conn -> fromIntegral <$> (runInsert_ conn
                 -> NodeNode (pgNodeId n1)
                             (pgNodeId n2)
                             (pgDouble <$> x)
-                            (pgInt4   <$> y)
+                            (sqlInt4   <$> y)
               ) ns
 
 
@@ -116,9 +116,13 @@ type Node2_Id = NodeId
 
 deleteNodeNode :: Node1_Id -> Node2_Id -> Cmd err Int
 deleteNodeNode n1 n2 = mkCmd $ \conn ->
-  fromIntegral <$> runDelete conn nodeNodeTable
-                 (\(NodeNode n1_id n2_id _ _) -> n1_id .== pgNodeId n1
-                                             .&& n2_id .== pgNodeId n2 )
+  fromIntegral <$> runDelete_ conn
+                              (Delete nodeNodeTable
+                                      (\(NodeNode n1_id n2_id _ _) -> n1_id .== pgNodeId n1
+                                                                  .&& n2_id .== pgNodeId n2
+                                      )
+                                      rCount
+                              )
 
 ------------------------------------------------------------------------
 -- | Favorite management
@@ -177,8 +181,8 @@ selectCountDocs cId = runCountOpaQuery (queryCountDocs cId)
     queryCountDocs cId' = proc () -> do
       (n, nn) <- joinInCorpus -< ()
       restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId')
-      restrict -< nn^.nn_category  .>= (toNullable $ pgInt4 1)
-      restrict -< n^.node_typename .== (pgInt4 $ toDBid NodeDocument)
+      restrict -< nn^.nn_category  .>= (toNullable $ sqlInt4 1)
+      restrict -< n^.node_typename .== (sqlInt4 $ toDBid NodeDocument)
       returnA -< n
 
 
@@ -198,8 +202,8 @@ queryDocs :: HasDBid NodeType => CorpusId -> O.Query (Column PGJsonb)
 queryDocs cId = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
-  restrict -< nn^.nn_category  .>= (toNullable $ pgInt4 1)
-  restrict -< n^.node_typename .== (pgInt4 $ toDBid NodeDocument)
+  restrict -< nn^.nn_category  .>= (toNullable $ sqlInt4 1)
+  restrict -< n^.node_typename .== (sqlInt4 $ toDBid NodeDocument)
   returnA -< view (node_hyperdata) n
 
 selectDocNodes :: HasDBid NodeType =>CorpusId -> Cmd err [Node HyperdataDocument]
@@ -209,8 +213,8 @@ queryDocNodes :: HasDBid NodeType =>CorpusId -> O.Query NodeRead
 queryDocNodes cId = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
-  restrict -< nn^.nn_category  .>= (toNullable $ pgInt4 1)
-  restrict -< n^.node_typename .== (pgInt4 $ toDBid NodeDocument)
+  restrict -< nn^.nn_category  .>= (toNullable $ sqlInt4 1)
+  restrict -< n^.node_typename .== (sqlInt4 $ toDBid NodeDocument)
   returnA -<  n
 
 joinInCorpus :: O.Query (NodeRead, NodeNodeReadNull)
@@ -227,13 +231,13 @@ joinOn1 = leftJoin queryNodeTable queryNodeNodeTable cond
 
 
 ------------------------------------------------------------------------
-selectPublicNodes :: HasDBid NodeType => (Hyperdata a, QueryRunnerColumnDefault PGJsonb a)
+selectPublicNodes :: HasDBid NodeType => (Hyperdata a, DefaultFromField PGJsonb a)
                   => Cmd err [(Node a, Maybe Int)]
 selectPublicNodes = runOpaQuery (queryWithType NodeFolderPublic)
 
 queryWithType :: HasDBid NodeType =>NodeType -> O.Query (NodeRead, Column (Nullable PGInt4))
 queryWithType nt = proc () -> do
   (n, nn) <- joinOn1 -< ()
-  restrict -< n^.node_typename .== (pgInt4 $ toDBid nt)
+  restrict -< n^.node_typename .== (sqlInt4 $ toDBid nt)
   returnA  -<  (n, nn^.nn_node2_id)
 

@@ -102,7 +102,7 @@ import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 
 ------------------------------------------------------------------------
--- Impots for upgrade function
+-- Imports for upgrade function
 import Gargantext.Database.Query.Tree.Root (getRootId)
 import Gargantext.Database.Query.Tree (findNodesId)
 import qualified Data.List as List

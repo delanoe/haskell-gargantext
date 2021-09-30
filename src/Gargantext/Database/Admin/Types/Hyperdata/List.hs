@@ -98,12 +98,12 @@ instance FromField HyperdataListCooc
   where
     fromField = fromField'
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataList
+instance DefaultFromField PGJsonb HyperdataList
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-instance QueryRunnerColumnDefault PGJsonb HyperdataListCooc
+    defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField PGJsonb HyperdataListCooc
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+    defaultFromField = fieldQueryRunnerColumn
 
 
 instance ToSchema HyperdataList where

@@ -55,22 +55,22 @@ $(makeAdaptorAndInstance "pNode"   ''NodePoly)
 $(makeLensesWith abbreviatedFields ''NodePoly)
 
 nodeTable :: Table NodeWrite NodeRead
-nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
-                                      , _node_hash_id    = optional "hash_id"
-                                      , _node_typename   = required "typename"
-                                      , _node_user_id    = required "user_id"
+nodeTable = Table "nodes" (pNode Node { _node_id         = optionalTableField "id"
+                                      , _node_hash_id    = optionalTableField "hash_id"
+                                      , _node_typename   = requiredTableField "typename"
+                                      , _node_user_id    = requiredTableField "user_id"
 
-                                      , _node_parent_id  = optional "parent_id"
-                                      , _node_name       = required "name"
-                                      , _node_date       = optional "date"
+                                      , _node_parent_id  = optionalTableField "parent_id"
+                                      , _node_name       = requiredTableField "name"
+                                      , _node_date       = optionalTableField "date"
 
-                                      , _node_hyperdata  = required "hyperdata"
+                                      , _node_hyperdata  = requiredTableField "hyperdata"
                                       -- ignoring ts_vector field here
                                       }
                             )
 
 queryNodeTable :: Query NodeRead
-queryNodeTable = queryTable nodeTable
+queryNodeTable = selectTable nodeTable
 ------------------------------------------------------------------------
 type NodeWrite = NodePoly (Maybe (Column PGInt4)      )
                           (Maybe (Column PGText)      )
@@ -144,16 +144,17 @@ data NodePolySearch id
                     date
                     hyperdata
                     search =
-     NodeSearch { _ns_id        :: id
-                , _ns_typename  :: typename
-                , _ns_user_id   :: user_id
-                                          --   , nodeUniqId    :: shaId
-                , _ns_parent_id  :: parent_id
-                , _ns_name       :: name
-                , _ns_date       :: date
+     NodeSearch { _ns_id           :: id
+                , _ns_typename     :: typename
+                , _ns_user_id      :: user_id
+           --   , nodeUniqId       :: shaId
+                , _ns_parent_id    :: parent_id
+                , _ns_name         :: name
+                , _ns_date         :: date
 
-                , _ns_hyperdata :: hyperdata
-                , _ns_search    :: search
+                , _ns_hyperdata    :: hyperdata
+                , _ns_search       :: search
+                , _ns_search_title :: search
                 } deriving (Show, Generic)
 
 $(makeAdaptorAndInstance "pNodeSearch" ''NodePolySearch)
@@ -163,16 +164,17 @@ $(makeLenses ''NodePolySearch)
 
 nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
 nodeTableSearch = Table "nodes" ( pNodeSearch
-                                   NodeSearch { _ns_id         = optional "id"
-                                              , _ns_typename   = required "typename"
-                                              , _ns_user_id    = required "user_id"
+                                   NodeSearch { _ns_id           = optionalTableField "id"
+                                              , _ns_typename     = requiredTableField "typename"
+                                              , _ns_user_id      = requiredTableField "user_id"
 
-                                              , _ns_parent_id  = required "parent_id"
-                                              , _ns_name       = required "name"
-                                              , _ns_date       = optional "date"
+                                              , _ns_parent_id    = requiredTableField "parent_id"
+                                              , _ns_name         = requiredTableField "name"
+                                              , _ns_date         = optionalTableField "date"
 
-                                              , _ns_hyperdata  = required "hyperdata"
-                                              , _ns_search     = optional "search"
+                                              , _ns_hyperdata    = requiredTableField "hyperdata"
+                                              , _ns_search       = optionalTableField "search"
+                                              , _ns_search_title = optionalTableField "search_title"
                                               }
                                 )
 ------------------------------------------------------------------------

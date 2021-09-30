@@ -56,25 +56,25 @@ nodeNodeTable :: Table NodeNodeWrite NodeNodeRead
 nodeNodeTable  =
   Table "nodes_nodes"
          ( pNodeNode
-           NodeNode { _nn_node1_id = required "node1_id"
-                    , _nn_node2_id = required "node2_id"
-                    , _nn_score    = optional "score"
-                    , _nn_category = optional "category"
+           NodeNode { _nn_node1_id = requiredTableField "node1_id"
+                    , _nn_node2_id = requiredTableField "node2_id"
+                    , _nn_score    = optionalTableField "score"
+                    , _nn_category = optionalTableField "category"
                     }
                 )
 
-instance QueryRunnerColumnDefault (Nullable PGInt4)   Int            where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance DefaultFromField (Nullable PGInt4)   Int            where
+    defaultFromField = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault (Nullable PGFloat8) Int            where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance DefaultFromField (Nullable PGFloat8) Int            where
+    defaultFromField = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault (Nullable PGFloat8) Double         where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance DefaultFromField (Nullable PGFloat8) Double         where
+    defaultFromField = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGFloat8            (Maybe Double) where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance DefaultFromField PGFloat8            (Maybe Double) where
+    defaultFromField = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGInt4              (Maybe Int)    where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance DefaultFromField PGInt4              (Maybe Int)    where
+    defaultFromField = fieldQueryRunnerColumn
 

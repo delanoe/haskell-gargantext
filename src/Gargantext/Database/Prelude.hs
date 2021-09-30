@@ -31,7 +31,7 @@ import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Prelude
-import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery, PGJsonb, QueryRunnerColumnDefault)
+import Opaleye (Query, Unpackspec, showSql, FromFields, Select, runSelect, PGJsonb, DefaultFromField)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
 import System.IO (stderr)
@@ -56,7 +56,7 @@ instance HasConfig GargConfig where
   hasConfig = identity
 
 -------------------------------------------------------
-type JSONB = QueryRunnerColumnDefault PGJsonb
+type JSONB = DefaultFromField PGJsonb
 -------------------------------------------------------
 
 type CmdM'' env err m =
@@ -111,11 +111,11 @@ runCmd env m = runExceptT $ runReaderT m env
 runOpaQuery :: Default FromFields fields haskells
             => Select fields
             -> Cmd err [haskells]
-runOpaQuery q = mkCmd $ \c -> runQuery c q
+runOpaQuery q = mkCmd $ \c -> runSelect c q
 
 runCountOpaQuery :: Select a -> Cmd err Int
 runCountOpaQuery q = do
-  counts <- mkCmd $ \c -> runQuery c $ countRows q
+  counts <- mkCmd $ \c -> runSelect c $ countRows q
   -- countRows is guaranteed to return a list with exactly one row so DL.head is safe here
   pure $ fromInt64ToInt $ DL.head counts
 
@@ -189,5 +189,5 @@ fromField' field mb = do
                                               ]
 
 printSqlOpa :: Default Unpackspec a a => Query a -> IO ()
-printSqlOpa = putStrLn . maybe "Empty query" identity . showSqlForPostgres
+printSqlOpa = putStrLn . maybe "Empty query" identity . showSql
 

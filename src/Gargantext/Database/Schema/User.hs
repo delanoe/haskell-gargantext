@@ -94,17 +94,17 @@ $(makeLensesWith abbreviatedFields   ''UserPoly)
 
 userTable :: Table UserWrite UserRead
 userTable = Table "auth_user"
-  (pUserDB UserDB { user_id      = optional "id"
-                  , user_password    = required "password"
-                  , user_lastLogin   = optional "last_login"
-                  , user_isSuperUser = required "is_superuser"
-                  , user_username    = required "username"
-                  , user_firstName   = required "first_name"
-                  , user_lastName    = required "last_name"
-                  , user_email       = required "email"
-                  , user_isStaff     = required "is_staff"
-                  , user_isActive    = required "is_active"
-                  , user_dateJoined  = optional "date_joined"
+  (pUserDB UserDB { user_id      = optionalTableField "id"
+                  , user_password    = requiredTableField "password"
+                  , user_lastLogin   = optionalTableField "last_login"
+                  , user_isSuperUser = requiredTableField "is_superuser"
+                  , user_username    = requiredTableField "username"
+                  , user_firstName   = requiredTableField "first_name"
+                  , user_lastName    = requiredTableField "last_name"
+                  , user_email       = requiredTableField "email"
+                  , user_isStaff     = requiredTableField "is_staff"
+                  , user_isActive    = requiredTableField "is_active"
+                  , user_dateJoined  = optionalTableField "date_joined"
                   }
       )
 
