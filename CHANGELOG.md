@@ -1,4 +1,7 @@
 
+## Version 0.0.4.1
+* Refact/code design better syntax for DataType fields
+
 ## Version 0.0.4
 * Fix the search in Title and abstracts.
 * [UPGRADE] execute devops/postgres/upgrade/0.0.4.sql to your database to upgrade it
