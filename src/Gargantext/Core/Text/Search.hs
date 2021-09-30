@@ -13,8 +13,6 @@ Starting from this model, a specific Gargantext engine will be made
 (using more metrics scores/features).
 -}
 
-{-# LANGUAGE NamedFieldPuns #-}
-
 module Gargantext.Core.Text.Search where
 
 import Data.SearchEngine

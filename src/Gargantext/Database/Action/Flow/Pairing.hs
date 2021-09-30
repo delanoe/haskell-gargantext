@@ -72,7 +72,10 @@ pairing a c l' = do
     Just l'' -> pure l''
   dataPaired <- dataPairing a (c,l,Authors) takeName takeName
   r <- insertDB $ prepareInsert dataPaired
-  _ <- insertNodeNode [ NodeNode c a Nothing Nothing]
+  _ <- insertNodeNode [ NodeNode { _nn_node1_id = c
+                                 , _nn_node2_id = a
+                                 , _nn_score = Nothing
+                                 , _nn_category = Nothing }]
   pure r
 
 
@@ -96,7 +99,10 @@ dataPairing aId (cId, lId, ngt) fc fa = do
 
 
 prepareInsert :: HashMap ContactId (Set DocId) -> [NodeNode]
-prepareInsert m =  map (\(n1,n2) -> NodeNode n1 n2 Nothing Nothing)
+prepareInsert m =  map (\(n1,n2) -> NodeNode { _nn_node1_id = n1
+                                             , _nn_node2_id = n2
+                                             , _nn_score = Nothing
+                                             , _nn_category = Nothing })
                 $ List.concat
                 $ map (\(contactId, setDocIds)
                         -> map (\setDocId

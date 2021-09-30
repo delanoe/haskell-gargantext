@@ -10,7 +10,6 @@ Portability : POSIX
 Count API part of Gargantext.
 -}
 
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
 {-# LANGUAGE DeriveAnyClass     #-}

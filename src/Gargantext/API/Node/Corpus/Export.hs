@@ -63,15 +63,17 @@ getCorpus cId lId nt' = do
   repo <- getRepo' [fromMaybe (panic "[Gargantext.API.Node.Corpus.Export]") lId]
   ngs  <- getNodeNgrams cId lId nt repo
   let  -- uniqId is hash computed already for each document imported in database
-    r = Map.intersectionWith (\a b -> Document a (Ngrams (Set.toList b) (hash b)) (d_hash a b)
-                             ) ns (Map.map (Set.map unNgramsTerm) ngs)
+    r = Map.intersectionWith
+        (\a b -> Document { _d_document = a
+                          , _d_ngrams = Ngrams (Set.toList b) (hash b)
+                          , _d_hash = d_hash a b }
+        ) ns (Map.map (Set.map unNgramsTerm) ngs)
           where
             d_hash  a b = hash [ fromMaybe "" (_hd_uniqId $ _node_hyperdata a)
                                , hash b
                                ]
-  pure $ Corpus (Map.elems r) (hash $ List.map _d_hash
-                                    $ Map.elems r
-                              )
+  pure $ Corpus { _c_corpus = Map.elems r
+                , _c_hash = hash $ List.map _d_hash $ Map.elems r }
 
 getNodeNgrams :: HasNodeError err
         => CorpusId

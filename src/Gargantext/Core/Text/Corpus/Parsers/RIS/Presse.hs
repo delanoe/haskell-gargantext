@@ -68,5 +68,3 @@ fixFields ns = map (first fixFields'') ns
                 | champs == "UR" = "url"
                 | champs == "N2" = abstract
                 | otherwise  = champs
-
-

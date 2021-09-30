@@ -82,11 +82,11 @@ makeLenses ''TermType
 --extractTerms :: Traversable t => TermType Lang -> t Text -> IO (t [Terms])
 extractTerms :: TermType Lang -> [Text] -> IO [[Terms]]
 
-extractTerms (Unsupervised l n s m) xs = mapM (terms (Unsupervised l n s (Just m'))) xs
+extractTerms (Unsupervised {..}) xs = mapM (terms (Unsupervised { _tt_model = Just m', .. })) xs
   where
-    m' = case m of
+    m' = case _tt_model of
       Just m''-> m''
-      Nothing -> newTries n (Text.intercalate " " xs)
+      Nothing -> newTries _tt_windowSize (Text.intercalate " " xs)
 
 extractTerms termTypeLang xs = mapM (terms termTypeLang) xs
 
@@ -96,15 +96,16 @@ withLang :: (Foldable t, Functor t, HasText h)
          => TermType Lang
          -> t h
          -> TermType Lang
-withLang (Unsupervised l n s m) ns = Unsupervised l n s m'
+withLang (Unsupervised {..}) ns = Unsupervised { _tt_model = m', .. }
   where
-    m' = case m of
+    m' = case _tt_model of
       Nothing -> -- trace ("buildTries here" :: String)
-               Just $ buildTries n $ fmap toToken
-                                   $ uniText
-                                   $ Text.intercalate " . "
-                                   $ List.concat
-                                   $ map hasText ns
+               Just $ buildTries _tt_ngramsSize
+                    $ fmap toToken
+                    $ uniText
+                    $ Text.intercalate " . "
+                    $ List.concat
+                    $ map hasText ns
       just_m -> just_m
 withLang l _ = l
 
@@ -171,9 +172,9 @@ terms :: TermType Lang -> Text -> IO [Terms]
 terms (Mono      lang) txt = pure $ monoTerms lang txt
 terms (Multi     lang) txt = multiterms lang txt
 terms (MonoMulti lang) txt = terms (Multi lang) txt
-terms (Unsupervised lang n s m) txt = termsUnsupervised (Unsupervised lang n s (Just m')) txt
+terms (Unsupervised { .. }) txt = termsUnsupervised (Unsupervised { _tt_model = Just m', .. }) txt
   where
-    m' = maybe (newTries n txt) identity m
+    m' = maybe (newTries _tt_ngramsSize txt) identity _tt_model
 -- terms (WithList  list) txt = pure . concat $ extractTermsWithList list txt
 
 

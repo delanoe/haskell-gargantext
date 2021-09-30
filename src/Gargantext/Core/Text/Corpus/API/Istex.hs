@@ -39,22 +39,23 @@ toDoc' la docs' = do
 toDoc :: Lang -> ISTEX.Document -> IO HyperdataDocument
 toDoc la (ISTEX.Document i t a ab d s) = do
   (utctime, (pub_year, pub_month, pub_day)) <- Date.dateSplit la (maybe (Just "2019") (Just . pack . show) d)
-  pure $ HyperdataDocument (Just "Istex")
-                   (Just i)
-                   Nothing
-                   Nothing
-                   Nothing
-                   Nothing
-                   t
-                   (Just $ foldl (\x y -> x <> ", " <> y) "" (map ISTEX._author_name a))
-                   (Just $ foldl (\x y -> x <> ", " <> y) "" (concat $ (map ISTEX._author_affiliations) a))
-                   (Just $ foldl (\x y -> x <> ", " <> y) "" (catMaybes $ map ISTEX._source_title s))
-                   ab
-                   (fmap (pack . show) utctime)
-                   pub_year
-                   pub_month
-                   pub_day
-                   Nothing
-                   Nothing
-                   Nothing
-                  (Just $ (pack . show) la)
+  pure $ HyperdataDocument { _hd_bdd = Just "Istex"
+                           , _hd_doi = Just i
+                           , _hd_url = Nothing
+                           , _hd_uniqId = Nothing
+                           , _hd_uniqIdBdd = Nothing
+                           , _hd_page = Nothing
+                           , _hd_title = t
+                           , _hd_authors = Just $ foldl (\x y -> x <> ", " <> y) "" (map ISTEX._author_name a)
+                           , _hd_institutes = Just $ foldl (\x y -> x <> ", " <> y) "" (concat $ (map ISTEX._author_affiliations) a)
+                           , _hd_source = Just $ foldl (\x y -> x <> ", " <> y) "" (catMaybes $ map ISTEX._source_title s)
+                           , _hd_abstract = ab
+                           , _hd_publication_date = fmap (pack . show) utctime
+                           , _hd_publication_year = pub_year
+                           , _hd_publication_month = pub_month
+                           , _hd_publication_day = pub_day
+                           , _hd_publication_hour = Nothing
+                           , _hd_publication_minute = Nothing
+                           , _hd_publication_second = Nothing
+                           , _hd_language_iso2 = Just $ (pack . show) la }
+                         

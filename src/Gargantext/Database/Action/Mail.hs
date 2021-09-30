@@ -29,5 +29,6 @@ sendMail :: HasNodeError err => User -> Cmd err ()
 sendMail u = do
   server <- view $ hasConfig . gc_url
   userLight <- getUserLightDB u
-  liftBase $ mail server (MailInfo (userLight_username userLight) (userLight_email userLight))
+  liftBase $ mail server (MailInfo { mailInfo_username = userLight_username userLight
+                                   , mailInfo_address = userLight_email userLight })
 

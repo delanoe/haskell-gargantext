@@ -87,13 +87,14 @@ queryInCorpus cId t q = proc () -> do
                  else (nn^.nn_category) .>= (toNullable $ sqlInt4 1)
   restrict -< (n ^. ns_search)           @@ (pgTSQuery (unpack q))
   restrict -< (n ^. ns_typename )       .== (sqlInt4 $ toDBid NodeDocument)
-  returnA  -< FacetDoc (n^.ns_id        )
-                       (n^.ns_date      )
-                       (n^.ns_name      )
-                       (n^.ns_hyperdata )
-                       (nn^.nn_category )
-                       (nn^.nn_score    )
-                       (nn^.nn_score    )
+  returnA  -< FacetDoc { facetDoc_id = n^.ns_id
+                       , facetDoc_created = n^.ns_date
+                       , facetDoc_title = n^.ns_name
+                       , facetDoc_hyperdata = n^.ns_hyperdata
+                       , facetDoc_category = nn^.nn_category
+                       , facetDoc_ngramCount = nn^.nn_score
+                       , facetDoc_score = nn^.nn_score
+                       }
 
 joinInCorpus :: O.Query (NodeSearchRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond

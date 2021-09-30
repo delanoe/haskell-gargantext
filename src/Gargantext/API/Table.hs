@@ -86,7 +86,11 @@ instance ToSchema TableQuery where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "tq_")
 
 instance Arbitrary TableQuery where
-  arbitrary = elements [TableQuery 0 10 DateAsc Docs "electrodes"]
+  arbitrary = elements [TableQuery { tq_offset = 0
+                                   , tq_limit = 10
+                                   , tq_orderBy = DateAsc
+                                   , tq_view = Docs
+                                   , tq_query = "electrodes" }]
 
 
 tableApi :: NodeId -> GargServer TableApi

@@ -54,7 +54,10 @@ insertDocNgrams :: CorpusId
                 -> HashMap (Indexed Int Ngrams) (Map NgramsType (Map NodeId Int))
                 -> Cmd err Int
 insertDocNgrams cId m =
-  insertDocNgramsOn cId [ DocNgrams n (_index ng) (ngramsTypeId t) (fromIntegral i)
+  insertDocNgramsOn cId [ DocNgrams { dn_doc_id = n
+                                    , dn_ngrams_id = _index ng
+                                    , dn_ngrams_type = ngramsTypeId t
+                                    , dn_weight = fromIntegral i }
                           | (ng, t2n2i) <- HashMap.toList m
                           , (t,  n2i)   <- DM.toList t2n2i
                           , (n,  i)     <- DM.toList n2i
