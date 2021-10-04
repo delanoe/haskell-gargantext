@@ -141,7 +141,6 @@ instance (Arbitrary hyperdata
                            <*> arbitrary
                            <*> arbitrary
                            <*> arbitrary
-                           <*> arbitrary
 
 ------------------------------------------------------------------------
 pgNodeId :: NodeId -> O.Column O.PGInt4
