@@ -134,7 +134,7 @@ For Docker env, first create the appropriate image:
 
 ``` sh
 cd devops/docker
-docker build -t cgenie/stack-build:lts-17.13-garg .
+docker build -t cgenie/stack-build:lts-18.12-garg .
 ```
 
 then run:

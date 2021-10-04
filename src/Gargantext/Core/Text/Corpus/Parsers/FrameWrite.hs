@@ -8,6 +8,7 @@ import Data.Text hiding (foldl)
 import Gargantext.Prelude
 import Prelude ((++))
 import Text.Parsec hiding (Line)
+import Text.Parsec.Number (number)
 import Text.Parsec.String
 
 
@@ -59,7 +60,7 @@ data Author =
     Author { firstName :: Text
            , lastName :: Text }
     deriving (Show)
-      
+
 data Parsed =
   Parsed { title :: Text
          , authors :: [Author]
@@ -76,10 +77,16 @@ emptyParsed =
          , source = Nothing
          , contents = "" }
 
+data Date =
+  Date { year :: Int
+       , month :: Int
+       , day :: Int }
+  deriving (Show)
+
 data Line =
     LAuthors [Author]
   | LContents Text
-  | LDate Text
+  | LDate Date
   | LSource Text
   | LTitle Text
   deriving (Show)
@@ -115,7 +122,7 @@ authorsLineP = do
 dateLineP :: Parser Line
 dateLineP = do
   date <- dateP
-  pure $ LDate $ pack date
+  pure $ LDate date
 
 sourceLineP :: Parser Line
 sourceLineP = do
@@ -172,6 +179,15 @@ datePrefixP = do
 dateP :: Parser [Char]
 dateP = try datePrefixP
         *> many (noneOf "\n")
+
+dateISOP :: Parser Date
+dateISOP = do
+  year <- number
+  _ <- char '-'
+  month <- number
+  _ <- char '-'
+  day <- number
+  pure $ Date { year, month, day }
 
 sourcePrefixP :: Parser [Char]
 sourcePrefixP = do

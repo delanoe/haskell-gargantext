@@ -122,9 +122,9 @@ hyperdataDocumentFromFrameWrite (HyperdataFrame { _hf_base, _hf_frame_id }, cont
                               , _hd_source = source
                               , _hd_abstract = Just c
                               , _hd_publication_date = date
-                              , _hd_publication_year = Nothing  -- TODO
-                              , _hd_publication_month = Nothing  -- TODO
-                              , _hd_publication_day = Nothing  -- TODO
+                              , _hd_publication_year = Just 2021  -- TODO
+                              , _hd_publication_month = Just 10  -- TODO
+                              , _hd_publication_day = Just 4  -- TODO
                               , _hd_publication_hour = Nothing
                               , _hd_publication_minute = Nothing
                               , _hd_publication_second = Nothing
