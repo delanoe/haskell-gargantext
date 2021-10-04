@@ -34,7 +34,7 @@ import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Hyperdata.Document (HyperdataDocument(..))
 import Gargantext.Database.Admin.Types.Hyperdata.Frame
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Node (getChildrenByType, getNodeWith)
+import Gargantext.Database.Query.Table.Node (getChildrenByType, getClosestParentIdByType', getNodeWith)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
 import GHC.Generics (Generic)
@@ -60,7 +60,6 @@ api uId nId =
     JobFunction (\p log'' ->
       let
         log' x = do
-          printDebug "documents from write nodes" x
           liftBase $ log'' x
       in documentsFromWriteNodes uId nId p (liftBase . log')
       )
@@ -71,7 +70,7 @@ documentsFromWriteNodes :: (HasSettings env, FlowCmdM env err m)
     -> Params
     -> (JobLog -> m ())
     -> m JobLog
-documentsFromWriteNodes uId nId p logStatus = do
+documentsFromWriteNodes uId nId _p logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
@@ -79,12 +78,10 @@ documentsFromWriteNodes uId nId p logStatus = do
                    , _scst_events    = Just []
                    }
 
-  _ <- printDebug "[documentsFromWriteNodes] inside job, uId" uId
-  _ <- printDebug "[documentsFromWriteNodes] inside job, nId" nId
-  _ <- printDebug "[documentsFromWriteNodes] inside job, p" p
+  mcId <- getClosestParentIdByType' nId NodeCorpus
+  let cId = maybe (panic "[G.A.N.DFWN] Node has no parent") identity mcId
 
   frameWriteIds <- getChildrenByType nId NodeFrameWrite
-  _ <- printDebug "[documentsFromWriteNodes] children" frameWriteIds
 
   -- https://write.frame.gargantext.org/<frame_id>/download
   frameWrites <- mapM (\id -> getNodeWith id (Proxy :: Proxy HyperdataFrame)) frameWriteIds
@@ -94,13 +91,11 @@ documentsFromWriteNodes uId nId p logStatus = do
              contents <- getHyperdataFrameContents (node ^. node_hyperdata)
              pure (node, contents)
          ) frameWrites
-  _ <- printDebug "[documentsFromWriteNodes] frameWritesWithContents" frameWritesWithContents
 
   let parsedE = (\(node, contents) -> hyperdataDocumentFromFrameWrite (node ^. node_hyperdata, contents)) <$> frameWritesWithContents
   let parsed = rights parsedE
-  _ <- printDebug "[documentsFromWriteNodes] parsed" parsed
 
-  _ <- flowDataText (RootId (NodeId uId)) (DataNew [parsed]) (Multi EN) nId Nothing
+  _ <- flowDataText (RootId (NodeId uId)) (DataNew [parsed]) (Multi EN) cId Nothing
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
