@@ -257,6 +257,7 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
       CSV       -> Parser.parseFormat Parser.CsvGargV3
       WOS       -> Parser.parseFormat Parser.WOS
       PresseRIS -> Parser.parseFormat Parser.RisPresse
+      ZIP       -> Parser.parseFormat Parser.ZIP
 
   -- TODO granularity of the logStatus
   eDocs <- liftBase $ parse $ cs d
@@ -370,3 +371,4 @@ addToCorpusWithFile user cid nwf@(NewWithFile _d _l fName) logStatus = do
                 , _scst_remaining = Just 0
                 , _scst_events    = Just []
                 }
+

@@ -45,25 +45,24 @@ data FileType = CSV
               | CSV_HAL
               | PresseRIS
               | WOS
+              | ZIP
   deriving (Eq, Show, Generic)
 
 instance ToSchema FileType
-instance Arbitrary FileType
-  where
-    arbitrary = elements [CSV, PresseRIS]
+instance Arbitrary FileType where arbitrary = elements [CSV, PresseRIS]
 instance ToParamSchema FileType
 
 instance FromJSON FileType
 instance ToJSON FileType
 
-instance ToParamSchema (MultipartData Mem) where
-  toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
+instance ToParamSchema (MultipartData Mem) where toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
 
 instance FromHttpApiData FileType
   where
     parseUrlPiece "CSV"       = pure CSV
     parseUrlPiece "CSV_HAL"   = pure CSV_HAL
     parseUrlPiece "PresseRis" = pure PresseRIS
+    parseUrlPiece "ZIP"       = pure ZIP
     parseUrlPiece _           = pure CSV -- TODO error here
 
 
