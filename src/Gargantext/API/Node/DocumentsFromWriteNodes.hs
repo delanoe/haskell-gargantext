@@ -108,8 +108,14 @@ hyperdataDocumentFromFrameWrite (HyperdataFrame { _hf_base, _hf_frame_id }, cont
   case parseLines contents of
     Left _ -> Left "Error parsing node"
     Right (Parsed { authors, contents = c, date, source, title = t }) ->
-      let authorJoinSingle (Author { firstName, lastName }) = T.concat [ lastName, ", ", firstName ] in
-      let authors' = T.concat $ authorJoinSingle <$> authors in
+      let authorJoinSingle (Author { firstName, lastName }) = T.concat [ lastName, ", ", firstName ]
+          authors' = T.concat $ authorJoinSingle <$> authors 
+          date' = (\(Date { year, month, day }) -> T.concat [ T.pack $ show year, "-"
+                                                            , T.pack $ show month, "-"
+                                                            , T.pack $ show day ]) <$> date
+          year' = fromIntegral $ maybe 2021 (\(Date { year }) -> year) date
+          month' = fromIntegral $ maybe 10 (\(Date { month }) -> month) date
+          day' = fromIntegral $ maybe 4 (\(Date { day }) -> day) date in
       Right HyperdataDocument { _hd_bdd = Just "FrameWrite"
                               , _hd_doi = Nothing
                               , _hd_url = Nothing
@@ -121,10 +127,10 @@ hyperdataDocumentFromFrameWrite (HyperdataFrame { _hf_base, _hf_frame_id }, cont
                               , _hd_institutes = Nothing
                               , _hd_source = source
                               , _hd_abstract = Just c
-                              , _hd_publication_date = date
-                              , _hd_publication_year = Just 2021  -- TODO
-                              , _hd_publication_month = Just 10  -- TODO
-                              , _hd_publication_day = Just 4  -- TODO
+                              , _hd_publication_date = date'
+                              , _hd_publication_year = Just year'
+                              , _hd_publication_month = Just month'
+                              , _hd_publication_day = Just day'
                               , _hd_publication_hour = Nothing
                               , _hd_publication_minute = Nothing
                               , _hd_publication_second = Nothing

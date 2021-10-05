@@ -176,7 +176,6 @@ library:
   - pandoc
   - parallel
   - parsec
-  - parsec3-numbers
   - patches-class
   - patches-map
   - path
