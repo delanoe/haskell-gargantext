@@ -171,6 +171,8 @@ library:
   - monad-control
   - monad-logger
   - morpheus-graphql
+  - morpheus-graphql-app
+  - morpheus-graphql-core
   - morpheus-graphql-subscriptions
   - mtl
   - natural-transformation

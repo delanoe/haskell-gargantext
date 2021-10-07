@@ -13,12 +13,14 @@ Functions to deal with users, database side.
 
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
+{-# LANGUAGE DeriveAnyClass              #-}
 {-# LANGUAGE FunctionalDependencies      #-}
 {-# LANGUAGE Arrows                      #-}
-{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TemplateHaskell             #-}
 
 module Gargantext.Database.Schema.User where
 
+import Data.Morpheus.Types (GQLType)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Gargantext.Prelude
@@ -41,7 +43,7 @@ data UserLight = UserLight { userLight_id       :: !Int
                            , userLight_username :: !Text
                            , userLight_email    :: !Text
                            , userLight_password :: !Text
-                           } deriving (Show, Generic)
+                           } deriving (Show, Generic, GQLType)
 
 toUserLight :: UserDB -> UserLight
 toUserLight (UserDB id p _ _ u _ _ e _ _ _ ) = UserLight id u e p

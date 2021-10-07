@@ -62,7 +62,11 @@ server env = do
             (Proxy :: Proxy AuthContext)
             transform
             (serverGargAPI (env ^. hasConfig . gc_url_backend_api))
-     :<|> GraphQL.api
+     :<|> hoistServerWithContext
+            (Proxy :: Proxy GraphQL.API)
+            (Proxy :: Proxy AuthContext)
+            transform
+            GraphQL.api
      :<|> frontEndServer
   where
     transform :: forall a. GargM env GargError a -> Handler a
