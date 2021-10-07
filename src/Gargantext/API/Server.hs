@@ -29,6 +29,7 @@ import qualified Gargantext.API.Public      as Public
 import Gargantext.API.Admin.Auth.Types (AuthContext)
 import Gargantext.API.Admin.Auth (auth)
 import Gargantext.API.Admin.FrontEnd (frontEndServer)
+import qualified Gargantext.API.GraphQL as GraphQL
 import Gargantext.API.Prelude
 import Gargantext.API.Routes
 import Gargantext.API.Swagger (swaggerDoc)
@@ -61,6 +62,7 @@ server env = do
             (Proxy :: Proxy AuthContext)
             transform
             (serverGargAPI (env ^. hasConfig . gc_url_backend_api))
+     :<|> GraphQL.api
      :<|> frontEndServer
   where
     transform :: forall a. GargM env GargError a -> Handler a
