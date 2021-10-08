@@ -43,6 +43,7 @@ import qualified Data.ByteString.Lazy  as DBL
 import qualified Data.Map              as DM
 import qualified Data.Text             as DT
 import qualified Prelude as Prelude
+import System.IO.Temp (emptySystemTempFile)
 
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
@@ -95,9 +96,12 @@ parseFormat WOS bs = do
           $ partitionEithers
           $ [runParser'  WOS bs]
   pure $ Right docs
-parseFormat ZIP _bs = do
-  printDebug "[parseFormat]" ZIP
-  pure $ Left "Not implemented for ZIP"
+parseFormat ZIP bs = do
+  path <- emptySystemTempFile "parsed-zip"
+  DB.writeFile path bs
+  parsedZip <- withArchive path $ do
+    DM.keys <$> getEntries
+  pure $ Left $ "Not implemented for ZIP, parsedZip" <> show parsedZip
 parseFormat _ _ = undefined
 
 -- | Parse file into documents

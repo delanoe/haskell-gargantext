@@ -37,7 +37,7 @@ import Test.QuickCheck.Arbitrary
 
 import Gargantext.Prelude
 
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs, ScraperEvent(..), scst_events)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Job (jobLogSuccess, jobLogFailTotal)
 import Gargantext.API.Node.Corpus.New.File
@@ -258,7 +258,7 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
       WOS       -> Parser.parseFormat Parser.WOS
       PresseRIS -> Parser.parseFormat Parser.RisPresse
       ZIP       -> Parser.parseFormat Parser.ZIP
-
+  
   -- TODO granularity of the logStatus
   eDocs <- liftBase $ parse $ cs d
   case eDocs of
@@ -283,9 +283,13 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
       logStatus jobLog3
       pure $ jobLog3
     Left e -> do
-      printDebug "Error" e
+      printDebug "[addToCorpusWithForm] parse error" e
 
-      logStatus jobLogE
+      let evt = ScraperEvent { _scev_message = Just $ T.pack e
+                             , _scev_level = Just "ERROR"
+                             , _scev_date = Nothing }
+
+      logStatus $ over (scst_events . _Just) (\evt' -> evt' <> [evt]) jobLogE
       pure jobLogE
     where
       jobLog2 = jobLogSuccess jobLog
