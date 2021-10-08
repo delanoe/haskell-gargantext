@@ -191,7 +191,7 @@ serverGargAdminAPI =  roots
 --gargMock :: Server GargAPI
 --gargMock = mock apiGarg Proxy
 ---------------------------------------------------------------------
-makeApp :: EnvC env => env -> IO Application
+makeApp :: (Typeable env, EnvC env) => env -> IO Application
 makeApp env = serveWithContext api cfg <$> server env
   where
     cfg :: Servant.Context AuthContext

@@ -48,8 +48,8 @@ import Data.Text (Text)
 import qualified Data.Text.Lazy as LT
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import Data.Typeable (Typeable)
-import Gargantext.API.Prelude (GargServer)
-import Gargantext.Database.Prelude (Cmd)
+import Gargantext.API.Prelude (GargServerT, GargM, GargError)
+import Gargantext.Database.Prelude (Cmd, HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.User (getUsersWithId)
 import Gargantext.Database.Schema.User (UserPoly(..), UserLight)
 import GHC.Generics (Generic)
@@ -68,7 +68,7 @@ import Servant
     PlainText,
     Post,
     ReqBody,
-    Server,
+    ServerT,
   )
 import Prelude
 
@@ -101,7 +101,9 @@ data Contet
 
 -- | The main GraphQL resolver: how queries, mutations and
 -- subscriptions are handled.
-rootResolver :: RootResolver _ EVENT Query Undefined Undefined
+rootResolver
+  :: (HasConnectionPool env, HasConfig env)
+  => RootResolver (GargM env GargError) EVENT Query Undefined Undefined
 rootResolver =
   RootResolver
     { queryResolver = Query { user = resolveUser }
@@ -109,7 +111,9 @@ rootResolver =
     , subscriptionResolver = Undefined }
 
 -- | Function to resolve user from a query.
-resolveUser :: UserArgs -> ResolverQ e _ UserLight
+resolveUser
+  :: (HasConnectionPool env, HasConfig env)
+  => UserArgs -> ResolverQ e (GargM env GargError) UserLight
 resolveUser UserArgs { user_id } = do
   liftEither $ dbUser user_id
 --  user <- lift $ dbUser user_id
@@ -127,7 +131,9 @@ dbUser user_id = do
     (user:_) -> pure $ Right user
 
 -- | Main GraphQL "app".
-app :: App EVENT _
+app
+  :: (Typeable env, HasConnectionPool env, HasConfig env)
+  => App EVENT (GargM env GargError)
 app = deriveApp rootResolver
 
 ----------------------------------------------
@@ -165,8 +171,7 @@ type API = "gql" :> (GQAPI :<|> Playground)
 
 -- | Implementation of our API.
 --api :: Server API
-api :: GargServer API
-api = do
-  --(wsApp, publish') <- liftIO $ webSocketsApp app
-  --(liftIO . httpPubApp [] app) :<|> pure httpPlayground
-  (liftBase . httpPubApp [] app) :<|> pure httpPlayground
+api
+  :: (Typeable env, HasConnectionPool env, HasConfig env)
+  => ServerT API (GargM env GargError)
+api = httpPubApp [] app :<|> pure httpPlayground

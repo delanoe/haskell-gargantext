@@ -53,7 +53,7 @@ serverGargAPI baseUrl -- orchestrator
     gargVersion = pure (cs $ showVersion PG.version)
 
 -- | Server declarations
-server :: forall env. EnvC env => env -> IO (Server API)
+server :: forall env. (Typeable env, EnvC env) => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  swaggerSchemaUIServer swaggerDoc
