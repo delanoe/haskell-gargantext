@@ -1,5 +1,5 @@
 resolver:
- url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/4.yaml 
+ url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/12.yaml 
 flags: {}
 extra-package-dbs: []
 packages:
@@ -11,7 +11,7 @@ packages:
 
 docker:
   enable: false
-  repo: 'cgenie/stack-build:lts-17.13-garg'
+  repo: 'cgenie/stack-build:lts-18.12-garg'
   run-args:
     - '--publish=8008:8008'
 

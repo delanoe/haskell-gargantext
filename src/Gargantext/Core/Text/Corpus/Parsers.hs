@@ -68,6 +68,7 @@ type ParseError = String
 -- different parser are available.
 data FileFormat = WOS | RIS | RisPresse
                 | CsvGargV3 | CsvHal
+                | ZIP
   deriving (Show)
 
 -- Implemented (ISI Format)
@@ -94,6 +95,9 @@ parseFormat WOS bs = do
           $ partitionEithers
           $ [runParser'  WOS bs]
   pure $ Right docs
+parseFormat ZIP _bs = do
+  printDebug "[parseFormat]" ZIP
+  pure $ Left "Not implemented for ZIP"
 parseFormat _ _ = undefined
 
 -- | Parse file into documents

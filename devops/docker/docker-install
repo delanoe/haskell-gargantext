@@ -54,7 +54,7 @@ git clone https://gitlab.iscpif.fr/gargantext/purescript-gargantext
 ../install-deps $(pwd)
 
 pushd devops/docker
-docker build --pull -t fpco/stack-build:lts-17.13-garg .
+docker build --pull -t fpco/stack-build:lts-18.12-garg .
 popd
 
 #stack docker pull

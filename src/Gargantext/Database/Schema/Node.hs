@@ -154,7 +154,6 @@ data NodePolySearch id
 
                 , _ns_hyperdata    :: hyperdata
                 , _ns_search       :: search
-                , _ns_search_title :: search
                 } deriving (Show, Generic)
 
 $(makeAdaptorAndInstance "pNodeSearch" ''NodePolySearch)
@@ -174,7 +173,6 @@ nodeTableSearch = Table "nodes" ( pNodeSearch
 
                                               , _ns_hyperdata    = requiredTableField "hyperdata"
                                               , _ns_search       = optionalTableField "search"
-                                              , _ns_search_title = optionalTableField "search_title"
                                               }
                                 )
 ------------------------------------------------------------------------

@@ -142,6 +142,29 @@ getClosestParentIdByType nId nType = do
         WHERE n1.id = ? AND 0 = ?;
     |]
 
+-- | Similar to `getClosestParentIdByType` but includes current node
+-- in search too
+getClosestParentIdByType' :: HasDBid NodeType
+                          => NodeId
+                          -> NodeType
+                          -> Cmd err (Maybe NodeId)
+getClosestParentIdByType' nId nType = do
+  result <- runPGSQuery query (nId, 0 :: Int)
+  case result of
+    [(NodeId id, pTypename)] -> do
+      if toDBid nType == pTypename then
+        pure $ Just $ NodeId id
+      else
+        getClosestParentIdByType nId nType
+    _ -> pure Nothing
+  where
+    query :: DPS.Query
+    query = [sql|
+      SELECT n.id, n.typename
+      FROM nodes n
+      WHERE n.id = ? AND 0 = ?;
+    |]
+
 -- | Given a node id, find all it's children (no matter how deep) of
 -- given node type.
 getChildrenByType :: HasDBid NodeType

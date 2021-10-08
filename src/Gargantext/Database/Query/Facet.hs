@@ -329,7 +329,7 @@ runViewDocuments cId t o l order query = do
 --        WHERE nn.node1_id = ?  -- corpusId
 --          AND n.typename = ?   -- NodeTypeId
 --          AND nn.category = ?  -- isTrash or not
---          AND (n.search_title @@ to_tsquery(?) OR ? = '')  -- query with an OR hack for empty to_tsquery('') results
+--          AND (n.search @@ to_tsquery(?) OR ? = '')  -- query with an OR hack for empty to_tsquery('') results
 --      |]
 
 runCountDocuments :: HasDBid NodeType => CorpusId -> IsTrash -> Maybe Text -> Cmd err Int
@@ -359,8 +359,8 @@ viewDocuments cId t ntId mQuery = proc () -> do
   -- restrict -< (n^.node_name) `ilike` (sqlStrictText iLikeQuery)
   restrict -< if query == ""
     then pgBool True
-    --else (n^.ns_search_title) @@ (pgTSQuery (T.unpack query))
-    else (n^.ns_search_title) @@ (toTSQuery $ T.unpack query)
+    --else (n^.ns_search) @@ (pgTSQuery (T.unpack query))
+    else (n^.ns_search) @@ (toTSQuery $ T.unpack query)
  
   returnA  -< FacetDoc (_ns_id        n)
                        (_ns_date      n)

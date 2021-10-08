@@ -6,7 +6,7 @@ import Data.Either
 import Data.Maybe
 import Data.Text hiding (foldl)
 import Gargantext.Prelude
-import Prelude ((++))
+import Prelude ((++), read)
 import Text.Parsec hiding (Line)
 import Text.Parsec.String
 
@@ -57,14 +57,14 @@ parseLinesSampleUnordered = parseLines sampleUnordered
 
 data Author =
     Author { firstName :: Text
-           , lastName :: Text }
+           , lastName  :: Text }
     deriving (Show)
-      
+
 data Parsed =
-  Parsed { title :: Text
-         , authors :: [Author]
-         , date :: Maybe Text
-         , source :: Maybe Text
+  Parsed { title    :: Text
+         , authors  :: [Author]
+         , date     :: Maybe Date
+         , source   :: Maybe Text
          , contents :: Text }
   deriving (Show)
 
@@ -76,10 +76,16 @@ emptyParsed =
          , source = Nothing
          , contents = "" }
 
+data Date =
+  Date { year  :: Integer
+       , month :: Integer
+       , day   :: Integer }
+  deriving (Show)
+
 data Line =
     LAuthors [Author]
   | LContents Text
-  | LDate Text
+  | LDate Date
   | LSource Text
   | LTitle Text
   deriving (Show)
@@ -115,7 +121,7 @@ authorsLineP = do
 dateLineP :: Parser Line
 dateLineP = do
   date <- dateP
-  pure $ LDate $ pack date
+  pure $ LDate date
 
 sourceLineP :: Parser Line
 sourceLineP = do
@@ -169,9 +175,23 @@ datePrefixP :: Parser [Char]
 datePrefixP = do
   _ <- string "^@@date:"
   many (char ' ')
-dateP :: Parser [Char]
+dateP :: Parser Date
 dateP = try datePrefixP
-        *> many (noneOf "\n")
+         *> dateISOP
+        -- *> many (noneOf "\n")
+
+dateISOP :: Parser Date
+dateISOP = do
+  year <- rd <$> number
+  _ <- char '-'
+  month <- rd <$> number
+  _ <- char '-'
+  day <- rd <$> number
+  _ <- many (noneOf "\n" )
+  pure $ Date { year, month, day }
+  where
+    rd = read :: [Char] -> Integer
+    number = many1 digit
 
 sourcePrefixP :: Parser [Char]
 sourcePrefixP = do
