@@ -219,6 +219,7 @@ library:
   - split
   - stemmer
   - swagger2
+  - taggy-lens
   - tagsoup
   - template-haskell
   - temporary
@@ -238,6 +239,7 @@ library:
   - wai-cors
   - wai-extra
   - warp
+  - wikiparsec
   - wreq
   - xml-conduit
   - xml-types

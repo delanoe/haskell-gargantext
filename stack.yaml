@@ -46,7 +46,7 @@ extra-deps:
 - git: https://github.com/delanoe/haskell-opaleye.git
   commit: 806da7f9fb6fe1032f51c1822fc224b281cdd84f
 - git: https://github.com/delanoe/hsparql.git
-  commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
+  commit: 2acbbc55ac9bbd4bf1a713c586b8b8e8b82892eb
 - git: https://github.com/robstewart57/rdf4h.git
   commit: 4fd2edf30c141600ffad6d730cc4c1c08a6dbce4
 
@@ -83,6 +83,8 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/anoe/accelerate-utility.git
   commit: 83ada76e78ac10d9559af8ed6bd4064ec81308e4
 - accelerate-arithmetic-1.0.0.1@sha256:555639232aa5cad411e89247b27871d09352b987a754230a288c690b6de6d888,2096
+- git: https://github.com/rspeer/wikiparsec.git
+  commit: 9637a82344bb70f7fa8f02e75db3c081ccd434ce
 
   # Others dependencies (using stack resolver)
 - constraints-extras-0.3.1.0@sha256:12016ebb91ad5ed2c82bf7e48c6bd6947d164d33c9dca5ac3965de1bb6c780c0,1777
@@ -110,3 +112,10 @@ extra-deps:
 
 # need Vector.uncons
 - vector-0.12.3.0@sha256:0ae2c1ba86f0077910be242ec6802cc3d7725fe7b2bea6987201aa3737b239b5,7953
+
+# needed for wikiparsec
+- fast-tagsoup-utf8-only-1.0.5@sha256:9292c8ff275c08b88b6013ccc410182552f180904214a07ad4db932ab462aaa1,1651
+# wikipedia crawl
+- taggy-lens-0.1.2@sha256:091ca81d02bd3d7fb493dce0148e1a38f25eb178a1ebd751043a23239e5e3265,3009
+- taggy-0.2.1@sha256:7bc55ddba178971dc6052163597f0445a0a2b5b0ca0e84ce651d53d722e3c265,4662
+
