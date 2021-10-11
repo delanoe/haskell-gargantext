@@ -97,7 +97,7 @@ parseFormat WOS bs = do
           $ [runParser'  WOS bs]
   pure $ Right docs
 parseFormat ZIP bs = do
-  path <- emptySystemTempFile "parsed-zip"
+  path <- emptySystemTempFile "parsed.zip"
   DB.writeFile path bs
   parsedZip <- withArchive path $ do
     DM.keys <$> getEntries

@@ -11,6 +11,7 @@ packages:
 
 docker:
   enable: false
+  #enable: true
   repo: 'cgenie/stack-build:lts-18.12-garg'
   run-args:
     - '--publish=8008:8008'
