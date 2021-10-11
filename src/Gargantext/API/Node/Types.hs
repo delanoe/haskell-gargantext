@@ -24,7 +24,7 @@ import Gargantext.API.Node.Corpus.New.File (FileType)
 -------------------------------------------------------
 data NewWithForm = NewWithForm
   { _wf_filetype :: !FileType
-  , _wf_data     :: !Text
+  , _wf_data     :: !Text    -- NOTE for binary files, this represents base-64 data
   , _wf_lang     :: !(Maybe Lang)
   , _wf_name     :: !Text
   } deriving (Eq, Show, Generic)

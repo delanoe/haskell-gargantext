@@ -21,6 +21,7 @@ module Gargantext.API.Node.Corpus.New
 import Control.Lens hiding (elements, Empty)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
+import qualified Data.ByteString.Base64 as BSB64
 import Data.Either
 import Data.Maybe (fromMaybe)
 import Data.Swagger
@@ -32,6 +33,7 @@ import Protolude (readFile)
 import Servant
 import Servant.Job.Utils (jsonOptions)
 -- import Servant.Multipart
+import qualified Data.Text.Encoding as TE
 -- import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
@@ -260,7 +262,12 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
       ZIP       -> Parser.parseFormat Parser.ZIP
   
   -- TODO granularity of the logStatus
-  eDocs <- liftBase $ parse $ cs d
+  let data' = case ft of
+        ZIP -> case BSB64.decode $ TE.encodeUtf8 d of
+          Left err -> panic $ T.pack "[addToCorpusWithForm] error decoding base64" err
+          Right decoded -> decoded
+        _   -> cs d
+  eDocs <- liftBase $ parse data'
   case eDocs of
     Right docs' -> do
       let docs = splitEvery 500 $ take 1000000 docs'

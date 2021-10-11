@@ -10,7 +10,7 @@ packages:
 #- 'deps/accelerate-utility'
 
 docker:
-  enable: false
+  #enable: false
   #enable: true
   repo: 'cgenie/stack-build:lts-18.12-garg'
   run-args:
