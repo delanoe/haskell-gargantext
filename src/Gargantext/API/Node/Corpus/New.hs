@@ -28,8 +28,6 @@ import Data.Swagger
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
-import qualified Prelude as Prelude
-import Protolude (readFile)
 import Servant
 import Servant.Job.Utils (jsonOptions)
 -- import Servant.Multipart
@@ -270,6 +268,8 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
   eDocs <- liftBase $ parse data'
   case eDocs of
     Right docs' -> do
+      -- TODO Add progress (jobStatus) update for docs - this is a
+      -- long action
       let docs = splitEvery 500 $ take 1000000 docs'
 
       printDebug "Parsing corpus finished : " cid
@@ -302,11 +302,6 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
       jobLog2 = jobLogSuccess jobLog
       jobLog3 = jobLogSuccess jobLog2
       jobLogE = jobLogFailTotal jobLog
-
-parseCsvGargV3Path :: [Char] -> IO (Either Prelude.String [HyperdataDocument])
-parseCsvGargV3Path fp = do
-  contents <- readFile fp
-  Parser.parseFormat Parser.CsvGargV3 $ cs contents
 
 {-
 addToCorpusWithFile :: FlowCmdM env err m

@@ -100,12 +100,11 @@ parseFormat WOS bs = do
 parseFormat ZIP bs = do
   path <- emptySystemTempFile "parsed.zip"
   DB.writeFile path bs
-  parsedZip <- withArchive path $ do
+  withArchive path $ do
     files <- DM.keys <$> getEntries
     filesContents <- mapM getEntry files
     ddocs <- liftIO $ mapM (parseFormat CsvGargV3) filesContents
-    pure $ sequence ddocs
-  pure $ Left $ "Not implemented for ZIP, parsedZip" <> show parsedZip
+    pure $ concat <$> sequence ddocs
 parseFormat _ _ = undefined
 
 -- | Parse file into documents
