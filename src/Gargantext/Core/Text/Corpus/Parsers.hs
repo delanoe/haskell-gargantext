@@ -25,7 +25,8 @@ module Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), clean, parseFile, cl
 
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
 import Control.Concurrent.Async as CCA (mapConcurrently)
-import Control.Monad (join)
+import Control.Monad (join, sequence)
+import Control.Monad.IO.Class (liftIO)
 import Data.Attoparsec.ByteString (parseOnly, Parser)
 import Data.Either(Either(..))
 import Data.Either.Extra (partitionEithers)
@@ -100,7 +101,10 @@ parseFormat ZIP bs = do
   path <- emptySystemTempFile "parsed.zip"
   DB.writeFile path bs
   parsedZip <- withArchive path $ do
-    DM.keys <$> getEntries
+    files <- DM.keys <$> getEntries
+    filesContents <- mapM getEntry files
+    ddocs <- liftIO $ mapM (parseFormat CsvGargV3) filesContents
+    pure $ sequence ddocs
   pure $ Left $ "Not implemented for ZIP, parsedZip" <> show parsedZip
 parseFormat _ _ = undefined
 

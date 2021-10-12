@@ -264,7 +264,7 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
   -- TODO granularity of the logStatus
   let data' = case ft of
         ZIP -> case BSB64.decode $ TE.encodeUtf8 d of
-          Left err -> panic $ T.pack "[addToCorpusWithForm] error decoding base64" err
+          Left err -> panic $ T.pack "[addToCorpusWithForm] error decoding base64: " <> T.pack err
           Right decoded -> decoded
         _   -> cs d
   eDocs <- liftBase $ parse data'
