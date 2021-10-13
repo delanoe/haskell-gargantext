@@ -27,6 +27,7 @@ import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Admin.Types.Hyperdata.Frame
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Prelude (HasConfig)
 import Gargantext.Database.Query.Table.Node (getClosestParentIdByType, getNodeWith)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
@@ -53,7 +54,7 @@ frameCalcUploadAPI uId nId =
                 )
 
 
-frameCalcUploadAsync :: FlowCmdM env err m
+frameCalcUploadAsync :: (HasConfig env, FlowCmdM env err m)
                      => UserId
                      -> NodeId
                      -> FrameCalcUpload

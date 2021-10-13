@@ -10,7 +10,8 @@ packages:
 #- 'deps/accelerate-utility'
 
 docker:
-  enable: false
+  #enable: false
+  #enable: true
   repo: 'cgenie/stack-build:lts-18.12-garg'
   run-args:
     - '--publish=8008:8008'
@@ -26,8 +27,9 @@ allow-newer: true
 #  "$everything": -haddock
 
 extra-deps:
-- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-  commit: 3e32ec3aca71eb326805355d3a99b9288dc342ee 
+- #git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
+  git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude.git
+  commit: 35b09629a658fc16cc9ff63e7591e58511cd98a7
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
