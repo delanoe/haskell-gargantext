@@ -3,6 +3,7 @@ module Gargantext.API.Job where
 import Control.Lens (over, _Just)
 import Data.IORef
 import Data.Maybe
+import qualified Data.Text as T
 
 import Gargantext.Prelude
 
@@ -15,6 +16,14 @@ jobLogInit rem =
          , _scst_remaining = Just rem
          , _scst_failed = Just 0
          , _scst_events = Just [] }
+
+addEvent :: T.Text -> T.Text -> JobLog -> JobLog
+addEvent level message (JobLog { _scst_events = mEvts, .. }) = JobLog { _scst_events = Just (evts <> [ newEvt ]), .. }
+  where
+    evts = fromMaybe [] mEvts
+    newEvt = ScraperEvent { _scev_message = Just message
+                          , _scev_level = Just level
+                          , _scev_date = Nothing }
 
 jobLogSuccess :: JobLog -> JobLog
 jobLogSuccess jl = over (scst_succeeded . _Just) (+ 1) $
@@ -37,6 +46,9 @@ jobLogFailTotal (JobLog { _scst_succeeded = mSucc
     (newRem, newFail) = case mRem of
       Nothing -> (Nothing, mFail)
       Just rem -> (Just 0, (+ rem) <$> mFail)
+
+jobLogFailTotalWithMessage :: T.Text -> JobLog -> JobLog
+jobLogFailTotalWithMessage message jl = addEvent "ERROR" message $ jobLogFailTotal jl
 
 jobLogEvt :: JobLog -> ScraperEvent -> JobLog
 jobLogEvt jl evt = over (scst_events . _Just) (\evts -> (evt:evts)) jl
