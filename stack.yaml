@@ -44,7 +44,7 @@ extra-deps:
 
   # Databases libs
 - git: https://github.com/delanoe/haskell-opaleye.git
-  commit: 806da7f9fb6fe1032f51c1822fc224b281cdd84f
+  commit: d3ab7acd5ede737478763630035aa880f7e34444
 - git: https://github.com/delanoe/hsparql.git
   commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
 - git: https://github.com/robstewart57/rdf4h.git
