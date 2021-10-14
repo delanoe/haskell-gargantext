@@ -14,7 +14,6 @@ import Data.Time.Calendar
 import GHC.Generics (Generic)
 import Servant
 import Servant.Job.Async
-import Web.FormUrlEncoded (FromForm)
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Job (jobLogSuccess)
@@ -22,6 +21,7 @@ import Gargantext.API.Prelude
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text.Terms (TermType(..))
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Core.Utils.Prefix (unCapitalize, dropPrefix)
 import Gargantext.Database.Action.Flow (flowDataText, DataText(..))
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Admin.Types.Hyperdata.Document (HyperdataDocument(..))
@@ -30,18 +30,31 @@ import Gargantext.Database.Query.Table.Node (getClosestParentIdByType')
 import Gargantext.Prelude
 
 data DocumentUpload = DocumentUpload
-  { _abstract :: T.Text
-  , _authors  :: T.Text
-  , _sources  :: T.Text
-  , _title    :: T.Text }
+  { _du_abstract :: T.Text
+  , _du_authors  :: T.Text
+  , _du_sources  :: T.Text
+  , _du_title    :: T.Text }
   deriving (Generic)
 
 $(makeLenses ''DocumentUpload)
 
-instance FromForm DocumentUpload
-instance FromJSON DocumentUpload
-instance ToJSON DocumentUpload
 instance ToSchema DocumentUpload
+instance FromJSON DocumentUpload
+  where
+    parseJSON = genericParseJSON
+            ( defaultOptions { sumEncoding = ObjectWithSingleField
+                            , fieldLabelModifier = unCapitalize . dropPrefix "_du_"
+                            , omitNothingFields = True
+                            }
+            )
+instance ToJSON DocumentUpload
+  where
+    toJSON = genericToJSON
+           ( defaultOptions { sumEncoding = ObjectWithSingleField
+                            , fieldLabelModifier = unCapitalize . dropPrefix "_du_"
+                            , omitNothingFields = True
+                            }
+           )
 
 type API = Summary " Document upload"
            :> "document"
@@ -83,11 +96,11 @@ documentUpload uId nId doc logStatus = do
                              , _hd_uniqId = Nothing
                              , _hd_uniqIdBdd = Nothing
                              , _hd_page = Nothing
-                             , _hd_title = Just $ view title doc
-                             , _hd_authors = Just $ view authors doc
+                             , _hd_title = Just $ view du_title doc
+                             , _hd_authors = Just $ view du_authors doc
                              , _hd_institutes = Nothing
-                             , _hd_source = Just $ view sources doc
-                             , _hd_abstract = Just $ view abstract doc
+                             , _hd_source = Just $ view du_sources doc
+                             , _hd_abstract = Just $ view du_abstract doc
                              , _hd_publication_date = Just nowS
                              , _hd_publication_year = Just $ fromIntegral year
                              , _hd_publication_month = Just month
