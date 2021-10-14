@@ -24,7 +24,7 @@ import Data.Maybe (catMaybes)
 import Data.Ord (Down(..))
 import Gargantext.Prelude
 import qualified Data.Map as DM
-import Gargantext.Core.Viz.Graph.Tools.IGraph (ClusterNode(..))
+import Graph.Types (ClusterNode(..))
 
 ----------------------------------------------------------------------
 type Partitions a = Map (Int, Int) Double -> IO [a]

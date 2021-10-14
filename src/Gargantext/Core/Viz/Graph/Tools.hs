@@ -27,8 +27,9 @@ import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
-import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass, ClusterNode)
+import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
 import Gargantext.Prelude
+import Graph.Types (ClusterNode)
 import IGraph.Random -- (Gen(..))
 import qualified Data.HashMap.Strict      as HashMap
 import qualified Data.List                as List
