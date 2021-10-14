@@ -44,7 +44,8 @@ instance ToJSON DocumentUpload
 instance ToSchema DocumentUpload
 
 type API = Summary " Document upload"
-           :> "framecalc"
+           :> "document"
+           :> "upload"
            :> "async"
            :> AsyncJobs JobLog '[JSON] DocumentUpload JobLog
 
