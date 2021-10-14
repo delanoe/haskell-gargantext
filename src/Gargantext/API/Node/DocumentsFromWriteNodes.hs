@@ -12,7 +12,6 @@ Portability : POSIX
 {-# LANGUAGE MonoLocalBinds     #-}
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Gargantext.API.Node.DocumentsFromWriteNodes
       where
@@ -24,6 +23,7 @@ import Data.Swagger
 import qualified Data.Text as T
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
+import Gargantext.API.Job (jobLogSuccess, jobLogFailTotalWithMessage)
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text.Corpus.Parsers.FrameWrite
@@ -71,15 +71,20 @@ documentsFromWriteNodes :: (HasSettings env, FlowCmdM env err m)
     -> (JobLog -> m ())
     -> m JobLog
 documentsFromWriteNodes uId nId _p logStatus = do
-
-  logStatus JobLog { _scst_succeeded = Just 1
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 1
-                   , _scst_events    = Just []
-                   }
+  let jobLog = JobLog { _scst_succeeded = Just 1
+                      , _scst_failed    = Just 0
+                      , _scst_remaining = Just 1
+                      , _scst_events    = Just []
+                      }
+  logStatus jobLog
 
   mcId <- getClosestParentIdByType' nId NodeCorpus
-  let cId = maybe (panic "[G.A.N.DFWN] Node has no parent") identity mcId
+  cId <- case mcId of
+    Just cId -> pure cId
+    Nothing -> do
+      let msg = T.pack $ "[G.A.N.DFWN] Node has no corpus parent: " <> show nId
+      logStatus $ jobLogFailTotalWithMessage msg jobLog
+      panic msg
 
   frameWriteIds <- getChildrenByType nId NodeFrameWrite
 
@@ -97,11 +102,7 @@ documentsFromWriteNodes uId nId _p logStatus = do
 
   _ <- flowDataText (RootId (NodeId uId)) (DataNew [parsed]) (Multi EN) cId Nothing
 
-  pure  JobLog { _scst_succeeded = Just 2
-               , _scst_failed    = Just 0
-               , _scst_remaining = Just 0
-               , _scst_events    = Just []
-               }
+  pure $ jobLogSuccess jobLog
 ------------------------------------------------------------------------
 hyperdataDocumentFromFrameWrite :: (HyperdataFrame, T.Text) -> Either T.Text HyperdataDocument
 hyperdataDocumentFromFrameWrite (HyperdataFrame { _hf_base, _hf_frame_id }, contents) =
