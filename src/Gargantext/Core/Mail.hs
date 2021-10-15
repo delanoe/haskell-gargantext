@@ -64,7 +64,7 @@ email_to' (NewUser u m _) = (m,u)
 
 ------------------------------------------------------------------------
 bodyWith :: ServerAddress -> MailModel -> [Text]
-bodyWith server (Invitation u) = [ "Congratulation, you have been granted a beta user account to test the"
+bodyWith server (Invitation u) = [ "Congratulation, you have been granted a user account to test the"
                                  , "new GarganText platform!"
                                  ] <> (email_credentials server u)
 
