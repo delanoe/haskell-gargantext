@@ -26,6 +26,8 @@ rec {
     blas
     gfortran7
     #    gfortran7.cc.lib
+    expat
+    icu
   ];
   libPaths = pkgs.lib.makeLibraryPath nonhsBuildInputs;
   shellHook = ''
