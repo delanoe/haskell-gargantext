@@ -4,7 +4,7 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
-- 'deps/gargantext-graph'
+  #- 'deps/gargantext-graph'
 #- 'deps/patches-map'
 #- 'deps/accelerate'
 #- 'deps/accelerate-utility'
@@ -31,8 +31,8 @@ extra-deps:
   git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude.git
   commit: 35b09629a658fc16cc9ff63e7591e58511cd98a7
   #git: ssh://git@gitlab.iscpif.fr:20022/gargantext/gargantext-graph.git
-  #- git: ssh://gitolite3@delanoe.org/gargantext-graph
-  #commit: a74738d75f4385145df781408c610719e0a9b50f
+- git: ssh://gitolite3@delanoe.org/gargantext-graph
+  commit: 294887a220460bd0c114638fff9ea53306cd2f18
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
