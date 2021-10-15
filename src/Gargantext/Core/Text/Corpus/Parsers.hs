@@ -25,8 +25,6 @@ module Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), clean, parseFile, cl
 
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
 import Control.Concurrent.Async as CCA (mapConcurrently)
-import Control.Monad (join, sequence)
-import Control.Monad.IO.Class (liftIO)
 import Data.Attoparsec.ByteString (parseOnly, Parser)
 import Data.Either(Either(..))
 import Data.Either.Extra (partitionEithers)
