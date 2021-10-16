@@ -21,25 +21,25 @@ module Gargantext.API.Node.Corpus.New
 import Control.Lens hiding (elements, Empty)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
+import qualified Data.ByteString.Base64 as BSB64
 import Data.Either
 import Data.Maybe (fromMaybe)
 import Data.Swagger
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
-import qualified Prelude as Prelude
-import Protolude (readFile)
 import Servant
 import Servant.Job.Utils (jsonOptions)
 -- import Servant.Multipart
+import qualified Data.Text.Encoding as TE
 -- import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
 import Gargantext.Prelude
 
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs, ScraperEvent(..), scst_events)
 import Gargantext.API.Admin.Types (HasSettings)
-import Gargantext.API.Job (jobLogSuccess, jobLogFailTotal)
+import Gargantext.API.Job (jobLogSuccess, jobLogFailTotal, jobLogFailTotalWithMessage)
 import Gargantext.API.Node.Corpus.New.File
 import Gargantext.API.Node.Corpus.Searx
 import Gargantext.API.Node.Corpus.Types
@@ -57,11 +57,12 @@ import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node (CorpusId, NodeType(..), UserId)
+import Gargantext.Database.Prelude (hasConfig)
 import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import qualified Gargantext.Database.GargDB as GargDB
-
+import Gargantext.Prelude.Config (gc_max_docs_parsers)
 ------------------------------------------------------------------------
 {-
 data Query = Query { query_query      :: Text
@@ -240,7 +241,7 @@ type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
    :> "async"
      :> AsyncJobs JobLog '[FormUrlEncoded] NewWithForm JobLog
 
-addToCorpusWithForm :: FlowCmdM env err m
+addToCorpusWithForm :: (FlowCmdM env err m)
                     => User
                     -> CorpusId
                     -> NewWithForm
@@ -258,12 +259,33 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
       WOS       -> Parser.parseFormat Parser.WOS
       PresseRIS -> Parser.parseFormat Parser.RisPresse
       ZIP       -> Parser.parseFormat Parser.ZIP
-
+  
   -- TODO granularity of the logStatus
-  eDocs <- liftBase $ parse $ cs d
+  let data' = case ft of
+        ZIP -> case BSB64.decode $ TE.encodeUtf8 d of
+          Left err -> panic $ T.pack "[addToCorpusWithForm] error decoding base64: " <> T.pack err
+          Right decoded -> decoded
+        _   -> cs d
+  eDocs <- liftBase $ parse data'
   case eDocs of
     Right docs' -> do
-      let docs = splitEvery 500 $ take 1000000 docs'
+      -- TODO Add progress (jobStatus) update for docs - this is a
+      -- long action
+      limit' <- view $ hasConfig . gc_max_docs_parsers
+      let limit = fromIntegral limit'
+      if length docs' > limit then do
+        printDebug "[addToCorpusWithForm] number of docs exceeds the limit" (show $ length docs')
+        let panicMsg' = [ "[addToCorpusWithForm] number of docs ("
+                        , show $ length docs'
+                        , ") exceeds the MAX_DOCS_PARSERS limit ("
+                        , show limit
+                        , ")" ]
+        let panicMsg = T.concat $ T.pack <$> panicMsg'
+        logStatus $ jobLogFailTotalWithMessage panicMsg jobLog
+        panic panicMsg
+      else
+        pure ()
+      let docs = splitEvery 500 $ take limit docs'
 
       printDebug "Parsing corpus finished : " cid
       logStatus jobLog2
@@ -283,19 +305,18 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
       logStatus jobLog3
       pure $ jobLog3
     Left e -> do
-      printDebug "Error" e
+      printDebug "[addToCorpusWithForm] parse error" e
 
-      logStatus jobLogE
+      let evt = ScraperEvent { _scev_message = Just $ T.pack e
+                             , _scev_level = Just "ERROR"
+                             , _scev_date = Nothing }
+
+      logStatus $ over (scst_events . _Just) (\evt' -> evt' <> [evt]) jobLogE
       pure jobLogE
     where
       jobLog2 = jobLogSuccess jobLog
       jobLog3 = jobLogSuccess jobLog2
       jobLogE = jobLogFailTotal jobLog
-
-parseCsvGargV3Path :: [Char] -> IO (Either Prelude.String [HyperdataDocument])
-parseCsvGargV3Path fp = do
-  contents <- readFile fp
-  Parser.parseFormat Parser.CsvGargV3 $ cs contents
 
 {-
 addToCorpusWithFile :: FlowCmdM env err m

@@ -1,5 +1,5 @@
 resolver:
- url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/12.yaml 
+ url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/13.yaml 
 flags: {}
 extra-package-dbs: []
 packages:
@@ -11,6 +11,7 @@ packages:
 
 docker:
   enable: false
+  #enable: true
   repo: 'cgenie/stack-build:lts-18.12-garg'
   run-args:
     - '--publish=8008:8008'
@@ -26,8 +27,9 @@ allow-newer: true
 #  "$everything": -haddock
 
 extra-deps:
-- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-  commit: 3e32ec3aca71eb326805355d3a99b9288dc342ee 
+- #git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
+  git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude.git
+  commit: 35b09629a658fc16cc9ff63e7591e58511cd98a7
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
@@ -44,7 +46,7 @@ extra-deps:
 
   # Databases libs
 - git: https://github.com/delanoe/haskell-opaleye.git
-  commit: 806da7f9fb6fe1032f51c1822fc224b281cdd84f
+  commit: d3ab7acd5ede737478763630035aa880f7e34444
 - git: https://github.com/delanoe/hsparql.git
   commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
 - git: https://github.com/robstewart57/rdf4h.git

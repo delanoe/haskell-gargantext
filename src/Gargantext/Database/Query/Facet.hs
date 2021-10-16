@@ -360,7 +360,7 @@ viewDocuments cId t ntId mQuery = proc () -> do
   restrict -< if query == ""
     then pgBool True
     --else (n^.ns_search) @@ (pgTSQuery (T.unpack query))
-    else (n^.ns_search) @@ (toTSQuery $ T.unpack query)
+    else (n^.ns_search) @@ (plaintoTSQuery $ T.unpack query)
  
   returnA  -< FacetDoc (_ns_id        n)
                        (_ns_date      n)
