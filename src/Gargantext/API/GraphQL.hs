@@ -14,6 +14,7 @@ import Data.ByteString.Lazy.Char8
   ( ByteString
   )
 import Data.List.NonEmpty (NonEmpty ((:|)))
+import Data.Maybe (fromMaybe)
 import Data.Morpheus
   ( App
   , deriveApp )
@@ -48,16 +49,18 @@ import Data.Text (Text)
 import qualified Data.Text.Lazy as LT
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import Data.Typeable (Typeable)
+import Gargantext.API.GraphQL.User
 import Gargantext.API.Prelude (GargServerT, GargM, GargError)
 import Gargantext.Database.Prelude (Cmd, HasConnectionPool, HasConfig)
-import Gargantext.Database.Query.Table.User (getUsersWithId)
 import Gargantext.Database.Schema.User (UserPoly(..), UserLight)
+import Gargantext.Prelude
 import GHC.Generics (Generic)
 import GHC.TypeLits
 import Network.HTTP.Media ((//), (/:))
 import Network.WebSockets
   ( ServerApp,
   )
+import qualified Prelude as Prelude
 import Servant
   ( (:<|>) (..),
     (:>),
@@ -70,18 +73,11 @@ import Servant
     ReqBody,
     ServerT,
   )
-import Prelude
 
 -- | Represents possible GraphQL queries.
 data Query m
   = Query
-    { user :: UserArgs -> m UserLight
-    } deriving (Generic, GQLType)
-
--- | Arguments to the "user" query.
-data UserArgs
-  = UserArgs
-    { user_id :: Int
+    { users :: UserArgs -> m [UserLight]
     } deriving (Generic, GQLType)
 
 -- | Possible GraphQL Events, i.e. here we describe how we will
@@ -96,7 +92,7 @@ data Channel
 
 -- | This type describes what data we will operate on.
 data Contet
-  = UserContet UserLight
+  = UserContet [UserLight]
 
 
 -- | The main GraphQL resolver: how queries, mutations and
@@ -106,29 +102,9 @@ rootResolver
   => RootResolver (GargM env GargError) EVENT Query Undefined Undefined
 rootResolver =
   RootResolver
-    { queryResolver = Query { user = resolveUser }
+    { queryResolver = Query { users = resolveUsers }
     , mutationResolver = Undefined
     , subscriptionResolver = Undefined }
-
--- | Function to resolve user from a query.
-resolveUser
-  :: (HasConnectionPool env, HasConfig env)
-  => UserArgs -> ResolverQ e (GargM env GargError) UserLight
-resolveUser UserArgs { user_id } = do
-  liftEither $ dbUser user_id
---  user <- lift $ dbUser user_id
---  case user of
---    --Left err -> failure $ msg err
---    Left err -> error "fail"
---    Right u -> pure u
-
--- | Inner function to fetch the user from DB.
-dbUser :: Int -> Cmd err (Either String UserLight)
-dbUser user_id = do
-  users <- getUsersWithId user_id
-  case users of
-    [] -> pure $ Left "User not found"
-    (user:_) -> pure $ Right user
 
 -- | Main GraphQL "app".
 app

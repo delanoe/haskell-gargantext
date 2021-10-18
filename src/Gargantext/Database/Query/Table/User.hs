@@ -107,7 +107,6 @@ getUsersWithId i = map toUserLight <$> runOpaQuery (selectUsersLightWithId i)
           returnA  -< row
 
 
-
 queryUserTable :: Query UserRead
 queryUserTable = selectTable userTable
 
