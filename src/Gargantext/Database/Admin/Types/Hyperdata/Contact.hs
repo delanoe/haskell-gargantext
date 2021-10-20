@@ -9,9 +9,10 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE FunctionalDependencies     #-}
+{-# LANGUAGE DeriveAnyClass             #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE NoImplicitPrelude          #-}
@@ -23,11 +24,12 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Hyperdata.Contact
   where
 
+import Data.Morpheus.Types (GQLType(..))
 import Data.Time.Segment (jour)
-import Data.Time (UTCTime)
 import Gargantext.Core.Text (HasText(..))
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Prelude
+import Gargantext.Utils.UTCTime
 
 --------------------------------------------------------------------------------
 data HyperdataContact =
@@ -40,7 +42,7 @@ data HyperdataContact =
                       , _hc_uniqIdBdd       :: Maybe Text
                       , _hc_uniqId          :: Maybe Text
 
-  } deriving (Eq, Show, Generic)
+  } deriving (Eq, Show, Generic, GQLType)
 
 instance HasText HyperdataContact
   where
@@ -87,7 +89,7 @@ data ContactWho =
                 , _cw_lastName    :: Maybe Text
                 , _cw_keywords :: [Text]
                 , _cw_freetags :: [Text]
-  } deriving (Eq, Show, Generic)
+  } deriving (Eq, Show, Generic, GQLType)
 
 type FirstName = Text
 type LastName  = Text
@@ -102,8 +104,6 @@ contactWho fn ln = ContactWho Nothing
                              []
                              []
 
-
-
 data ContactWhere =
      ContactWhere { _cw_organization :: [Text]
                   , _cw_labTeamDepts :: [Text]
@@ -116,9 +116,9 @@ data ContactWhere =
 
                   , _cw_touch        :: Maybe ContactTouch
 
-                  , _cw_entry        :: Maybe UTCTime
-                  , _cw_exit         :: Maybe UTCTime
-  } deriving (Eq, Show, Generic)
+                  , _cw_entry        :: Maybe NUTCTime
+                  , _cw_exit         :: Maybe NUTCTime
+  } deriving (Eq, Show, Generic, GQLType)
 
 defaultContactWhere :: ContactWhere
 defaultContactWhere = ContactWhere ["Organization X"]
@@ -128,14 +128,14 @@ defaultContactWhere = ContactWhere ["Organization X"]
                                  (Just "Country")
                                  (Just "City")
                                  (Just defaultContactTouch)
-                                 (Just $ jour 01 01 2020)
-                                 (Just $ jour 01 01 2029)
+                                 (Just $ NUTCTime $ jour 01 01 2020)
+                                 (Just $ NUTCTime $ jour 01 01 2029)
 
 data ContactTouch =
      ContactTouch { _ct_mail      :: Maybe Text
                   , _ct_phone     :: Maybe Text
                   , _ct_url       :: Maybe Text
-  } deriving (Eq, Show, Generic)
+  } deriving (Eq, Show, Generic, GQLType)
 
 defaultContactTouch :: ContactTouch
 defaultContactTouch = ContactTouch (Just "email@data.com")

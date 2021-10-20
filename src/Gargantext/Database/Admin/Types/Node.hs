@@ -25,6 +25,7 @@ import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Either
 import Data.Hashable (Hashable)
+import Data.Morpheus.Types (GQLType)
 import Data.Swagger
 import Data.Text (Text, unpack)
 import Data.Time (UTCTime)
@@ -152,6 +153,7 @@ pgNodeId = O.sqlInt4 . id2int
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
   deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable)
+instance GQLType NodeId
 instance Show NodeId where
   show (NodeId n) = "nodeId-" <> show n
 instance Serialise NodeId

@@ -11,6 +11,7 @@ Portability : POSIX
 
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE DeriveAnyClass             #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
@@ -23,6 +24,7 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Hyperdata.User
   where
 
+import Data.Morpheus.Types (GQLType)
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
@@ -35,19 +37,19 @@ data HyperdataUser =
      HyperdataUser { _hu_private   :: !(Maybe HyperdataPrivate)
                    , _hu_shared    :: !(Maybe HyperdataContact)
                    , _hu_public    :: !(Maybe HyperdataPublic)
-                   } deriving (Eq, Show, Generic)
+                   } deriving (Eq, Show, Generic, GQLType)
 
 data HyperdataPrivate =
      HyperdataPrivate { _hpr_password :: !Text
                       , _hpr_lang     :: !Lang
                       }
-     deriving (Eq, Show, Generic)
+     deriving (Eq, Show, Generic, GQLType)
 
 data HyperdataPublic =
      HyperdataPublic { _hpu_pseudo       :: !Text
                      , _hpu_publications :: ![DocumentId]
                      }
-     deriving (Eq, Show, Generic)
+     deriving (Eq, Show, Generic, GQLType)
 
 -- | Default
 defaultHyperdataUser :: HyperdataUser

@@ -52,7 +52,7 @@ import Data.Typeable (Typeable)
 import Gargantext.API.GraphQL.User
 import Gargantext.API.Prelude (GargServerT, GargM, GargError)
 import Gargantext.Database.Prelude (Cmd, HasConnectionPool, HasConfig)
-import Gargantext.Database.Schema.User (UserPoly(..), UserLight)
+import Gargantext.Database.Schema.User (UserPoly(..))
 import Gargantext.Prelude
 import GHC.Generics (Generic)
 import GHC.TypeLits
@@ -77,7 +77,7 @@ import Servant
 -- | Represents possible GraphQL queries.
 data Query m
   = Query
-    { users :: UserArgs -> m [UserLight]
+    { users :: UserArgs -> m [User]
     } deriving (Generic, GQLType)
 
 -- | Possible GraphQL Events, i.e. here we describe how we will
@@ -92,7 +92,7 @@ data Channel
 
 -- | This type describes what data we will operate on.
 data Contet
-  = UserContet [UserLight]
+  = UserContet [User]
 
 
 -- | The main GraphQL resolver: how queries, mutations and
