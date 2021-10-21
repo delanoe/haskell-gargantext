@@ -98,11 +98,11 @@ defaultContactWho :: ContactWho
 defaultContactWho = contactWho "Pierre" "Dupont"
 
 contactWho :: FirstName -> LastName -> ContactWho
-contactWho fn ln = ContactWho Nothing
-                             (Just fn)
-                             (Just ln)
-                             []
-                             []
+contactWho fn ln = ContactWho { _cw_id = Nothing
+                              , _cw_firstName = Just fn
+                              , _cw_lastName = Just ln
+                              , _cw_keywords = []
+                              , _cw_freetags = [] }
 
 data ContactWhere =
      ContactWhere { _cw_organization :: [Text]
