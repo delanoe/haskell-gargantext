@@ -205,7 +205,10 @@ data2graph :: ToComId a
            -> Map (Int, Int) Double
            -> [a]
            -> Graph
-data2graph labels coocs bridge conf partitions = Graph nodes edges Nothing
+data2graph labels coocs bridge conf partitions = Graph { _graph_nodes = nodes
+                                                       , _graph_edges = edges
+                                                       , _graph_metadata = Nothing
+                                                       , _graph_ngrams = Nothing }
   where
 
     community_id_by_node_id = Map.fromList $ map nodeId2comId partitions

@@ -7,6 +7,9 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+A Node Story is a Map between NodeId and an Archive (with state,
+version and history) for that node.
+
 TODO:
 - remove
 - filter
