@@ -77,12 +77,12 @@ import Servant
 -- | Represents possible GraphQL queries.
 data Query m
   = Query
-    { users :: UserArgs -> m [User]
+    { users :: UserArgs -> m [User m]
     } deriving (Generic, GQLType)
 
 -- | Possible GraphQL Events, i.e. here we describe how we will
 -- manipulate the data.
-type EVENT = Event Channel Contet
+type EVENT m = Event Channel (Contet m)
 
 -- | Channels are possible actions to call when manipulating the data.
 data Channel
@@ -91,15 +91,14 @@ data Channel
   deriving (Eq, Show, Generic, Hashable)
 
 -- | This type describes what data we will operate on.
-data Contet
-  = UserContet [User]
-
+data Contet m
+  = UserContet [User m]
 
 -- | The main GraphQL resolver: how queries, mutations and
 -- subscriptions are handled.
 rootResolver
   :: (HasConnectionPool env, HasConfig env)
-  => RootResolver (GargM env GargError) EVENT Query Undefined Undefined
+  => RootResolver (GargM env GargError) e Query Undefined Undefined
 rootResolver =
   RootResolver
     { queryResolver = Query { users = resolveUsers }
@@ -109,7 +108,7 @@ rootResolver =
 -- | Main GraphQL "app".
 app
   :: (Typeable env, HasConnectionPool env, HasConfig env)
-  => App EVENT (GargM env GargError)
+  => App (EVENT (GargM env GargError)) (GargM env GargError)
 app = deriveApp rootResolver
 
 ----------------------------------------------
