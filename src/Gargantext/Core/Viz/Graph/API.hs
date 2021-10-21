@@ -188,11 +188,11 @@ computeGraph cId d nt repo = do
   -- printDebug "myCooc" myCooc
   -- saveAsFileDebug "debug/my-cooc" myCooc
 
-  listNgrams <- getListNgrams [lId] NgramsTerms
+  listNgrams <- getListNgrams [lId] nt
 
   graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
   -- saveAsFileDebug "debug/graph" graph
-  pure $ set graph_ngrams (Just listNgrams) graph
+  pure $ mergeGraphNgrams graph (Just listNgrams)
 
 
 defaultGraphMetadata :: HasNodeError err

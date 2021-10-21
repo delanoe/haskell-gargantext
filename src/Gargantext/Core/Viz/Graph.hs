@@ -16,7 +16,7 @@ module Gargantext.Core.Viz.Graph
   where
 
 import Data.ByteString.Lazy as DBL (readFile, writeFile)
-import Data.HashMap.Strict (HashMap)
+import Data.HashMap.Strict (HashMap, lookup)
 import Data.Text (pack)
 import GHC.IO (FilePath)
 
@@ -24,7 +24,7 @@ import qualified Data.Aeson as DA
 import qualified Data.Text as T
 import qualified Text.Read as T
 
-import Gargantext.API.Ngrams.Types (NgramsTerm, NgramsRepoElement)
+import Gargantext.API.Ngrams.Types (NgramsTerm(..), NgramsRepoElement(..), mSetToList)
 import Gargantext.Core.Methods.Distances (GraphMetric)
 import Gargantext.Core.Types (ListId)
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
@@ -51,6 +51,7 @@ data Node = Node { node_size  :: Int
                  , node_x_coord :: Double
                  , node_y_coord :: Double
                  , node_attributes :: Attributes
+                 , node_children :: [Text]
                  }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "node_") ''Node)
@@ -115,7 +116,6 @@ makeLenses ''GraphMetadata
 data Graph = Graph { _graph_nodes    :: [Node]
                    , _graph_edges    :: [Edge]
                    , _graph_metadata :: Maybe GraphMetadata
-                   , _graph_ngrams   :: Maybe (HashMap NgramsTerm NgramsRepoElement)
                    }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "_graph_") ''Graph)
@@ -129,7 +129,7 @@ instance Arbitrary Graph where
   arbitrary = elements $ [defaultGraph]
 
 defaultGraph :: Graph
-defaultGraph = Graph {_graph_nodes = [Node {node_x_coord=0, node_y_coord=0, node_size = 4, node_type = Terms, node_id = pack "0", node_label = pack "animal", node_attributes = Attributes {clust_default = 0}},Node {node_x_coord=0, node_y_coord=0, node_size = 3, node_type = Terms, node_id = pack "1", node_label = pack "bird", node_attributes = Attributes {clust_default = 0}},Node {node_x_coord=0, node_y_coord=0, node_size = 2, node_type = Terms, node_id = pack "2", node_label = pack "boy", node_attributes = Attributes {clust_default = 1}},Node {node_x_coord=0, node_y_coord=0, node_size = 2, node_type = Terms, node_id = pack "3", node_label = pack "dog", node_attributes = Attributes {clust_default = 0}},Node {node_x_coord=0, node_y_coord=0, node_size = 2, node_type = Terms, node_id = pack "4", node_label = pack "girl", node_attributes = Attributes {clust_default = 1}},Node {node_x_coord=0, node_y_coord=0, node_size = 4, node_type = Terms, node_id = pack "5", node_label = pack "human body", node_attributes = Attributes {clust_default = 1}},Node {node_x_coord=0, node_y_coord=0, node_size = 3, node_type = Terms, node_id = pack "6", node_label = pack "object", node_attributes = Attributes {clust_default = 2}},Node {node_x_coord=0, node_y_coord=0, node_size = 2, node_type = Terms, node_id = pack "7", node_label = pack "pen", node_attributes = Attributes {clust_default = 2}},Node {node_x_coord=0, node_y_coord=0, node_size = 2, node_type = Terms, node_id = pack "8", node_label = pack "table", node_attributes = Attributes {clust_default = 2}}], _graph_edges = [Edge {edge_source = pack "0", edge_target = pack "0", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "0"},Edge {edge_source = pack "1", edge_target = pack "0", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "1"},Edge {edge_source = pack "1", edge_target = pack "1", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "2"},Edge {edge_source = pack "2", edge_target = pack "2", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "3"},Edge {edge_source = pack "2", edge_target = pack "5", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "4"},Edge {edge_source = pack "3", edge_target = pack "0", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "5"},Edge {edge_source = pack "3", edge_target = pack "1", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "6"},Edge {edge_source = pack "3", edge_target = pack "3", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "7"},Edge {edge_source = pack "4", edge_target = pack "4", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "8"},Edge {edge_source = pack "4", edge_target = pack "5", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "9"},Edge {edge_source = pack "5", edge_target = pack "5", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "10"},Edge {edge_source = pack "6", edge_target = pack "6", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "11"},Edge {edge_source = pack "7", edge_target = pack "6", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "12"},Edge {edge_source = pack "7", edge_target = pack "7", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "13"},Edge {edge_source = pack "8", edge_target = pack "6", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "14"},Edge {edge_source = pack "8", edge_target = pack "7", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "15"},Edge {edge_source = pack "8", edge_target = pack "8", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "16"}], _graph_metadata = Nothing, _graph_ngrams = Nothing}
+defaultGraph = Graph {_graph_nodes = [Node {node_x_coord=0, node_y_coord=0, node_size = 4, node_type = Terms, node_id = pack "0", node_label = pack "animal", node_attributes = Attributes {clust_default = 0}, node_children = []},Node {node_x_coord=0, node_y_coord=0, node_size = 3, node_type = Terms, node_id = pack "1", node_label = pack "bird", node_attributes = Attributes {clust_default = 0}, node_children = []},Node {node_x_coord=0, node_y_coord=0, node_size = 2, node_type = Terms, node_id = pack "2", node_label = pack "boy", node_attributes = Attributes {clust_default = 1}, node_children = []},Node {node_x_coord=0, node_y_coord=0, node_size = 2, node_type = Terms, node_id = pack "3", node_label = pack "dog", node_attributes = Attributes {clust_default = 0}, node_children = []},Node {node_x_coord=0, node_y_coord=0, node_size = 2, node_type = Terms, node_id = pack "4", node_label = pack "girl", node_attributes = Attributes {clust_default = 1}, node_children = []},Node {node_x_coord=0, node_y_coord=0, node_size = 4, node_type = Terms, node_id = pack "5", node_label = pack "human body", node_attributes = Attributes {clust_default = 1}, node_children = []},Node {node_x_coord=0, node_y_coord=0, node_size = 3, node_type = Terms, node_id = pack "6", node_label = pack "object", node_attributes = Attributes {clust_default = 2}, node_children = []},Node {node_x_coord=0, node_y_coord=0, node_size = 2, node_type = Terms, node_id = pack "7", node_label = pack "pen", node_attributes = Attributes {clust_default = 2}, node_children = []},Node {node_x_coord=0, node_y_coord=0, node_size = 2, node_type = Terms, node_id = pack "8", node_label = pack "table", node_attributes = Attributes {clust_default = 2}, node_children = []}], _graph_edges = [Edge {edge_source = pack "0", edge_target = pack "0", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "0"},Edge {edge_source = pack "1", edge_target = pack "0", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "1"},Edge {edge_source = pack "1", edge_target = pack "1", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "2"},Edge {edge_source = pack "2", edge_target = pack "2", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "3"},Edge {edge_source = pack "2", edge_target = pack "5", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "4"},Edge {edge_source = pack "3", edge_target = pack "0", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "5"},Edge {edge_source = pack "3", edge_target = pack "1", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "6"},Edge {edge_source = pack "3", edge_target = pack "3", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "7"},Edge {edge_source = pack "4", edge_target = pack "4", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "8"},Edge {edge_source = pack "4", edge_target = pack "5", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "9"},Edge {edge_source = pack "5", edge_target = pack "5", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "10"},Edge {edge_source = pack "6", edge_target = pack "6", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "11"},Edge {edge_source = pack "7", edge_target = pack "6", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "12"},Edge {edge_source = pack "7", edge_target = pack "7", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "13"},Edge {edge_source = pack "8", edge_target = pack "6", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "14"},Edge {edge_source = pack "8", edge_target = pack "7", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "15"},Edge {edge_source = pack "8", edge_target = pack "8", edge_weight = 1.0, edge_confluence=0.5, edge_id = pack "16"}], _graph_metadata = Nothing}
 
 
 -----------------------------------------------------------
@@ -214,18 +214,28 @@ instance FromField HyperdataGraphAPI
 
 -----------------------------------------------------------
 graphV3ToGraph :: GraphV3 -> Graph
-graphV3ToGraph (GraphV3 links nodes) = Graph (map nodeV32node nodes) (zipWith linkV32edge [1..] links) Nothing Nothing
+graphV3ToGraph (GraphV3 links nodes) = Graph { _graph_nodes = map nodeV32node nodes
+                                             , _graph_edges = zipWith linkV32edge [1..] links
+                                             , _graph_metadata = Nothing }
   where
     nodeV32node :: NodeV3 -> Node
     nodeV32node (NodeV3 no_id' (AttributesV3 cl') no_s' no_lb')
-                = Node no_s' Terms (cs $ show no_id') no_lb' 0 0 (Attributes cl')
+                = Node { node_size = no_s'
+                       , node_type = Terms
+                       , node_id = cs $ show no_id'
+                       , node_label = no_lb'
+                       , node_x_coord = 0
+                       , node_y_coord = 0
+                       , node_attributes = Attributes cl'
+                       , node_children = [] }
 
     linkV32edge :: Int -> EdgeV3 -> Edge
-    linkV32edge n (EdgeV3 eo_s' eo_t' eo_w') = Edge (cs $ show eo_s')
-                                                    (cs $ show eo_t')
-                                                    ((T.read $ T.unpack eo_w') :: Double)
-                                                    0.5
-                                                    (cs $ show n)
+    linkV32edge n (EdgeV3 eo_s' eo_t' eo_w') =
+      Edge { edge_source = cs $ show eo_s'
+           , edge_target = cs $ show eo_t'
+           , edge_weight = (T.read $ T.unpack eo_w') :: Double
+           , edge_confluence = 0.5
+           , edge_id = cs $ show n }
 
 
 graphV3ToGraphWithFiles :: FilePath -> FilePath -> IO ()
@@ -242,3 +252,17 @@ readGraphFromJson :: MonadBase IO m => FilePath -> m (Maybe Graph)
 readGraphFromJson fp = do
   graph <- liftBase $ DBL.readFile fp
   pure $ DA.decode graph
+
+
+-----------------------------------------------------------
+mergeGraphNgrams :: Graph -> Maybe (HashMap NgramsTerm NgramsRepoElement) -> Graph
+mergeGraphNgrams g Nothing = g
+mergeGraphNgrams graph@(Graph { _graph_nodes }) (Just listNgrams) = set graph_nodes newNodes graph
+  where
+    newNodes = insertChildren <$> _graph_nodes
+    insertChildren (Node { node_label, .. }) = Node { node_children = children', .. }
+      where
+        -- lookup (NgramsTerm node_label) in listNgrams, then fetch (NgramsRepoElement _nre_children)
+        children' = case (lookup (NgramsTerm node_label) listNgrams) of
+          Nothing  -> []
+          Just (NgramsRepoElement { _nre_children }) -> unNgramsTerm <$> mSetToList _nre_children
