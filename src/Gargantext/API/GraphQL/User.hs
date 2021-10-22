@@ -2,28 +2,27 @@
 
 module Gargantext.API.GraphQL.User where
 
-import Data.Either (Either(..))
+import Data.Maybe (listToMaybe)
 import Data.Morpheus.Types
   ( GQLType
-  , ResolverQ
-  , liftEither
+  , Resolver, QUERY
+  , lift
   )
 import Data.Text (Text)
 import Gargantext.API.Prelude (GargM, GargError)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataUser(..))
-import Gargantext.Database.Prelude (Cmd, HasConnectionPool, HasConfig)
+import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.User (getUsersWithId, getUserHyperdata)
 import Gargantext.Database.Schema.User (UserLight(..))
 import Gargantext.Prelude
 import GHC.Generics (Generic)
-import qualified Prelude as Prelude
 
-data User = User
+data User m = User
   { u_email     :: Text
-  , u_hyperdata :: Maybe HyperdataUser
+  , u_hyperdata :: m (Maybe HyperdataUser)
   , u_id        :: Int
   , u_username  :: Text }
-  deriving (Show, Generic, GQLType)
+  deriving (Generic, GQLType)
 
 -- | Arguments to the "user" query.
 data UserArgs
@@ -31,38 +30,29 @@ data UserArgs
     { user_id :: Int
     } deriving (Generic, GQLType)
 
+type GqlM e env = Resolver QUERY e (GargM env GargError)
 
 -- | Function to resolve user from a query.
 resolveUsers
   :: (HasConnectionPool env, HasConfig env)
-  => UserArgs -> ResolverQ e (GargM env GargError) [User]
-resolveUsers UserArgs { user_id } = do
-  liftEither $ dbUsers user_id
---  user <- lift $ dbUser user_id
---  case user of
---    --Left err -> failure $ msg err
---    Left err -> error "fail"
---    Right u -> pure u
+  => UserArgs -> GqlM e env [User (GqlM e env)]
+resolveUsers UserArgs { user_id } = dbUsers user_id
 
 -- | Inner function to fetch the user from DB.
-dbUsers :: Int -> Cmd err (Either Prelude.String [User])
-dbUsers user_id = do
-  users <- getUsersWithId user_id
---  users' <- if includeHyperdata
---    then mapM injectHyperdata (toUser <$> users)
---    else (pure $ toUser <$> users)
-  users' <- mapM injectHyperdata $ toUser <$> users
-  pure $ Right users'
+dbUsers
+  :: (HasConnectionPool env, HasConfig env)
+  => Int -> GqlM e env ([User (GqlM e env)])
+dbUsers user_id = lift (map toUser <$> getUsersWithId user_id)
 
-toUser :: UserLight -> User
+toUser
+  :: (HasConnectionPool env, HasConfig env)
+  => UserLight -> User (GqlM e env)
 toUser (UserLight { .. }) = User { u_email = userLight_email
-                                 , u_hyperdata = Nothing
+                                 , u_hyperdata = resolveHyperdata userLight_id
                                  , u_id = userLight_id
                                  , u_username = userLight_username }
 
-injectHyperdata :: User -> Cmd err User
-injectHyperdata user@(User { .. }) = do
-  hyperdata <- getUserHyperdata u_id
-  case hyperdata of
-    [] -> pure $ user
-    (h:_) -> pure $ User { u_hyperdata = Just h, .. }
+resolveHyperdata
+  :: (HasConnectionPool env, HasConfig env)
+  => Int -> GqlM e env (Maybe HyperdataUser)
+resolveHyperdata userid = lift (listToMaybe <$> getUserHyperdata userid)
