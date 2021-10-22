@@ -81,7 +81,6 @@ documentUpload uId nId doc logStatus = do
                   , _scst_remaining = Just 1
                   , _scst_events    = Just [] }
   logStatus jl
-
   mcId <- getClosestParentIdByType' nId NodeCorpus
   let cId = case mcId of
         Just c  -> c
@@ -89,7 +88,6 @@ documentUpload uId nId doc logStatus = do
 
   (year, month, day) <- liftBase $ getCurrentTime >>= return . toGregorian . utctDay
   let nowS = T.pack $ show year <> "-" <> show month <> "-" <> show day
-
   let hd = HyperdataDocument { _hd_bdd = Nothing
                              , _hd_doi = Nothing
                              , _hd_url = Nothing
@@ -109,7 +107,6 @@ documentUpload uId nId doc logStatus = do
                              , _hd_publication_minute = Nothing
                              , _hd_publication_second = Nothing
                              , _hd_language_iso2 = Just $ T.pack $ show EN }
-
   _ <- flowDataText (RootId (NodeId uId)) (DataNew [[hd]]) (Multi EN) cId Nothing
 
   pure $ jobLogSuccess jl
