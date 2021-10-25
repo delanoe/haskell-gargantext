@@ -69,7 +69,11 @@ chartData cId nt lt = do
 
   (_total,mapTerms) <- countNodesByNgramsWith (group dico)
                     <$> getNodesByNgramsOnlyUser cId (ls' <> ls) nt terms
-  let (dates, count) = V.unzip $ fmap (\(NgramsTerm t,(d,_)) -> (t, d)) $ V.fromList $ HashMap.toList mapTerms
+  let (dates, count) = V.unzip $
+                       V.fromList $
+                       List.sortOn snd $
+                       (\(NgramsTerm t,(d,_)) -> (t, d)) <$>
+                       HashMap.toList mapTerms
   pure (Histo dates (round <$> count))
 
 
