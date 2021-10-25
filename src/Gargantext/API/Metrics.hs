@@ -285,7 +285,7 @@ updatePie cId maybeListId tabType maybeLimit = do
   pure ()
 
 updatePie' :: FlowCmdM env err m =>
-  CorpusId
+     CorpusId
   -> Maybe ListId
   -> TabType
   -> Maybe Limit

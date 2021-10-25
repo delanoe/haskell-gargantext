@@ -23,17 +23,19 @@ import Data.Swagger
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
+import qualified Gargantext.API.Metrics as Metrics
 import Gargantext.API.Ngrams.List (reIndexWith)
+import qualified Gargantext.API.Ngrams.Types as NgramsTypes
 import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core.Methods.Distances (GraphMetric(..))
-import Gargantext.Core.Viz.Graph.API (recomputeGraph)
-import Gargantext.Database.Query.Table.Node (getNode)
-import Gargantext.Database.Schema.Node (node_parent_id)
 import Gargantext.Core.Types.Main (ListType(..))
-import Gargantext.Database.Schema.Ngrams (NgramsType(NgramsTerms))
+import Gargantext.Core.Viz.Graph.API (recomputeGraph)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Query.Table.Node (getNode)
+import Gargantext.Database.Schema.Node (node_parent_id)
+import Gargantext.Database.Schema.Ngrams (NgramsType(NgramsTerms))
 import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic)
 import qualified Gargantext.Utils.Aeson as GUA
 import Prelude (Enum, Bounded, minBound, maxBound)
@@ -114,6 +116,35 @@ updateNode _uId nid1 (LinkNodeReq nt nid2) logStatus = do
                            <> cs (show nt)
 
   pure  JobLog { _scst_succeeded = Just 2
+               , _scst_failed    = Just 0
+               , _scst_remaining = Just 0
+               , _scst_events    = Just []
+               }
+
+-- | `Advanced` to update graphs
+updateNode _uId lId (UpdateNodeParamsList Advanced) logStatus = do
+  logStatus JobLog { _scst_succeeded = Just 1
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 2
+                   , _scst_events    = Just []
+                   }
+  corpusId <- view node_parent_id <$> getNode lId
+
+  logStatus JobLog { _scst_succeeded = Just 2
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
+
+  _ <- case corpusId of
+    Just cId -> do
+      _ <- Metrics.updatePie' cId (Just lId) NgramsTypes.Authors Nothing
+      _ <- Metrics.updateTree' cId (Just lId) NgramsTypes.Institutes MapTerm
+      _ <- Metrics.updatePie' cId (Just lId) NgramsTypes.Sources Nothing
+      pure ()
+    Nothing  -> pure ()
+
+  pure  JobLog { _scst_succeeded = Just 3
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
                , _scst_events    = Just []
