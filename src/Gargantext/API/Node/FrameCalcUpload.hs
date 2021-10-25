@@ -40,14 +40,14 @@ instance FromJSON FrameCalcUpload
 instance ToJSON FrameCalcUpload
 instance ToSchema FrameCalcUpload
 
-type FrameCalcUploadAPI = Summary " FrameCalc upload"
-                        :> "add"
-                        :> "framecalc"
-                        :> "async"
-                        :> AsyncJobs JobLog '[JSON] FrameCalcUpload JobLog
+type API = Summary " FrameCalc upload"
+           :> "add"
+           :> "framecalc"
+           :> "async"
+           :> AsyncJobs JobLog '[JSON] FrameCalcUpload JobLog
 
-frameCalcUploadAPI :: UserId -> NodeId -> GargServer FrameCalcUploadAPI
-frameCalcUploadAPI uId nId =
+api :: UserId -> NodeId -> GargServer API
+api uId nId =
   serveJobsAPI $ 
     JobFunction (\p logs ->
                    frameCalcUploadAsync uId nId p (liftBase . logs) (jobLogInit 5)
