@@ -33,6 +33,7 @@ import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.GEXF ()
 import Gargantext.Core.Viz.Graph.Tools -- (cooc2graph)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Node
@@ -78,7 +79,11 @@ graphAPI u n = getGraph         u n
           :<|> graphVersionsAPI u n
 
 ------------------------------------------------------------------------
-getGraph :: UserId -> NodeId -> GargNoServer HyperdataGraphAPI
+--getGraph :: UserId -> NodeId -> GargServer HyperdataGraphAPI
+getGraph :: FlowCmdM env err m
+         => UserId
+         -> NodeId
+         -> m HyperdataGraphAPI
 getGraph _uId nId = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
 
@@ -109,7 +114,12 @@ getGraph _uId nId = do
         HyperdataGraphAPI graph' camera
 
 
-recomputeGraph :: UserId -> NodeId -> Maybe GraphMetric -> GargNoServer Graph
+--recomputeGraph :: UserId -> NodeId -> Maybe GraphMetric -> GargNoServer Graph
+recomputeGraph :: FlowCmdM env err m
+               => UserId
+               -> NodeId
+               -> Maybe GraphMetric
+               -> m Graph
 recomputeGraph _uId nId maybeDistance = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let
@@ -122,7 +132,7 @@ recomputeGraph _uId nId maybeDistance = do
                       _       -> maybeDistance
 
   let
-    cId = maybe (panic "[G.V.G.API.recomputeGraph] Node has no parent")
+    cId = maybe (panic "[G.C.V.G.API.recomputeGraph] Node has no parent")
                   identity
                   $ nodeGraph ^. node_parent_id
     similarity = case graphMetric of
@@ -151,12 +161,18 @@ recomputeGraph _uId nId maybeDistance = do
 
 
 -- TODO use Database Monad only here ?
-computeGraph :: HasNodeError err
+--computeGraph :: HasNodeError err
+--             => CorpusId
+--             -> Distance
+--             -> NgramsType
+--             -> NodeListStory
+--             -> Cmd err Graph
+computeGraph :: FlowCmdM env err m
              => CorpusId
              -> Distance
              -> NgramsType
              -> NodeListStory
-             -> Cmd err Graph
+             -> m Graph
 computeGraph cId d nt repo = do
   lId  <- defaultList cId
   lIds <- selectNodesWithUsername NodeList userMaster
@@ -172,9 +188,11 @@ computeGraph cId d nt repo = do
   -- printDebug "myCooc" myCooc
   -- saveAsFileDebug "debug/my-cooc" myCooc
 
+  listNgrams <- getListNgrams [lId] nt
+
   graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
   -- saveAsFileDebug "debug/graph" graph
-  pure graph
+  pure $ mergeGraphNgrams graph (Just listNgrams)
 
 
 defaultGraphMetadata :: HasNodeError err
@@ -214,10 +232,15 @@ graphAsync u n =
     JobFunction (\_ log' -> graphRecompute u n (liftBase . log'))
 
 
-graphRecompute :: UserId
+--graphRecompute :: UserId
+--               -> NodeId
+--               -> (JobLog -> GargNoServer ())
+--               -> GargNoServer JobLog
+graphRecompute :: FlowCmdM env err m
+               => UserId
                -> NodeId
-               -> (JobLog -> GargNoServer ())
-               -> GargNoServer JobLog
+               -> (JobLog -> m ())
+               -> m JobLog
 graphRecompute u n logStatus = do
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
@@ -274,7 +297,11 @@ graphVersions n nId = do
       pure $ GraphVersions { gv_graph = listVersion
                            , gv_repo = v }
 
-recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
+--recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
+recomputeVersions :: FlowCmdM env err m
+                  => UserId
+                  -> NodeId
+                  -> m Graph
 recomputeVersions uId nId = recomputeGraph uId nId Nothing
 
 ------------------------------------------------------------
@@ -300,9 +327,13 @@ graphClone uId pId (HyperdataGraphAPI { _hyperdataAPIGraph = graph
       pure nId
 
 ------------------------------------------------------------
-getGraphGexf :: UserId
+--getGraphGexf :: UserId
+--             -> NodeId
+--             -> GargNoServer (Headers '[Servant.Header "Content-Disposition" Text] Graph)
+getGraphGexf :: FlowCmdM env err m
+             => UserId
              -> NodeId
-             -> GargNoServer (Headers '[Servant.Header "Content-Disposition" Text] Graph)
+             -> m (Headers '[Servant.Header "Content-Disposition" Text] Graph)
 getGraphGexf uId nId = do
   HyperdataGraphAPI { _hyperdataAPIGraph = graph } <- getGraph uId nId
   pure $ addHeader "attachment; filename=graph.gexf" graph
