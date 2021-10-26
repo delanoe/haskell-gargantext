@@ -25,11 +25,12 @@ module Gargantext.Database.Admin.Types.Hyperdata.User
   where
 
 import Data.Morpheus.Types (GQLType(typeOptions), defaultTypeOptions)
-import Gargantext.Prelude
+import qualified Gargantext.API.GraphQL.Utils as GAGU
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Contact
 import Gargantext.Database.Admin.Types.Node (DocumentId)
+import Gargantext.Prelude
 
 -- import Gargantext.Database.Schema.Node -- (Node(..))
 
@@ -40,8 +41,7 @@ data HyperdataUser =
                    } deriving (Eq, Show, Generic)
 
 instance GQLType HyperdataUser where
-  typeOptions _ = defaultTypeOptions
-    { fieldLabelModifier = unCapitalize . dropPrefix "_hu_" }
+  typeOptions _ = GAGU.unPrefix "_hu_" defaultTypeOptions
 
 data HyperdataPrivate =
      HyperdataPrivate { _hpr_password :: !Text
