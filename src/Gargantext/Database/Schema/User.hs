@@ -20,15 +20,16 @@ Functions to deal with users, database side.
 
 module Gargantext.Database.Schema.User where
 
-import Data.Morpheus.Types (GQLType)
+import Data.Morpheus.Types (GQLType(typeOptions))
 import Data.Text (Text)
 import Data.Time (UTCTime)
+import qualified Gargantext.API.GraphQL.Utils as GAGU
+import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Database.Prelude (fromField')
 import Gargantext.Prelude
 import GHC.Generics (Generic)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Data.Aeson.TH (deriveJSON)
-import Gargantext.Database.Prelude (fromField')
-import Gargantext.Core.Utils.Prefix (unPrefix)
 
 -- FIXME PLZ : the import below leads to an error, why ?
 -- import Gargantext.Database.Schema.Prelude hiding (makeLensesWith, abbreviatedFields, makeAdaptorAndInstance)
@@ -43,7 +44,10 @@ data UserLight = UserLight { userLight_id       :: !Int
                            , userLight_username :: !Text
                            , userLight_email    :: !Text
                            , userLight_password :: !Text
-                           } deriving (Show, Generic, GQLType)
+                           } deriving (Show, Generic)
+
+instance GQLType UserLight where
+  typeOptions _ = GAGU.unPrefix "userLight_"
 
 toUserLight :: UserDB -> UserLight
 toUserLight (UserDB id p _ _ u _ _ e _ _ _ ) = UserLight id u e p

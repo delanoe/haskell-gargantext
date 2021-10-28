@@ -18,8 +18,6 @@ import Data.Maybe (fromMaybe)
 import Data.Morpheus
   ( App
   , deriveApp )
-import Data.Morpheus.App.Internal.Resolving
-  ( failure )
 import Data.Morpheus.Server
   ( httpPlayground
   )

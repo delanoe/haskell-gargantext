@@ -24,7 +24,7 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Hyperdata.User
   where
 
-import Data.Morpheus.Types (GQLType(typeOptions), defaultTypeOptions)
+import Data.Morpheus.Types (GQLType(typeOptions))
 import qualified Gargantext.API.GraphQL.Utils as GAGU
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
@@ -41,19 +41,26 @@ data HyperdataUser =
                    } deriving (Eq, Show, Generic)
 
 instance GQLType HyperdataUser where
-  typeOptions _ = GAGU.unPrefix "_hu_" defaultTypeOptions
+  typeOptions _ = GAGU.unPrefix "_hu_"
 
 data HyperdataPrivate =
      HyperdataPrivate { _hpr_password :: !Text
                       , _hpr_lang     :: !Lang
                       }
-     deriving (Eq, Show, Generic, GQLType)
+     deriving (Eq, Show, Generic)
+
+instance GQLType HyperdataPrivate where
+  typeOptions _ = GAGU.unPrefix "_hpr_"
+
 
 data HyperdataPublic =
      HyperdataPublic { _hpu_pseudo       :: !Text
                      , _hpu_publications :: ![DocumentId]
                      }
-     deriving (Eq, Show, Generic, GQLType)
+     deriving (Eq, Show, Generic)
+
+instance GQLType HyperdataPublic where
+  typeOptions _ = GAGU.unPrefix "_hpu_"
 
 -- | Default
 defaultHyperdataUser :: HyperdataUser

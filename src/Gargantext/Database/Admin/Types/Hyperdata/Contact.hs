@@ -26,6 +26,7 @@ module Gargantext.Database.Admin.Types.Hyperdata.Contact
 
 import Data.Morpheus.Types (GQLType(..))
 import Data.Time.Segment (jour)
+import qualified Gargantext.API.GraphQL.Utils as GAGU
 import Gargantext.Core.Text (HasText(..))
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Prelude
@@ -42,7 +43,10 @@ data HyperdataContact =
                       , _hc_uniqIdBdd       :: Maybe Text
                       , _hc_uniqId          :: Maybe Text
 
-  } deriving (Eq, Show, Generic, GQLType)
+  } deriving (Eq, Show, Generic)
+
+instance GQLType HyperdataContact where
+  typeOptions _ = GAGU.unPrefix "_hc_"
 
 instance HasText HyperdataContact
   where
@@ -89,7 +93,10 @@ data ContactWho =
                 , _cw_lastName    :: Maybe Text
                 , _cw_keywords :: [Text]
                 , _cw_freetags :: [Text]
-  } deriving (Eq, Show, Generic, GQLType)
+  } deriving (Eq, Show, Generic)
+
+instance GQLType ContactWho where
+  typeOptions _ = GAGU.unPrefix "_cw_"
 
 type FirstName = Text
 type LastName  = Text
@@ -118,7 +125,10 @@ data ContactWhere =
 
                   , _cw_entry        :: Maybe NUTCTime
                   , _cw_exit         :: Maybe NUTCTime
-  } deriving (Eq, Show, Generic, GQLType)
+  } deriving (Eq, Show, Generic)
+
+instance GQLType ContactWhere where
+  typeOptions _ = GAGU.unPrefix "_cw_"
 
 defaultContactWhere :: ContactWhere
 defaultContactWhere = ContactWhere ["Organization X"]
@@ -135,7 +145,10 @@ data ContactTouch =
      ContactTouch { _ct_mail      :: Maybe Text
                   , _ct_phone     :: Maybe Text
                   , _ct_url       :: Maybe Text
-  } deriving (Eq, Show, Generic, GQLType)
+  } deriving (Eq, Show, Generic)
+
+instance GQLType ContactTouch where
+  typeOptions _ = GAGU.unPrefix "_ct_"
 
 defaultContactTouch :: ContactTouch
 defaultContactTouch = ContactTouch (Just "email@data.com")

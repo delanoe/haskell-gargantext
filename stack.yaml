@@ -86,8 +86,8 @@ extra-deps:
   commit: 83ada76e78ac10d9559af8ed6bd4064ec81308e4
 - accelerate-arithmetic-1.0.0.1@sha256:555639232aa5cad411e89247b27871d09352b987a754230a288c690b6de6d888,2096
 
-- git: https://github.com/morpheusgraphql/morpheus-graphql.git
-  commit: 339ee745049febbf2e7fd6fabf1e01afab19d0a9
+- git: https://github.com/CGenie/morpheus-graphql.git
+  commit: 899b7bf21274739beae84b27812f76e2a5e67e29
   subdirs:
   - .
   - morpheus-graphql-app
