@@ -178,7 +178,7 @@ datePrefixP = do
 dateP :: Parser Date
 dateP = try datePrefixP
          *> dateISOP
-        -- *> many (noneOf "\n")
+        --  *> many (noneOf "\n")
 
 dateISOP :: Parser Date
 dateISOP = do
