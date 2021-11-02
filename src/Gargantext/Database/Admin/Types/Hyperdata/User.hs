@@ -64,9 +64,11 @@ instance GQLType HyperdataPublic where
 
 -- | Default
 defaultHyperdataUser :: HyperdataUser
-defaultHyperdataUser = HyperdataUser (Just defaultHyperdataPrivate)
-                                   (Just defaultHyperdataContact)
-                                   (Just defaultHyperdataPublic)
+defaultHyperdataUser =
+  HyperdataUser
+    { _hu_private = Just defaultHyperdataPrivate
+    , _hu_shared = Just defaultHyperdataContact
+    , _hu_public = Just defaultHyperdataPublic }
 
 defaultHyperdataPublic :: HyperdataPublic
 defaultHyperdataPublic = HyperdataPublic "pseudo" [1..10]

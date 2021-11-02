@@ -24,6 +24,7 @@ module Gargantext.Database.Query.Table.User
   , updateUserDB
   , queryUserTable
   , getUserHyperdata
+  , getUsersWithHyperdata
   , getUser
   , insertNewUsers
   , selectUsersLightWith
@@ -124,6 +125,12 @@ getUserHyperdata i = do
       row      <- queryNodeTable -< ()
       restrict -< row^.node_id .== (sqlInt4 i')
       returnA  -< row^.node_hyperdata
+
+getUsersWithHyperdata :: Int -> Cmd err [(UserLight, HyperdataUser)]
+getUsersWithHyperdata i = do
+  u <- getUsersWithId i
+  h <- getUserHyperdata i
+  pure $ zip u h
 ------------------------------------------------------------------
 -- | Select User with some parameters
 -- Not optimized version

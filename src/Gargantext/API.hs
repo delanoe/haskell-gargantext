@@ -27,7 +27,7 @@ Pouillard (who mainly made it).
 -}
 
 {-# LANGUAGE ScopedTypeVariables  #-}
-
+{-# LANGUAGE TypeOperators        #-}
 module Gargantext.API
       where
 
@@ -43,6 +43,7 @@ import GHC.Generics (Generic)
 import Gargantext.API.Admin.Auth.Types (AuthContext)
 import Gargantext.API.Admin.Settings (newEnv)
 import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, jwtSettings, settings)
+import Gargantext.API.EKG
 import Gargantext.API.Ngrams (saveNodeStory)
 import Gargantext.API.Prelude
 import Gargantext.API.Routes
@@ -54,11 +55,11 @@ import Network.Wai
 import Network.Wai.Handler.Warp hiding (defaultSettings)
 import Network.Wai.Middleware.Cors
 import Network.Wai.Middleware.RequestLogger
+import Paths_gargantext (getDataDir)
 import Servant
-import System.IO (FilePath)
+import System.FilePath
 
-
-data Mode = Dev | Mock | Prod 
+data Mode = Dev | Mock | Prod
   deriving (Show, Read, Generic)
 
 -- | startGargantext takes as parameters port number and Ini file.
@@ -191,8 +192,14 @@ serverGargAdminAPI =  roots
 --gargMock :: Server GargAPI
 --gargMock = mock apiGarg Proxy
 ---------------------------------------------------------------------
+
 makeApp :: (Typeable env, EnvC env) => env -> IO Application
-makeApp env = serveWithContext api cfg <$> server env
+makeApp env = do
+  serv <- server env
+  (ekgStore, ekgMid) <- newEkgStore api
+  ekgDir <- (</> "ekg-assets") <$> getDataDir
+  return $ ekgMid $ serveWithContext apiWithEkg cfg
+    (ekgServer ekgDir ekgStore :<|> serv)
   where
     cfg :: Servant.Context AuthContext
     cfg = env ^. settings . jwtSettings
@@ -205,6 +212,9 @@ makeApp env = serveWithContext api cfg <$> server env
 ---------------------------------------------------------------------
 api :: Proxy API
 api  = Proxy
+
+apiWithEkg :: Proxy (EkgAPI :<|> API)
+apiWithEkg = Proxy
 
 apiGarg :: Proxy GargAPI
 apiGarg  = Proxy
