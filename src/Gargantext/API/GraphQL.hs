@@ -47,7 +47,8 @@ import Data.Text (Text)
 import qualified Data.Text.Lazy as LT
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import Data.Typeable (Typeable)
-import Gargantext.API.GraphQL.User
+import qualified Gargantext.API.GraphQL.User as GQLUser
+import qualified Gargantext.API.GraphQL.UserInfo as GQLUserInfo
 import Gargantext.API.Prelude (GargServerT, GargM, GargError)
 import Gargantext.Database.Prelude (Cmd, HasConnectionPool, HasConfig)
 import Gargantext.Database.Schema.User (UserPoly(..))
@@ -75,8 +76,14 @@ import Servant
 -- | Represents possible GraphQL queries.
 data Query m
   = Query
-    { users :: UserArgs -> m [User m]
+    { user_infos :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
+    , users :: GQLUser.UserArgs -> m [GQLUser.User m]
     } deriving (Generic, GQLType)
+
+data Mutation m
+  = Mutation
+    { update_user_info :: GQLUserInfo.UserInfoMArgs -> m GQLUserInfo.UserInfo }
+    deriving (Generic, GQLType)
 
 -- | Possible GraphQL Events, i.e. here we describe how we will
 -- manipulate the data.
@@ -90,17 +97,19 @@ data Channel
 
 -- | This type describes what data we will operate on.
 data Contet m
-  = UserContet [User m]
+  = UserContet [GQLUser.User m]
+  | UserInfoContet [GQLUserInfo.UserInfo]
 
 -- | The main GraphQL resolver: how queries, mutations and
 -- subscriptions are handled.
 rootResolver
   :: (HasConnectionPool env, HasConfig env)
-  => RootResolver (GargM env GargError) e Query Undefined Undefined
+  => RootResolver (GargM env GargError) e Query Mutation Undefined
 rootResolver =
   RootResolver
-    { queryResolver = Query { users = resolveUsers }
-    , mutationResolver = Undefined
+    { queryResolver = Query { user_infos = GQLUserInfo.resolveUserInfos
+                            , users = GQLUser.resolveUsers }
+    , mutationResolver = Mutation { update_user_info = GQLUserInfo.updateUserInfo }
     , subscriptionResolver = Undefined }
 
 -- | Main GraphQL "app".
