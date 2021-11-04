@@ -36,7 +36,9 @@ import Gargantext.Database.Admin.Types.Hyperdata.Contact
   , ct_phone
   , hc_who
   , hc_where)
+import Gargantext.Database.Admin.Types.Node (NodeId(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.User (getUsersWithHyperdata)
 import Gargantext.Database.Schema.User (UserLight(..))
 import Gargantext.Prelude
@@ -97,7 +99,7 @@ resolveUserInfos UserInfoArgs { user_id } = dbUsers user_id
 -- | Mutation for user info
 updateUserInfo
   :: (HasConnectionPool env, HasConfig env)
-  => UserInfoMArgs -> ResolverM e (GargM env GargError) UserInfo
+  => UserInfoMArgs -> ResolverM e (GargM env GargError) Int
 updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
   lift $ printDebug "[updateUserInfo] ui_id" ui_id
   users <- lift (getUsersWithHyperdata ui_id)
@@ -119,7 +121,9 @@ updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
                          uh ui_cwTouchPhoneL ui_cwTouchPhone $
                          u_hyperdata
       lift $ printDebug "[updateUserInfo] with firstName" u_hyperdata'
-      pure $ toUser (u, u_hyperdata')
+      _ <- lift $ updateHyperdata (NodeId ui_id) u_hyperdata'
+      --let _newUser = toUser (u, u_hyperdata')
+      pure 1
   where
     uh _ Nothing u_hyperdata = u_hyperdata
     uh lens' (Just val) u_hyperdata = u_hyperdata & lens' .~ Just val

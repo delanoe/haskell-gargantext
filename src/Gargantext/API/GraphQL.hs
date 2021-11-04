@@ -82,7 +82,7 @@ data Query m
 
 data Mutation m
   = Mutation
-    { update_user_info :: GQLUserInfo.UserInfoMArgs -> m GQLUserInfo.UserInfo }
+    { update_user_info :: GQLUserInfo.UserInfoMArgs -> m Int }
     deriving (Generic, GQLType)
 
 -- | Possible GraphQL Events, i.e. here we describe how we will
