@@ -8,6 +8,7 @@
 
 module Gargantext.API.GraphQL where
 
+import Control.Lens ((#))
 import Control.Monad.Base (liftBase)
 import Control.Monad.IO.Class (liftIO)
 import Data.ByteString.Lazy.Char8
@@ -47,9 +48,10 @@ import Data.Text (Text)
 import qualified Data.Text.Lazy as LT
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import Data.Typeable (Typeable)
+import Gargantext.API.Admin.Auth.Types (AuthenticatedUser)
 import qualified Gargantext.API.GraphQL.User as GQLUser
 import qualified Gargantext.API.GraphQL.UserInfo as GQLUserInfo
-import Gargantext.API.Prelude (GargServerT, GargM, GargError)
+import Gargantext.API.Prelude (GargServerT, GargM, GargError, _ServerError)
 import Gargantext.Database.Prelude (Cmd, HasConnectionPool, HasConfig)
 import Gargantext.Database.Schema.User (UserPoly(..))
 import Gargantext.Prelude
@@ -71,7 +73,10 @@ import Servant
     Post,
     ReqBody,
     ServerT,
+    err401
   )
+import qualified Servant.Auth as SA
+import qualified Servant.Auth.Server as SAS
 
 -- | Represents possible GraphQL queries.
 data Query m
@@ -137,7 +142,8 @@ type GQAPI = ReqBody '[JSON] GQLRequest :> Post '[JSON] GQLResponse
 type Playground = Get '[HTML] ByteString
 -- type API' (name :: Symbol) = name :> (GQAPI :<|> Schema :<|> Playground)
 -- | Our API consists of `GQAPI` and `Playground`.
-type API = "gql" :> (GQAPI :<|> Playground)
+type API = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser
+            :> "gql" :> (GQAPI :<|> Playground)
 
 -- serveEndpoint ::
 --   ( SubApp ServerApp e
@@ -156,4 +162,5 @@ type API = "gql" :> (GQAPI :<|> Playground)
 api
   :: (Typeable env, HasConnectionPool env, HasConfig env)
   => ServerT API (GargM env GargError)
-api = httpPubApp [] app :<|> pure httpPlayground
+api (SAS.Authenticated _auser) = httpPubApp [] app :<|> pure httpPlayground
+api _                         = panic "401 in graphql" --SAS.throwAll (_ServerError # err401)

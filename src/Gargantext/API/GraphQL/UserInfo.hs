@@ -185,6 +185,8 @@ ui_cwOfficeL = contactWhereL . cw_office
 ui_cwRoleL :: Traversal' HyperdataUser (Maybe Text)
 ui_cwRoleL = contactWhereL . cw_role
 ui_cwTouchMailL :: Traversal' HyperdataUser (Maybe Text)
-ui_cwTouchMailL = contactWhereL . cw_touch . _Just . ct_mail
+ui_cwTouchMailL = hu_shared . _Just . (hc_where . (ix 0) . cw_touch . _Just . ct_mail)
+--ui_cwTouchMailL = contactWhereL . cw_touch . _Just . ct_mail
 ui_cwTouchPhoneL :: Traversal' HyperdataUser (Maybe Text)
-ui_cwTouchPhoneL = contactWhereL . cw_touch . _Just . ct_phone
+ui_cwTouchPhoneL = hu_shared . _Just . (hc_where . (ix 0) . cw_touch . _Just . ct_phone)
+--ui_cwTouchPhoneL = contactWhereL . cw_touch . _Just . ct_phone
