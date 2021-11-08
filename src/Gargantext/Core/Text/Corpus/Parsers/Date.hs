@@ -119,7 +119,7 @@ getTimeValue rt = case head rt of
     Nothing
   Just x  -> case rval x of
     RVal Time t -> Just $ toJSON t
-    _  -> do 
+    _  -> do
       Nothing
 
 extractValue :: Maybe Value -> Maybe Text

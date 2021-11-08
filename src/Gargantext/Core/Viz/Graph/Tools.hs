@@ -27,8 +27,10 @@ import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
-import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass, ClusterNode)
+import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
 import Gargantext.Prelude
+import Graph.Types (ClusterNode)
+import qualified Graph.BAC.ProxemyOptim as BAC
 import IGraph.Random -- (Gen(..))
 import qualified Data.HashMap.Strict      as HashMap
 import qualified Data.List                as List
@@ -40,12 +42,10 @@ import qualified IGraph.Algorithms.Layout as Layout
 
 
 -------------------------------------------------------------
-
 defaultClustering :: Map (Int, Int) Double -> IO [ClusterNode]
-defaultClustering = spinglass 1
+defaultClustering x = pure $ BAC.defaultClustering x
 
 -------------------------------------------------------------
-
 type Threshold = Double
 
 cooc2graph' :: Ord t => Distance

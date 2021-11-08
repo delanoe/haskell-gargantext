@@ -1,6 +1,10 @@
 {-|
 Module      : Gargantext.Core.Text.Corpus.Parsers.Wikidata
+<<<<<<< HEAD
 Description : To query Wikidata 
+=======
+Description : To query Wikidata
+>>>>>>> dev-clustering
 Copyright   : (c) CNRS, 2019-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -29,7 +33,7 @@ import Gargantext.Core.Text.Corpus.Parsers.Date (dateSplit)
 
 
 
-data WikiResult = WikiResult { _wr_cid         :: Maybe Text 
+data WikiResult = WikiResult { _wr_cid         :: Maybe Text
                              , _wr_title       :: Maybe Text
                              , _wr_url         :: Maybe Text
                              , _wr_yearStart   :: Maybe Text
@@ -48,10 +52,9 @@ wikidataGet n m = do
 
 wikiPageToDocument :: NumberOfSections -> WikiResult ->  IO HyperdataDocument
 wikiPageToDocument m wr = do
- 
   sections <- case wr ^. wr_url of
     Nothing -> pure []
-    Just  u -> crawlPage u 
+    Just  u -> crawlPage u
 
   let bdd    = Just "wikidata"
       doi    = Nothing
@@ -128,6 +131,4 @@ wikidataQuery n = List.unlines
       ,"     }"
       ,"       LIMIT " <> (cs $ show n)
       ]
-
-
 

@@ -4,7 +4,7 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
-#- 'deps/patches-class'
+  #- 'deps/gargantext-graph'
 #- 'deps/patches-map'
 #- 'deps/accelerate'
 #- 'deps/accelerate-utility'
@@ -30,6 +30,9 @@ extra-deps:
 - #git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
   git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude.git
   commit: 35b09629a658fc16cc9ff63e7591e58511cd98a7
+  #git: ssh://git@gitlab.iscpif.fr:20022/gargantext/gargantext-graph.git
+- git: ssh://gitolite3@delanoe.org/gargantext-graph
+  commit: 294887a220460bd0c114638fff9ea53306cd2f18
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
@@ -88,7 +91,18 @@ extra-deps:
 - git: https://github.com/rspeer/wikiparsec.git
   commit: 9637a82344bb70f7fa8f02e75db3c081ccd434ce
 
-  # Others dependencies (using stack resolver)
+  # Gargantext-graph
+- eigen-3.3.7.0@sha256:7c24a86426b238e02ba0ac2179cc44997518b443a13828ed7a791fe49a6dffa5,82060
+- git: https://github.com/alpmestan/sparse-linear.git
+  commit: bc6ca8058077b0b5702ea4b88bd4189cfcad267a
+  subdirs:
+    - sparse-linear
+- git: https://github.com/alpmestan/hmatrix.git
+  commit: b9fca8beee0f23c17a6b2001ec834d071709e6e7
+  subdirs:
+    - packages/base
+
+      # Others dependencies (using stack resolver)
 - constraints-extras-0.3.1.0@sha256:12016ebb91ad5ed2c82bf7e48c6bd6947d164d33c9dca5ac3965de1bb6c780c0,1777
 - KMP-0.2.0.0@sha256:6dfbac03ef00ebd9347234732cb86a40f62ab5a80c0cc6bedb8eb51766f7df28,2562
 - Unique-0.4.7.8@sha256:9661f45aa31dde119a2114566166ea38b011a45653337045ee4ced75636533c0,2067
@@ -122,3 +136,10 @@ extra-deps:
 - taggy-0.2.1@sha256:7bc55ddba178971dc6052163597f0445a0a2b5b0ca0e84ce651d53d722e3c265,4662
 
 - servant-ekg-0.3.1@sha256:19bd9dc3943983da8e79d6f607614c68faea4054fb889d508c8a2b67b6bdd448,2203
+
+
+# For the graph clustering
+ghc-options:
+  hmatrix: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
+  sparse-linear: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
+  gargantext-graph: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack

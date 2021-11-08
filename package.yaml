@@ -158,6 +158,7 @@ library:
   - full-text-search
   - fullstop
   - gargantext-prelude
+  - gargantext-graph >= 0.1.0.0
   - graphviz
   - hashable
   - haskell-igraph

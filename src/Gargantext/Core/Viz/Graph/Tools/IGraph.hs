@@ -20,6 +20,7 @@ import Data.Singletons (SingI)
 import IGraph hiding (mkGraph, neighbors, edges, nodes, Node, Graph)
 import Protolude
 import Gargantext.Core.Viz.Graph.Index
+import Graph.Types
 import qualified Data.List                   as List
 import qualified IGraph                      as IG
 import qualified IGraph.Algorithms.Clique    as IG
@@ -81,10 +82,6 @@ partitions_spinglass' s g = do
   gen <- IG.withSeed s pure
   IG.findCommunity g Nothing Nothing IG.spinglass gen
 
-
-data ClusterNode = ClusterNode { cl_node_id :: Int
-                               , cl_community_id :: Int
-                               }
 
 toClusterNode :: [[Int]] -> [ClusterNode]
 toClusterNode ns = List.concat
