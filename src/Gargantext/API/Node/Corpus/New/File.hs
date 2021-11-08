@@ -63,6 +63,7 @@ instance FromHttpApiData FileType
     parseUrlPiece "CSV_HAL"   = pure CSV_HAL
     parseUrlPiece "PresseRis" = pure PresseRIS
     parseUrlPiece "ZIP"       = pure ZIP
+    parseUrlPiece "WOS"       = pure WOS
     parseUrlPiece _           = pure CSV -- TODO error here
 
 
