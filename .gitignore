@@ -11,6 +11,7 @@ profiling
 
 # Stack
 .stack-work
+dist-newstyle
 
 # Emacs
 TAGS
@@ -33,5 +34,7 @@ _darcs
 # Runtime
 
 # Repo
+repos
 repo.json*
 tmp*repo*json
+data

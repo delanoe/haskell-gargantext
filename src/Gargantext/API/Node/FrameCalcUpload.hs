@@ -27,6 +27,7 @@ import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Admin.Types.Hyperdata.Frame
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Prelude (HasConfig)
 import Gargantext.Database.Query.Table.Node (getClosestParentIdByType, getNodeWith)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
@@ -39,21 +40,21 @@ instance FromJSON FrameCalcUpload
 instance ToJSON FrameCalcUpload
 instance ToSchema FrameCalcUpload
 
-type FrameCalcUploadAPI = Summary " FrameCalc upload"
-                        :> "add"
-                        :> "framecalc"
-                        :> "async"
-                        :> AsyncJobs JobLog '[JSON] FrameCalcUpload JobLog
+type API = Summary " FrameCalc upload"
+           :> "add"
+           :> "framecalc"
+           :> "async"
+           :> AsyncJobs JobLog '[JSON] FrameCalcUpload JobLog
 
-frameCalcUploadAPI :: UserId -> NodeId -> GargServer FrameCalcUploadAPI
-frameCalcUploadAPI uId nId =
+api :: UserId -> NodeId -> GargServer API
+api uId nId =
   serveJobsAPI $ 
     JobFunction (\p logs ->
                    frameCalcUploadAsync uId nId p (liftBase . logs) (jobLogInit 5)
                 )
 
 
-frameCalcUploadAsync :: FlowCmdM env err m
+frameCalcUploadAsync :: (HasConfig env, FlowCmdM env err m)
                      => UserId
                      -> NodeId
                      -> FrameCalcUpload

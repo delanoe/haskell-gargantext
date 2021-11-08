@@ -205,21 +205,24 @@ data2graph :: ToComId a
            -> Map (Int, Int) Double
            -> [a]
            -> Graph
-data2graph labels coocs bridge conf partitions = Graph nodes edges Nothing
+data2graph labels coocs bridge conf partitions = Graph { _graph_nodes = nodes
+                                                       , _graph_edges = edges
+                                                       , _graph_metadata = Nothing }
   where
 
     community_id_by_node_id = Map.fromList $ map nodeId2comId partitions
 
     nodes = map (setCoord ForceAtlas labels bridge)
           [ (n, Node { node_size = maybe 0 identity (Map.lookup (n,n) coocs)
-                   , node_type = Terms -- or Unknown
-                   , node_id    = cs (show n)
-                   , node_label = l
-                   , node_x_coord = 0
-                   , node_y_coord = 0
-                   , node_attributes =
-                     Attributes { clust_default = maybe 0 identity
-                                (Map.lookup n community_id_by_node_id) } }
+                     , node_type = Terms -- or Unknown
+                     , node_id    = cs (show n)
+                     , node_label = l
+                     , node_x_coord = 0
+                     , node_y_coord = 0
+                     , node_attributes =
+                       Attributes { clust_default = maybe 0 identity
+                                    (Map.lookup n community_id_by_node_id) }
+                     , node_children = [] }
                )
             | (l, n) <- labels
             , Set.member n $ Set.fromList

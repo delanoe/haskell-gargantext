@@ -11,6 +11,7 @@ packages:
 
 docker:
   enable: false
+  #enable: true
   repo: 'cgenie/stack-build:lts-18.12-garg'
   run-args:
     - '--publish=8008:8008'
@@ -26,8 +27,9 @@ allow-newer: true
 #  "$everything": -haddock
 
 extra-deps:
-- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-  commit: 3e32ec3aca71eb326805355d3a99b9288dc342ee 
+- #git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
+  git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude.git
+  commit: 35b09629a658fc16cc9ff63e7591e58511cd98a7
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
@@ -44,7 +46,7 @@ extra-deps:
 
   # Databases libs
 - git: https://github.com/delanoe/haskell-opaleye.git
-  commit: 806da7f9fb6fe1032f51c1822fc224b281cdd84f
+  commit: d3ab7acd5ede737478763630035aa880f7e34444
 - git: https://github.com/delanoe/hsparql.git
   commit: 2acbbc55ac9bbd4bf1a713c586b8b8e8b82892eb
 - git: https://github.com/robstewart57/rdf4h.git
@@ -119,3 +121,4 @@ extra-deps:
 - taggy-lens-0.1.2@sha256:091ca81d02bd3d7fb493dce0148e1a38f25eb178a1ebd751043a23239e5e3265,3009
 - taggy-0.2.1@sha256:7bc55ddba178971dc6052163597f0445a0a2b5b0ca0e84ce651d53d722e3c265,4662
 
+- servant-ekg-0.3.1@sha256:19bd9dc3943983da8e79d6f607614c68faea4054fb889d508c8a2b67b6bdd448,2203

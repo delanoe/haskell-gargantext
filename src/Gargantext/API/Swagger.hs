@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -freduction-depth=400 #-}
+
 {-|
 Module      : Gargantext.API.Swagger
 Description : Swagger API generation
