@@ -32,7 +32,6 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Aeson hiding ((.=), decode)
 import Data.Map.Strict (Map)
-import Data.Maybe (fromMaybe)
 import Data.Monoid
 import Data.Semigroup
 import GHC.Generics (Generic)
@@ -48,7 +47,6 @@ import System.IO.Temp (withTempFile)
 import qualified Data.ByteString.Lazy                   as DBL
 import qualified Data.List                              as List
 import qualified Data.Map.Strict                        as Map
-import qualified Data.Map.Strict.Patch.Internal         as Patch
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 ------------------------------------------------------------------------
@@ -207,6 +205,7 @@ nodeStoryPath repoDir nId = repoDir <> "/" <> filename
 
 ------------------------------------------------------------------------
 -- TODO : repo Migration TODO TESTS
+{-
 repoMigration :: NodeStoryDir -> NgramsRepo -> IO ()
 repoMigration fp r = writeNodeStories fp (repoToNodeListStory r)
 
@@ -249,7 +248,7 @@ ngramsStatePatch_migration np' = Map.fromListWith (<>)
                        -> (nid, [fst $ Patch.singleton nt table])
                      ) $ Patch.toList nTable
             ) $ Patch.toList p
-
+-}
 ------------------------------------------------------------------------
 
 {- | Node Story for each NodeType where the Key of the Map is NodeId

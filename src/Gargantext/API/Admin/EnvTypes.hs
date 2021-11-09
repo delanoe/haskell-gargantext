@@ -14,7 +14,6 @@ import Servant.Job.Async (HasJobEnv(..), Job)
 import System.Log.FastLogger
 import qualified Servant.Job.Core
 
-import Gargantext.API.Ngrams.Types (HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..))
 import Gargantext.API.Admin.Types
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.Database.Prelude (HasConnectionPool(..), HasConfig(..))
@@ -26,7 +25,6 @@ data Env = Env
   { _env_settings  :: !Settings
   , _env_logger    :: !LoggerSet
   , _env_pool      :: !(Pool Connection)
-  , _env_repo      :: !RepoEnv
   , _env_nodeStory :: !NodeStoryEnv
   , _env_manager   :: !Manager
   , _env_self_url  :: !BaseUrl
@@ -55,15 +53,6 @@ instance HasNodeStorySaver Env where
 instance HasSettings Env where
   settings = env_settings
 
--- Specific to Repo
-instance HasRepoVar Env where
-  repoVar = repoEnv . repoVar
-instance HasRepoSaver Env where
-  repoSaver = repoEnv . repoSaver
-instance HasRepo Env where
-  repoEnv = env_repo
-
-
 
 
 instance Servant.Job.Core.HasEnv Env (Job JobLog JobLog) where
@@ -83,7 +72,6 @@ makeLenses ''MockEnv
 
 data DevEnv = DevEnv
   { _dev_env_settings  :: !Settings
-  , _dev_env_repo      :: !RepoEnv
   , _dev_env_config    :: !GargConfig
   , _dev_env_pool      :: !(Pool Connection)
   , _dev_env_nodeStory :: !NodeStoryEnv
@@ -110,12 +98,5 @@ instance HasNodeStoryVar DevEnv where
 instance HasNodeStorySaver DevEnv where
   hasNodeStorySaver = hasNodeStory . nse_saver
 
-
-instance HasRepoVar DevEnv where
-  repoVar = repoEnv . repoVar
-instance HasRepoSaver DevEnv where
-  repoSaver = repoEnv . repoSaver
-instance HasRepo DevEnv where
-  repoEnv = dev_env_repo
 
 
