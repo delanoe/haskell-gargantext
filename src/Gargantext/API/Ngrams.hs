@@ -33,7 +33,6 @@ module Gargantext.API.Ngrams
   , apiNgramsTableCorpus
   , apiNgramsTableDoc
 
-  , NgramsStatePatch
   , NgramsTablePatch
   , NgramsTableMap
 
@@ -52,14 +51,9 @@ module Gargantext.API.Ngrams
   , r_version
   , r_state
   , r_history
-  , NgramsRepo
   , NgramsRepoElement(..)
   , saveNodeStory
   , initRepo
-
-  , RepoEnv(..)
-  , renv_var
-  , renv_lock
 
   , TabType(..)
 

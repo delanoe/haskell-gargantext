@@ -31,7 +31,7 @@ type IniPath  = FilePath
 withDevEnv :: IniPath -> (DevEnv -> IO a) -> IO a
 withDevEnv iniPath k = do
   env <- newDevEnv
-  k env `finally` cleanEnv env
+  k env -- `finally` cleanEnv env
 
   where
     newDevEnv = do
@@ -39,11 +39,9 @@ withDevEnv iniPath k = do
       dbParam <- databaseParameters iniPath
       nodeStory_env <- readNodeStoryEnv (_gc_repofilepath cfg)
       pool    <- newPool            dbParam
-      repo    <- readRepoEnv        (_gc_repofilepath cfg)
       setts   <- devSettings devJwkFile
       pure $ DevEnv
         { _dev_env_pool     = pool
-        , _dev_env_repo     = repo
         , _dev_env_nodeStory  = nodeStory_env
         , _dev_env_settings = setts
         , _dev_env_config   = cfg

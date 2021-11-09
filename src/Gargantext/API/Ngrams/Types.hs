@@ -11,8 +11,7 @@ module Gargantext.API.Ngrams.Types where
 
 import Codec.Serialise (Serialise())
 import Control.Category ((>>>))
-import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~), Getter)
+import Control.Lens (makeLenses, makePrisms, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~))
 import Control.Monad.State
 import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
@@ -39,7 +38,7 @@ import Gargantext.Prelude.Crypto.Hash (IsHashable(..))
 import Protolude (maybeToEither)
 import Servant hiding (Patch)
 import Servant.Job.Utils (jsonOptions)
-import System.FileLock (FileLock)
+-- import System.FileLock (FileLock)
 import Test.QuickCheck (elements, frequency)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.HashMap.Strict.InsOrd             as InsOrdHashMap
@@ -676,11 +675,6 @@ data Repo s p = Repo
   }
   deriving (Generic, Show)
 
--- | TO REMOVE
-type NgramsRepo       = Repo     NgramsState NgramsStatePatch
-type NgramsState      = Map      TableNgrams.NgramsType (Map NodeId NgramsTableMap)
-type NgramsStatePatch = PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTablePatch)
-
 ----------------------------------------------------------------------
 
 instance (FromJSON s, FromJSON p) => FromJSON (Repo s p) where
@@ -697,52 +691,16 @@ makeLenses ''Repo
 initRepo :: Monoid s => Repo s p
 initRepo = Repo 1 mempty []
 
-instance Serialise (PM.PatchMap NodeId NgramsTablePatch)
-instance Serialise NgramsStatePatch
 
-initMockRepo :: NgramsRepo
-initMockRepo = Repo 1 s []
-  where
-    s = Map.singleton TableNgrams.NgramsTerms
-      $ Map.singleton 47254
-      $ Map.fromList
-      [ (n ^. ne_ngrams, ngramsElementToRepo n) | n <- mockTable ^. _NgramsTable ]
 
 --------------------
 
-data RepoEnv = RepoEnv
-  { _renv_var   :: !(MVar NgramsRepo)
-  , _renv_saver :: !(IO ())
-  , _renv_lock  :: !FileLock
-  }
-  deriving (Generic)
-
-makeLenses ''RepoEnv
-
 type RepoCmdM   env err m =
   ( CmdM'             env err m
-  , HasRepo           env
   , HasConnectionPool env
   , HasConfig         env
   )
 
-class (HasRepoVar env, HasRepoSaver env)
-  => HasRepo env where
-  repoEnv :: Getter env RepoEnv
-class HasRepoVar env where
-  repoVar :: Getter env (MVar NgramsRepo)
-class HasRepoSaver env where
-  repoSaver :: Getter env (IO ())
-
-
-instance HasRepo RepoEnv where
-  repoEnv = identity
-instance HasRepoVar (MVar NgramsRepo) where
-  repoVar = identity
-instance HasRepoVar RepoEnv where
-  repoVar = renv_var
-instance HasRepoSaver RepoEnv where
-  repoSaver = renv_saver
 
 ------------------------------------------------------------------------
 
