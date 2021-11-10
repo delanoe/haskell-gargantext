@@ -102,6 +102,7 @@ import Gargantext.API.Job
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude
 import Gargantext.Core.NodeStory
+import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid, HasInvalidError)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.Database.Action.Flow.Types
@@ -280,7 +281,7 @@ newNgramsFromNgramsStatePatch p =
 
 
 
-commitStatePatch :: HasNodeStory env err m
+commitStatePatch :: (HasNodeStory env err m, HasMail env)
                  => ListId
                  ->    Versioned NgramsStatePatch'
                  -> m (Versioned NgramsStatePatch')
@@ -346,8 +347,9 @@ tableNgramsPull listId ngramsType p_version = do
 -- client.
 -- TODO-ACCESS check
 tableNgramsPut :: ( HasNodeStory env err m
-                   , HasInvalidError err
+                  , HasInvalidError err
                   , HasSettings env
+                  , HasMail env
                   )
                  => TabType
                  -> ListId
@@ -494,7 +496,7 @@ type MaxSize = Int
 
 
 getTableNgrams :: forall env err m.
-                  (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+                  (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env, HasMail env)
                => NodeType -> NodeId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
@@ -617,7 +619,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
 
 
 scoresRecomputeTableNgrams :: forall env err m.
-  (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+  (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env, HasMail env)
   => NodeId -> TabType -> ListId -> m Int
 scoresRecomputeTableNgrams nId tabType listId = do
   tableMap <- getNgramsTableMap listId ngramsType
@@ -712,7 +714,7 @@ type TableNgramsAsyncApi = Summary "Table Ngrams Async API"
                            :> "update"
                            :> AsyncJobs JobLog '[JSON] UpdateTableNgramsCharts JobLog
 
-getTableNgramsCorpus :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+getTableNgramsCorpus :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env, HasMail env)
                => NodeId
                -> TabType
                -> ListId
@@ -746,7 +748,7 @@ getTableNgramsVersion _nId _tabType listId = currentVersion listId
 
 
 -- | Text search is deactivated for now for ngrams by doc only
-getTableNgramsDoc :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+getTableNgramsDoc :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env, HasMail env)
                => DocId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType

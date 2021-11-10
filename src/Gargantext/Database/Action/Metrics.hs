@@ -18,6 +18,7 @@ import Data.Vector (Vector)
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo')
 import Gargantext.API.Ngrams.Types (TabType(..), ngramsTypeFromTabType, NgramsTerm)
 import Gargantext.Core.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
+import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types (ListType(..), Limit, NodeType(..))
 import Gargantext.Core.NodeStory
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
@@ -62,7 +63,7 @@ getNgramsCooc cId maybeListId tabType maybeLimit = do
 
 
 
-getNgrams :: (HasNodeStory env err m)
+getNgrams :: (HasMail env, HasNodeStory env err m)
             => CorpusId -> Maybe ListId -> TabType
             -> m ( HashMap NgramsTerm (ListType, Maybe NgramsTerm)
                  , HashMap NgramsTerm (Maybe RootTerm)
