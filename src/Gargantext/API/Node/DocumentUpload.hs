@@ -107,6 +107,6 @@ documentUpload uId nId doc logStatus = do
                              , _hd_publication_minute = Nothing
                              , _hd_publication_second = Nothing
                              , _hd_language_iso2 = Just $ T.pack $ show EN }
-  _ <- flowDataText (RootId (NodeId uId)) (DataNew [[hd]]) (Multi EN) cId Nothing
+  _ <- flowDataText (RootId (NodeId uId)) (DataNew [[hd]]) (Multi EN) cId Nothing logStatus
 
   pure $ jobLogSuccess jl

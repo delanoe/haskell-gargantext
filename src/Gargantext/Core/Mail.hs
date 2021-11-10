@@ -7,18 +7,18 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-TODO put main configuration variables in gargantext.ini
-
 -}
 
-module Gargantext.Core.Mail
-  where
+module Gargantext.Core.Mail where
 
+import Control.Lens ((^.))
 import Data.Text (Text, unlines, splitOn)
 import Gargantext.Core.Types.Individu
 import Gargantext.Prelude
 import Gargantext.Prelude.Mail (gargMail, GargMail(..))
+import Gargantext.Prelude.Mail.Types (MailConfig, mc_mail_host)
 import qualified Data.List as List
+
 
 -- | Tool to put elsewhere
 isEmail :: Text -> Bool
@@ -38,12 +38,12 @@ data MailModel = Invitation { invitation_user :: NewUser GargPassword }
                             }
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-mail :: ServerAddress -> MailModel -> IO ()
-mail server model = gargMail (GargMail m (Just u) subject body)
+mail :: MailConfig -> MailModel -> IO ()
+mail cfg model = gargMail cfg (GargMail m (Just u) subject body)
   where
     (m,u)   = email_to         model
     subject = email_subject    model
-    body    = emailWith server model
+    body    = emailWith (cfg ^. mc_mail_host) model
 
 ------------------------------------------------------------------------
 emailWith :: ServerAddress -> MailModel -> Text

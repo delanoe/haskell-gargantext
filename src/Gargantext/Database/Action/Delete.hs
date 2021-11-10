@@ -21,25 +21,26 @@ import Control.Lens     (view, (^.))
 import Data.Text
 import Servant
 
-import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Action.User (getUserId)
-import Gargantext.Database.Action.Share (delFolderTeam)
 import Gargantext.Core
+import Gargantext.Core.Mail.Types (HasMail)
+import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Action.Share (delFolderTeam)
+import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Admin.Types.Hyperdata.File
 import Gargantext.Database.Admin.Types.Node -- (NodeType(..))
 import Gargantext.Database.Prelude (Cmd', HasConfig, HasConnectionPool)
-import qualified Gargantext.Database.Query.Table.Node as N (getNode, deleteNode)
 import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import qualified Gargantext.Database.GargDB as GargDB
+import qualified Gargantext.Database.Query.Table.Node as N (getNode, deleteNode)
 
 ------------------------------------------------------------------------
 -- TODO
 -- Delete Corpus children accoring its types
 -- Delete NodeList (NodeStory + cbor file)
-deleteNode :: (HasConfig env, HasConnectionPool env, HasNodeError err)
+deleteNode :: (HasMail env, HasConfig env, HasConnectionPool env, HasNodeError err)
            => User
            -> NodeId
            -> Cmd' env err Int

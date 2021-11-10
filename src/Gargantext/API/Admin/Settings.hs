@@ -46,6 +46,7 @@ import Gargantext.API.Admin.Types
 import Gargantext.Database.Prelude (databaseParameters)
 import Gargantext.Prelude
 -- import Gargantext.Prelude.Config (gc_repofilepath)
+import qualified Gargantext.Prelude.Mail as Mail
 
 devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
@@ -182,6 +183,7 @@ newEnv port file = do
   nodeStory_env <- readNodeStoryEnv (_gc_repofilepath config_env)
   scrapers_env  <- newJobEnv defaultSettings manager_env
   logger        <- newStderrLoggerSet defaultBufSize
+  config_mail   <- Mail.readConfig file
 
   pure $ Env
     { _env_settings  = settings'
@@ -192,6 +194,7 @@ newEnv port file = do
     , _env_scrapers  = scrapers_env
     , _env_self_url  = self_url_env
     , _env_config    = config_env
+    , _env_mail      = config_mail
     }
 
 newPool :: ConnectInfo -> IO (Pool Connection)

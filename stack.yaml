@@ -28,9 +28,7 @@ allow-newer: true
 
 extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-  #git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude.git
-  commit: 35b09629a658fc16cc9ff63e7591e58511cd98a7
-  #git: ssh://git@gitlab.iscpif.fr:20022/gargantext/gargantext-graph.git
+  commit: 6bfdb29e9a576472c7fd7ebe648ad101e5b3927f
 - git: ssh://gitolite3@delanoe.org/gargantext-graph
   commit: 294887a220460bd0c114638fff9ea53306cd2f18
   # Data Mining Libs

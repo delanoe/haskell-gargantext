@@ -20,6 +20,7 @@ TODO-ACCESS Critical
 
 -}
 
+{-# LANGUAGE MonoLocalBinds      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Gargantext.API.Admin.Auth
@@ -35,17 +36,18 @@ import Servant
 import Servant.Auth.Server
 import qualified Gargantext.Prelude.Crypto.Auth as Auth
 
-import Gargantext.API.Admin.Types
 import Gargantext.API.Admin.Auth.Types
+import Gargantext.API.Admin.Types
 import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC)
+import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types.Individu (User(..), Username, GargPassword(..))
+import Gargantext.Database.Admin.Types.Node (NodeId(..), UserId)
+import Gargantext.Database.Prelude (Cmd', CmdM, HasConnectionPool, HasConfig)
+import Gargantext.Database.Query.Table.User
 import Gargantext.Database.Query.Tree (isDescendantOf, isIn)
 import Gargantext.Database.Query.Tree.Root (getRoot)
 import Gargantext.Database.Schema.Node (NodePoly(_node_id))
-import Gargantext.Database.Admin.Types.Node (NodeId(..), UserId)
-import Gargantext.Database.Prelude (Cmd', CmdM, HasConnectionPool, HasConfig)
 import Gargantext.Prelude hiding (reverse)
-import Gargantext.Database.Query.Table.User
 
 ---------------------------------------------------
 
@@ -60,7 +62,7 @@ makeTokenForUser uid = do
   either joseError (pure . toStrict . decodeUtf8) e
   -- TODO not sure about the encoding...
 
-checkAuthRequest :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env)
+checkAuthRequest :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
                  => Username
                  -> GargPassword
                  -> Cmd' env err CheckAuth
@@ -79,7 +81,7 @@ checkAuthRequest u (GargPassword p) = do
               token <- makeTokenForUser uid
               pure $ Valid token uid
 
-auth :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env)
+auth :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
      => AuthRequest -> Cmd' env err AuthResponse
 auth (AuthRequest u p) = do
   checkAuthRequest' <- checkAuthRequest u p
