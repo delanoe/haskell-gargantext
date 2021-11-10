@@ -27,8 +27,8 @@ allow-newer: true
 #  "$everything": -haddock
 
 extra-deps:
-- #git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-  git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude.git
+- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
+  #git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude.git
   commit: 35b09629a658fc16cc9ff63e7591e58511cd98a7
   #git: ssh://git@gitlab.iscpif.fr:20022/gargantext/gargantext-graph.git
 - git: ssh://gitolite3@delanoe.org/gargantext-graph
