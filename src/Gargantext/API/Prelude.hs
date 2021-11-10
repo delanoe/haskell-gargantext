@@ -34,6 +34,7 @@ import Data.Validity
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Admin.Types
 import Gargantext.Core.NodeStory
+import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (NodeError(..), HasNodeError(..))
@@ -54,7 +55,8 @@ type EnvC env =
   , HasSettings       env  -- TODO rename HasDbSettings
   , HasJobEnv         env JobLog JobLog
   , HasConfig         env
-  , HasNodeStoryEnv    env
+  , HasNodeStoryEnv   env
+  , HasMail           env
   )
 
 type ErrC err =

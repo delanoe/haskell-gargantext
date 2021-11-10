@@ -16,10 +16,12 @@ import qualified Servant.Job.Core
 
 import Gargantext.API.Admin.Types
 import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.Core.NodeStory
+import Gargantext.Core.Mail.Types (HasMail, mailSettings)
 import Gargantext.Database.Prelude (HasConnectionPool(..), HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..))
-import Gargantext.Core.NodeStory
+import Gargantext.Prelude.Mail.Types (MailConfig)
 
 data Env = Env
   { _env_settings  :: !Settings
@@ -30,6 +32,7 @@ data Env = Env
   , _env_self_url  :: !BaseUrl
   , _env_scrapers  :: !ScrapersEnv
   , _env_config    :: !GargConfig
+  , _env_mail      :: !MailConfig
   }
   deriving (Generic)
 
@@ -53,6 +56,8 @@ instance HasNodeStorySaver Env where
 instance HasSettings Env where
   settings = env_settings
 
+instance HasMail Env where
+  mailSettings = env_mail
 
 
 instance Servant.Job.Core.HasEnv Env (Job JobLog JobLog) where
@@ -75,6 +80,7 @@ data DevEnv = DevEnv
   , _dev_env_config    :: !GargConfig
   , _dev_env_pool      :: !(Pool Connection)
   , _dev_env_nodeStory :: !NodeStoryEnv
+  , _dev_env_mail      :: !MailConfig
   }
 
 makeLenses ''DevEnv
@@ -98,5 +104,5 @@ instance HasNodeStoryVar DevEnv where
 instance HasNodeStorySaver DevEnv where
   hasNodeStorySaver = hasNodeStory . nse_saver
 
-
-
+instance HasMail DevEnv where
+  mailSettings = dev_env_mail

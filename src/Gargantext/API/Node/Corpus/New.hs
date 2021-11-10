@@ -213,15 +213,15 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
       -- TODO if cid is folder -> create Corpus
       --      if cid is corpus -> add to corpus
       --      if cid is root   -> create corpus in Private
-      txts <- mapM (\db  -> getDataText db (Multi l) q maybeLimit) [database2origin dbs]
+      txts <- mapM (\db -> getDataText db (Multi l) q maybeLimit) [database2origin dbs]
   
       logStatus JobLog { _scst_succeeded = Just 2
                        , _scst_failed    = Just 0
-                       , _scst_remaining = Just 1
+                       , _scst_remaining = Just $ 1 + length txts
                        , _scst_events    = Just []
                        }
 
-      cids <- mapM (\txt -> flowDataText user txt (Multi l) cid Nothing) txts
+      cids <- mapM (\txt -> flowDataText user txt (Multi l) cid Nothing logStatus) txts
       printDebug "corpus id" cids
       printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
       sendMail user
@@ -297,6 +297,7 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
                           (Multi $ fromMaybe EN l)
                           Nothing
                           (map (map toHyperdataDocument) docs)
+                          logStatus
 
       printDebug "Extraction finished   : " cid
       printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)

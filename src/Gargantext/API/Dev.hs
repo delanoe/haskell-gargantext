@@ -23,6 +23,7 @@ import Gargantext.Core.NodeStory
 import Gargantext.Database.Prelude
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..), readConfig)
+import qualified Gargantext.Prelude.Mail as Mail
 import Servant
 import System.IO (FilePath)
 
@@ -40,11 +41,13 @@ withDevEnv iniPath k = do
       nodeStory_env <- readNodeStoryEnv (_gc_repofilepath cfg)
       pool    <- newPool            dbParam
       setts   <- devSettings devJwkFile
+      mail    <- Mail.readConfig iniPath
       pure $ DevEnv
         { _dev_env_pool     = pool
         , _dev_env_nodeStory  = nodeStory_env
         , _dev_env_settings = setts
         , _dev_env_config   = cfg
+        , _dev_env_mail      = mail
         }
 
 -- | Run Cmd Sugar for the Repl (GHCI)

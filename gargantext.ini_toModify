@@ -67,3 +67,11 @@ DB_PASS = PASSWORD_TO_CHANGE
 LOG_FILE = /var/log/gargantext/backend.log
 LOG_LEVEL = LevelDebug
 LOG_FORMATTER = verbose
+
+[mail]
+MAIL_PORT = 25
+MAIL_HOST = localhost
+MAIL_USER = gargantext
+MAIL_PASSWORD =
+# Normal | SSL | TLS | STARTTLS
+MAIL_LOGIN_TYPE = Normal
