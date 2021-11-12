@@ -52,6 +52,7 @@ import Gargantext.API.Admin.Auth.Types (AuthenticatedUser)
 import qualified Gargantext.API.GraphQL.User as GQLUser
 import qualified Gargantext.API.GraphQL.UserInfo as GQLUserInfo
 import Gargantext.API.Prelude (GargServerT, GargM, GargError, _ServerError)
+import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Database.Prelude (Cmd, HasConnectionPool, HasConfig)
 import Gargantext.Database.Schema.User (UserPoly(..))
 import Gargantext.Prelude
@@ -108,7 +109,7 @@ data Contet m
 -- | The main GraphQL resolver: how queries, mutations and
 -- subscriptions are handled.
 rootResolver
-  :: (HasConnectionPool env, HasConfig env)
+  :: (HasConnectionPool env, HasConfig env, HasMail env)
   => RootResolver (GargM env GargError) e Query Mutation Undefined
 rootResolver =
   RootResolver
@@ -119,7 +120,7 @@ rootResolver =
 
 -- | Main GraphQL "app".
 app
-  :: (Typeable env, HasConnectionPool env, HasConfig env)
+  :: (Typeable env, HasConnectionPool env, HasConfig env, HasMail env)
   => App (EVENT (GargM env GargError)) (GargM env GargError)
 app = deriveApp rootResolver
 
@@ -160,7 +161,7 @@ type API = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser
 -- | Implementation of our API.
 --api :: Server API
 api
-  :: (Typeable env, HasConnectionPool env, HasConfig env)
+  :: (Typeable env, HasConnectionPool env, HasConfig env, HasMail env)
   => ServerT API (GargM env GargError)
 api (SAS.Authenticated _auser) = httpPubApp [] app :<|> pure httpPlayground
 api _                         = panic "401 in graphql" --SAS.throwAll (_ServerError # err401)

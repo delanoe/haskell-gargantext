@@ -7,6 +7,9 @@ module Gargantext.API.Admin.Orchestrator.Types
 
 import Control.Lens hiding (elements)
 import Data.Aeson
+import Data.Morpheus.Types
+  ( GQLType
+  , typeOptions )
 import Data.Proxy
 import Data.Swagger hiding (URL, url, port)
 import Data.Text (Text)
@@ -18,6 +21,7 @@ import Servant.Job.Utils (jsonOptions)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
+import qualified Gargantext.API.GraphQL.Utils as GQLU
 import Gargantext.Core.Types (TODO(..))
 import Gargantext.Prelude
 
@@ -109,14 +113,13 @@ instance Arbitrary JobLog where
            <*> arbitrary
            <*> arbitrary
            <*> arbitrary
-
 instance ToJSON JobLog where
   toJSON = genericToJSON $ jsonOptions "_scst_"
-
 instance FromJSON JobLog where
   parseJSON = genericParseJSON $ jsonOptions "_scst_"
-
 instance ToSchema JobLog -- TODO _scst_ prefix
+instance GQLType JobLog where
+  typeOptions _ = GQLU.unPrefix "_scst_"
 
 instance ToSchema ScraperInput  -- TODO _scin_ prefix
 instance ToSchema ScraperEvent  -- TODO _scev_ prefix

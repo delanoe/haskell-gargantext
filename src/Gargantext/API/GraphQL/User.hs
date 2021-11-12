@@ -10,6 +10,7 @@ import Data.Morpheus.Types
   )
 import Data.Text (Text)
 import Gargantext.API.Prelude (GargM, GargError)
+import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataUser(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.User (getUsersWithId, getUserHyperdata)
@@ -34,18 +35,18 @@ type GqlM e env = Resolver QUERY e (GargM env GargError)
 
 -- | Function to resolve user from a query.
 resolveUsers
-  :: (HasConnectionPool env, HasConfig env)
+  :: (HasConnectionPool env, HasConfig env, HasMail env)
   => UserArgs -> GqlM e env [User (GqlM e env)]
 resolveUsers UserArgs { user_id } = dbUsers user_id
 
 -- | Inner function to fetch the user from DB.
 dbUsers
-  :: (HasConnectionPool env, HasConfig env)
+  :: (HasConnectionPool env, HasConfig env, HasMail env)
   => Int -> GqlM e env ([User (GqlM e env)])
 dbUsers user_id = lift (map toUser <$> getUsersWithId user_id)
 
 toUser
-  :: (HasConnectionPool env, HasConfig env)
+  :: (HasConnectionPool env, HasConfig env, HasMail env)
   => UserLight -> User (GqlM e env)
 toUser (UserLight { .. }) = User { u_email = userLight_email
                                  , u_hyperdata = resolveHyperdata userLight_id
@@ -53,6 +54,6 @@ toUser (UserLight { .. }) = User { u_email = userLight_email
                                  , u_username = userLight_username }
 
 resolveHyperdata
-  :: (HasConnectionPool env, HasConfig env)
+  :: (HasConnectionPool env, HasConfig env, HasMail env)
   => Int -> GqlM e env (Maybe HyperdataUser)
 resolveHyperdata userid = lift (listToMaybe <$> getUserHyperdata userid)

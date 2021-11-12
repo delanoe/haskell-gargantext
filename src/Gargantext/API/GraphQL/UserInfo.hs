@@ -1,5 +1,5 @@
-{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 
 module Gargantext.API.GraphQL.UserInfo where
 
@@ -14,6 +14,7 @@ import Data.Morpheus.Types
 import Data.Text (Text)
 import qualified Data.Text as T
 import Gargantext.API.Prelude (GargM, GargError)
+import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Database.Admin.Types.Hyperdata
   ( HyperdataUser(..)
   , hc_source
@@ -92,13 +93,13 @@ type GqlM e env = Resolver QUERY e (GargM env GargError)
 
 -- | Function to resolve user from a query.
 resolveUserInfos
-  :: (HasConnectionPool env, HasConfig env)
+  :: (HasConnectionPool env, HasConfig env, HasMail env)
   => UserInfoArgs -> GqlM e env [UserInfo]
 resolveUserInfos UserInfoArgs { user_id } = dbUsers user_id
 
 -- | Mutation for user info
 updateUserInfo
-  :: (HasConnectionPool env, HasConfig env)
+  :: (HasConnectionPool env, HasConfig env, HasMail env)
   => UserInfoMArgs -> ResolverM e (GargM env GargError) Int
 updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
   lift $ printDebug "[updateUserInfo] ui_id" ui_id
@@ -132,7 +133,7 @@ updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
 
 -- | Inner function to fetch the user from DB.
 dbUsers
-  :: (HasConnectionPool env, HasConfig env)
+  :: (HasConnectionPool env, HasConfig env, HasMail env)
   => Int -> GqlM e env [UserInfo]
 dbUsers user_id = do
 --  user <- getUsersWithId user_id
