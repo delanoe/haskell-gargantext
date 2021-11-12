@@ -18,9 +18,8 @@ TODO-SECURITY: Critical
 module Gargantext.API.Admin.Settings
     where
 
-import Codec.Serialise (Serialise(), serialise, deserialise)
-import Control.Concurrent
-import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
+-- import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
+import Codec.Serialise (Serialise(), serialise)
 import Control.Lens
 import Control.Monad.Logger
 import Control.Monad.Reader
@@ -34,7 +33,7 @@ import Servant.Auth.Server (defaultJWTSettings, CookieSettings(..), XsrfCookieSe
 import Servant.Client (parseBaseUrl)
 import Servant.Job.Async (newJobEnv, defaultSettings)
 import System.Directory
-import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
+-- import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
 import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
 import System.Log.FastLogger
@@ -43,10 +42,11 @@ import qualified Data.ByteString.Lazy as L
 
 import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Admin.Types
-import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
-import Gargantext.Database.Prelude (databaseParameters, HasConfig(..))
+-- import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
+import Gargantext.Database.Prelude (databaseParameters)
 import Gargantext.Prelude
-import Gargantext.Prelude.Config (gc_repofilepath)
+-- import Gargantext.Prelude.Config (gc_repofilepath)
+import qualified Gargantext.Prelude.Mail as Mail
 
 devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
@@ -113,7 +113,7 @@ repoSaverAction repoDir a = do
 
 
 
---{-
+{-
 -- The use of mkDebounce makes sure that repoSaverAction is not called too often.
 -- If repoSaverAction start taking more time than the debounceFreq then it should
 -- be increased.
@@ -133,6 +133,8 @@ mkRepoSaver repoDir repo_var = mkDebounce settings'
                    -- Add a new MVar just for saving.
                  }
 
+-}
+{-
 readRepoEnv :: FilePath -> IO RepoEnv
 readRepoEnv repoDir = do
   -- Does file exist ? :: Bool
@@ -178,27 +180,27 @@ newEnv port file = do
   self_url_env  <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   dbParam       <- databaseParameters file
   pool          <- newPool dbParam
-  repo          <- readRepoEnv (_gc_repofilepath config_env)
   nodeStory_env <- readNodeStoryEnv (_gc_repofilepath config_env)
   scrapers_env  <- newJobEnv defaultSettings manager_env
   logger        <- newStderrLoggerSet defaultBufSize
+  config_mail   <- Mail.readConfig file
 
   pure $ Env
     { _env_settings  = settings'
     , _env_logger    = logger
     , _env_pool      = pool
-    , _env_repo      = repo
     , _env_nodeStory = nodeStory_env
     , _env_manager   = manager_env
     , _env_scrapers  = scrapers_env
     , _env_self_url  = self_url_env
     , _env_config    = config_env
+    , _env_mail      = config_mail
     }
 
 newPool :: ConnectInfo -> IO (Pool Connection)
 newPool param = createPool (connect param) close 1 (60*60) 8
 
---{-
+{-
 cleanEnv :: (HasConfig env, HasRepo env) => env -> IO ()
 cleanEnv env = do
   r <- takeMVar (env ^. repoEnv . renv_var)

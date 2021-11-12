@@ -27,9 +27,8 @@ allow-newer: true
 #  "$everything": -haddock
 
 extra-deps:
-- #git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-  git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude.git
-  commit: 35b09629a658fc16cc9ff63e7591e58511cd98a7
+- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
+  commit: 6bfdb29e9a576472c7fd7ebe648ad101e5b3927f
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef

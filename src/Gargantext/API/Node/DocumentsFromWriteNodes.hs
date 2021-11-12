@@ -100,7 +100,7 @@ documentsFromWriteNodes uId nId _p logStatus = do
   let parsedE = (\(node, contents) -> hyperdataDocumentFromFrameWrite (node ^. node_hyperdata, contents)) <$> frameWritesWithContents
   let parsed = rights parsedE
 
-  _ <- flowDataText (RootId (NodeId uId)) (DataNew [parsed]) (Multi EN) cId Nothing
+  _ <- flowDataText (RootId (NodeId uId)) (DataNew [parsed]) (Multi EN) cId Nothing logStatus
 
   pure $ jobLogSuccess jobLog
 ------------------------------------------------------------------------

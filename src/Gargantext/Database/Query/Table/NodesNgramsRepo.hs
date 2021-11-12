@@ -17,10 +17,9 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell            #-}
 
 module Gargantext.Database.Query.Table.NodesNgramsRepo
-  ( module Gargantext.Database.Schema.NodesNgramsRepo
-  )
   where
 
+{-
 import Gargantext.Database.Schema.Prelude
 import Gargantext.API.Ngrams (NgramsStatePatch)
 import Gargantext.Database.Schema.NodesNgramsRepo
@@ -42,4 +41,4 @@ _insertRepos ns = mkCmd $ \conn -> runInsert_ conn $ Insert repoTable (toWrite n
     toWrite :: [NgramsStatePatch] -> [RepoDbWrite]
     toWrite = undefined
     --ns' = map (\(RepoDbNgrams v ps) -> RepoDbWrite (sqlInt4 v) (pgJSONB ps)) ns
-
+-}

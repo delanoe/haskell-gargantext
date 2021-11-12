@@ -47,13 +47,13 @@ main = do
     tt = (Multi EN)
     format = CsvGargV3 -- CsvHal --WOS
     corpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    corpus = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) (read limit :: Int) tt  format corpusPath Nothing
+    corpus = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) (read limit :: Int) tt  format corpusPath Nothing (\_ -> pure ())
 
     corpusCsvHal :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    corpusCsvHal = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) (read limit :: Int) tt CsvHal corpusPath Nothing
+    corpusCsvHal = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) (read limit :: Int) tt CsvHal corpusPath Nothing (\_ -> pure ())
 
     annuaire :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    annuaire = flowAnnuaire (UserName $ cs user) (Left "Annuaire") (Multi EN) corpusPath
+    annuaire = flowAnnuaire (UserName $ cs user) (Left "Annuaire") (Multi EN) corpusPath (\_ -> pure ())
 
   {-
   let debatCorpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId

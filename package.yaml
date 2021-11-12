@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.4.6'
+version: '0.0.4.7.1'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -371,19 +371,19 @@ executables:
       - gargantext-prelude
       - base
 
-  gargantext-upgrade:
-    main: Main.hs
-    source-dirs: bin/gargantext-upgrade
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -O2
-    - -Wmissing-signatures
-    dependencies:
-      - gargantext
-      - gargantext-prelude
-      - base
+#  gargantext-upgrade:
+#    main: Main.hs
+#    source-dirs: bin/gargantext-upgrade
+#    ghc-options:
+#    - -threaded
+#    - -rtsopts
+#    - -with-rtsopts=-N
+#    - -O2
+#    - -Wmissing-signatures
+#    dependencies:
+#      - gargantext
+#      - gargantext-prelude
+#      - base
 
   gargantext-admin:
     main: Main.hs
@@ -399,22 +399,23 @@ executables:
       - gargantext-prelude
       - base
 
-  gargantext-cbor2json:
-    main: Main.hs
-    source-dirs: bin/gargantext-cbor2json
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -O2
-    - -Wmissing-signatures
-    dependencies:
-      - gargantext
-      - gargantext-prelude
-      - base
-      - bytestring
-      - aeson
-      - serialise
+
+#  gargantext-cbor2json:
+#    main: Main.hs
+#    source-dirs: bin/gargantext-cbor2json
+#    ghc-options:
+#    - -threaded
+#    - -rtsopts
+#    - -with-rtsopts=-N
+#    - -O2
+#    - -Wmissing-signatures
+#    dependencies:
+#      - gargantext
+#      - gargantext-prelude
+#      - base
+#      - bytestring
+#      - aeson
+#      - serialise
 
 
 tests:

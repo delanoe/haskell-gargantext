@@ -93,7 +93,7 @@ addContact u nId (AddContactParams fn ln) logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _ <- flow (Nothing :: Maybe HyperdataAnnuaire) u (Right [nId]) (Multi EN) Nothing [[hyperdataContact fn ln]]
+  _ <- flow (Nothing :: Maybe HyperdataAnnuaire) u (Right [nId]) (Multi EN) Nothing [[hyperdataContact fn ln]] logStatus
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
