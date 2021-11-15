@@ -21,7 +21,7 @@ import qualified Data.HashMap.Strict as HM
 import Data.Maybe (fromMaybe)
 import Gargantext.Core
 import Gargantext.Core.Text.Metrics.TFICF
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getOccByNgramsOnlyFast, getOccByNgramsOnlyFast_withSample)
+import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser{-, getOccByNgramsOnlyFast-}, getOccByNgramsOnlyFast_withSample)
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.NodeNode (selectCountDocs)
@@ -30,6 +30,7 @@ import Gargantext.API.Ngrams.Types
 import Gargantext.Prelude
 import qualified Data.Set as Set
 
+{-
 getTficf :: HasDBid NodeType 
          => UserCorpusId
          -> MasterCorpusId
@@ -52,6 +53,20 @@ getTficf cId mId nt = do
             (TficfSupra (Count $ fromMaybe 0 $ HM.lookup t mapTextDoubleGlobal)
                         (Total $ fromIntegral countGlobal))
     ) mapTextDoubleLocal
+-}
+
+
+
+getScore :: HasDBid NodeType 
+         => UserCorpusId
+         -> MasterCorpusId
+         -> NgramsType
+         -> Cmd err (HashMap NgramsTerm Double)
+getScore cId _mId nt =
+  HM.filter (> 1)
+     <$> HM.map (fromIntegral . Set.size)
+     <$> getNodesByNgramsUser cId nt
+
 
 
 getTficf_withSample :: HasDBid NodeType 
