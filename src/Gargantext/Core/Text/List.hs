@@ -35,7 +35,7 @@ import Gargantext.Core.Text.Metrics (scored', Scored(..), scored_speExc, scored_
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getNodesByNgramsOnlyUser)
-import Gargantext.Database.Action.Metrics.TFICF (getScore) -- (getTficf_withSample, getTficf_withSample')
+import Gargantext.Database.Action.Metrics.TFICF (getTficf_withSample)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Prelude (CmdM)
 import Gargantext.Database.Query.Table.Ngrams (text2ngrams)
@@ -160,7 +160,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
 -- Filter 0 With Double
 -- Computing global speGen score
   printDebug "[buldNgramsTermsList: Sample List] / start" nt
-  allTerms :: HashMap NgramsTerm Double <- getScore uCid mCid nt
+  allTerms :: HashMap NgramsTerm Double <- getTficf_withSample uCid mCid nt
   printDebug "[buldNgramsTermsList: Sample List / end]" nt
 
   printDebug "[buldNgramsTermsList: Flow Social List / start]" nt
