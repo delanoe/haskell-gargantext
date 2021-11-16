@@ -47,7 +47,7 @@ dbJobLogs job_log_id = do
   env <- ask
   _ <- lift $ do
     --val <- liftBase $ readMVar $ env ^. job_env . jenv_jobs . env_state_mvar
-    let val = env ^. job_env
+    let val = env
     printDebug "[dbJobLogs] env ^. job_env ^. jenv_jobs" val 
     printDebug "[dbJobLogs] job_log_id" job_log_id
   pure []

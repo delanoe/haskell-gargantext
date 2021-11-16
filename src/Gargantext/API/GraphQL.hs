@@ -4,18 +4,12 @@
 {-# LANGUAGE PartialTypeSignatures #-}  -- to automatically use suggested type hole signatures during compilation
 {-# LANGUAGE TypeOperators #-}
 
-{-# OPTIONS_GHC -fno-warn-unused-imports #-}
-
 module Gargantext.API.GraphQL where
 
-import Control.Lens ((#))
-import Control.Monad.Base (liftBase)
-import Control.Monad.IO.Class (liftIO)
 import Data.ByteString.Lazy.Char8
   ( ByteString
   )
 import Data.List.NonEmpty (NonEmpty ((:|)))
-import Data.Maybe (fromMaybe)
 import Data.Morpheus
   ( App
   , deriveApp )
@@ -25,59 +19,39 @@ import Data.Morpheus.Server
 import Data.Morpheus.Subscriptions
   ( Event (..)
   , Hashable
-  , PubApp
-  , SubApp
   , httpPubApp
-  , webSocketsApp
   )
 import Data.Morpheus.Types
   ( GQLRequest
   , GQLResponse
   , GQLType
-  , ResolverQ
   , RootResolver(..)
   , Undefined(..)
-  , lift
-  , liftEither
-  , publish
-  , render
   )
-import Data.Morpheus.Types.Internal.AST
-  ( msg )
-import Data.Text (Text)
-import qualified Data.Text.Lazy as LT
-import Data.Text.Lazy.Encoding (decodeUtf8)
-import Data.Typeable (Typeable)
 import Gargantext.API.Admin.Auth.Types (AuthenticatedUser)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog)
 import Gargantext.API.Prelude (HasJobEnv')
 import qualified Gargantext.API.GraphQL.AsyncTask as GQLAT
+import qualified Gargantext.API.GraphQL.Node as GQLNode
 import qualified Gargantext.API.GraphQL.User as GQLUser
 import qualified Gargantext.API.GraphQL.UserInfo as GQLUserInfo
-import Gargantext.API.Prelude (GargServerT, GargM, GargError, _ServerError)
+import Gargantext.API.Prelude (GargM, GargError)
 import Gargantext.Core.Mail.Types (HasMail)
-import Gargantext.Database.Prelude (Cmd, HasConnectionPool, HasConfig)
-import Gargantext.Database.Schema.User (UserPoly(..))
+import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Prelude
 import GHC.Generics (Generic)
-import GHC.TypeLits
 import Network.HTTP.Media ((//), (/:))
-import Network.WebSockets
-  ( ServerApp,
-  )
 import qualified Prelude as Prelude
 import Servant
-  ( (:<|>) (..),
-    (:>),
-    Accept (..),
-    Get,
-    JSON,
-    MimeRender (..),
-    PlainText,
-    Post,
-    ReqBody,
-    ServerT,
-    err401
+  ( (:<|>) (..)
+  , (:>)
+  , Accept (..)
+  , Get
+  , JSON
+  , MimeRender (..)
+  , Post
+  , ReqBody
+  ,  ServerT
   )
 import qualified Servant.Auth as SA
 import qualified Servant.Auth.Server as SAS
@@ -85,9 +59,11 @@ import qualified Servant.Auth.Server as SAS
 -- | Represents possible GraphQL queries.
 data Query m
   = Query
-    { job_logs :: GQLAT.JobLogArgs -> m [JobLog]
-    , user_infos :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
-    , users :: GQLUser.UserArgs -> m [GQLUser.User m]
+    { job_logs    :: GQLAT.JobLogArgs -> m [JobLog]
+    , nodes       :: GQLNode.NodeArgs -> m [GQLNode.Node]
+    , node_parent :: GQLNode.NodeParentArgs -> m [GQLNode.Node]
+    , user_infos  :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
+    , users       :: GQLUser.UserArgs -> m [GQLUser.User m]
     } deriving (Generic, GQLType)
 
 data Mutation m
@@ -117,9 +93,11 @@ rootResolver
   => RootResolver (GargM env GargError) e Query Mutation Undefined
 rootResolver =
   RootResolver
-    { queryResolver = Query { job_logs = GQLAT.resolveJobLogs
-                            , user_infos = GQLUserInfo.resolveUserInfos
-                            , users = GQLUser.resolveUsers }
+    { queryResolver = Query { job_logs    = GQLAT.resolveJobLogs
+                            , nodes       = GQLNode.resolveNodes
+                            , node_parent = GQLNode.resolveNodeParent
+                            , user_infos  = GQLUserInfo.resolveUserInfos
+                            , users       = GQLUser.resolveUsers }
     , mutationResolver = Mutation { update_user_info = GQLUserInfo.updateUserInfo }
     , subscriptionResolver = Undefined }
 
