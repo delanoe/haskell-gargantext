@@ -50,6 +50,8 @@ class HasJoseError e where
 joseError :: (MonadError e m, HasJoseError e) => Jose.Error -> m a
 joseError = throwError . (_JoseError #)
 
+type HasJobEnv' env = HasJobEnv env JobLog JobLog
+
 type EnvC env =
   ( HasConnectionPool env
   , HasSettings       env  -- TODO rename HasDbSettings

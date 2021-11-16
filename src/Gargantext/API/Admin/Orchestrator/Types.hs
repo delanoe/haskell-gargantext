@@ -88,13 +88,13 @@ instance Arbitrary ScraperEvent where
   arbitrary = ScraperEvent <$> elements [Nothing, Just "test message"]
                            <*> elements [Nothing, Just "INFO", Just "WARN"]
                            <*> elements [Nothing, Just "2018-04-18"]
-
 instance ToJSON ScraperEvent where
   toJSON = genericToJSON $ jsonOptions "_scev_"
-
 instance FromJSON ScraperEvent where
   parseJSON = genericParseJSON $ jsonOptions "_scev_"
-
+instance ToSchema ScraperEvent  -- TODO _scev_ prefix
+instance GQLType ScraperEvent where
+  typeOptions _ = GQLU.unPrefix "_scev_"
 
 
 data JobLog = JobLog
@@ -122,7 +122,6 @@ instance GQLType JobLog where
   typeOptions _ = GQLU.unPrefix "_scst_"
 
 instance ToSchema ScraperInput  -- TODO _scin_ prefix
-instance ToSchema ScraperEvent  -- TODO _scev_ prefix
 
 instance ToParamSchema Offset -- where
   -- toParamSchema = panic "TODO"

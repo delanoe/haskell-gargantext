@@ -49,6 +49,9 @@ import qualified Data.Text.Lazy as LT
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import Data.Typeable (Typeable)
 import Gargantext.API.Admin.Auth.Types (AuthenticatedUser)
+import Gargantext.API.Admin.Orchestrator.Types (JobLog)
+import Gargantext.API.Prelude (HasJobEnv')
+import qualified Gargantext.API.GraphQL.AsyncTask as GQLAT
 import qualified Gargantext.API.GraphQL.User as GQLUser
 import qualified Gargantext.API.GraphQL.UserInfo as GQLUserInfo
 import Gargantext.API.Prelude (GargServerT, GargM, GargError, _ServerError)
@@ -82,7 +85,8 @@ import qualified Servant.Auth.Server as SAS
 -- | Represents possible GraphQL queries.
 data Query m
   = Query
-    { user_infos :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
+    { job_logs :: GQLAT.JobLogArgs -> m [JobLog]
+    , user_infos :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
     , users :: GQLUser.UserArgs -> m [GQLUser.User m]
     } deriving (Generic, GQLType)
 
@@ -109,18 +113,19 @@ data Contet m
 -- | The main GraphQL resolver: how queries, mutations and
 -- subscriptions are handled.
 rootResolver
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (HasConnectionPool env, HasConfig env, HasMail env, HasJobEnv' env)
   => RootResolver (GargM env GargError) e Query Mutation Undefined
 rootResolver =
   RootResolver
-    { queryResolver = Query { user_infos = GQLUserInfo.resolveUserInfos
+    { queryResolver = Query { job_logs = GQLAT.resolveJobLogs
+                            , user_infos = GQLUserInfo.resolveUserInfos
                             , users = GQLUser.resolveUsers }
     , mutationResolver = Mutation { update_user_info = GQLUserInfo.updateUserInfo }
     , subscriptionResolver = Undefined }
 
 -- | Main GraphQL "app".
 app
-  :: (Typeable env, HasConnectionPool env, HasConfig env, HasMail env)
+  :: (Typeable env, HasConnectionPool env, HasConfig env, HasMail env, HasJobEnv' env)
   => App (EVENT (GargM env GargError)) (GargM env GargError)
 app = deriveApp rootResolver
 
@@ -161,7 +166,8 @@ type API = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser
 -- | Implementation of our API.
 --api :: Server API
 api
-  :: (Typeable env, HasConnectionPool env, HasConfig env, HasMail env)
+  :: (Typeable env, HasConnectionPool env, HasConfig env, HasMail env, HasJobEnv' env)
   => ServerT API (GargM env GargError)
 api (SAS.Authenticated _auser) = httpPubApp [] app :<|> pure httpPlayground
-api _                         = panic "401 in graphql" --SAS.throwAll (_ServerError # err401)
+--api _                          = panic "401 in graphql" --SAS.throwAll (_ServerError # err401)
+api _ = httpPubApp [] app :<|> pure httpPlayground
