@@ -10,6 +10,7 @@ import Data.ByteString.Lazy.Char8
   ( ByteString
   )
 import Data.List.NonEmpty (NonEmpty ((:|)))
+import Data.Map (Map)
 import Data.Morpheus
   ( App
   , deriveApp )
@@ -59,7 +60,7 @@ import qualified Servant.Auth.Server as SAS
 -- | Represents possible GraphQL queries.
 data Query m
   = Query
-    { job_logs    :: GQLAT.JobLogArgs -> m [JobLog]
+    { job_logs    :: GQLAT.JobLogArgs -> m (Map Int JobLog)
     , nodes       :: GQLNode.NodeArgs -> m [GQLNode.Node]
     , node_parent :: GQLNode.NodeParentArgs -> m [GQLNode.Node]
     , user_infos  :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
