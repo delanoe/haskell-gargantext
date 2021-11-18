@@ -11,12 +11,15 @@ Portability : POSIX
 
 module Gargantext.Core.Mail where
 
-import Control.Lens ((^.))
+import Control.Lens (view)
 import Data.Text (Text, unlines, splitOn)
 import Gargantext.Core.Types.Individu
 import Gargantext.Prelude
+import Gargantext.Prelude.Config (gc_url)
+import Gargantext.Database.Prelude
+-- import Gargantext.Prelude.Config (gc_url)
 import Gargantext.Prelude.Mail (gargMail, GargMail(..))
-import Gargantext.Prelude.Mail.Types (MailConfig, mc_mail_host)
+import Gargantext.Prelude.Mail.Types (MailConfig)
 import qualified Data.List as List
 
 
@@ -38,12 +41,14 @@ data MailModel = Invitation { invitation_user :: NewUser GargPassword }
                             }
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-mail :: MailConfig -> MailModel -> IO ()
-mail cfg model = gargMail cfg (GargMail m (Just u) subject body)
-  where
+mail :: (CmdM env err m) => MailConfig -> MailModel -> m ()
+mail mailCfg model = do
+  cfg <- view hasConfig
+  let
     (m,u)   = email_to         model
     subject = email_subject    model
-    body    = emailWith (cfg ^. mc_mail_host) model
+    body    = emailWith (view gc_url cfg)    model
+  liftBase $ gargMail mailCfg (GargMail m (Just u) subject body)
 
 ------------------------------------------------------------------------
 emailWith :: ServerAddress -> MailModel -> Text
