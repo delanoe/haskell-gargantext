@@ -44,6 +44,7 @@ import Gargantext.API.Admin.Auth.Types (AuthRequest, AuthResponse, Authenticated
 import Gargantext.API.Admin.Auth (withAccess)
 import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
 import Gargantext.API.Count  (CountAPI, count, Query)
+import qualified Gargantext.API.GraphQL as GraphQL
 import Gargantext.API.Job (jobLogInit)
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
@@ -167,7 +168,6 @@ type GargPrivateAPI' =
            :<|> List.GETAPI
            :<|> List.JSONAPI
            :<|> List.CSVAPI
-
 {-
            :<|> "wait"   :> Summary "Wait test"
                          :> Capture "x" Int
@@ -184,6 +184,7 @@ type GargPrivateAPI' =
 
 type API = SwaggerAPI
        :<|> GargAPI
+       :<|> GraphQL.API
        :<|> FrontEndAPI
 
 -- | API for serving @swagger.json@

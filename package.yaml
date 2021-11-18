@@ -181,6 +181,10 @@ library:
   - matrix
   - monad-control
   - monad-logger
+  - morpheus-graphql
+  - morpheus-graphql-app
+  - morpheus-graphql-core
+  - morpheus-graphql-subscriptions
   - mtl
   - natural-transformation
   - opaleye
@@ -249,7 +253,9 @@ library:
   - wai-app-static
   - wai-cors
   - wai-extra
+  - wai-websockets
   - warp
+  - websockets
   - wreq
   - xml-conduit
   - xml-types

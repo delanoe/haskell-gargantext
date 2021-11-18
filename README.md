@@ -196,3 +196,36 @@ To build documentation, run:
 stack --docker build --haddock --no-haddock-deps --fast
 ```
 
+## GraphQL
+
+Some introspection information.
+
+Playground is located at http://localhost:8008/gql
+
+### List all GraphQL types in the Playground
+
+```
+{
+  __schema {
+    types {
+      name
+    }
+  }
+}
+```
+
+### List details about a type in GraphQL
+
+```
+{
+  __type(name:"User") {
+  	fields {
+    	name
+      description
+      type {
+        name
+      }
+  	}
+	}
+}
+```
