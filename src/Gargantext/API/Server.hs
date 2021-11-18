@@ -29,6 +29,7 @@ import qualified Gargantext.API.Public      as Public
 import Gargantext.API.Admin.Auth.Types (AuthContext)
 import Gargantext.API.Admin.Auth (auth)
 import Gargantext.API.Admin.FrontEnd (frontEndServer)
+import qualified Gargantext.API.GraphQL as GraphQL
 import Gargantext.API.Prelude
 import Gargantext.API.Routes
 import Gargantext.API.Swagger (swaggerDoc)
@@ -52,7 +53,7 @@ serverGargAPI baseUrl -- orchestrator
     gargVersion = pure (cs $ showVersion PG.version)
 
 -- | Server declarations
-server :: forall env. EnvC env => env -> IO (Server API)
+server :: forall env. (Typeable env, EnvC env) => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  swaggerSchemaUIServer swaggerDoc
@@ -61,6 +62,11 @@ server env = do
             (Proxy :: Proxy AuthContext)
             transform
             (serverGargAPI (env ^. hasConfig . gc_url_backend_api))
+     :<|> hoistServerWithContext
+            (Proxy :: Proxy GraphQL.API)
+            (Proxy :: Proxy AuthContext)
+            transform
+            GraphQL.api
      :<|> frontEndServer
   where
     transform :: forall a. GargM env GargError a -> Handler a

@@ -193,8 +193,7 @@ serverGargAdminAPI =  roots
 --gargMock = mock apiGarg Proxy
 ---------------------------------------------------------------------
 
-
-makeApp :: EnvC env => env -> IO Application
+makeApp :: (Typeable env, EnvC env) => env -> IO Application
 makeApp env = do
   serv <- server env
   (ekgStore, ekgMid) <- newEkgStore api

@@ -9,14 +9,17 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE DeriveAnyClass             #-}
+
 module Gargantext.Core
   where
 
-import Data.Text (Text)
 import Data.Aeson
 import Data.Either(Either(Left))
 import Data.Hashable (Hashable)
+import Data.Morpheus.Types (GQLType)
 import Data.Swagger
+import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Prelude
 import Servant.API
@@ -38,7 +41,7 @@ import Servant.API
 -- | All languages supported
 -- TODO : DE | SP | CH
 data Lang = EN | FR | All
-  deriving (Show, Eq, Ord, Bounded, Enum, Generic)
+  deriving (Show, Eq, Ord, Bounded, Enum, Generic, GQLType)
 
 instance ToJSON Lang
 instance FromJSON Lang

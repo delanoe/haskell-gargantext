@@ -23,6 +23,8 @@ module Gargantext.Database.Query.Table.User
   , deleteUsers
   , updateUserDB
   , queryUserTable
+  , getUserHyperdata
+  , getUsersWithHyperdata
   , getUser
   , insertNewUsers
   , selectUsersLightWith
@@ -36,13 +38,16 @@ module Gargantext.Database.Query.Table.User
   where
 
 import Control.Arrow (returnA)
+import Control.Lens ((^.))
 import Data.List (find)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Gargantext.Core.Types.Individu
 import qualified Gargantext.Prelude.Crypto.Auth as Auth
-import Gargantext.Database.Schema.User
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataUser)
 import Gargantext.Database.Prelude
+import Gargantext.Database.Schema.Node (node_hyperdata, node_id, queryNodeTable)
+import Gargantext.Database.Schema.User
 import Gargantext.Prelude
 import Opaleye
 
@@ -107,10 +112,25 @@ getUsersWithId i = map toUserLight <$> runOpaQuery (selectUsersLightWithId i)
           returnA  -< row
 
 
-
 queryUserTable :: Query UserRead
 queryUserTable = selectTable userTable
 
+----------------------------------------------------------------------
+getUserHyperdata :: Int -> Cmd err [HyperdataUser]
+getUserHyperdata i = do
+  runOpaQuery (selectUserHyperdataWithId i)
+  where
+    selectUserHyperdataWithId :: Int -> Query (Column PGJsonb)
+    selectUserHyperdataWithId i' = proc () -> do
+      row      <- queryNodeTable -< ()
+      restrict -< row^.node_id .== (sqlInt4 i')
+      returnA  -< row^.node_hyperdata
+
+getUsersWithHyperdata :: Int -> Cmd err [(UserLight, HyperdataUser)]
+getUsersWithHyperdata i = do
+  u <- getUsersWithId i
+  h <- getUserHyperdata i
+  pure $ zip u h
 ------------------------------------------------------------------
 -- | Select User with some parameters
 -- Not optimized version
@@ -129,7 +149,6 @@ userLightWithUsername t xs = userWith userLight_username t xs
 
 userLightWithId :: Int -> [UserLight] -> Maybe UserLight
 userLightWithId t xs = userWith userLight_id t xs
-
 ----------------------------------------------------------------------
 users :: Cmd err [UserDB]
 users = runOpaQuery queryUserTable
