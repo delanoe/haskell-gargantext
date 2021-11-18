@@ -25,10 +25,10 @@ import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 
-sendMail :: HasNodeError err => User -> Cmd err ()
+sendMail :: (HasNodeError err, CmdM env err m) => User -> m ()
 sendMail u = do
   cfg <- view $ mailSettings
   userLight <- getUserLightDB u
-  liftBase $ mail cfg (MailInfo { mailInfo_username = userLight_username userLight
+  mail cfg (MailInfo { mailInfo_username = userLight_username userLight
                                 , mailInfo_address = userLight_email userLight })
 

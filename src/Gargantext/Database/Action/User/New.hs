@@ -64,7 +64,7 @@ newUsers' cfg us = do
   us' <- liftBase         $ mapM toUserHash  us
   r   <- insertUsers      $ map  toUserWrite us'
   _   <- mapM getOrMkRoot $ map  (\u -> UserName   (_nu_username u)) us
-  _   <- liftBase         $ mapM (\u -> mail cfg (Invitation u)) us
+  _   <- mapM (\u -> mail cfg (Invitation u)) us
   printDebug "newUsers'" us
   pure r
 ------------------------------------------------------------------------
@@ -75,7 +75,7 @@ updateUser (SendEmail send) cfg u = do
   u' <- liftBase     $ toUserHash   u
   n  <- updateUserDB $ toUserWrite  u'
   _  <- case send of
-     True  -> liftBase     $ mail cfg (PassUpdate u)
+     True  -> mail cfg (PassUpdate u)
      False -> pure ()
   pure n
 
