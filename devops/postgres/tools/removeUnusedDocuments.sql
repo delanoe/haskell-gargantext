@@ -10,5 +10,6 @@ USING repeated r
 WHERE
 n.id = r.id
 AND r.c <= 1
+AND n.typename = 4
 ; 
 
