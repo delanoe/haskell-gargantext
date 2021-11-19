@@ -180,8 +180,8 @@ computeGraph cId d nt repo = do
   let ngs = filterListWithRoot MapTerm
           $ mapTermListRoot [lId] nt repo
 
-  myCooc <- HashMap.filter (>2) -- Removing the hapax (ngrams with 1 cooc)
-         <$> getCoocByNgrams (Diagonal True)
+  myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)
+         <$> getCoocByNgrams (if d == Conditional then Diagonal True else Diagonal False)
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
 
