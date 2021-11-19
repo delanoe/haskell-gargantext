@@ -126,6 +126,8 @@ logDistributional m = run
 logDistributional' :: Int -> Matrix Int -> Acc (Matrix Double)
 logDistributional' n m' = result
  where
+    -- From Matrix Int to Matrix Double, i.e :
+    -- m :: Matrix Int -> Matrix Double
     m = map fromIntegral $ use m'
 
     -- Scalar. Sum of all elements of m.
@@ -137,9 +139,9 @@ logDistributional' n m' = result
     -- Size n vector. s = [s_i]_i
     s = sum ((.-) m d_m)
 
-    -- Matrix nxn. Vector s replicated as rows. 
+    -- Matrix nxn. Vector s replicated as rows.
     s_1 = replicate (constant (Z :. All :. n)) s
-    -- Matrix nxn. Vector s replicated as columns. 
+    -- Matrix nxn. Vector s replicated as columns.
     s_2 = replicate (constant (Z :. n :. All)) s
 
     -- Matrix nxn. ss = [s_i * s_j]_{i,j}. Outer product of s with itself. 
