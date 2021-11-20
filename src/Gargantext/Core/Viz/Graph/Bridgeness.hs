@@ -77,7 +77,6 @@ groupEdges m = fromListWith (<>)
              . toList
 
 -- | TODO : sortOn Confluence
-
 filterComs :: (Ord n1, Eq n2) 
            => p
            -> Map (n2, n2) [(a3, n1)]

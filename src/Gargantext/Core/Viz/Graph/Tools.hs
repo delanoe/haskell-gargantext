@@ -67,7 +67,7 @@ cooc2graph' distance threshold myCooc
         myCooc' = toIndex ti myCooc
 
 
-data PartitionMethod = Louvain | Spinglass
+data PartitionMethod = Louvain | Spinglass | Bac
 
 -- | coocurrences graph computation
 cooc2graphWith :: PartitionMethod
@@ -77,6 +77,7 @@ cooc2graphWith :: PartitionMethod
                -> IO Graph
 cooc2graphWith Louvain   = undefined -- TODO use IGraph bindings
 cooc2graphWith Spinglass = cooc2graphWith' (spinglass 1)
+cooc2graphWith Bac       = undefined -- cooc2graphWith' BAC.defaultClustering
 
 cooc2graph'' :: Ord t => Distance
                       -> Double
@@ -178,7 +179,6 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
 
   pure $ data2graph (Map.toList $ Map.mapKeys unNgramsTerm ti)
                     myCooc' bridgeness' confluence' partitions
-
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
