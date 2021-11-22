@@ -1,3 +1,5 @@
+## Version 0.0.4.8.4
+* Migration: instance dev is now dev.sub.gargantext.org
 
 ## Version 0.0.4.1
 * Refact/code design better syntax for DataType fields
