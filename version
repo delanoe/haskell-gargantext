@@ -6,11 +6,10 @@ TMPFILE="xxxx"
 git tag
 echo "Which version ?"
 read VERSION
-echo "## Version ${VERSION}\n*" > $TMPFILE
+echo "## Version ${VERSION}" > $TMPFILE
 cat CHANGELOG.md >> $TMPFILE
 mv $TMPFILE CHANGELOG.md
-vim $TMPFILE < /dev/tty
-
+vim CHANGELOG.md < /dev/tty
 
 #################################################################
 # Haskell
