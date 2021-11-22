@@ -1,3 +1,6 @@
+## Version 0.0.4.8.5
+* Unary document insertion: Doc table is reloaded after upload
+
 ## Version 0.0.4.8.4
 * Migration: instance dev is now dev.sub.gargantext.org
 
