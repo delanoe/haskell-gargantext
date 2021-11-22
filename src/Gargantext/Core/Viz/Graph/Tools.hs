@@ -222,7 +222,7 @@ data2graph labels coocs bridge conf partitions = Graph { _graph_nodes = nodes
                      , node_attributes =
                        Attributes { clust_default = maybe 0 identity
                                     (Map.lookup n community_id_by_node_id) }
-                     , node_children = [] }
+                     , node_children = Nothing }
                )
             | (l, n) <- labels
             , Set.member n $ Set.fromList
