@@ -28,9 +28,9 @@ import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
+import Gargantext.Core.Viz.Graph.Types (ClusterNode)
 import Gargantext.Prelude
-import Graph.Types (ClusterNode)
-import qualified Graph.BAC.ProxemyOptim as BAC
+-- import qualified Graph.BAC.ProxemyOptim as BAC
 import IGraph.Random -- (Gen(..))
 import qualified Data.HashMap.Strict      as HashMap
 import qualified Data.List                as List
@@ -43,7 +43,8 @@ import qualified IGraph.Algorithms.Layout as Layout
 
 -------------------------------------------------------------
 defaultClustering :: Map (Int, Int) Double -> IO [ClusterNode]
-defaultClustering x = pure $ BAC.defaultClustering x
+-- defaultClustering x = pure $ BAC.defaultClustering x
+defaultClustering x = spinglass 1 x
 
 -------------------------------------------------------------
 type Threshold = Double
@@ -67,7 +68,7 @@ cooc2graph' distance threshold myCooc
         myCooc' = toIndex ti myCooc
 
 
-data PartitionMethod = Louvain | Spinglass | Bac
+data PartitionMethod = Louvain | Spinglass -- | Bac
 
 -- | coocurrences graph computation
 cooc2graphWith :: PartitionMethod
@@ -75,9 +76,9 @@ cooc2graphWith :: PartitionMethod
                -> Threshold
                -> HashMap (NgramsTerm, NgramsTerm) Int
                -> IO Graph
-cooc2graphWith Louvain   = undefined -- TODO use IGraph bindings
+cooc2graphWith Louvain   = undefined
 cooc2graphWith Spinglass = cooc2graphWith' (spinglass 1)
-cooc2graphWith Bac       = undefined -- cooc2graphWith' BAC.defaultClustering
+-- cooc2graphWith Bac       = cooc2graphWith' (\x -> pure $ BAC.defaultClustering x)
 
 cooc2graph'' :: Ord t => Distance
                       -> Double
@@ -113,9 +114,12 @@ filterByNeighbours threshold distanceMap = filteredMap
 
 
 doDistanceMap :: Distance
-               -> Threshold
-               -> HashMap (NgramsTerm, NgramsTerm) Int
-               -> (Map (Int,Int) Double, Map (Index, Index) Int, Map NgramsTerm Index)
+              -> Threshold
+              -> HashMap (NgramsTerm, NgramsTerm) Int
+              -> ( Map (Int,Int) Double
+                 , Map (Index, Index) Int
+                 , Map NgramsTerm Index
+                 )
 doDistanceMap distance threshold myCooc = (distanceMap, myCooc', ti)
   where
     -- TODO remove below
@@ -125,9 +129,10 @@ doDistanceMap distance threshold myCooc = (distanceMap, myCooc', ti)
     (ti, _) = createIndices theMatrix
     tiSize  = Map.size ti
     myCooc' = toIndex ti theMatrix
+
     matCooc = case distance of  -- Shape of the Matrix
                 Conditional    -> map2mat Triangle 0 tiSize
-                Distributional -> map2mat Square     0 tiSize
+                Distributional -> map2mat Square   0 tiSize
             $ case distance of   -- Removing the Diagonal ?
                 Conditional     -> Map.filterWithKey (\(a,b) _ -> a /= b)
                 Distributional  -> identity
@@ -136,7 +141,8 @@ doDistanceMap distance threshold myCooc = (distanceMap, myCooc', ti)
     similarities = measure distance matCooc
     links = round (let n :: Double = fromIntegral tiSize in n * log n)
 
-    distanceMap = Map.fromList  $ List.take links
+    distanceMap = Map.fromList
+                $ List.take links
                 $ List.sortOn snd
                 $ Map.toList
                 $ case distance of

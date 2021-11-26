@@ -20,7 +20,8 @@ import Data.Singletons (SingI)
 import IGraph hiding (mkGraph, neighbors, edges, nodes, Node, Graph)
 import Protolude
 import Gargantext.Core.Viz.Graph.Index
-import Graph.Types
+-- import Graph.Types
+import Gargantext.Core.Viz.Graph.Types
 import qualified Data.List                   as List
 import qualified IGraph                      as IG
 import qualified IGraph.Algorithms.Clique    as IG

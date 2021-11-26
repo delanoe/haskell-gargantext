@@ -189,8 +189,10 @@ computeGraph cId d nt repo = do
 
   listNgrams <- getListNgrams [lId] nt
 
+  -- graph <- liftBase $ cooc2graphWith Bac d 0 myCooc
   graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
   -- saveAsFileDebug "debug/graph" graph
+
   pure $ mergeGraphNgrams graph (Just listNgrams)
 
 
