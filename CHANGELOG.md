@@ -1,5 +1,8 @@
+## Version 0.0.4.8.7
+* FIX the graph generation (automatic/default, renewal, any distance)
+
 ## Version 0.0.4.8.6
-* FIX the ngrams grouping and the graph generation 
+* FIX the ngrams grouping
 
 ## Version 0.0.4.8.5
 * Unary document insertion: Doc table is reloaded after upload
