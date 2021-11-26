@@ -1,3 +1,6 @@
+## Version 0.0.4.8.6
+* FIX the ngrams grouping and the graph generation 
+
 ## Version 0.0.4.8.5
 * Unary document insertion: Doc table is reloaded after upload
 

@@ -7,8 +7,4 @@ import qualified Data.ByteString.Lazy as L
 import Gargantext.Core.NodeStory (NodeListStory)
 
 main :: IO ()
-main = do
-  [inFile,outFile] <- getArgs
-  inData <- L.readFile inFile
-  let outData = (encode . (id :: NodeListStory -> NodeListStory) . deserialise) inData
-  L.writeFile outData
+main = L.interact (encode . (id :: NodeListStory -> NodeListStory) . deserialise)
