@@ -17,7 +17,7 @@ psql "postgresql://${USER}:${PASS}@${HOST}:${PORT}/${NAME}"
 
 if [[ $1 == "" ]]
 then echo "USAGE : ./psql gargantext.ini"
-else connect $1
+else connect $INIFILE
 fi
 
 
