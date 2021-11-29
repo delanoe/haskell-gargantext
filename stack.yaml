@@ -1,5 +1,5 @@
 resolver:
- url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/16.yaml 
+ url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/18.yaml
 flags: {}
 extra-package-dbs: []
 packages:
@@ -12,7 +12,7 @@ packages:
 docker:
   enable: false
   #enable: true
-  repo: 'cgenie/stack-build:lts-18.16-garg'
+  repo: 'cgenie/stack-build:lts-18.18-garg'
   run-args:
     - '--publish=8008:8008'
 
@@ -29,8 +29,8 @@ allow-newer: true
 extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
   commit: 220f32810f988a5a121f110a7d557fc7d0721712
-- git: ssh://gitolite3@delanoe.org/gargantext-graph
-  commit: 294887a220460bd0c114638fff9ea53306cd2f18
+#- git: ssh://gitolite3@delanoe.org/gargantext-graph
+#  commit: 294887a220460bd0c114638fff9ea53306cd2f18
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
