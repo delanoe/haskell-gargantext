@@ -110,7 +110,7 @@ filterByNeighbours threshold distanceMap = filteredMap
                                        $ Map.filter (> 0)
                                        $ Map.filterWithKey (\(from,_) _ -> idx == from) distanceMap
                            in List.take (round threshold) selected
-                      ) indexes                 
+                      ) indexes
 
 
 doDistanceMap :: Distance

@@ -1,4 +1,21 @@
 #!/bin/bash
 
-psql postgresql://gargantua:C8kdcUrAQy66U12341@localhost/gargandbV5
+if [[ $1 == "" ]]
+then echo "USAGE : ./psql gargantext.ini"
+fi
+
+
+getter () {
+  grep $2 $1 | sed "s/^.*= //"
+}
+
+USER=$(getter $1 "DB_USER")
+NAME=$(getter $1 "DB_NAME")
+
+PASS=$(getter $1 "DB_PASS")
+HOST=$(getter $1 "DB_HOST")
+PORT=$(getter $1 "DB_PORT")
+
+
+psql "postgresql://${USER}:${PASS}@${HOST}:${PORT}/${NAME}"
 
