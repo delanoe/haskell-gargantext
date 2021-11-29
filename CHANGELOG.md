@@ -1,3 +1,7 @@
+## Version 0.0.4.8.9
+* BACKEND: fix psql function util without sensitive data
+* FRONTEND: fix folder navigation (up link)
+
 ## Version 0.0.4.8.8
 * FIX for CI
 
