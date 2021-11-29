@@ -1,22 +1,23 @@
 #!/bin/bash
 
+INIFILE=$1
+
+getter () {
+  grep $1 $INIFILE | sed "s/^.*= //"
+}
+
+connect () {
+USER=$(getter "DB_USER")
+NAME=$(getter "DB_NAME")
+PASS=$(getter "DB_PASS")
+HOST=$(getter "DB_HOST")
+PORT=$(getter "DB_PORT")
+psql "postgresql://${USER}:${PASS}@${HOST}:${PORT}/${NAME}"
+}
+
 if [[ $1 == "" ]]
 then echo "USAGE : ./psql gargantext.ini"
-else
-  getter () {
-    grep $2 $1 | sed "s/^.*= //"
-  }
-
-  USER=$(getter $1 "DB_USER")
-  NAME=$(getter $1 "DB_NAME")
-
-  PASS=$(getter $1 "DB_PASS")
-  HOST=$(getter $1 "DB_HOST")
-  PORT=$(getter $1 "DB_PORT")
-
-
-  psql "postgresql://${USER}:${PASS}@${HOST}:${PORT}/${NAME}"
-
+else connect $1
 fi
 
 
