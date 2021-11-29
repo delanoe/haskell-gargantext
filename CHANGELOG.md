@@ -1,3 +1,6 @@
+## Version 0.0.4.8.8
+* FIX for CI
+
 ## Version 0.0.4.8.7
 * FIX the graph generation (automatic/default, renewal, any distance)
 
