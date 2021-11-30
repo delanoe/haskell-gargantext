@@ -1,3 +1,6 @@
+## Version 0.0.4.9.1
+* [FIX] Graph Screenshot
+
 ## Version 0.0.4.9
 * [FEAT] Graph with order 1 and order 2 and node size
 
