@@ -9,7 +9,6 @@ Portability : POSIX
 
 -}
 
-
 {-# LANGUAGE OverloadedLists   #-}   -- allows to write Map and HashMap as lists
 {-# LANGUAGE TypeOperators     #-}
 
@@ -159,13 +158,6 @@ recomputeGraph _uId nId maybeDistance = do
                        pure $ trace "[G.V.G.API] Graph exists, recomputing" graph'''
 
 
--- TODO use Database Monad only here ?
---computeGraph :: HasNodeError err
---             => CorpusId
---             -> Distance
---             -> NgramsType
---             -> NodeListStory
---             -> Cmd err Graph
 computeGraph :: FlowCmdM env err m
              => CorpusId
              -> Distance
@@ -180,7 +172,9 @@ computeGraph cId d nt repo = do
           $ mapTermListRoot [lId] nt repo
 
   myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)
-         <$> getCoocByNgrams (if d == Conditional then Diagonal True else Diagonal False)
+         -- <$> HashMap.filterWithKey (\(x,y) _ -> x /= y)
+         -- <$> getCoocByNgrams (if d == Conditional then Diagonal True else Diagonal False)
+         <$> getCoocByNgrams (Diagonal True)
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
 
@@ -219,7 +213,6 @@ defaultGraphMetadata cId t repo gm = do
       , _gm_startForceAtlas = True
     }
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
-
 
 ------------------------------------------------------------
 type GraphAsyncAPI = Summary "Recompute graph"
@@ -338,9 +331,4 @@ getGraphGexf :: FlowCmdM env err m
 getGraphGexf uId nId = do
   HyperdataGraphAPI { _hyperdataAPIGraph = graph } <- getGraph uId nId
   pure $ addHeader "attachment; filename=graph.gexf" graph
-
-
-
-
-
 
