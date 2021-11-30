@@ -28,7 +28,7 @@ import qualified Data.Array.Accelerate as A
 import qualified Data.Array.Accelerate.Interpreter as A
 import Data.Array.Accelerate (Matrix, Elt, Shape, (:.)(..), Z(..))
 
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, catMaybes)
 
 import Data.Set (Set)
 import qualified Data.Set as S
@@ -69,7 +69,7 @@ map2mat sym def n m = A.fromFunction shape getData
       case sym of
         Triangle -> fromMaybe def (M.lookup (x,y) m)
         Square   -> fromMaybe (fromMaybe def $ M.lookup (y,x) m)
-                                             $ M.lookup (x, y) m
+                                             $ M.lookup (x,y) m
                                              )
     shape   = (Z :. n :. n)
 
@@ -93,8 +93,11 @@ fromIndex ni ns = indexConversion ni ns
 
 indexConversion :: (Ord b, Ord k) => Map k b -> Map (k,k) a -> Map (b, b) a
 indexConversion index ms = M.fromList
-                         $ map (\((k1,k2),c) -> ( ((M.!) index k1, (M.!) index k2), c))
-                               (M.toList ms)
+                         $ catMaybes
+                         $ map (\((k1,k2),c) -> ((,) <$> ((,) <$> M.lookup k1 index <*> M.lookup k2 index)
+                                                      <*> Just c)
+                                )
+                         $ M.toList ms
 ---------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
