@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.4.8.5'
+version: '0.0.4.8.9'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -158,6 +158,7 @@ library:
   - full-text-search
   - fullstop
   - gargantext-prelude
+    #  - gargantext-graph >= 0.1.0.0
   - graphviz
   - hashable
   - haskell-igraph
@@ -235,6 +236,7 @@ library:
   - split
   - stemmer
   - swagger2
+  - taggy-lens
   - tagsoup
   - template-haskell
   - temporary
@@ -255,6 +257,7 @@ library:
   - wai-extra
   - wai-websockets
   - warp
+  - wikiparsec
   - websockets
   - wreq
   - xml-conduit
@@ -400,22 +403,22 @@ executables:
       - base
 
 
-#  gargantext-cbor2json:
-#    main: Main.hs
-#    source-dirs: bin/gargantext-cbor2json
-#    ghc-options:
-#    - -threaded
-#    - -rtsopts
-#    - -with-rtsopts=-N
-#    - -O2
-#    - -Wmissing-signatures
-#    dependencies:
-#      - gargantext
-#      - gargantext-prelude
-#      - base
-#      - bytestring
-#      - aeson
-#      - serialise
+  gargantext-cbor2json:
+    main: Main.hs
+    source-dirs: bin/gargantext-cbor2json
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    dependencies:
+      - gargantext
+      - gargantext-prelude
+      - base
+      - bytestring
+      - aeson
+      - serialise
 
 
 tests:

@@ -1,10 +1,10 @@
 resolver:
- url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/16.yaml 
+ url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/18.yaml 
 flags: {}
 extra-package-dbs: []
 packages:
 - .
-#- 'deps/patches-class'
+  #- 'deps/gargantext-graph'
 #- 'deps/patches-map'
 #- 'deps/accelerate'
 #- 'deps/accelerate-utility'
@@ -12,7 +12,7 @@ packages:
 docker:
   enable: false
   #enable: true
-  repo: 'cgenie/stack-build:lts-18.16-garg'
+  repo: 'cgenie/stack-build:lts-18.18-garg'
   run-args:
     - '--publish=8008:8008'
 
@@ -28,7 +28,9 @@ allow-newer: true
 
 extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-  commit: 6bfdb29e9a576472c7fd7ebe648ad101e5b3927f
+  commit: 220f32810f988a5a121f110a7d557fc7d0721712
+#- git: ssh://gitolite3@delanoe.org/gargantext-graph
+#  commit: 294887a220460bd0c114638fff9ea53306cd2f18
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
@@ -47,7 +49,7 @@ extra-deps:
 - git: https://github.com/delanoe/haskell-opaleye.git
   commit: d3ab7acd5ede737478763630035aa880f7e34444
 - git: https://github.com/delanoe/hsparql.git
-  commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
+  commit: 2acbbc55ac9bbd4bf1a713c586b8b8e8b82892eb
 - git: https://github.com/robstewart57/rdf4h.git
   commit: 4fd2edf30c141600ffad6d730cc4c1c08a6dbce4
 
@@ -84,8 +86,21 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/anoe/accelerate-utility.git
   commit: 83ada76e78ac10d9559af8ed6bd4064ec81308e4
 - accelerate-arithmetic-1.0.0.1@sha256:555639232aa5cad411e89247b27871d09352b987a754230a288c690b6de6d888,2096
+- git: https://github.com/rspeer/wikiparsec.git
+  commit: 9637a82344bb70f7fa8f02e75db3c081ccd434ce
 
-  # Others dependencies (using stack resolver)
+  # Gargantext-graph
+- eigen-3.3.7.0@sha256:7c24a86426b238e02ba0ac2179cc44997518b443a13828ed7a791fe49a6dffa5,82060
+- git: https://github.com/alpmestan/sparse-linear.git
+  commit: bc6ca8058077b0b5702ea4b88bd4189cfcad267a
+  subdirs:
+    - sparse-linear
+- git: https://github.com/alpmestan/hmatrix.git
+  commit: b9fca8beee0f23c17a6b2001ec834d071709e6e7
+  subdirs:
+    - packages/base
+
+      # Others dependencies (using stack resolver)
 - constraints-extras-0.3.1.0@sha256:12016ebb91ad5ed2c82bf7e48c6bd6947d164d33c9dca5ac3965de1bb6c780c0,1777
 - KMP-0.2.0.0@sha256:6dfbac03ef00ebd9347234732cb86a40f62ab5a80c0cc6bedb8eb51766f7df28,2562
 - Unique-0.4.7.8@sha256:9661f45aa31dde119a2114566166ea38b011a45653337045ee4ced75636533c0,2067
@@ -111,4 +126,18 @@ extra-deps:
 
 # need Vector.uncons
 - vector-0.12.3.0@sha256:0ae2c1ba86f0077910be242ec6802cc3d7725fe7b2bea6987201aa3737b239b5,7953
+
+# needed for wikiparsec
+- fast-tagsoup-utf8-only-1.0.5@sha256:9292c8ff275c08b88b6013ccc410182552f180904214a07ad4db932ab462aaa1,1651
+# wikipedia crawl
+- taggy-lens-0.1.2@sha256:091ca81d02bd3d7fb493dce0148e1a38f25eb178a1ebd751043a23239e5e3265,3009
+- taggy-0.2.1@sha256:7bc55ddba178971dc6052163597f0445a0a2b5b0ca0e84ce651d53d722e3c265,4662
+
 - servant-ekg-0.3.1@sha256:19bd9dc3943983da8e79d6f607614c68faea4054fb889d508c8a2b67b6bdd448,2203
+
+
+# For the graph clustering
+ghc-options:
+  hmatrix: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
+  sparse-linear: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
+  gargantext-graph: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack

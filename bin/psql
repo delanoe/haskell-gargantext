@@ -1,4 +1,24 @@
 #!/bin/bash
 
-psql postgresql://gargantua:C8kdcUrAQy66U12341@localhost/gargandbV5
+INIFILE=$1
+
+getter () {
+  grep $1 $INIFILE | sed "s/^.*= //"
+}
+
+connect () {
+USER=$(getter "DB_USER")
+NAME=$(getter "DB_NAME")
+PASS=$(getter "DB_PASS")
+HOST=$(getter "DB_HOST")
+PORT=$(getter "DB_PORT")
+psql "postgresql://${USER}:${PASS}@${HOST}:${PORT}/${NAME}"
+}
+
+if [[ $1 == "" ]]
+then echo "USAGE : ./psql gargantext.ini"
+else connect $INIFILE
+fi
+
+
 

@@ -90,10 +90,11 @@ getGraph _uId nId = do
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
     camera = nodeGraph ^. node_hyperdata . hyperdataCamera
-    cId = maybe (panic "[G.V.G.API] Node has no parent")
-                  identity
-                  $ nodeGraph ^. node_parent_id
+    
+  mcId <- getClosestParentIdByType nId NodeCorpus
+  let cId = maybe (panic "[G.V.G.API] Node has no parent") identity mcId
 
+  printDebug "[getGraph] getting list for cId" cId
   listId <- defaultList cId
   repo <- getRepo' [listId]
 
@@ -130,14 +131,12 @@ recomputeGraph _uId nId maybeDistance = do
     graphMetric   = case maybeDistance of
                       Nothing -> graph ^? _Just . graph_metadata . _Just . gm_metric
                       _       -> maybeDistance
-
-  let
-    cId = maybe (panic "[G.C.V.G.API.recomputeGraph] Node has no parent")
-                  identity
-                  $ nodeGraph ^. node_parent_id
     similarity = case graphMetric of
                    Nothing -> withMetric Order1
                    Just m  -> withMetric m
+
+  mcId <- getClosestParentIdByType nId NodeCorpus
+  let cId = maybe (panic "[G.V.G.API] Node has no parent") identity mcId
 
   listId  <- defaultList cId
   repo <- getRepo' [listId]
@@ -190,8 +189,10 @@ computeGraph cId d nt repo = do
 
   listNgrams <- getListNgrams [lId] nt
 
+  -- graph <- liftBase $ cooc2graphWith Bac d 0 myCooc
   graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
   -- saveAsFileDebug "debug/graph" graph
+
   pure $ mergeGraphNgrams graph (Just listNgrams)
 
 
