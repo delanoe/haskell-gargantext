@@ -1,3 +1,6 @@
+## Version 0.0.4.9
+* [FEAT] Graph with order 1 and order 2 and node size
+
 ## Version 0.0.4.8.9
 * BACKEND: fix psql function util without sensitive data
 * FRONTEND: fix folder navigation (up link)
