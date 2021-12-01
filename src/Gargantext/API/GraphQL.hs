@@ -33,6 +33,7 @@ import Gargantext.API.Admin.Auth.Types (AuthenticatedUser)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog)
 import Gargantext.API.Prelude (HasJobEnv')
 import qualified Gargantext.API.GraphQL.AsyncTask as GQLAT
+import qualified Gargantext.API.GraphQL.Ethercalc as GQLEthercalc
 import qualified Gargantext.API.GraphQL.Node as GQLNode
 import qualified Gargantext.API.GraphQL.User as GQLUser
 import qualified Gargantext.API.GraphQL.UserInfo as GQLUserInfo
@@ -69,7 +70,8 @@ data Query m
 
 data Mutation m
   = Mutation
-    { update_user_info :: GQLUserInfo.UserInfoMArgs -> m Int }
+    { ethercalc_csv_download :: GQLEthercalc.EthercalcCSVDownloadArgs -> m Int
+    , update_user_info :: GQLUserInfo.UserInfoMArgs -> m Int }
     deriving (Generic, GQLType)
 
 -- | Possible GraphQL Events, i.e. here we describe how we will
@@ -99,7 +101,8 @@ rootResolver =
                             , node_parent = GQLNode.resolveNodeParent
                             , user_infos  = GQLUserInfo.resolveUserInfos
                             , users       = GQLUser.resolveUsers }
-    , mutationResolver = Mutation { update_user_info = GQLUserInfo.updateUserInfo }
+    , mutationResolver = Mutation { ethercalc_csv_download = GQLEthercalc.ethercalcCSVDownload
+                                  , update_user_info = GQLUserInfo.updateUserInfo }
     , subscriptionResolver = Undefined }
 
 -- | Main GraphQL "app".
@@ -148,5 +151,5 @@ api
   :: (Typeable env, HasConnectionPool env, HasConfig env, HasMail env, HasJobEnv' env)
   => ServerT API (GargM env GargError)
 api (SAS.Authenticated _auser) = httpPubApp [] app :<|> pure httpPlayground
-api _                          = panic "401 in graphql" --SAS.throwAll (_ServerError # err401)
---api _ = httpPubApp [] app :<|> pure httpPlayground
+--api _                          = panic "401 in graphql" --SAS.throwAll (_ServerError # err401)
+api _ = httpPubApp [] app :<|> pure httpPlayground

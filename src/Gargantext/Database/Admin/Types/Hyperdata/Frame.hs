@@ -73,3 +73,9 @@ getHyperdataFrameContents (HyperdataFrame { _hf_base, _hf_frame_id }) = do
   let path = T.concat [_hf_base, "/", _hf_frame_id, "/download"]
   r <- Wreq.get $ T.unpack path
   pure $ decodeUtf8 $ toStrict $ r ^. Wreq.responseBody
+
+getHyperdataFrameCSV :: HyperdataFrame -> IO Text
+getHyperdataFrameCSV (HyperdataFrame { _hf_base, _hf_frame_id }) = do
+  let path = T.concat [_hf_base, "/", _hf_frame_id, ".csv"]
+  r <- Wreq.get $ T.unpack path
+  pure $ decodeUtf8 $ toStrict $ r ^. Wreq.responseBody
