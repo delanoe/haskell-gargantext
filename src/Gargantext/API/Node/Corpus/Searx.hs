@@ -23,7 +23,13 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Prelude (hasConfig)
+import Gargantext.Database.Query.Table.Node (defaultList)
 
+
+langToSearx :: Lang -> Text
+langToSearx EN = "en-US"
+langToSearx FR = "fr-FR"
+langToSearx All = "en-US"
 
 data SearxResult = SearxResult
   { _sr_url        :: Text
@@ -76,26 +82,28 @@ fetchSearxPage (FetchSearxParams { _fsp_language
         , ("categories", "news")  -- https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/70#note_3976
         , ("pageno", encodeUtf8 $ T.pack $ show _fsp_pageno)
           --, ("time_range", "None")
-        , ("language", encodeUtf8 $ T.pack $ show _fsp_language)
+        , ("language", encodeUtf8 $ langToSearx _fsp_language)
         , ("format", "json")
         ] req
   res <- httpLbs request _fsp_manager
   let dec = Aeson.eitherDecode $ responseBody res :: (Either Prelude.String SearxResponse)
   pure dec
 
+-- TODO Make an async task out of this?
 triggerSearxSearch :: (MonadBase IO m, FlowCmdM env err m)
             => CorpusId
             -> API.Query
             -> Lang
             -> m ()
-
-triggerSearxSearch cid q l = do
-  printDebug "[triggerSearxSearch] cid" cid
+triggerSearxSearch cId q l = do
+  printDebug "[triggerSearxSearch] cId" cId
   printDebug "[triggerSearxSearch] q" q
   printDebug "[triggerSearxSearch] l" l
   cfg <- view hasConfig
   let surl = _gc_frame_searx_url cfg
   printDebug "[triggerSearxSearch] surl" surl
+  listId <- defaultList cId
+  printDebug "[triggerSearxSearch] listId" listId
 
   manager <- liftBase $ newManager tlsManagerSettings
   res <- liftBase $ fetchSearxPage $ FetchSearxParams { _fsp_language = l
