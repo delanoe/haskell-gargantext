@@ -2,6 +2,7 @@ resolver:
  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/18.yaml
 flags: {}
 extra-package-dbs: []
+skip-ghc-check: true
 packages:
 - .
   #- 'deps/gargantext-graph'

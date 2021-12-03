@@ -4,6 +4,7 @@
 
 module Gargantext.API.GraphQL.Node where
 
+import Data.Either (Either(..))
 import Data.Morpheus.Types
   ( GQLType
   , Resolver
@@ -11,16 +12,18 @@ import Data.Morpheus.Types
   , lift
   )
 import Data.Text (Text)
+import qualified Data.Text as T
 import Gargantext.API.Prelude (GargM, GargError)
 import Gargantext.Core.Mail.Types (HasMail)
-import Gargantext.Database.Admin.Config (fromNodeTypeId)
-import Gargantext.Database.Admin.Types.Node (NodeId(..))
+import Gargantext.Database.Admin.Types.Node (NodeId(..), NodeType)
 import qualified Gargantext.Database.Admin.Types.Node as NN
 import Gargantext.Database.Query.Table.Node (getClosestParentIdByType, getNode)
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import qualified Gargantext.Database.Schema.Node as N
 import Gargantext.Prelude
 import GHC.Generics (Generic)
+import qualified Prelude as Prelude
+import Text.Read (readEither)
 
 data Node = Node
   { id        :: Int
@@ -51,25 +54,31 @@ dbNodes node_id = do
 
 data NodeParentArgs
   = NodeParentArgs
-    { node_id        :: Int
-    , parent_type_id :: Int
+    { node_id     :: Int
+    , parent_type :: Text
     } deriving (Generic, GQLType)
 
 resolveNodeParent
   :: (HasConnectionPool env, HasConfig env, HasMail env)
   => NodeParentArgs -> GqlM e env [Node]
-resolveNodeParent NodeParentArgs { node_id, parent_type_id } = dbParentNodes node_id parent_type_id
+resolveNodeParent NodeParentArgs { node_id, parent_type } = dbParentNodes node_id parent_type
 
 dbParentNodes
   :: (HasConnectionPool env, HasConfig env, HasMail env)
-  => Int -> Int -> GqlM e env [Node]
-dbParentNodes node_id parent_type_id = do
-  mNodeId <- lift $ getClosestParentIdByType (NodeId node_id) (fromNodeTypeId parent_type_id)
-  case mNodeId of
-    Nothing -> pure []
-    Just id -> do
-      node <- lift $ getNode id
-      pure [toNode node]
+  => Int -> Text -> GqlM e env [Node]
+dbParentNodes node_id parent_type = do
+  let mParentType = readEither (T.unpack parent_type) :: Either Prelude.String NodeType
+  case mParentType of
+    Left err -> do
+      lift $ printDebug "[dbParentNodes] error reading parent type" (T.pack err)
+      pure []
+    Right parentType -> do
+      mNodeId <- lift $ getClosestParentIdByType (NodeId node_id) parentType -- (fromNodeTypeId parent_type_id)
+      case mNodeId of
+        Nothing -> pure []
+        Just id -> do
+          node <- lift $ getNode id
+          pure [toNode node]
 
 toNode :: NN.Node json -> Node
 toNode (N.Node { .. }) = Node { id = NN.unNodeId _node_id
