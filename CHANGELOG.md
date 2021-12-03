@@ -1,3 +1,6 @@
+## Version 0.0.4.9.5
+* [FEAT] Order 2 fixed with filtered edges
+
 ## Version 0.0.4.9.4
 * [FEAT] Order 1 similarity validated and optimized
 
