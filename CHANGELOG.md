@@ -1,3 +1,6 @@
+## Version 0.0.4.9.2
+* [FEAT] Node Calc Parsing added (in tests)
+
 ## Version 0.0.4.9.1
 * [FIX] Graph Screenshot
 
