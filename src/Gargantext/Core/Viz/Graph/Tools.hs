@@ -26,6 +26,7 @@ import Gargantext.Core.Methods.Distances (Distance(..), measure)
 import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
+import Gargantext.Core.Viz.Graph.Utils (edgesFilter)
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
@@ -49,6 +50,7 @@ defaultClustering x = spinglass 1 x
 
 -------------------------------------------------------------
 type Threshold = Double
+
 
 cooc2graph' :: Ord t => Distance
                      -> Double
@@ -151,6 +153,7 @@ doDistanceMap Distributional threshold myCooc = (distanceMap, toIndex ti diag, t
                 $ List.take links
                 $ List.sortOn snd
                 $ Map.toList
+                $ edgesFilter
                 $ Map.filter (> threshold)
                 $ mat2map similarities
 

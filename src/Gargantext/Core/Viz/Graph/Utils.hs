@@ -17,14 +17,16 @@ These functions are used for Vector.Matrix only.
 module Gargantext.Core.Viz.Graph.Utils
   where
 
+import Data.Map (Map)
 import Data.Matrix hiding (identity)
-
 import Data.Vector (Vector)
-import qualified Data.Vector as V
-
 import qualified Data.List   as L
+import qualified Data.Map    as Map
 import Gargantext.Prelude
-
+import Data.List (unzip)
+import qualified Data.Vector as V
+import Data.Maybe (catMaybes)
+import qualified Data.Set    as Set
 ------------------------------------------------------------------------
 -- | Some utils to build the matrix from cooccurrence results
 
@@ -63,8 +65,35 @@ toListsWithIndex m = concat' $ zip [1..] $ map (\c -> zip [1..] c) $ toLists m
     concat' :: [(Int, [(Int, a)])] -> [((Int, Int), a)]
     concat' xs = L.concat $ map (\(x, ys) -> map (\(y, a) -> ((x,y), a)) ys ) xs
 
+------------------------------------------------------------------------
+-- Utils to manage Graphs
+
+edgesFilter :: (Ord a, Ord b) => Map (a,a) b -> Map (a,a) b
+edgesFilter m = Map.fromList $ catMaybes results
+  where
+    results = [ let
+                  ij = Map.lookup (i,j) m
+                  ji = Map.lookup (j,i) m
+                  in getMax (i,j) ij ji
+              | i <- keys
+              , j <- keys
+              , i < j
+              ]
+    keys    = Set.toList $ Set.fromList (x <> y)
+    (x,y)   = unzip $ Map.keys m
 
 
 
+
+getMax :: Ord b
+       => (a,a)
+       -> Maybe b
+       -> Maybe b
+       -> Maybe ((a,a), b)
+getMax (i,j) (Just d) Nothing   = Just ((i,j), d)
+getMax (i,j) Nothing (Just d)   = Just ((j,i), d)
+getMax ij   (Just di) (Just dj) = if di >= dj then getMax ij (Just di) Nothing
+                                              else getMax ij Nothing   (Just dj)
+getMax _ _ _ = Nothing
 
 

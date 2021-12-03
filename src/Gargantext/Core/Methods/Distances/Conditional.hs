@@ -15,16 +15,18 @@ Motivation and definition of the @Conditional@ distance.
 module Gargantext.Core.Methods.Distances.Conditional
   where
 
+import Control.DeepSeq (NFData)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
 import Data.Hashable (Hashable)
 import Data.List (unzip)
 import Data.Maybe (catMaybes)
 import Gargantext.Prelude
+import Gargantext.Core.Viz.Graph.Utils (getMax)
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Set            as Set
-import Control.DeepSeq (NFData)
-type HashMap = Map.HashMap
 
+
+type HashMap = Map.HashMap
 ------------------------------------------------------------------------
 -- First version as first implementation
 -- - qualitatively verified
@@ -51,14 +53,6 @@ conditional m' = Map.fromList $ ((catMaybes results') `using` parList rdeepseq)
     (x,y)   = unzip $ Map.keys m
 
 
-getMax :: (a,a)
-       -> Maybe Double
-       -> Maybe Double
-       -> Maybe ((a,a), Double)
-getMax (i,j) (Just d) Nothing   = Just ((i,j), d)
-getMax (i,j) Nothing (Just d)   = Just ((j,i), d)
-getMax ij   (Just di) (Just dj) = if di >= dj then getMax ij (Just di) Nothing
-                                              else getMax ij Nothing   (Just dj)
-getMax _ _ _ = Nothing
+
 
 
