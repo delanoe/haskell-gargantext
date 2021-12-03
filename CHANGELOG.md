@@ -1,3 +1,6 @@
+## Version 0.0.4.9.3
+* [FIX] Node Calc import + more flexible delimiter for CSV parser
+
 ## Version 0.0.4.9.2
 * [FEAT] Node Calc Parsing added (in tests)
 
