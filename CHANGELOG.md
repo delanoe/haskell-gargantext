@@ -1,3 +1,6 @@
+## Version 0.0.4.9.4
+* [FEAT] Order 1 similarity validated and optimized
+
 ## Version 0.0.4.9.3
 * [FIX] Node Calc import + more flexible delimiter for CSV parser
 
