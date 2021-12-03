@@ -7,13 +7,17 @@ module Gargantext.API.Node.Corpus.Searx where
 import Control.Lens (view)
 import qualified Data.Aeson as Aeson
 import Data.Aeson.TH (deriveJSON)
+import Data.Either (Either(..))
 import qualified Data.Text as T
+import Data.Time.Calendar (Day, toGregorian)
+import Data.Time.Format (defaultTimeLocale, parseTimeM)
+import Data.Tuple.Select (sel1, sel2, sel3)
 import GHC.Generics (Generic)
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 
 import qualified Prelude as Prelude
-import Protolude (encodeUtf8, Text, Either)
+import Protolude (encodeUtf8, Text)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config
 
@@ -21,6 +25,8 @@ import Gargantext.Core (Lang(..))
 import qualified Gargantext.Core.Text.Corpus.API as API
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
+import Gargantext.Database.Admin.Config ()
+import Gargantext.Database.Admin.Types.Hyperdata.Document (HyperdataDocument(..))
 import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Prelude (hasConfig)
 import Gargantext.Database.Query.Table.Node (defaultList)
@@ -32,13 +38,16 @@ langToSearx FR = "fr-FR"
 langToSearx All = "en-US"
 
 data SearxResult = SearxResult
-  { _sr_url        :: Text
-  , _sr_title      :: Text
-  , _sr_content    :: Maybe Text
-  , _sr_engine     :: Text
-  , _sr_score      :: Double
-  , _sr_category   :: Text
-  , _sr_pretty_url :: Text }
+  { _sr_url           :: Text
+  , _sr_title         :: Text
+  , _sr_content       :: Maybe Text
+  , _sr_engine        :: Text
+  , _sr_score         :: Double
+  , _sr_category      :: Text
+  , _sr_pretty_url    :: Text
+  , _sr_publishedDate :: Text   -- "Nov 19, 2021"
+  , _sr_pubdate       :: Text  -- "2021-11-19 02:12:00+0000"
+  }
   deriving (Show, Eq, Generic)
 --  , _sr_parsed_url
 --  , _sr_engines
@@ -114,4 +123,35 @@ triggerSearxSearch cId q l = do
    
   printDebug "[triggerSearxSearch] res" res
 
+  _ <- case res of
+   Left _ -> pure ()
+   Right (SearxResponse { _srs_results }) -> do
+     let docs = hyperdataDocumentFromSearxResult <$> _srs_results
+     printDebug "[triggerSearxSearch] docs" docs
+
   pure ()
+
+hyperdataDocumentFromSearxResult :: SearxResult -> Either T.Text HyperdataDocument
+hyperdataDocumentFromSearxResult (SearxResult { _sr_content, _sr_engine, _sr_pubdate, _sr_title }) = do
+  let mDate = parseTimeM False defaultTimeLocale "%Y-%m-%d %H:%M:%S" (T.unpack _sr_pubdate) :: Maybe Day
+  let mGregorian = toGregorian <$> mDate
+  Right HyperdataDocument { _hd_bdd = Just "Searx"
+                          , _hd_doi = Nothing
+                          , _hd_url = Nothing
+                          , _hd_uniqId = Nothing
+                          , _hd_uniqIdBdd = Nothing
+                          , _hd_page = Nothing
+                          , _hd_title = Just _sr_title
+                          , _hd_authors = Nothing
+                          , _hd_institutes = Nothing
+                          , _hd_source = Just _sr_engine
+                          , _hd_abstract = _sr_content
+                          , _hd_publication_date = Just _sr_pubdate
+                          , _hd_publication_year = fromIntegral <$> sel1 <$> mGregorian
+                          , _hd_publication_month = sel2 <$> mGregorian
+                          , _hd_publication_day = sel3 <$> mGregorian
+                          , _hd_publication_hour = Nothing
+                          , _hd_publication_minute = Nothing
+                          , _hd_publication_second = Nothing
+                          , _hd_language_iso2 = Just $ T.pack $ show EN }
+
