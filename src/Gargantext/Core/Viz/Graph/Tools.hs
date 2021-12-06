@@ -71,9 +71,10 @@ cooc2graph' distance threshold myCooc
         myCooc' = toIndex ti myCooc
 
 
-data PartitionMethod = Louvain | Spinglass -- | Bac
+data PartitionMethod = Louvain | Spinglass
+-- TODO Bac
 
--- | coocurrences graph computation
+-- coocurrences graph computation
 cooc2graphWith :: PartitionMethod
                -> Distance
                -> Threshold
@@ -167,10 +168,10 @@ doDistanceMap Conditional _threshold myCooc = (distanceMap, toIndex ti myCooc', 
 
     distanceMap = toIndex ti
                 $ Map.fromList
-                -- $ List.take links
-                -- $ List.sortOn snd
+                --  List.take links
+                --  List.sortOn snd
                 $ HashMap.toList
-                -- $ HashMap.filter (> threshold)
+                --  HashMap.filter (> threshold)
                 $ conditional myCooc
 
 
