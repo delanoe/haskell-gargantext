@@ -229,6 +229,8 @@ instance FromHttpApiData OrderBy
     parseUrlPiece "SourceAsc"  = pure SourceAsc
     parseUrlPiece "SourceDesc" = pure SourceDesc
     parseUrlPiece _            = Left "Unexpected value of OrderBy"
+instance ToHttpApiData OrderBy where
+  toUrlPiece = T.pack . show
 
 instance ToParamSchema OrderBy
 instance FromJSON  OrderBy

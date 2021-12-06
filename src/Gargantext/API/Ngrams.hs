@@ -22,6 +22,7 @@ add get
 {-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE TypeFamilies      #-}
 
+{-# LANGUAGE IncoherentInstances #-}
 module Gargantext.API.Ngrams
   ( TableNgramsApi
   , TableNgramsApiGet
@@ -71,6 +72,8 @@ module Gargantext.API.Ngrams
   , VersionedWithCount(..)
   , currentVersion
   , listNgramsChangedSince
+  , MinSize, MaxSize, OrderBy, NgramsTable
+  , UpdateTableNgramsCharts
   )
   where
 
@@ -86,7 +89,7 @@ import Data.Monoid
 import Data.Ord (Down(..))
 import Data.Patch.Class (Action(act), Transformable(..), ours)
 import Data.Swagger hiding (version, patch)
-import Data.Text (Text, isInfixOf, unpack)
+import Data.Text (Text, isInfixOf, unpack, pack)
 import Data.Text.Lazy.IO as DTL
 import Formatting (hprint, int, (%))
 import GHC.Generics (Generic)
@@ -654,6 +657,8 @@ instance FromHttpApiData OrderBy
     parseUrlPiece "ScoreDesc" = pure ScoreDesc
     parseUrlPiece _           = Left "Unexpected value of OrderBy"
 
+instance ToHttpApiData OrderBy where
+  toUrlPiece = pack . show
 
 instance ToParamSchema OrderBy
 instance FromJSON  OrderBy

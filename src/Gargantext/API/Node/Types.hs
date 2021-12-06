@@ -13,7 +13,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import GHC.Generics (Generic)
 import Servant.Job.Utils (jsonOptions)
-import Web.FormUrlEncoded          (FromForm)
+import Web.FormUrlEncoded          (FromForm, ToForm)
 
 import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
@@ -31,6 +31,7 @@ data NewWithForm = NewWithForm
 
 makeLenses ''NewWithForm
 instance FromForm NewWithForm
+instance ToForm NewWithForm
 instance FromJSON NewWithForm where
   parseJSON = genericParseJSON $ jsonOptions "_wf_"
 instance ToJSON NewWithForm where
@@ -48,6 +49,7 @@ data NewWithFile = NewWithFile
 
 makeLenses ''NewWithFile
 instance FromForm NewWithFile
+instance ToForm NewWithFile
 instance FromJSON NewWithFile where
   parseJSON = genericParseJSON $ jsonOptions "_wfi_"
 instance ToJSON NewWithFile where

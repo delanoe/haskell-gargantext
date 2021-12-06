@@ -24,6 +24,7 @@ import qualified Data.HashMap.Lazy as HashMap
 import qualified Gargantext.Prelude as P
 import qualified Gargantext.Core.Viz.Graph as G
 import qualified Xmlbf as Xmlbf
+import Prelude (error)
 
 -- Converts to GEXF format
 -- See https://gephi.org/gexf/format/
@@ -65,3 +66,8 @@ instance Xmlbf.ToXml Graph where
           params = HashMap.fromList [ ("id", eId)
                                     , ("source", es)
                                     , ("target", et) ]
+
+-- just to be able to derive a client for the entire gargantext API,
+-- we however want to avoid sollicitating this instance
+instance Xmlbf.FromXml Graph where
+  fromXml = error "FromXml Graph: not defined, just a placeholder"

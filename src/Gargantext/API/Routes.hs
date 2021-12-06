@@ -58,7 +58,7 @@ import Gargantext.Prelude.Config (gc_max_docs_scrapers)
 
 
 type GargAPI = "api" :> Summary "API " :> GargAPIVersion
--- | TODO          :<|> Summary "Latest API" :> GargAPI'
+--- | TODO          :<|> Summary "Latest API" :> GargAPI'
 
 type GargAPIVersion = "v1.0"
                    :> Summary "Garg API Version "

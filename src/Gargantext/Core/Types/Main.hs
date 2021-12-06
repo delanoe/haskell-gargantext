@@ -25,13 +25,13 @@ import Data.Map (fromList, lookup)
 import Data.Maybe (fromMaybe)
 import Data.Semigroup (Semigroup(..))
 import Data.Swagger
-import Data.Text (Text, unpack)
+import Data.Text (Text, unpack, pack)
 import GHC.Generics (Generic)
 import Gargantext.Core
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Admin.Types.Node  -- (NodeType(..), Node, Hyperdata(..))
 import Gargantext.Prelude
-import Servant.API (FromHttpApiData(..))
+import Servant.API (FromHttpApiData(..), ToHttpApiData(..))
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Text.Read (read)
@@ -75,6 +75,8 @@ instance Semigroup ListType
 
 instance FromHttpApiData ListType where
   parseUrlPiece = Right . read . unpack
+instance ToHttpApiData ListType where
+  toUrlPiece = pack . show
 
 type ListTypeId = Int
 

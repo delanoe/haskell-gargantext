@@ -16,6 +16,7 @@ Async new node feature
 {-# LANGUAGE TypeOperators      #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+{-# LANGUAGE IncoherentInstances #-}
 module Gargantext.API.Node.New
       where
 
@@ -28,7 +29,7 @@ import Servant
 import Servant.Job.Async
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
-import Web.FormUrlEncoded          (FromForm)
+import Web.FormUrlEncoded          (FromForm, ToForm)
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Prelude
@@ -51,6 +52,7 @@ instance FromJSON  PostNode
 instance ToJSON    PostNode
 instance ToSchema  PostNode
 instance FromForm  PostNode
+instance ToForm    PostNode
 instance Arbitrary PostNode where
   arbitrary = elements [PostNode "Node test" NodeCorpus]
 
@@ -73,7 +75,7 @@ type PostNodeAsync = Summary "Post Node"
 
 postNodeAsyncAPI :: UserId -> NodeId -> GargServer PostNodeAsync
 postNodeAsyncAPI uId nId =
-  serveJobsAPI $ 
+  serveJobsAPI $
     JobFunction (\p logs -> postNodeAsync uId nId p (liftBase . logs))
 
 ------------------------------------------------------------------------
