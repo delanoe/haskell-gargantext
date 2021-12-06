@@ -1,3 +1,15 @@
+## Version 0.0.4.9.5
+* [FEAT] Order 2 fixed with filtered edges
+
+## Version 0.0.4.9.4
+* [FEAT] Order 1 similarity validated and optimized
+
+## Version 0.0.4.9.3
+* [FIX] Node Calc import + more flexible delimiter for CSV parser
+
+## Version 0.0.4.9.2
+* [FEAT] Node Calc Parsing added (in tests)
+
 ## Version 0.0.4.9.1
 * [FIX] Graph Screenshot
 

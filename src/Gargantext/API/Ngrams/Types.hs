@@ -11,6 +11,7 @@ module Gargantext.API.Ngrams.Types where
 
 import Codec.Serialise (Serialise())
 import Control.Category ((>>>))
+import Control.DeepSeq (NFData)
 import Control.Lens (makeLenses, makePrisms, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~))
 import Control.Monad.State
 import Data.Aeson hiding ((.=))
@@ -121,7 +122,7 @@ instance (ToJSONKey a, ToSchema a) => ToSchema (MSet a) where
 
 ------------------------------------------------------------------------
 newtype NgramsTerm = NgramsTerm { unNgramsTerm :: Text }
-  deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema, Hashable)
+  deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema, Hashable, NFData)
 
 instance IsHashable NgramsTerm where
   hash (NgramsTerm t) = hash t

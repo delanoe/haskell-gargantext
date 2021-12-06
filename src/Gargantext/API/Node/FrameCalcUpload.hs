@@ -80,6 +80,7 @@ frameCalcUploadAsync uId nId _f logStatus jobLog = do
     httpLbs req manager
   let body = T.pack $ BSU8.toString $ BSL.toStrict $ responseBody res
 
+  -- printDebug "body" body
   mCId <- getClosestParentIdByType nId NodeCorpus
   -- printDebug "[frameCalcUploadAsync] mCId" mCId
 

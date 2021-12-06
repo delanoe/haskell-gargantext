@@ -123,7 +123,7 @@ readCSVFile_Annuaire' :: FilePath -> IO (Header, Vector IMTUser)
 readCSVFile_Annuaire' = fmap readCsvHalLazyBS' . BL.readFile
   where
     readCsvHalLazyBS' :: BL.ByteString -> (Header, Vector IMTUser)
-    readCsvHalLazyBS' bs = case decodeByNameWith csvDecodeOptions bs of
+    readCsvHalLazyBS' bs = case decodeByNameWith (csvDecodeOptions Tab) bs of
           Left  e    -> panic (cs e)
           Right rows -> rows
 
