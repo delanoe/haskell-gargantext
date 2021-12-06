@@ -1,3 +1,6 @@
+## Version 0.0.4.9.6
+* [UX] GT.query forces trees reload for async tasks
+
 ## Version 0.0.4.9.5
 * [FEAT] Order 2 fixed with filtered edges
 
