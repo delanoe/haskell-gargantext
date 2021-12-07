@@ -279,7 +279,7 @@ instance ToNode HyperdataDocument where
     where
       n    = maybe "No Title" (DT.take 255) (_hd_title h)
       date  = jour y m d
-      y = maybe 0 fromIntegral $ _hd_publication_year  h
+      y = maybe 1 fromIntegral $ _hd_publication_year  h
       m = fromMaybe 1 $ _hd_publication_month h
       d = fromMaybe 1 $ _hd_publication_day   h
 

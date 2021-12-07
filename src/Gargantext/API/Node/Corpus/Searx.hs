@@ -142,7 +142,7 @@ triggerSearxSearch user cId q l logStatus = do
                                                           , _fsp_query = q
                                                           , _fsp_url = surl }
    
-      printDebug "[triggerSearxSearch] res" res
+      --printDebug "[triggerSearxSearch] res" res
 
       case res of
         Left _ -> pure ()
@@ -152,7 +152,10 @@ triggerSearxSearch user cId q l logStatus = do
           -- docs :: [Either Text HyperdataDocument]
           let docs' = catMaybes $ rightToMaybe <$> docs
           Prelude.mapM_ (\(HyperdataDocument { _hd_title, _hd_publication_year, _hd_publication_date }) -> do
-            printDebug "[triggerSearxSearch] doc time" $ (show _hd_title) <> " :: " <> (show _hd_publication_year) <> " :: " <> (show _hd_publication_date)
+            printDebug "[triggerSearxSearch] doc time" $
+              "[title] " <> (show _hd_title) <>
+              " :: [publication_year] " <> (show _hd_publication_year) <>
+              " :: [publication_date] " <> (show _hd_publication_date)
             ) docs'
           _ <- flowDataText user (DataNew [docs']) (Multi EN) cId Nothing logStatus
           pure ()
@@ -161,7 +164,7 @@ triggerSearxSearch user cId q l logStatus = do
 
 hyperdataDocumentFromSearxResult :: SearxResult -> Either T.Text HyperdataDocument
 hyperdataDocumentFromSearxResult (SearxResult { _sr_content, _sr_engine, _sr_pubdate, _sr_title }) = do
-  let mDate = parseTimeM False defaultTimeLocale "%Y-%m-%d %H:%M:%S" (T.unpack _sr_pubdate) :: Maybe Day
+  let mDate = parseTimeM False defaultTimeLocale "%Y-%m-%d %H:%M:%S+0000" (T.unpack _sr_pubdate) :: Maybe Day
   let mGregorian = toGregorian <$> mDate
   Right HyperdataDocument { _hd_bdd = Just "Searx"
                           , _hd_doi = Nothing
@@ -169,7 +172,7 @@ hyperdataDocumentFromSearxResult (SearxResult { _sr_content, _sr_engine, _sr_pub
                           , _hd_uniqId = Nothing
                           , _hd_uniqIdBdd = Nothing
                           , _hd_page = Nothing
-                          , _hd_title = Just _sr_title
+                          , _hd_title = Just $ ("[" <> _sr_pubdate <> "] ") <> _sr_title
                           , _hd_authors = Nothing
                           , _hd_institutes = Nothing
                           , _hd_source = Just _sr_engine
