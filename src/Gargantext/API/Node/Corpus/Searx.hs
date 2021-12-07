@@ -17,19 +17,25 @@ import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 
 import qualified Prelude as Prelude
-import Protolude (encodeUtf8, Text)
+import Protolude (catMaybes, encodeUtf8, rightToMaybe, Text)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config
 
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
+--import Gargantext.API.Admin.Types (HasSettings)
+import Gargantext.API.Job (jobLogSuccess, jobLogFailTotalWithMessage)
 import Gargantext.Core (Lang(..))
 import qualified Gargantext.Core.Text.Corpus.API as API
+import Gargantext.Core.Text.Terms (TermType(..))
+import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Database.Action.Flow (flowDataText, DataText(..))
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Config ()
 import Gargantext.Database.Admin.Types.Hyperdata.Document (HyperdataDocument(..))
 import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Prelude (hasConfig)
-import Gargantext.Database.Query.Table.Node (defaultList)
+import Gargantext.Database.Query.Table.Node (defaultListMaybe)
 
 
 langToSearx :: Lang -> Text
@@ -100,36 +106,55 @@ fetchSearxPage (FetchSearxParams { _fsp_language
 
 -- TODO Make an async task out of this?
 triggerSearxSearch :: (MonadBase IO m, FlowCmdM env err m)
-            => CorpusId
+            => User
+            -> CorpusId
             -> API.Query
             -> Lang
-            -> m ()
-triggerSearxSearch cId q l = do
+            -> (JobLog -> m ())
+            -> m JobLog
+triggerSearxSearch user cId q l logStatus = do
+  let jobLog = JobLog { _scst_succeeded = Just 1
+                      , _scst_failed    = Just 0
+                      , _scst_remaining = Just 1
+                      , _scst_events    = Just []
+                      }
+  logStatus jobLog
+
   printDebug "[triggerSearxSearch] cId" cId
   printDebug "[triggerSearxSearch] q" q
   printDebug "[triggerSearxSearch] l" l
   cfg <- view hasConfig
   let surl = _gc_frame_searx_url cfg
   printDebug "[triggerSearxSearch] surl" surl
-  listId <- defaultList cId
-  printDebug "[triggerSearxSearch] listId" listId
+  mListId <- defaultListMaybe cId
+  case mListId of
+    Nothing -> do
+      let failedJobLog = jobLogFailTotalWithMessage "[triggerSearxSearch] no list id" jobLog
+      logStatus failedJobLog
+      pure failedJobLog
+    Just listId -> do
+      printDebug "[triggerSearxSearch] listId" listId
 
-  manager <- liftBase $ newManager tlsManagerSettings
-  res <- liftBase $ fetchSearxPage $ FetchSearxParams { _fsp_language = l
-                                                      , _fsp_manager = manager
-                                                      , _fsp_pageno = 1
-                                                      , _fsp_query = q
-                                                      , _fsp_url = surl }
+      manager <- liftBase $ newManager tlsManagerSettings
+      res <- liftBase $ fetchSearxPage $ FetchSearxParams { _fsp_language = l
+                                                          , _fsp_manager = manager
+                                                          , _fsp_pageno = 1
+                                                          , _fsp_query = q
+                                                          , _fsp_url = surl }
    
-  printDebug "[triggerSearxSearch] res" res
+      printDebug "[triggerSearxSearch] res" res
 
-  _ <- case res of
-   Left _ -> pure ()
-   Right (SearxResponse { _srs_results }) -> do
-     let docs = hyperdataDocumentFromSearxResult <$> _srs_results
-     printDebug "[triggerSearxSearch] docs" docs
+      case res of
+        Left _ -> pure ()
+        Right (SearxResponse { _srs_results }) -> do
+          let docs = hyperdataDocumentFromSearxResult <$> _srs_results
+          printDebug "[triggerSearxSearch] docs" docs
+          -- docs :: [Either Text HyperdataDocument]
+          let docs' = catMaybes $ rightToMaybe <$> docs
+          _ <- flowDataText user (DataNew [docs']) (Multi EN) cId Nothing logStatus
+          pure ()
 
-  pure ()
+      pure $ jobLogSuccess jobLog
 
 hyperdataDocumentFromSearxResult :: SearxResult -> Either T.Text HyperdataDocument
 hyperdataDocumentFromSearxResult (SearxResult { _sr_content, _sr_engine, _sr_pubdate, _sr_title }) = do
