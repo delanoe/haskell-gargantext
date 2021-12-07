@@ -10,7 +10,7 @@ import Data.Aeson.TH (deriveJSON)
 import Data.Either (Either(..))
 import qualified Data.Text as T
 import Data.Time.Calendar (Day, toGregorian)
-import Data.Time.Format (defaultTimeLocale, parseTimeM)
+import Data.Time.Format (defaultTimeLocale, formatTime, parseTimeM)
 import Data.Tuple.Select (sel1, sel2, sel3)
 import GHC.Generics (Generic)
 import Network.HTTP.Client
@@ -148,9 +148,12 @@ triggerSearxSearch user cId q l logStatus = do
         Left _ -> pure ()
         Right (SearxResponse { _srs_results }) -> do
           let docs = hyperdataDocumentFromSearxResult <$> _srs_results
-          printDebug "[triggerSearxSearch] docs" docs
+          --printDebug "[triggerSearxSearch] docs" docs
           -- docs :: [Either Text HyperdataDocument]
           let docs' = catMaybes $ rightToMaybe <$> docs
+          Prelude.mapM_ (\(HyperdataDocument { _hd_title, _hd_publication_year, _hd_publication_date }) -> do
+            printDebug "[triggerSearxSearch] doc time" $ (show _hd_title) <> " :: " <> (show _hd_publication_year) <> " :: " <> (show _hd_publication_date)
+            ) docs'
           _ <- flowDataText user (DataNew [docs']) (Multi EN) cId Nothing logStatus
           pure ()
 
@@ -171,7 +174,7 @@ hyperdataDocumentFromSearxResult (SearxResult { _sr_content, _sr_engine, _sr_pub
                           , _hd_institutes = Nothing
                           , _hd_source = Just _sr_engine
                           , _hd_abstract = _sr_content
-                          , _hd_publication_date = Just _sr_pubdate
+                          , _hd_publication_date = T.pack <$> formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S" <$> mDate
                           , _hd_publication_year = fromIntegral <$> sel1 <$> mGregorian
                           , _hd_publication_month = sel2 <$> mGregorian
                           , _hd_publication_day = sel3 <$> mGregorian
