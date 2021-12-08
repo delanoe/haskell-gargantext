@@ -279,6 +279,9 @@ instance ToNode HyperdataDocument where
     where
       n    = maybe "No Title" (DT.take 255) (_hd_title h)
       date  = jour y m d
+      -- NOTE: There is no year '0' in postgres, there is year 1 AD and beofre that year 1 BC:
+      -- select '0001-01-01'::date, '0001-01-01'::date - '1 day'::interval;
+      -- 0001-01-01    0001-12-31 00:00:00 BC
       y = maybe 1 fromIntegral $ _hd_publication_year  h
       m = fromMaybe 1 $ _hd_publication_month h
       d = fromMaybe 1 $ _hd_publication_day   h

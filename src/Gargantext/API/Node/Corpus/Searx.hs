@@ -8,6 +8,7 @@ import Control.Lens (view)
 import qualified Data.Aeson as Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Either (Either(..))
+import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Text as T
 import Data.Time.Calendar (Day, toGregorian)
 import Data.Time.Format (defaultTimeLocale, formatTime, parseTimeM)
@@ -23,20 +24,26 @@ import Gargantext.Prelude.Config
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 --import Gargantext.API.Admin.Types (HasSettings)
-import Gargantext.API.Job (jobLogSuccess, jobLogFailTotalWithMessage)
-import Gargantext.Core (Lang(..))
+import Gargantext.API.Job (jobLogSuccess)
+import Gargantext.Core (Lang(..), PosTagAlgo(..))
 import qualified Gargantext.Core.Text.Corpus.API as API
+import Gargantext.Core.Text.List (buildNgramsLists)
+import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
 import Gargantext.Core.Text.Terms (TermType(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Database.Action.Flow (flowDataText, DataText(..))
+import Gargantext.Database.Action.Flow (insertMasterDocs) --, DataText(..))
+import Gargantext.Database.Action.Flow.List (flowList_DbRepo)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
-import Gargantext.Database.Admin.Config ()
+import Gargantext.Database.Action.User (getUserId)
+import Gargantext.Database.Admin.Config (userMaster)
+import Gargantext.Database.Admin.Types.Hyperdata.Corpus (HyperdataCorpus)
 import Gargantext.Database.Admin.Types.Hyperdata.Document (HyperdataDocument(..))
 import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Prelude (hasConfig)
-import Gargantext.Database.Query.Table.Node (defaultListMaybe)
-
+import Gargantext.Database.Query.Table.Node (defaultListMaybe, getOrMkList)
+import Gargantext.Database.Query.Tree.Root (getOrMk_RootWithCorpus)
+import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 
 langToSearx :: Lang -> Text
 langToSearx EN = "en-US"
@@ -124,43 +131,56 @@ triggerSearxSearch user cId q l logStatus = do
   printDebug "[triggerSearxSearch] q" q
   printDebug "[triggerSearxSearch] l" l
   cfg <- view hasConfig
+  uId <- getUserId user
   let surl = _gc_frame_searx_url cfg
   printDebug "[triggerSearxSearch] surl" surl
   mListId <- defaultListMaybe cId
-  case mListId of
+  listId <- case mListId of
     Nothing -> do
-      let failedJobLog = jobLogFailTotalWithMessage "[triggerSearxSearch] no list id" jobLog
-      logStatus failedJobLog
-      pure failedJobLog
-    Just listId -> do
-      printDebug "[triggerSearxSearch] listId" listId
+      --let failedJobLog = jobLogFailTotalWithMessage "[triggerSearxSearch] no list id" jobLog
+      --logStatus failedJobLog
+      --pure failedJobLog
+      listId <- getOrMkList cId uId
+      pure listId
+    Just listId -> pure listId
+    
+  printDebug "[triggerSearxSearch] listId" listId
 
-      manager <- liftBase $ newManager tlsManagerSettings
-      res <- liftBase $ fetchSearxPage $ FetchSearxParams { _fsp_language = l
-                                                          , _fsp_manager = manager
-                                                          , _fsp_pageno = 1
-                                                          , _fsp_query = q
-                                                          , _fsp_url = surl }
-   
-      --printDebug "[triggerSearxSearch] res" res
+  manager <- liftBase $ newManager tlsManagerSettings
+  res <- liftBase $ fetchSearxPage $ FetchSearxParams { _fsp_language = l
+                                                      , _fsp_manager = manager
+                                                      , _fsp_pageno = 1
+                                                      , _fsp_query = q
+                                                      , _fsp_url = surl }
+         
+  --printDebug "[triggerSearxSearch] res" res
 
-      case res of
-        Left _ -> pure ()
-        Right (SearxResponse { _srs_results }) -> do
-          let docs = hyperdataDocumentFromSearxResult <$> _srs_results
-          --printDebug "[triggerSearxSearch] docs" docs
-          -- docs :: [Either Text HyperdataDocument]
-          let docs' = catMaybes $ rightToMaybe <$> docs
-          Prelude.mapM_ (\(HyperdataDocument { _hd_title, _hd_publication_year, _hd_publication_date }) -> do
-            printDebug "[triggerSearxSearch] doc time" $
-              "[title] " <> (show _hd_title) <>
-              " :: [publication_year] " <> (show _hd_publication_year) <>
-              " :: [publication_date] " <> (show _hd_publication_date)
-            ) docs'
-          _ <- flowDataText user (DataNew [docs']) (Multi EN) cId Nothing logStatus
-          pure ()
+  case res of
+    Left _ -> pure ()
+    Right (SearxResponse { _srs_results }) -> do
+      let docs = hyperdataDocumentFromSearxResult <$> _srs_results
+      --printDebug "[triggerSearxSearch] docs" docs
+      -- docs :: [Either Text HyperdataDocument]
+      let docs' = catMaybes $ rightToMaybe <$> docs
+      Prelude.mapM_ (\(HyperdataDocument { _hd_title, _hd_publication_year, _hd_publication_date }) -> do
+        printDebug "[triggerSearxSearch] doc time" $
+          "[title] " <> (show _hd_title) <>
+          " :: [publication_year] " <> (show _hd_publication_year) <>
+          " :: [publication_date] " <> (show _hd_publication_date)
+        ) docs'
+      --_ <- flowDataText user (DataNew [docs']) (Multi EN) cId Nothing logStatus
+      let mCorpus = Nothing :: Maybe HyperdataCorpus
+      ids <- insertMasterDocs mCorpus (Multi EN) docs'
+      _ <- Doc.add cId ids
+      (_masterUserId, _masterRootId, masterCorpusId)
+        <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") mCorpus
+      let gp = GroupWithPosTag l CoreNLP HashMap.empty 
+      ngs         <- buildNgramsLists user cId masterCorpusId Nothing gp
+      _userListId <- flowList_DbRepo listId ngs
 
-      pure $ jobLogSuccess jobLog
+      pure ()
+
+  pure $ jobLogSuccess jobLog
 
 hyperdataDocumentFromSearxResult :: SearxResult -> Either T.Text HyperdataDocument
 hyperdataDocumentFromSearxResult (SearxResult { _sr_content, _sr_engine, _sr_pubdate, _sr_title }) = do
