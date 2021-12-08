@@ -2,7 +2,7 @@
 # https://vadosware.io/post/zero-to-continuous-integrated-testing-a-haskell-project-with-gitlab/
 #
 #
-image: cgenie/stack-build:lts-17.13-garg
+image: cgenie/stack-build:lts-18.18-garg
 
 variables:
   STACK_ROOT: "${CI_PROJECT_DIR}/.stack-root"
