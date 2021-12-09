@@ -120,7 +120,7 @@ insertSearxResponse :: (MonadBase IO m, FlowCmdM env err m)
                     -> m ()
 insertSearxResponse _ _ _ _ (Left _) = pure ()
 insertSearxResponse user cId listId l (Right (SearxResponse { _srs_results })) = do
-  let docs = hyperdataDocumentFromSearxResult <$> _srs_results
+  let docs = hyperdataDocumentFromSearxResult l <$> _srs_results
   --printDebug "[triggerSearxSearch] docs" docs
   -- docs :: [Either Text HyperdataDocument]
   let docs' = catMaybes $ rightToMaybe <$> docs
@@ -130,9 +130,9 @@ insertSearxResponse user cId listId l (Right (SearxResponse { _srs_results })) =
       " :: [publication_year] " <> (show _hd_publication_year) <>
       " :: [publication_date] " <> (show _hd_publication_date)
     ) docs'
-  --_ <- flowDataText user (DataNew [docs']) (Multi EN) cId Nothing logStatus
+  --_ <- flowDataText user (DataNew [docs']) (Multi l) cId Nothing logStatus
   let mCorpus = Nothing :: Maybe HyperdataCorpus
-  ids <- insertMasterDocs mCorpus (Multi EN) docs'
+  ids <- insertMasterDocs mCorpus (Multi l) docs'
   _ <- Doc.add cId ids
   (_masterUserId, _masterRootId, masterCorpusId)
     <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") mCorpus
@@ -169,9 +169,6 @@ triggerSearxSearch user cId q l logStatus = do
   mListId <- defaultListMaybe cId
   listId <- case mListId of
     Nothing -> do
-      --let failedJobLog = jobLogFailTotalWithMessage "[triggerSearxSearch] no list id" jobLog
-      --logStatus failedJobLog
-      --pure failedJobLog
       listId <- getOrMkList cId uId
       pure listId
     Just listId -> pure listId
@@ -197,8 +194,8 @@ triggerSearxSearch user cId q l logStatus = do
 
   pure $ jobLogSuccess jobLog
 
-hyperdataDocumentFromSearxResult :: SearxResult -> Either T.Text HyperdataDocument
-hyperdataDocumentFromSearxResult (SearxResult { _sr_content, _sr_engine, _sr_pubdate, _sr_title }) = do
+hyperdataDocumentFromSearxResult :: Lang -> SearxResult -> Either T.Text HyperdataDocument
+hyperdataDocumentFromSearxResult l (SearxResult { _sr_content, _sr_engine, _sr_pubdate, _sr_title }) = do
   let mDate = parseTimeM False defaultTimeLocale "%Y-%m-%d %H:%M:%S+0000" (T.unpack _sr_pubdate) :: Maybe Day
   let mGregorian = toGregorian <$> mDate
   Right HyperdataDocument { _hd_bdd = Just "Searx"
@@ -219,5 +216,5 @@ hyperdataDocumentFromSearxResult (SearxResult { _sr_content, _sr_engine, _sr_pub
                           , _hd_publication_hour = Nothing
                           , _hd_publication_minute = Nothing
                           , _hd_publication_second = Nothing
-                          , _hd_language_iso2 = Just $ T.pack $ show EN }
+                          , _hd_language_iso2 = Just $ T.pack $ show l }
 
