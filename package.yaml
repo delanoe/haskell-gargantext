@@ -246,6 +246,7 @@ library:
   - timezone-series
   - transformers
   - transformers-base
+  - tuple
   - unordered-containers
   - utf8-string
   - uuid

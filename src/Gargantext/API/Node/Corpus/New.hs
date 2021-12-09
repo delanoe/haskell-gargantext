@@ -200,7 +200,7 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
     Just Web -> do
       printDebug "[addToCorpusWithQuery] processing web request" datafield
 
-      _ <- triggerSearxSearch cid q l
+      _ <- triggerSearxSearch user cid q l logStatus
 
       pure JobLog { _scst_succeeded = Just 3
                   , _scst_failed    = Just 0
