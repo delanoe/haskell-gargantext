@@ -207,7 +207,7 @@ hyperdataDocumentFromSearxResult (SearxResult { _sr_content, _sr_engine, _sr_pub
                           , _hd_uniqId = Nothing
                           , _hd_uniqIdBdd = Nothing
                           , _hd_page = Nothing
-                          , _hd_title = Just $ ("[" <> _sr_pubdate <> "] ") <> _sr_title
+                          , _hd_title = Just _sr_title
                           , _hd_authors = Nothing
                           , _hd_institutes = Nothing
                           , _hd_source = Just _sr_engine
