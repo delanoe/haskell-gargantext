@@ -151,7 +151,7 @@ triggerSearxSearch :: (MonadBase IO m, FlowCmdM env err m)
             -> (JobLog -> m ())
             -> m JobLog
 triggerSearxSearch user cId q l logStatus = do
-  let numPages = 10
+  let numPages = 100
   let jobLog = JobLog { _scst_succeeded = Just 0
                       , _scst_failed    = Just 0
                       , _scst_remaining = Just numPages
