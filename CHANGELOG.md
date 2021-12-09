@@ -1,3 +1,6 @@
+## Version 0.0.4.9.7
+* [FEAT] Searx API done (needs a fix for language selection)
+
 ## Version 0.0.4.9.6
 * [UX] GT.query forces trees reload for async tasks
 
