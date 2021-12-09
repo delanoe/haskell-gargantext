@@ -14,25 +14,22 @@ Portability : POSIX
 module Gargantext.Core.Viz.Graph.Tools
   where
 
--- import Data.Graph.Clustering.Louvain (hLouvain, {-iLouvainMap-})
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
-import Data.Text (Text)
--- import Debug.Trace (trace)
+import Data.Maybe (fromMaybe)
 import GHC.Float (sin, cos)
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
-import Gargantext.Core.Methods.Distances.Conditional (conditional)
 import Gargantext.Core.Methods.Distances (Distance(..), measure)
+import Gargantext.Core.Methods.Distances.Conditional (conditional)
 import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
-import Gargantext.Core.Viz.Graph.Utils (edgesFilter)
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
 import Gargantext.Core.Viz.Graph.Types (ClusterNode)
+import Gargantext.Core.Viz.Graph.Utils (edgesFilter)
 import Gargantext.Prelude
--- import qualified Graph.BAC.ProxemyOptim as BAC
 import IGraph.Random -- (Gen(..))
 import qualified Data.HashMap.Strict      as HashMap
 import qualified Data.List                as List
@@ -95,12 +92,6 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
   let
     (distanceMap, diag, ti) = doDistanceMap distance threshold myCooc
 
-    nodesApprox :: Int
-    nodesApprox = n'
-      where
-        (as, bs) = List.unzip $ Map.keys distanceMap
-        n' = Set.size $ Set.fromList $ as <> bs
-
 {- -- Debug
   saveAsFileDebug "debug/distanceMap" distanceMap
   printDebug "similarities" similarities
@@ -111,12 +102,15 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
       else panic "Text.Flow: DistanceMap is empty"
 
   let
+    nodesApprox :: Int
+    nodesApprox = n'
+      where
+        (as, bs) = List.unzip $ Map.keys distanceMap
+        n' = Set.size $ Set.fromList $ as <> bs
     bridgeness' = bridgeness (fromIntegral nodesApprox) partitions distanceMap
-
     confluence' = confluence (Map.keys bridgeness') 3 True False
 
-  pure $ data2graph (Map.toList $ Map.mapKeys unNgramsTerm ti)
-                    diag bridgeness' confluence' partitions
+  pure $ data2graph ti diag bridgeness' confluence' partitions
 
 
 doDistanceMap :: Distance
@@ -148,86 +142,87 @@ doDistanceMap Distributional threshold myCooc = (distanceMap, toIndex ti diag, t
                  $ map2mat Square 0 tiSize
                  $ toIndex ti theMatrix
 
-    links = round (let n :: Double = fromIntegral tiSize in n * log n)
+    links = round (let n :: Double = fromIntegral tiSize in n * (log n)^(2::Int))
 
     distanceMap = Map.fromList
                 $ List.take links
+                $ List.reverse
                 $ List.sortOn snd
                 $ Map.toList
                 $ edgesFilter
                 $ Map.filter (> threshold)
                 $ mat2map similarities
 
-doDistanceMap Conditional _threshold myCooc = (distanceMap, toIndex ti myCooc', ti)
+doDistanceMap Conditional threshold myCooc = (distanceMap, toIndex ti myCooc', ti)
   where
     myCooc' = Map.fromList $ HashMap.toList myCooc
     (ti, _it) = createIndices myCooc'
-    -- tiSize  = Map.size ti
+    tiSize  = Map.size ti
 
-    -- links = round (let n :: Double = fromIntegral tiSize in n * log n)
+    links = round (let n :: Double = fromIntegral tiSize in n * log n)
 
     distanceMap = toIndex ti
                 $ Map.fromList
-                --  List.take links
-                --  List.sortOn snd
+                $ List.take links
+                $ List.sortOn snd
                 $ HashMap.toList
-                --  HashMap.filter (> threshold)
+                $ HashMap.filter (> threshold)
                 $ conditional myCooc
-
-
 
 ----------------------------------------------------------
 -- | From data to Graph
 
-type Occurrences  = Map (Int,  Int) Int
+type Occurrences      = Int
 
 data2graph :: ToComId a 
-           => [(Text, Int)]
-           -> Occurrences
+           => Map NgramsTerm Int
+           -> Map (Int, Int) Occurrences
            -> Map (Int, Int) Double
            -> Map (Int, Int) Double
            -> [a]
            -> Graph
-data2graph labels occurences bridge conf partitions = Graph { _graph_nodes = nodes
-                                                            , _graph_edges = edges
-                                                            , _graph_metadata = Nothing
-                                                            }
+data2graph labels' occurences bridge conf partitions = Graph { _graph_nodes = nodes
+                                                             , _graph_edges = edges
+                                                             , _graph_metadata = Nothing
+                                                             }
   where
-
-    community_id_by_node_id = Map.fromList
-                            $ map nodeId2comId partitions
 
     nodes = map (setCoord ForceAtlas labels bridge)
           [ (n, Node { node_size    = maybe 0 identity (Map.lookup (n,n) occurences)
                      , node_type    = Terms -- or Unknown
                      , node_id      = cs (show n)
-                     , node_label   = l
+                     , node_label   = unNgramsTerm l
                      , node_x_coord = 0
                      , node_y_coord = 0
-                     , node_attributes =
-                       Attributes { clust_default = maybe 0 identity
-                                    (Map.lookup n community_id_by_node_id) }
+                     , node_attributes = Attributes { clust_default = fromMaybe 0
+                                                       (Map.lookup n community_id_by_node_id)
+                                                    }
                      , node_children = [] }
                )
             | (l, n) <- labels
-            , Set.member n $ Set.fromList
-                           $ List.concat
-                           $ map (\((s,t),d) -> if d > 0 && s /=t then [s,t] else [])
-                           $ Map.toList bridge
+            , Set.member n nodesWithScores
             ]
 
     edges = [ Edge { edge_source = cs (show s)
                        , edge_target = cs (show t)
                        , edge_weight = weight
                        , edge_confluence = maybe 0 identity $ Map.lookup (s,t) conf
-                   -- , edge_confluence = maybe (panic "E: data2graph edges") identity $ Map.lookup (s,t) conf
                        , edge_id     = cs (show i)
                    }
-            | (i, ((s,t), weight)) <- zip ([0..]::[Integer] )
-                                     (Map.toList bridge)
+            | (i, ((s,t), weight)) <- zip ([0..]::[Integer] ) $ Map.toList bridge
             , s /= t
             , weight > 0
             ]
+
+    community_id_by_node_id = Map.fromList
+                            $ map nodeId2comId partitions
+
+    labels = Map.toList labels'
+
+    nodesWithScores = Set.fromList
+                     $ List.concat
+                     $ map (\((s,t),d) -> if d > 0 && s/=t then [s,t] else [])
+                     $ Map.toList bridge
 
 
 ------------------------------------------------------------------------
@@ -305,7 +300,7 @@ cooc2graph'' distance threshold myCooc = neighbourMap
     (ti, _) = createIndices myCooc
     myCooc' = toIndex ti myCooc
     matCooc = map2mat Triangle 0 (Map.size ti) $ Map.filter (> 1) myCooc'
-    distanceMat = measure distance matCooc
+    distanceMat  = measure distance matCooc
     neighbourMap = filterByNeighbours threshold
                  $ mat2map distanceMat
 

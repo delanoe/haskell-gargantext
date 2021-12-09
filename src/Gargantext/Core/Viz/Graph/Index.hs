@@ -24,21 +24,16 @@ TODO:
 module Gargantext.Core.Viz.Graph.Index
   where
 
+import Data.Array.Accelerate (Matrix, Elt, Shape, (:.)(..), Z(..))
+import Data.Map (Map)
+import Data.Maybe (fromMaybe, catMaybes)
+import Data.Set (Set)
+import Gargantext.Prelude
 import qualified Data.Array.Accelerate as A
 import qualified Data.Array.Accelerate.Interpreter as A
-import Data.Array.Accelerate (Matrix, Elt, Shape, (:.)(..), Z(..))
-
-import Data.Maybe (fromMaybe, catMaybes)
-
-import Data.Set (Set)
-import qualified Data.Set as S
-
-import Data.Map (Map)
-import qualified Data.Map.Strict    as M
-
--- import Data.Vector (Vector)
-
-import Gargantext.Prelude
+import qualified Data.Map.Strict       as M
+import qualified Data.Set              as S
+import qualified Data.List             as L
 
 type Index    = Int
 
@@ -98,13 +93,15 @@ indexConversion index ms = M.fromList
                                                       <*> Just c)
                                 )
                          $ M.toList ms
----------------------------------------------------------------------------------
 
--------------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+
 --fromIndex' :: Ord t => Vector t -> Map (Index, Index) a -> Map (t,t) a
 --fromIndex' vi ns = undefined
 
--- TODO: returing a Vector should be faster than a Map
+-- TODO: returning a Vector should be faster than a Map
 -- createIndices' :: Ord t => Map (t, t) b -> (Map t Index, Vector t)
 -- createIndices' = undefined
 
@@ -122,5 +119,18 @@ createIndices = set2indices . map2set
         fromIndex' = zip [0..] xs
         toIndex'   = zip xs [0..]
         xs         = S.toList s
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+
+testIndices :: Bool
+testIndices = myMap == ( M.filter (>0) myMap')
+  where
+    xy      = L.zip ([0..30]:: [Int]) ([0..30]:: [Int])
+    myMap   = M.fromList $ L.zip xy ([1..]:: [Int])
+    (ti,it) = createIndices myMap
+    matrix  = mat2map $ map2mat Square 0 (M.size ti) $ toIndex ti myMap
+    myMap'  = fromIndex it matrix
+
 
 
