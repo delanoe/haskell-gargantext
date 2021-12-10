@@ -106,3 +106,13 @@ source-repository-package
   tag: 83ada76e78ac10d9559af8ed6bd4064ec81308e4
 
 constraints: unordered-containers==0.2.14.*
+
+-- Wikidata 
+source-repository-package
+  type: git
+  location: https://github.com/rspeer/wikiparsec.git
+  tag: 9637a82344bb70f7fa8f02e75db3c081ccd434ce
+
+
+
+
