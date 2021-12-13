@@ -56,12 +56,16 @@ getCorpus cId lId nt' = do
       Nothing -> NgramsTerms
       Just  t -> t
 
+  listId <- case lId of
+    Nothing -> defaultList cId
+    Just l  -> pure l
+  
   ns   <- Map.fromList
        <$> map (\n -> (_node_id n, n))
        <$> selectDocNodes cId
 
-  repo <- getRepo' [fromMaybe (panic "[Gargantext.API.Node.Corpus.Export]") lId]
-  ngs  <- getNodeNgrams cId lId nt repo
+  repo <- getRepo' [listId]
+  ngs  <- getNodeNgrams cId listId nt repo
   let  -- uniqId is hash computed already for each document imported in database
     r = Map.intersectionWith
         (\a b -> Document { _d_document = a
@@ -77,14 +81,14 @@ getCorpus cId lId nt' = do
 
 getNodeNgrams :: HasNodeError err
         => CorpusId
-        -> Maybe ListId
+        -> ListId
         -> NgramsType
         -> NodeListStory
         -> Cmd err (Map NodeId (Set NgramsTerm))
-getNodeNgrams cId lId' nt repo = do
-  lId <- case lId' of
-    Nothing -> defaultList cId
-    Just  l -> pure l
+getNodeNgrams cId lId nt repo = do
+--  lId <- case lId' of
+--    Nothing -> defaultList cId
+--    Just  l -> pure l
 
   lIds <- selectNodesWithUsername NodeList userMaster
   let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
