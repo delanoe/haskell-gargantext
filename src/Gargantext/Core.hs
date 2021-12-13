@@ -9,17 +9,17 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE DeriveAnyClass             #-}
+{-# LANGUAGE DeriveAnyClass    #-}
 
 module Gargantext.Core
   where
 
+import Data.Text (Text, pack)
 import Data.Aeson
 import Data.Either(Either(Left))
 import Data.Hashable (Hashable)
 import Data.Morpheus.Types (GQLType)
 import Data.Swagger
-import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Prelude
 import Servant.API
@@ -52,6 +52,8 @@ instance FromHttpApiData Lang
     parseUrlPiece "FR"  = pure FR
     parseUrlPiece "All" = pure All
     parseUrlPiece _     = Left "Unexpected value of OrderBy"
+instance ToHttpApiData Lang where
+  toUrlPiece = pack . show
 instance Hashable Lang
 
 allLangs :: [Lang]

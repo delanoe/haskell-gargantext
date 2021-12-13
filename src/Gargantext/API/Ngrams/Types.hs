@@ -63,8 +63,7 @@ data TabType   = Docs   | Trash   | MoreFav | MoreTrash
 
 instance Hashable TabType
 
-instance FromHttpApiData TabType
-   where
+instance FromHttpApiData TabType where
     parseUrlPiece "Docs"       = pure Docs
     parseUrlPiece "Trash"      = pure Trash
     parseUrlPiece "MoreFav"    = pure MoreFav
@@ -78,6 +77,8 @@ instance FromHttpApiData TabType
     parseUrlPiece "Contacts"   = pure Contacts
 
     parseUrlPiece _            = Left "Unexpected value of TabType"
+instance ToHttpApiData TabType where
+    toUrlPiece = pack . show
 instance ToParamSchema TabType
 instance ToJSON        TabType
 instance FromJSON      TabType
@@ -715,6 +716,9 @@ instance Arbitrary NgramsRepoElement where
 instance FromHttpApiData (Map TableNgrams.NgramsType (Versioned NgramsTableMap))
   where
     parseUrlPiece x = maybeToEither x (decode $ cs x)
+
+instance ToHttpApiData (Map TableNgrams.NgramsType (Versioned NgramsTableMap)) where
+  toUrlPiece m = cs (encode m)
 
 ngramsTypeFromTabType :: TabType -> TableNgrams.NgramsType
 ngramsTypeFromTabType tabType =
