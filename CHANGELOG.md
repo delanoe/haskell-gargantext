@@ -1,3 +1,6 @@
+## Version 0.0.4.9.8
+* [FEAT] All backend routes with clients functions
+
 ## Version 0.0.4.9.7
 * [FEAT] Searx API done (needs a fix for language selection)
 
