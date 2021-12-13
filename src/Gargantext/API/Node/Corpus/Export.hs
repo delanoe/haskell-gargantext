@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.API.Node.Corpus.Export
-Description : Get Metrics from Storage (Database like)
+Description : Corpus export
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -25,6 +25,7 @@ import qualified Data.Set as Set
 import qualified Data.HashMap.Strict as HashMap
 
 import Gargantext.API.Node.Corpus.Export.Types
+import qualified Gargantext.API.Node.Document.Export.Types as DocumentExport
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo')
 import Gargantext.API.Prelude (GargNoServer)
@@ -68,16 +69,16 @@ getCorpus cId lId nt' = do
   ngs  <- getNodeNgrams cId listId nt repo
   let  -- uniqId is hash computed already for each document imported in database
     r = Map.intersectionWith
-        (\a b -> Document { _d_document = a
-                          , _d_ngrams = Ngrams (Set.toList b) (hash b)
-                          , _d_hash = d_hash a b }
+        (\a b -> DocumentExport.Document { _d_document = a
+                                         , _d_ngrams = DocumentExport.Ngrams (Set.toList b) (hash b)
+                                         , _d_hash = d_hash a b }
         ) ns (Map.map (Set.map unNgramsTerm) ngs)
           where
             d_hash  a b = hash [ fromMaybe "" (_hd_uniqId $ _node_hyperdata a)
                                , hash b
                                ]
   pure $ Corpus { _c_corpus = Map.elems r
-                , _c_hash = hash $ List.map _d_hash $ Map.elems r }
+                , _c_hash = hash $ List.map DocumentExport._d_hash $ Map.elems r }
 
 getNodeNgrams :: HasNodeError err
         => CorpusId

@@ -36,9 +36,11 @@ import Servant.Swagger.UI
 import qualified Gargantext.API.Ngrams.List              as List
 import qualified Gargantext.API.Node.Contact             as Contact
 import qualified Gargantext.API.Node.Corpus.Annuaire     as Annuaire
-import qualified Gargantext.API.Node.Corpus.Export       as Export
-import qualified Gargantext.API.Node.Corpus.Export.Types as Export
+import qualified Gargantext.API.Node.Corpus.Export       as CorpusExport
+import qualified Gargantext.API.Node.Corpus.Export.Types as CorpusExport
 import qualified Gargantext.API.Node.Corpus.New          as New
+import qualified Gargantext.API.Node.Document.Export       as DocumentExport
+import qualified Gargantext.API.Node.Document.Export.Types as DocumentExport
 import qualified Gargantext.API.Public                   as Public
 import Gargantext.API.Admin.Auth.Types (AuthRequest, AuthResponse, AuthenticatedUser(..), PathId(..))
 import Gargantext.API.Admin.Auth (withAccess)
@@ -111,7 +113,7 @@ type GargPrivateAPI' =
                            :> NodeNodeAPI HyperdataAny
 
            :<|> "corpus"   :> Capture "node_id" CorpusId
-                           :> Export.API
+                           :> CorpusExport.API
 
            -- Annuaire endpoint
 {-
@@ -132,6 +134,9 @@ type GargPrivateAPI' =
                            :> Capture "doc_id" DocId
                            :> "ngrams"
                            :> TableNgramsApi
+
+           :<|> "texts" :> Capture "node_id" DocId
+                           :> DocumentExport.API
 
         -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
             -- TODO-SECURITY
@@ -217,13 +222,15 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAny)      uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataCorpus)   uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
-     :<|> Export.getCorpus   -- uid
+     :<|> CorpusExport.getCorpus   -- uid
  --    :<|> nodeAPI     (Proxy :: Proxy HyperdataContact)  uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAnnuaire) uid
      :<|> Contact.api uid
 
      :<|> withAccess  (Proxy :: Proxy TableNgramsApi) Proxy uid
           <$> PathNode <*> apiNgramsTableDoc
+
+     :<|> DocumentExport.getDocuments
 
      :<|> count -- TODO: undefined
 
