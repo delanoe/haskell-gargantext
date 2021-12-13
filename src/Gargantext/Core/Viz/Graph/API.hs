@@ -67,6 +67,7 @@ data GraphVersions =
                 }
    deriving (Show, Generic)
 
+instance FromJSON GraphVersions
 instance ToJSON GraphVersions
 instance ToSchema GraphVersions
 

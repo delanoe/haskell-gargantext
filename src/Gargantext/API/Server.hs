@@ -17,6 +17,7 @@ module Gargantext.API.Server where
 import Control.Lens ((^.))
 import Control.Monad.Except (withExceptT)
 import Control.Monad.Reader (runReaderT)
+import Data.Aeson
 import Data.Text (Text)
 import Data.Version (showVersion)
 import Servant
@@ -40,7 +41,7 @@ import Gargantext.Prelude
 import Gargantext.Prelude.Config (gc_url_backend_api)
 
 
-serverGargAPI :: MimeRender JSON err => Text -> GargServerM env err GargAPI
+serverGargAPI :: ToJSON err => Text -> GargServerM env err GargAPI
 serverGargAPI baseUrl -- orchestrator
        =  auth
      :<|> gargVersion

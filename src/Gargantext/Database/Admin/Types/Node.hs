@@ -27,7 +27,7 @@ import Data.Either
 import Data.Hashable (Hashable)
 import Data.Morpheus.Types (GQLType)
 import Data.Swagger
-import Data.Text (Text, unpack)
+import Data.Text (Text, unpack, pack)
 import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Database.PostgreSQL.Simple.ToField (ToField, toField)
@@ -178,7 +178,8 @@ type TSVector     = Text
 ------------------------------------------------------------------------
 instance FromHttpApiData NodeId where
   parseUrlPiece n = pure $ NodeId $ (read . cs) n
-
+instance ToHttpApiData NodeId where
+  toUrlPiece (NodeId n) = toUrlPiece n
 instance ToParamSchema NodeId
 instance Arbitrary NodeId where
   arbitrary = NodeId <$> arbitrary
@@ -330,9 +331,10 @@ defaultName NodeFile          = "File"
 instance FromJSON NodeType
 instance ToJSON NodeType
 
-instance FromHttpApiData NodeType
-  where
-      parseUrlPiece = Right . read . unpack
+instance FromHttpApiData NodeType where
+  parseUrlPiece = Right . read . unpack
+instance ToHttpApiData NodeType where
+  toUrlPiece = pack . show
 
 instance ToParamSchema NodeType
 instance ToSchema      NodeType

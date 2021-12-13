@@ -9,7 +9,7 @@ import Data.Aeson
 import Data.Swagger (ToSchema, declareNamedSchema, genericDeclareNamedSchema)
 import Data.Text
 import Servant.Job.Utils (jsonOptions)
-import Web.FormUrlEncoded (FromForm)
+import Web.FormUrlEncoded (FromForm, ToForm)
 
 import Protolude
 
@@ -27,6 +27,7 @@ data WithFile = WithFile
 
 --makeLenses ''WithFile
 instance FromForm WithFile
+instance ToForm WithFile
 instance FromJSON WithFile where
   parseJSON = genericParseJSON $ jsonOptions "_wf_"
 instance ToJSON WithFile where
@@ -45,6 +46,7 @@ data WithTextFile = WithTextFile
 
 --makeLenses ''WithTextFile
 instance FromForm WithTextFile
+instance ToForm WithTextFile
 instance FromJSON WithTextFile where
   parseJSON = genericParseJSON $ jsonOptions "_wtf_"
 instance ToJSON WithTextFile where
