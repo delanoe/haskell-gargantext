@@ -20,7 +20,7 @@ docker:
 skip-ghc-check: true
 
 nix:
-  enable: true
+  enable: false
   add-gc-roots: true
   shell-file: nix/stack-shell.nix
 
