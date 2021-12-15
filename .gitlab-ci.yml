@@ -21,8 +21,10 @@ docs:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
+      - .stack
       - .stack-root/
       - .stack-work/
+      - target
   script:
     - stack build --no-terminal --haddock --no-haddock-deps --fast
     - cp -R "$(stack path --local-install-root)"/doc ./output
@@ -36,8 +38,10 @@ test:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
+      - .stack
       - .stack-root/
       - .stack-work/
+      - target
   script:
     - stack test --no-terminal --fast
 
