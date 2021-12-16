@@ -31,6 +31,7 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataContact(..), Hyperdat
 import Gargantext.Database.Admin.Types.Hyperdata.Contact (_cw_organization)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Facet
+import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
 import Gargantext.Utils.Aeson (defaultTaggedObject)
 import Servant
@@ -258,12 +259,12 @@ instance ToHyperdataRow HyperdataDocument where
       , _hr_language_iso2 = fromMaybe "EN" _hd_language_iso2
       , _hr_page = fromMaybe 0 _hd_page
       , _hr_publication_date = fromMaybe "" _hd_publication_date
-      , _hr_publication_day = fromMaybe 1 _hd_publication_day
-      , _hr_publication_hour = fromMaybe 1 _hd_publication_hour
-      , _hr_publication_minute = fromMaybe 1 _hd_publication_minute
-      , _hr_publication_month = fromMaybe 1 _hd_publication_month
-      , _hr_publication_second = fromMaybe 1 _hd_publication_second
-      , _hr_publication_year = fromMaybe 2020 _hd_publication_year
+      , _hr_publication_year = fromMaybe (fromIntegral Defaults.year) _hd_publication_year
+      , _hr_publication_month = fromMaybe Defaults.month _hd_publication_month
+      , _hr_publication_day = fromMaybe Defaults.day _hd_publication_day
+      , _hr_publication_hour = fromMaybe 0 _hd_publication_hour
+      , _hr_publication_minute = fromMaybe 0 _hd_publication_minute
+      , _hr_publication_second = fromMaybe 0 _hd_publication_second
       , _hr_source = fromMaybe "" _hd_source
       , _hr_title = fromMaybe "Title" _hd_title
       , _hr_url = fromMaybe "" _hd_url

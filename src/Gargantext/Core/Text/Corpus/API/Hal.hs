@@ -17,6 +17,7 @@ import Data.Text (Text, pack, intercalate)
 
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
 import qualified Gargantext.Core.Text.Corpus.Parsers.Date as Date
 import qualified HAL            as HAL
@@ -30,7 +31,7 @@ get la q ml = do
 
 toDoc' :: Lang -> HAL.Corpus -> IO HyperdataDocument
 toDoc' la (HAL.Corpus i t ab d s aus affs struct_id) = do
-  (utctime, (pub_year, pub_month, pub_day)) <- Date.dateSplit la (maybe (Just "2019") Just d)
+  (utctime, (pub_year, pub_month, pub_day)) <- Date.dateSplit la (maybe (Just $ pack $ show Defaults.year) Just d)
   pure $ HyperdataDocument { _hd_bdd = Just "Hal"
                            , _hd_doi = Just $ pack $ show i
                            , _hd_url = Nothing

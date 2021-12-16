@@ -18,6 +18,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
 import Isidore.Client
 import Servant.Client
@@ -67,7 +68,7 @@ isidoreToDoc l (IsidoreDoc t a d u s as) = do
     langText (OnlyText t2   ) = t2
     langText (ArrayText ts  ) = Text.intercalate " " $ map langText ts
     
-  (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit l (maybe (Just "2019") (Just) d)
+  (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit l (maybe (Just $ Text.pack $ show Defaults.year) (Just) d)
     
   pure $ HyperdataDocument (Just "Isidore")
                  Nothing

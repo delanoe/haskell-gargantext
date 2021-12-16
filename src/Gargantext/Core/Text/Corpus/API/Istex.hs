@@ -19,6 +19,7 @@ import Data.Text (Text, pack)
 
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
 import qualified Gargantext.Core.Text.Corpus.Parsers.Date as Date
 import qualified ISTEX        as ISTEX
@@ -38,7 +39,7 @@ toDoc' la docs' = do
 -- TODO current year as default
 toDoc :: Lang -> ISTEX.Document -> IO HyperdataDocument
 toDoc la (ISTEX.Document i t a ab d s) = do
-  (utctime, (pub_year, pub_month, pub_day)) <- Date.dateSplit la (maybe (Just "2019") (Just . pack . show) d)
+  (utctime, (pub_year, pub_month, pub_day)) <- Date.dateSplit la (maybe (Just $ pack $ show Defaults.year) (Just . pack . show) d)
   pure $ HyperdataDocument { _hd_bdd = Just "Istex"
                            , _hd_doi = Just i
                            , _hd_url = Nothing
