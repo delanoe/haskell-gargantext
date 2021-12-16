@@ -1,3 +1,6 @@
+## Version 0.0.4.9.9
+* [FIX] Continuous Integration (CI)
+
 ## Version 0.0.4.9.8
 * [FEAT] All backend routes with clients functions
 
