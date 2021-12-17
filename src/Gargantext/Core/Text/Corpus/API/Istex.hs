@@ -27,7 +27,11 @@ import qualified ISTEX.Client as ISTEX
 
 get :: Lang -> Text -> Maybe Integer -> IO [HyperdataDocument]
 get la q ml = do
-  docs <- ISTEX.getMetadataWith q (fromIntegral <$> ml)
+  --docs <- ISTEX.getMetadataWith q (fromIntegral <$> ml)
+  printDebug "[Istex.get] calling getMetadataScrollWith for q" q
+  printDebug "[Istex.get] calling getMetadataScrollWith for ml" ml
+  -- The "scroll" expects "d/h/m/s/ms" time interval. Let's set it to "1 month"
+  docs <- ISTEX.getMetadataScrollWith q ((\_n -> pack $ "1m") <$> ml) --(fromIntegral <$> ml)
   either (panic . pack . show) (toDoc' la) docs
 
 toDoc' :: Lang -> ISTEX.Documents -> IO [HyperdataDocument]
