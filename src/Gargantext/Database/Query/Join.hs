@@ -77,10 +77,9 @@ leftJoin3 :: ( Default Unpackspec b2 b2
              -> ((b3, fieldsR) -> Column SqlBool)
              -> ((fieldsL, (b3, b2)) -> Column SqlBool)
              -> Select (fieldsL, (b4, b5))
-
 leftJoin3 q1 q2     q3
          cond12 cond23 =
-  leftJoin q3 ( leftJoin q2 q1 cond12) cond23
+  leftJoin q3 (leftJoin q2 q1 cond12) cond23
 
 
 leftJoin4 :: (Default Unpackspec b2 b2,

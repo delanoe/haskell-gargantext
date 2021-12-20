@@ -17,7 +17,7 @@ module Gargantext.Database.Admin.Trigger.Init
   where
 
 import Data.Text (Text)
-import Gargantext.Database.Admin.Trigger.NodeNodeNgrams (triggerCountInsert, triggerCountInsert2)
+import Gargantext.Database.Admin.Trigger.ContextNodeNgrams (triggerCountInsert, triggerCountInsert2)
 import Gargantext.Database.Admin.Trigger.Nodes (triggerSearchUpdate, triggerUpdateHash)
 import Gargantext.Database.Admin.Trigger.NodesNodes (triggerDeleteCount, triggerInsertCount, triggerUpdateAdd, triggerUpdateDel, MasterListId) -- , triggerCoocInsert)
 import Gargantext.Database.Prelude (Cmd)
@@ -34,7 +34,7 @@ initLastTriggers lId = do
   t0  <- triggerSearchUpdate
   t1 <- triggerCountInsert
   t1' <- triggerCountInsert2
-  -- t1'' <- triggerCoocInsert lId
+--  t1'' <- triggerCoocInsert lId
   t2 <- triggerDeleteCount lId
   t3 <- triggerInsertCount lId
   t4 <- triggerUpdateAdd   lId

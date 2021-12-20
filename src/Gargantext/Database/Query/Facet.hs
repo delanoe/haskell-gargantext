@@ -66,9 +66,10 @@ import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Query.Table.Ngrams
-import Gargantext.Database.Query.Table.Node (queryNodeSearchTable)
-import Gargantext.Database.Query.Table.NodeNode
-import Gargantext.Database.Query.Table.NodeNodeNgrams
+import Gargantext.Database.Query.Table.Context
+import Gargantext.Database.Schema.Context
+import Gargantext.Database.Query.Table.NodeContext
+import Gargantext.Database.Query.Table.ContextNodeNgrams
 import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude (printDebug)
@@ -188,13 +189,13 @@ instance ToSchema FacetDoc where
 -- | Mock and Quickcheck instances
 instance Arbitrary FacetDoc where
     arbitrary = elements [ FacetDoc id' (jour year 01 01) t hp (Just cat) (Just ngramCount) (Just score)
-                         | id'  <- [1..10]
-                         , year <- [1990..2000]
-                         , t    <- ["title", "another title"]
-                         , hp   <- arbitraryHyperdataDocuments
-                         , cat  <- [0..2]
+                         | id'        <- [1..10]
+                         , year       <- [1990..2000]
+                         , t          <- ["title", "another title"]
+                         , hp         <- arbitraryHyperdataDocuments
+                         , cat        <- [0..2]
                          , ngramCount <- [3..100]
-                         , score <- [3..100]
+                         , score      <- [3..100]
                          ]
 
 -- Facets / Views for the Front End
@@ -242,8 +243,6 @@ instance Arbitrary OrderBy
 
 
 -- TODO-SECURITY check
-
---{-
 runViewAuthorsDoc :: HasDBid NodeType
                   => ContactId
                   -> IsTrash
@@ -264,11 +263,6 @@ viewAuthorsDoc :: HasDBid NodeType
 viewAuthorsDoc cId _ nt = proc () -> do
   (doc,(_,(_,(_,contact')))) <- queryAuthorsDoc      -< ()
 
-  {-nn         <- queryNodeNodeTable -< ()
-  restrict -< nn_node1_id nn .== _node_id doc
-  -- restrict -< nn_delete   nn .== (sqlBool t)
-  -}
-
   restrict -< _node_id   contact'  .== (toNullable $ pgNodeId cId)
   restrict -< _node_typename doc   .== (sqlInt4 $ toDBid nt)
 
@@ -280,26 +274,25 @@ viewAuthorsDoc cId _ nt = proc () -> do
                        , facetDoc_ngramCount = toNullable $ sqlDouble 1
                        , facetDoc_score      = toNullable $ sqlDouble 1 }
 
-queryAuthorsDoc :: Select (NodeRead, (NodeNodeNgramsReadNull, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull))))
-queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNodeNgramsTable queryNgramsTable queryNodeNodeNgramsTable queryNodeTable cond12 cond23 cond34 cond45
+queryAuthorsDoc :: Select (NodeRead, (ContextNodeNgramsReadNull, (NgramsReadNull, (ContextNodeNgramsReadNull, NodeReadNull))))
+queryAuthorsDoc = leftJoin5 queryNodeTable queryContextNodeNgramsTable queryNgramsTable queryContextNodeNgramsTable queryNodeTable cond12 cond23 cond34 cond45
     where
-         cond12 :: (NodeNodeNgramsRead, NodeRead) -> Column SqlBool
-         cond12 (nodeNgram, doc) =  _node_id                  doc
-                                .== _nnng_node1_id nodeNgram
+         cond12 :: (ContextNodeNgramsRead, NodeRead) -> Column SqlBool
+         cond12 (nodeNgram, doc) =  _node_id doc
+                                .== _cnng_context_id nodeNgram
 
-         cond23 :: (NgramsRead, (NodeNodeNgramsRead, NodeReadNull)) -> Column SqlBool
+         cond23 :: (NgramsRead, (ContextNodeNgramsRead, NodeReadNull)) -> Column SqlBool
          cond23 (ngrams', (nodeNgram, _)) =  ngrams'^.ngrams_id
-                                        .== _nnng_ngrams_id nodeNgram
+                                        .== _cnng_ngrams_id nodeNgram
 
-         cond34 :: (NodeNodeNgramsRead, (NgramsRead, (NodeNodeNgramsReadNull, NodeReadNull))) -> Column SqlBool
-         cond34 (nodeNgram2, (ngrams', (_,_)))= ngrams'^.ngrams_id .== _nnng_ngrams_id       nodeNgram2
+         cond34 :: (ContextNodeNgramsRead, (NgramsRead, (ContextNodeNgramsReadNull, NodeReadNull))) -> Column SqlBool
+         cond34 (nodeNgram2, (ngrams', (_,_)))= ngrams'^.ngrams_id .== _cnng_ngrams_id       nodeNgram2
 
-         cond45 :: (NodeRead, (NodeNodeNgramsRead, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull)))) -> Column SqlBool
-         cond45 (contact', (nodeNgram2', (_, (_,_)))) = _node_id  contact'  .== _nnng_node1_id         nodeNgram2'
+         cond45 :: (NodeRead, (ContextNodeNgramsRead, (NgramsReadNull, (ContextNodeNgramsReadNull, NodeReadNull)))) -> Column SqlBool
+         cond45 (contact', (nodeNgram2', (_, (_,_)))) = _node_id  contact'  .== _cnng_context_id         nodeNgram2'
 
---}
+
 ------------------------------------------------------------------------
-
 -- TODO-SECURITY check
 runViewDocuments :: HasDBid NodeType
                  => CorpusId
@@ -310,29 +303,11 @@ runViewDocuments :: HasDBid NodeType
                  -> Maybe Text
                  -> Cmd err [FacetDoc]
 runViewDocuments cId t o l order query = do
---  docs <- runPGSQuery viewDocuments'
---    ( cId
---    , ntId
---    , (if t then 0 else 1) :: Int
---    , fromMaybe "" query
---    , fromMaybe "" query)
---  pure $ (\(id, date, name', hyperdata, category, score) -> FacetDoc id date name' hyperdata category score score) <$> docs
     printDebug "[runViewDocuments] sqlQuery" $ showSql sqlQuery
     runOpaQuery $ filterWith o l order sqlQuery
   where
     ntId = toDBid NodeDocument
     sqlQuery = viewDocuments cId t ntId query
---    viewDocuments' :: DPS.Query
---    viewDocuments' = [sql|
---      SELECT n.id, n.date, n.name, n.hyperdata, nn.category, nn.score
---        FROM nodes AS n
---        JOIN nodes_nodes AS nn
---        ON n.id = nn.node2_id
---        WHERE nn.node1_id = ?  -- corpusId
---          AND n.typename = ?   -- NodeTypeId
---          AND nn.category = ?  -- isTrash or not
---          AND (n.search @@ to_tsquery(?) OR ? = '')  -- query with an OR hack for empty to_tsquery('') results
---      |]
 
 runCountDocuments :: HasDBid NodeType => CorpusId -> IsTrash -> Maybe Text -> Cmd err Int
 runCountDocuments cId t mQuery = do
@@ -346,53 +321,50 @@ viewDocuments :: CorpusId
               -> NodeTypeId
               -> Maybe Text
               -> Select FacetDocRead
-viewDocuments cId t ntId mQuery = viewDocumentsQuery cId t ntId mQuery >>> proc (n, nn) -> do
-  returnA  -< FacetDoc { facetDoc_id         = _ns_id        n
-                       , facetDoc_created    = _ns_date      n
-                       , facetDoc_title      = _ns_name      n
-                       , facetDoc_hyperdata  = _ns_hyperdata n
-                       , facetDoc_category   = toNullable $ nn^.nn_category
-                       , facetDoc_ngramCount = toNullable $ nn^.nn_score
-                       , facetDoc_score      = toNullable $ nn^.nn_score }
+viewDocuments cId t ntId mQuery = viewDocumentsQuery cId t ntId mQuery >>> proc (c, nc) -> do
+  returnA  -< FacetDoc { facetDoc_id         = _cs_id        c
+                       , facetDoc_created    = _cs_date      c
+                       , facetDoc_title      = _cs_name      c
+                       , facetDoc_hyperdata  = _cs_hyperdata c
+                       , facetDoc_category   = toNullable $ nc^.nc_category
+                       , facetDoc_ngramCount = toNullable $ nc^.nc_score
+                       , facetDoc_score      = toNullable $ nc^.nc_score
+                       }
 
 viewDocuments' :: CorpusId
                -> IsTrash
                -> NodeTypeId
                -> Maybe Text
                -> Select NodeRead
-viewDocuments' cId t ntId mQuery = viewDocumentsQuery cId t ntId mQuery >>> proc (n, _nn) -> do
-  returnA  -< Node { _node_id        = _ns_id        n
+viewDocuments' cId t ntId mQuery = viewDocumentsQuery cId t ntId mQuery >>> proc (c, _nc) -> do
+  returnA  -< Node { _node_id        = _cs_id        c
                    , _node_hash_id   = ""
-                   , _node_typename  = _ns_typename  n
-                   , _node_user_id   = _ns_user_id   n
+                   , _node_typename  = _cs_typename  c
+                   , _node_user_id   = _cs_user_id   c
                    , _node_parent_id = -1
-                   , _node_name      = _ns_name      n
-                   , _node_date      = _ns_date      n
-                   , _node_hyperdata = _ns_hyperdata n }
+                   , _node_name      = _cs_name      c
+                   , _node_date      = _cs_date      c
+                   , _node_hyperdata = _cs_hyperdata c
+                   }
 
 viewDocumentsQuery :: CorpusId
                    -> IsTrash
                    -> NodeTypeId
                    -> Maybe Text
-                   -> Select (NodeSearchRead, NodeNodeRead)
+                   -> Select (ContextSearchRead, NodeContextRead)
 viewDocumentsQuery cId t ntId mQuery = proc () -> do
-  n  <- queryNodeSearchTable -< ()
-  nn <- queryNodeNodeTable -< ()
-  restrict -< n^.ns_id       .== nn^.nn_node2_id
-  restrict -< nn^.nn_node1_id  .== (pgNodeId cId)
-  restrict -< n^.ns_typename .== (sqlInt4 ntId)
-  restrict -< if t then nn^.nn_category .== (sqlInt4 0)
-                   else nn^.nn_category .>= (sqlInt4 1)
-                       
+  c  <- queryContextSearchTable -< ()
+  nc <- queryNodeContextTable   -< ()
+  restrict -< c^.cs_id         .== nc^.nc_context_id
+  restrict -< nc^.nc_node_id   .== (pgNodeId cId)
+  restrict -< c^.cs_typename   .== (sqlInt4 ntId)
+  restrict -< if t then nc^.nc_category .== (sqlInt4 0)
+                   else nc^.nc_category .>= (sqlInt4 1)
   let query = (fromMaybe "" mQuery)
-      -- iLikeQuery = T.intercalate "" ["%", query, "%"]
-  -- restrict -< (n^.node_name) `ilike` (sqlStrictText iLikeQuery)
   restrict -< if query == ""
     then sqlBool True
-    --else (n^.ns_search) @@ (pgTSQuery (T.unpack query))
-    else (n^.ns_search) @@ (plaintoTSQuery $ T.unpack query)
-
-  returnA -< (n, nn)
+    else (c^.cs_search) @@ (plaintoTSQuery $ T.unpack query)
+  returnA -< (c, nc)
 
 ------------------------------------------------------------------------
 filterWith :: (SqlOrd date, SqlOrd title, SqlOrd category, SqlOrd score, hyperdata ~ Column SqlJsonb) =>

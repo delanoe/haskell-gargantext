@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Database.Schema.NgramsPostag
-Description : Ngram connection to the Database
+Description : Ngrams connection to the Database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -25,6 +25,7 @@ import Data.Text (Text)
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
+
 
 data NgramsPostagPoly id
                       lang_id
@@ -52,28 +53,28 @@ type NgramsPostagDB = NgramsPostagPoly (Maybe Int) Int Int (Maybe Text) Int Int 
 
 ------------------------------------------------------------------------
 type NgramsPosTagWrite = NgramsPostagPoly (Maybe (Column SqlInt4))
-                                   (Column SqlInt4)
-                                   (Column SqlInt4)
-                                   (Maybe (Column SqlText))
-                                   (Column SqlInt4)
-                                   (Column SqlInt4)
-                                   (Maybe (Column SqlInt4))
+                                          (Column SqlInt4)
+                                          (Column SqlInt4)
+                                          (Maybe (Column SqlText))
+                                          (Column SqlInt4)
+                                          (Column SqlInt4)
+                                          (Maybe (Column SqlInt4))
 
 type NgramsPosTagRead  = NgramsPostagPoly (Column SqlInt4)
-                                   (Column SqlInt4)
-                                   (Column SqlInt4)
-                                   (Column SqlText)
-                                   (Column SqlInt4)
-                                   (Column SqlInt4)
-                                   (Column SqlInt4)
+                                          (Column SqlInt4)
+                                          (Column SqlInt4)
+                                          (Column SqlText)
+                                          (Column SqlInt4)
+                                          (Column SqlInt4)
+                                          (Column SqlInt4)
 
 type NgramsPosTagReadNull =  NgramsPostagPoly (Column (Nullable SqlInt4))
-                                   (Column (Nullable SqlInt4))
-                                   (Column (Nullable SqlInt4))
-                                   (Column (Nullable SqlText))
-                                   (Column (Nullable SqlInt4))
-                                   (Column (Nullable SqlInt4))
-                                   (Column (Nullable SqlInt4))
+                                              (Column (Nullable SqlInt4))
+                                              (Column (Nullable SqlInt4))
+                                              (Column (Nullable SqlText))
+                                              (Column (Nullable SqlInt4))
+                                              (Column (Nullable SqlInt4))
+                                              (Column (Nullable SqlInt4))
 makeLenses ''NgramsPostagPoly
 
 instance PGS.ToRow NgramsPostagDB where

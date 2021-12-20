@@ -39,7 +39,11 @@ secret = "Database secret to change"
 
 main :: IO ()
 main = do
-  [iniPath] <- getArgs
+  params@[iniPath] <- getArgs
+
+  _ <- if length params /= 1
+      then panic "USAGE: ./gargantext-init gargantext.ini"
+      else pure ()
 
   putStrLn "Enter master user (gargantua) _password_ :"
   password  <- getLine

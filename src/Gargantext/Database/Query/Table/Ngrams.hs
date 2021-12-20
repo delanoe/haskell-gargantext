@@ -32,7 +32,7 @@ import qualified Data.HashMap.Strict        as HashMap
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude (runOpaQuery, Cmd)
 import Gargantext.Database.Prelude (runPGSQuery, formatPGSQuery)
-import Gargantext.Database.Query.Table.NodeNodeNgrams
+import Gargantext.Database.Query.Table.ContextNodeNgrams
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Types
@@ -45,16 +45,16 @@ selectNgramsByDoc :: [ListId] -> DocId -> NgramsType -> Cmd err [Text]
 selectNgramsByDoc lIds dId nt = runOpaQuery (query lIds dId nt)
   where
 
-    join :: Query (NgramsRead, NodeNodeNgramsReadNull)
-    join = leftJoin queryNgramsTable queryNodeNodeNgramsTable on1
+    join :: Query (NgramsRead, ContextNodeNgramsReadNull)
+    join = leftJoin queryNgramsTable queryContextNodeNgramsTable on1
       where
-        on1 (ng,nnng) = ng^.ngrams_id .== nnng^.nnng_ngrams_id
+        on1 (ng,cnng) = ng^.ngrams_id .== cnng^.cnng_ngrams_id
 
     query cIds' dId' nt' = proc () -> do
-      (ng,nnng) <- join -< ()
-      restrict -< foldl (\b cId -> ((toNullable $ pgNodeId cId) .== nnng^.nnng_node1_id) .|| b) (sqlBool True) cIds'
-      restrict -< (toNullable $ pgNodeId dId')    .== nnng^.nnng_node2_id
-      restrict -< (toNullable $ pgNgramsType nt') .== nnng^.nnng_ngramsType
+      (ng,cnng) <- join -< ()
+      restrict -< foldl (\b cId -> ((toNullable $ pgNodeId cId) .== cnng^.cnng_node_id) .|| b) (sqlBool True) cIds'
+      restrict -< (toNullable $ pgNodeId dId')    .== cnng^.cnng_context_id
+      restrict -< (toNullable $ pgNgramsType nt') .== cnng^.cnng_ngramsType
       returnA  -< ng^.ngrams_terms
 
 

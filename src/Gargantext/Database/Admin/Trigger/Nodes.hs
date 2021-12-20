@@ -33,7 +33,7 @@ triggerSearchUpdate = execPGSQuery query ( toDBid NodeDocument
   where
     query :: DPS.Query
     query = [sql|
-        -- DROP TRIGGER search_update_trigger on nodes;
+        -- DROP TRIGGER search_update_trigger on contexts;
         CREATE OR REPLACE FUNCTION public.search_update()
         RETURNS trigger AS $$
         begin
@@ -59,11 +59,11 @@ triggerSearchUpdate = execPGSQuery query ( toDBid NodeDocument
 
         CREATE TRIGGER search_update_trigger
           BEFORE INSERT OR UPDATE
-          ON nodes FOR EACH ROW
+          ON contexts FOR EACH ROW
           EXECUTE PROCEDURE search_update();
 
       -- Initialize index with already existing data
-      UPDATE nodes SET hyperdata = hyperdata;
+      UPDATE contexts SET hyperdata = hyperdata;
 
   |]
 
@@ -112,6 +112,9 @@ triggerUpdateHash secret = execPGSQuery query ( toDBid NodeDocument
 
       CREATE TRIGGER nodes_hash_insert BEFORE INSERT ON nodes FOR EACH ROW EXECUTE PROCEDURE hash_insert_nodes();
       CREATE TRIGGER nodes_hash_update BEFORE UPDATE ON nodes FOR EACH ROW EXECUTE PROCEDURE hash_update_nodes();
+
+      CREATE TRIGGER contexts_hash_insert BEFORE INSERT ON contexts FOR EACH ROW EXECUTE PROCEDURE hash_insert_nodes();
+      CREATE TRIGGER contexts_hash_update BEFORE UPDATE ON nodes FOR EACH ROW EXECUTE PROCEDURE hash_update_nodes();
 
   |]
 

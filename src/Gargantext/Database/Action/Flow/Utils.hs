@@ -17,7 +17,7 @@ import Data.Map (Map)
 import Data.HashMap.Strict (HashMap)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
-import Gargantext.Database.Query.Table.NodeNodeNgrams
+import Gargantext.Database.Query.Table.ContextNodeNgrams
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Types
 import Gargantext.Prelude
@@ -31,11 +31,11 @@ data DocumentIdWithNgrams a b =
      , documentNgrams :: HashMap b (Map NgramsType Int)
      } deriving (Show)
 
-docNgrams2nodeNodeNgrams :: CorpusId
+docNgrams2contextNodeNgrams :: CorpusId
                          -> DocNgrams
-                         -> NodeNodeNgrams
-docNgrams2nodeNodeNgrams cId (DocNgrams d n nt w) =
-  NodeNodeNgrams cId d n nt w
+                         -> ContextNodeNgrams
+docNgrams2contextNodeNgrams cId (DocNgrams d n nt w) =
+  ContextNodeNgrams cId d n nt w
 
 data DocNgrams = DocNgrams { dn_doc_id      :: DocId
                            , dn_ngrams_id   :: Int
@@ -47,8 +47,8 @@ insertDocNgramsOn :: CorpusId
                   -> [DocNgrams]
                   -> Cmd err Int
 insertDocNgramsOn cId dn =
-  insertNodeNodeNgrams
-  $ (map (docNgrams2nodeNodeNgrams cId) dn)
+  insertContextNodeNgrams
+  $ (map (docNgrams2contextNodeNgrams cId) dn)
 
 insertDocNgrams :: CorpusId
                 -> HashMap (Indexed Int Ngrams) (Map NgramsType (Map NodeId Int))

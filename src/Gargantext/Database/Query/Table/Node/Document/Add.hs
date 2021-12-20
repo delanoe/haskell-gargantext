@@ -54,10 +54,10 @@ inputSqlTypes = ["int4","int4","int4"]
 -- TODO return id of added documents only
 queryAdd :: Query
 queryAdd = [sql|
-       WITH input_rows(node1_id,node2_id,category) AS (?)
-       INSERT INTO nodes_nodes (node1_id, node2_id,category)
+       WITH input_rows(node_id,context_id,category) AS (?)
+       INSERT INTO nodes_contexts (node_id, context_id,category)
        SELECT * FROM input_rows
-       ON CONFLICT (node1_id, node2_id) DO NOTHING -- on unique index
+       ON CONFLICT (node_id, context_id) DO NOTHING -- on unique index
        RETURNING 1
        ;
            |]

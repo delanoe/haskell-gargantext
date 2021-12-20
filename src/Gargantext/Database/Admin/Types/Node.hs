@@ -46,13 +46,24 @@ import Text.Read (read)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 -- import Gargantext.Database.Prelude (fromField')
 import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.Context
 import Gargantext.Prelude
 
 type UserId = Int
 type MasterUserId = UserId
+
+type NodeTypeId   = Int
+type NodeName     = Text
+type ContextName  = Text
+
+type TSVector     = Text
+type ContextTitle  = Text
+
+
 ------------------------------------------------------------------------
 -- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId (Maybe Hash) NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
+type Node    json = NodePoly    NodeId (Maybe Hash) NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
+type Context json = ContextPoly NodeId (Maybe Hash) NodeTypeId UserId (Maybe ParentId) ContextTitle UTCTime json
 
 -- | NodeSearch (queries)
 -- type NodeSearch json   = NodePolySearch NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json (Maybe TSVector)
@@ -120,6 +131,8 @@ instance (Arbitrary nodeId
                      <*> arbitrary <*> arbitrary <*> arbitrary
                      <*> arbitrary <*> arbitrary
 
+
+
 instance (Arbitrary hyperdata
          ,Arbitrary nodeId
          ,Arbitrary toDBid
@@ -144,6 +157,47 @@ instance (Arbitrary hyperdata
                            <*> arbitrary
                            <*> arbitrary
 
+
+instance (Arbitrary contextId
+         ,Arbitrary hashId
+         ,Arbitrary toDBid
+         ,Arbitrary userId
+         ,Arbitrary contextParentId
+         , Arbitrary hyperdata
+         ) => Arbitrary (ContextPoly contextId hashId toDBid userId contextParentId
+                                  ContextName UTCTime hyperdata) where
+    --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
+    arbitrary = Context <$> arbitrary <*> arbitrary <*> arbitrary
+                        <*> arbitrary <*> arbitrary <*> arbitrary
+                        <*> arbitrary <*> arbitrary
+
+instance (Arbitrary hyperdata
+         ,Arbitrary contextId
+         ,Arbitrary toDBid
+         ,Arbitrary userId
+         ,Arbitrary contextParentId
+         ) => Arbitrary (ContextPolySearch contextId
+                                        toDBid
+                                        userId
+                                        contextParentId
+                                        ContextName
+                                        UTCTime
+                                        hyperdata
+                                        (Maybe TSVector)
+                        ) where
+    --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
+    arbitrary = ContextSearch <$> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+                           <*> arbitrary
+
+
+
+
 ------------------------------------------------------------------------
 pgNodeId :: NodeId -> O.Column O.SqlInt4
 pgNodeId = O.sqlInt4 . id2int
@@ -151,9 +205,16 @@ pgNodeId = O.sqlInt4 . id2int
     id2int :: NodeId -> Int
     id2int (NodeId n) = n
 
+pgContextId :: ContextId -> O.Column O.SqlInt4
+pgContextId = pgNodeId
+
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
   deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
+
+-- TODO make another type?
+type ContextId = NodeId
+
 instance GQLType NodeId
 instance Show NodeId where
   show (NodeId n) = "nodeId-" <> show n
@@ -172,10 +233,6 @@ instance ToSchema NodeId
 
 unNodeId :: NodeId -> Int
 unNodeId (NodeId n) = n
-
-type NodeTypeId   = Int
-type NodeName     = Text
-type TSVector     = Text
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

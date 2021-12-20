@@ -94,7 +94,7 @@ import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.NodeNgrams (listInsertDb , getCgramsId)
-import Gargantext.Database.Query.Table.NodeNodeNgrams2
+import Gargantext.Database.Query.Table.ContextNodeNgrams2
 import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Schema.Node (NodePoly(..), node_id)
 import Gargantext.Database.Types
@@ -231,6 +231,9 @@ flow c u cn la mfslw docs logStatus = do
                   ) (zip [1..] docs)
   flowCorpusUser (la ^. tt_lang) u cn c (concat ids) mfslw
 
+
+
+
 ------------------------------------------------------------------------
 flowCorpusUser :: ( FlowCmdM env err m
                   , MkCorpus c
@@ -325,10 +328,10 @@ saveDocNgramsWith lId mapNgramsDocs' = do
                $ HashMap.toList mapNgramsDocs
 
   -- insertDocNgrams
-  _return <- insertNodeNodeNgrams2
-           $ catMaybes [ NodeNodeNgrams2 <$> Just nId
-                                         <*> getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms'')
-                                         <*> Just (fromIntegral w :: Double)
+  _return <- insertContextNodeNgrams2
+           $ catMaybes [ ContextNodeNgrams2 <$> Just nId
+                                            <*> getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms'')
+                                            <*> Just (fromIntegral w :: Double)
                        | (terms'', mapNgramsTypes)      <- HashMap.toList mapNgramsDocs
                        , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
                        , (nId, w)                       <- Map.toList mapNodeIdWeight
