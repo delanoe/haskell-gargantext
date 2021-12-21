@@ -42,7 +42,7 @@ get la l q a = do
 
   iDocs <- either printErr _content <$> Isidore.get l q a
   
-  hDocs <- mapM (\d -> isidoreToDoc la d) (toIsidoreDocs iDocs)
+  let hDocs = map (\d -> isidoreToDoc la d) (toIsidoreDocs iDocs)
   pure hDocs
 
 isidore2csvFile :: FilePath -> Lang -> Maybe Isidore.Limit
@@ -52,7 +52,7 @@ isidore2csvFile fp la li tq aq = do
   hdocs <- get la li tq aq
   writeDocs2Csv fp hdocs
 
-isidoreToDoc :: Lang -> IsidoreDoc -> IO HyperdataDocument
+isidoreToDoc :: Lang -> IsidoreDoc -> HyperdataDocument
 isidoreToDoc l (IsidoreDoc t a d u s as) = do
   let
     author :: Author -> Text
@@ -68,26 +68,28 @@ isidoreToDoc l (IsidoreDoc t a d u s as) = do
     langText (OnlyText t2   ) = t2
     langText (ArrayText ts  ) = Text.intercalate " " $ map langText ts
     
-  (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit l (maybe (Just $ Text.pack $ show Defaults.year) (Just) d)
+  let (utcTime, (pub_year, pub_month, pub_day)) = Date.dateSplit l (maybe (Just $ Text.pack $ show Defaults.year) (Just) d)
     
-  pure $ HyperdataDocument (Just "Isidore")
-                 Nothing
-                 u
-                 Nothing
-                 Nothing
-                 Nothing
-                 (Just $ cleanText $ langText t)
-                 (creator2text <$> as)
-                 Nothing
-                 (Just $ maybe "Nothing" identity $ _sourceName <$> s)
-                 (cleanText <$> langText    <$> a)
-                 (fmap (Text.pack . show) utcTime)
-                 (pub_year)
-                 (pub_month)
-                 (pub_day)
-                 Nothing
-                 Nothing
-                 Nothing
-                 (Just $ (Text.pack . show) l)
+  HyperdataDocument
+    { _hd_bdd = Just "Isidore"
+    , _hd_doi = Nothing
+    , _hd_url = u
+    , _hd_uniqId = Nothing
+    , _hd_uniqIdBdd = Nothing
+    , _hd_page = Nothing
+    , _hd_title = Just $ cleanText $ langText t
+    , _hd_authors = creator2text <$> as
+    , _hd_institutes = Nothing
+    , _hd_source = Just $ maybe "Nothing" identity $ _sourceName <$> s
+    , _hd_abstract = cleanText <$> langText    <$> a
+    , _hd_publication_date = fmap (Text.pack . show) utcTime
+    , _hd_publication_year = pub_year
+    , _hd_publication_month = pub_month
+    , _hd_publication_day = pub_day
+    , _hd_publication_hour = Nothing
+    , _hd_publication_minute = Nothing
+    , _hd_publication_second = Nothing
+    , _hd_language_iso2 = Just $ (Text.pack . show) l
+    }
 
 

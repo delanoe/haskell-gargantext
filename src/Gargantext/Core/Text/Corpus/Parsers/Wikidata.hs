@@ -68,8 +68,7 @@ wikiPageToDocument m wr = do
       source     = Nothing
       abstract   = Just $ concat $ take m sections
 
-  (date, (year, month, day))
-    <- dateSplit EN $ head
+  let (date, (year, month, day)) = dateSplit EN $ head
                     $ catMaybes
                     [ wr ^. wr_yearStart
                     , wr ^. wr_yearEnd

@@ -89,10 +89,9 @@ documentUpload _uId nId doc logStatus = do
         Just c  -> c
         Nothing -> panic $ T.pack $ "[G.A.N.DU] Node has no corpus parent: " <> show nId
  
-  (theFullDate, (year, month, day)) <- liftBase
-                                 $ dateSplit EN 
-                                 $ Just
-                                 $ view du_date doc <> "T:0:0:0"
+  let (theFullDate, (year, month, day)) = dateSplit EN 
+                                          $ Just
+                                          $ view du_date doc <> "T:0:0:0"
 
   let hd = HyperdataDocument { _hd_bdd = Nothing
                              , _hd_doi = Nothing

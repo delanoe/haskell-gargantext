@@ -26,7 +26,6 @@ module Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), clean, parseFile, cl
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
 import Control.Concurrent.Async as CCA (mapConcurrently)
 import Data.Attoparsec.ByteString (parseOnly, Parser)
-import Control.Monad (join)
 import Data.Either(Either(..))
 import Data.Either.Extra (partitionEithers)
 import Data.List (concat, lookup)
@@ -79,23 +78,23 @@ data FileFormat = WOS | RIS | RisPresse
 --                | XML        -- Not Implemented / see :
 
 
-parseFormat :: FileFormat -> DB.ByteString -> IO (Either Prelude.String [HyperdataDocument])
-parseFormat CsvGargV3 bs = pure $ parseCsv' $ DBL.fromStrict bs
-parseFormat CsvHal    bs = pure $ parseHal' $ DBL.fromStrict bs
+parseFormat :: FileFormat -> DB.ByteString -> Either Prelude.String [HyperdataDocument]
+parseFormat CsvGargV3 bs = parseCsv' $ DBL.fromStrict bs
+parseFormat CsvHal    bs = parseHal' $ DBL.fromStrict bs
 parseFormat RisPresse bs = do
-  docs <- mapM (toDoc RIS)
+  let docs = map (toDoc RIS)
           <$> snd
           <$> enrichWith RisPresse
           $ partitionEithers
           $ [runParser'  RisPresse bs]
-  pure $ Right docs
+  Right docs
 parseFormat WOS bs = do
-  docs <- mapM (toDoc WOS)
+  let docs = map (toDoc WOS)
           <$> snd
           <$> enrichWith WOS
           $ partitionEithers
           $ [runParser'  WOS bs]
-  pure $ Right docs
+  Right docs
 parseFormat ZIP bs = do
   path <- emptySystemTempFile "parsed-zip"
   DB.writeFile path bs
@@ -111,16 +110,16 @@ parseFile :: FileFormat -> FilePath -> IO (Either Prelude.String [HyperdataDocum
 parseFile CsvHal    p = parseHal p
 parseFile CsvGargV3 p = parseCsv p
 parseFile RisPresse p = do
-  docs <- join $ mapM (toDoc RIS) <$> snd <$> enrichWith RisPresse <$> readFileWith RIS p
+  docs <- map (toDoc RIS) <$> snd <$> enrichWith RisPresse <$> readFileWith RIS p
   pure $ Right docs
 parseFile WOS       p = do
-  docs <- join $ mapM (toDoc WOS) <$> snd <$> enrichWith WOS       <$> readFileWith WOS p
+  docs <- map (toDoc WOS) <$> snd <$> enrichWith WOS       <$> readFileWith WOS p
   pure $ Right docs
 parseFile ff        p = do
-  docs <- join $ mapM (toDoc ff)  <$> snd <$> enrichWith ff        <$> readFileWith ff  p
+  docs <- map (toDoc ff)  <$> snd <$> enrichWith ff        <$> readFileWith ff  p
   pure $ Right docs
 
-toDoc :: FileFormat -> [(Text, Text)] -> IO HyperdataDocument
+toDoc :: FileFormat -> [(Text, Text)] -> HyperdataDocument
 -- TODO use language for RIS
 toDoc ff d = do
       -- let abstract = lookup "abstract" d
@@ -128,27 +127,27 @@ toDoc ff d = do
 
       let dateToParse = DT.replace "-" " " <$> lookup "PY" d <> Just " " <> lookup "publication_date" d
 
-      (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit lang  dateToParse
+      let (utcTime, (pub_year, pub_month, pub_day)) = Date.dateSplit lang dateToParse
 
-      pure $ HyperdataDocument { _hd_bdd = Just $ DT.pack $ show ff
-                               , _hd_doi = lookup "doi" d
-                               , _hd_url = lookup "URL" d
-                               , _hd_uniqId = Nothing
-                               , _hd_uniqIdBdd = Nothing
-                               , _hd_page = Nothing
-                               , _hd_title = lookup "title" d
-                               , _hd_authors = Nothing
-                               , _hd_institutes = lookup "authors" d
-                               , _hd_source = lookup "source" d
-                               , _hd_abstract = lookup "abstract" d
-                               , _hd_publication_date = fmap (DT.pack . show) utcTime
-                               , _hd_publication_year = pub_year
-                               , _hd_publication_month = pub_month
-                               , _hd_publication_day = pub_day
-                               , _hd_publication_hour = Nothing
-                               , _hd_publication_minute = Nothing
-                               , _hd_publication_second = Nothing
-                               , _hd_language_iso2 = Just $ (DT.pack . show) lang }
+      HyperdataDocument { _hd_bdd = Just $ DT.pack $ show ff
+                        , _hd_doi = lookup "doi" d
+                        , _hd_url = lookup "URL" d
+                        , _hd_uniqId = Nothing
+                        , _hd_uniqIdBdd = Nothing
+                        , _hd_page = Nothing
+                        , _hd_title = lookup "title" d
+                        , _hd_authors = Nothing
+                        , _hd_institutes = lookup "authors" d
+                        , _hd_source = lookup "source" d
+                        , _hd_abstract = lookup "abstract" d
+                        , _hd_publication_date = fmap (DT.pack . show) utcTime
+                        , _hd_publication_year = pub_year
+                        , _hd_publication_month = pub_month
+                        , _hd_publication_day = pub_day
+                        , _hd_publication_hour = Nothing
+                        , _hd_publication_minute = Nothing
+                        , _hd_publication_second = Nothing
+                        , _hd_language_iso2 = Just $ (DT.pack . show) lang }
 
 enrichWith :: FileFormat
            ->  (a, [[[(DB.ByteString, DB.ByteString)]]]) -> (a, [[(Text, Text)]])

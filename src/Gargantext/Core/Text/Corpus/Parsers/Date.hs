@@ -21,10 +21,12 @@ module Gargantext.Core.Text.Corpus.Parsers.Date
   where
 
 import Data.Aeson (toJSON, Value)
+import Data.Either (Either(..))
 import Data.HashMap.Strict as HM hiding (map)
 import Data.Text (Text, unpack, splitOn)
 import Data.Time (parseTimeOrError, defaultTimeLocale, toGregorian)
-import Data.Time.Clock (UTCTime(..), getCurrentTime)
+import qualified Data.Time.Calendar as DTC
+import Data.Time.Clock (UTCTime(..), secondsToDiffTime)
 import Data.Time.LocalTime (utc)
 import Data.Time.LocalTime.TimeZone.Series (zonedTimeToZoneSeriesTime)
 import Duckling.Api (analyze)
@@ -41,12 +43,12 @@ import qualified Duckling.Core as DC
 ------------------------------------------------------------------------
 -- | Parse date to Ints
 -- TODO add hours, minutes and seconds
-dateSplit :: Lang -> Maybe Text -> IO (Maybe UTCTime, (Maybe Year, Maybe Month, Maybe Day))
-dateSplit _ Nothing    = pure (Nothing, (Nothing, Nothing, Nothing))
+dateSplit :: Lang -> Maybe Text -> (Maybe UTCTime, (Maybe Year, Maybe Month, Maybe Day))
+dateSplit _ Nothing    = (Nothing, (Nothing, Nothing, Nothing))
 dateSplit l (Just txt) = do
-  utcTime <- parse l txt
+  let utcTime = parse l txt
   let (y, m, d) = split' utcTime
-  pure (Just utcTime, (Just y, Just m,Just d))
+  (Just utcTime, (Just y, Just m,Just d))
 
 split' :: UTCTime -> (Year, Month, Day)
 split' utcTime = (fromIntegral y, m, d)
@@ -65,8 +67,8 @@ type Day   = Int
 -- 1979-04-10 19:00:00 UTC
 -- >>> parseDate EN (pack "April 10 1979")
 -- 1979-04-10 00:00:00 UTC
-parse :: Lang -> Text -> IO UTCTime
-parse lang s = parseDate' "%Y-%m-%dT%T" "0-0-0T0:0:0" lang s
+parse :: Lang -> Text -> UTCTime
+parse = parseDate' "%Y-%m-%dT%T" "0-0-0T0:0:0"
 
 type DateFormat  = Text
 type DateDefault = Text
@@ -75,17 +77,18 @@ parseDate' :: DateFormat
            -> DateDefault
            -> Lang
            -> Text
-           -> IO UTCTime
+           -> UTCTime
 parseDate' format def lang s = do
-  dateStr' <- parseRaw lang s
-  if dateStr' == ""
-    then getCurrentTime
-    else do
+  let dateStr' = parseRaw lang s
+  case dateStr' of
+    Left _err -> defaultUTCTime
+    Right ""  -> defaultUTCTime
+    Right ds  -> do
       let dateStr = unpack
                   $ maybe def identity
                   $ head
-                  $ splitOn "." dateStr'
-      pure $ parseTimeOrError True defaultTimeLocale (unpack format) dateStr
+                  $ splitOn "." ds
+      parseTimeOrError True defaultTimeLocale (unpack format) dateStr
 
 
 -- TODO add Paris at Duckling.Locale Region datatype
@@ -102,16 +105,15 @@ parserLang _  = panic "not implemented"
 -- currentContext lang = localContext lang <$> utcToDucklingTime <$> getCurrentTime
 -- parseRaw :: Context -> Text -> SomeErrorHandling Text
 
-parseRaw :: Lang -> Text -> IO Text
+parseRaw :: Lang -> Text -> Either Text Text
 parseRaw lang text = do -- case result
-    maybeResult <- extractValue <$> getTimeValue
-                                <$> parseDateWithDuckling lang text (Options True)
+    let maybeResult = extractValue $ getTimeValue
+                                   $ parseDateWithDuckling lang text (Options True)
     case maybeResult of
-      Just result -> pure result
+      Just result -> Right result
       Nothing     -> do
-        printDebug ("[G.C.T.C.P.D.parseRaw] ERROR " <> (cs . show) lang)
-                   text
-        pure ""
+        -- printDebug ("[G.C.T.C.P.D.parseRaw] ERROR " <> (cs . show) lang) text
+        Left $ "[G.C.T.C.P.D.parseRaw ERROR] " <> (cs . show) lang <> " :: " <> text
 
 getTimeValue :: [ResolvedToken] -> Maybe Value
 getTimeValue rt = case head rt of
@@ -136,15 +138,21 @@ utcToDucklingTime time = DucklingTime . zonedTimeToZoneSeriesTime $ fromUTC time
 
 -- | Local Context which depends on Lang and Time
 localContext :: Lang -> DucklingTime -> Context
-localContext lang dt = Context {referenceTime = dt, locale = makeLocale (parserLang lang) Nothing}
+localContext lang dt = Context { referenceTime = dt
+                               , locale = makeLocale (parserLang lang) Nothing }
+
+defaultDay :: DTC.Day
+defaultDay = DTC.fromGregorian 1 1 1
+
+defaultUTCTime :: UTCTime
+defaultUTCTime = UTCTime { utctDay = defaultDay
+                         , utctDayTime = secondsToDiffTime 0 }
 
 -- | Date parser with Duckling
-parseDateWithDuckling :: Lang -> Text -> Options -> IO [ResolvedToken]
+parseDateWithDuckling :: Lang -> Text -> Options -> [ResolvedToken]
 parseDateWithDuckling lang input options = do
-    contxt <- localContext lang <$> utcToDucklingTime <$> getCurrentTime
-    --pure $ parseAndResolve (rulesFor (locale ctx) (HashSet.fromList [(This Time)])) input ctx
-    -- TODO check/test Options False or True
-    pure $ analyze input contxt options $ HashSet.fromList [(Seal Time)]
-
-
+  let contxt = localContext lang $ utcToDucklingTime defaultUTCTime
+  --pure $ parseAndResolve (rulesFor (locale ctx) (HashSet.fromList [(This Time)])) input ctx
+  -- TODO check/test Options False or True
+  analyze input contxt options $ HashSet.fromList [(Seal Time)]
 
