@@ -3,6 +3,7 @@
 #
 #
 image: cgenie/stack-build:lts-18.18-garg
+#image: cgenie/nixos-stack:latest
 
 variables:
   STACK_ROOT: "${CI_PROJECT_DIR}/.stack-root"
@@ -21,8 +22,10 @@ docs:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
+      - .stack
       - .stack-root/
       - .stack-work/
+      - target
   script:
     - stack build --no-terminal --haddock --no-haddock-deps --fast
     - cp -R "$(stack path --local-install-root)"/doc ./output
@@ -36,39 +39,11 @@ test:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
+      - .stack
       - .stack-root/
       - .stack-work/
+      - target
   script:
     - stack test --no-terminal --fast
 
       # TOOO
-#unit-test:
-#  stage: test
-#  script:
-#    - make test-unit
-#
-#int-test:
-#  stage: test
-#  script:
-#    - make test-int
-#
-#e2e-test:
-#  stage: test
-#  script:
-#    - make test-e2e
-#
-
-# If you find yourself with a non-sensical build error when you know your project should be building just fine, this fragment should help:
-#
-#build:
-#  stage: build
-#  script:
-#    # Clear out cache files
-#    - rm -rf .stack
-#    - rm -rf .stack-work
-#    - stack setup --system-ghc
-#    - stack install --local-bin-path target --system-ghc
-
-
-
-

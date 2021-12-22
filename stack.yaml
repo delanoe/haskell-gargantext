@@ -14,13 +14,14 @@ docker:
   enable: false
   #enable: true
   repo: 'cgenie/stack-build:lts-18.18-garg'
+  #repo: 'cgenie/nixos-stack:latest'
   run-args:
     - '--publish=8008:8008'
 
 skip-ghc-check: true
 
 nix:
-  enable: true
+  enable: false
   add-gc-roots: true
   shell-file: nix/stack-shell.nix
 
