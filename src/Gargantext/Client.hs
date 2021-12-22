@@ -23,6 +23,7 @@ import Gargantext.API.Node
 import Gargantext.API.Node.Contact
 import Gargantext.API.Node.Corpus.Export.Types
 import Gargantext.API.Node.Corpus.New
+import qualified Gargantext.API.Node.Document.Export.Types as DocumentExport
 import Gargantext.API.Node.DocumentsFromWriteNodes
 import Gargantext.API.Node.DocumentUpload
 import Gargantext.API.Node.File
@@ -357,6 +358,9 @@ killDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> Maybe Limi
 pollDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
+-- document export API
+getDocumentExport :: Token -> DocId -> ClientM DocumentExport.DocumentExport
+
 -- count api
 postCountQuery :: Token -> Query -> ClientM Counts
 
@@ -652,6 +656,7 @@ postAuth
   :<|> killDocumentNgramsTableAsyncJob
   :<|> pollDocumentNgramsTableAsyncJob
   :<|> waitDocumentNgramsTableAsyncJob
+  :<|> getDocumentExport
   :<|> postCountQuery
   :<|> getGraphHyperdata
   :<|> postGraphAsync

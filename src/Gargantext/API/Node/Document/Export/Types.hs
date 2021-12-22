@@ -24,6 +24,11 @@ import Servant
 
 
 -- | Document Export
+data DocumentExport =
+  DocumentExport { _de_documents    :: [Document]
+                 , _de_garg_version :: Text
+                 } deriving (Generic)
+
 data Document =
   Document { _d_document :: Node HyperdataDocument
            , _d_ngrams   :: Ngrams
@@ -37,6 +42,9 @@ data Ngrams =
 
 type Hash = Text
 -------
+instance ToSchema DocumentExport where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_de_")
+
 instance ToSchema Document where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_d_")
 
@@ -44,6 +52,9 @@ instance ToSchema Ngrams where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ng_")
 
 -------
+instance ToParamSchema DocumentExport where
+  toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
+
 instance ToParamSchema Document where
   toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
 
@@ -52,7 +63,8 @@ instance ToParamSchema Ngrams where
 --------------------------------------------------
 type API = Summary "Document Export"
             :> "export"
-            :> Get '[JSON] [Document]
+            :> Get '[JSON] DocumentExport
 
+$(deriveJSON (unPrefix "_de_") ''DocumentExport)
 $(deriveJSON (unPrefix "_d_") ''Document)
 $(deriveJSON (unPrefix "_ng_") ''Ngrams)
