@@ -14,8 +14,11 @@ docker:
   enable: false
   #enable: true
   repo: 'cgenie/stack-build:lts-18.18-garg'
+  #repo: 'cgenie/nixos-stack:latest'
   run-args:
     - '--publish=8008:8008'
+
+skip-ghc-check: true
 
 nix:
   enable: false
@@ -43,8 +46,20 @@ extra-deps:
   commit: 3fe28b683aba5ddf05e3b5f8eced0bd05c5a29f9
 
   # API libs
+- git: https://github.com/haskell-servant/servant.git
+  commit: c2af6e775d1d36f2011d43aff230bb502f8fba63
+  subdirs:
+    - servant/
+    - servant-server/
+    - servant-client-core/
+    - servant-client/
+    - servant-auth/servant-auth/
+    - servant-auth/servant-auth-client/
+    - servant-auth/servant-auth-server/
 - git: https://github.com/delanoe/servant-static-th.git
   commit: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
+- git: https://github.com/alpmestan/ekg-json.git
+  commit: c7bde4851a7cd41b3f3debf0c57f11bbcb11d698
 
   # Databases libs
 - git: https://github.com/delanoe/haskell-opaleye.git
@@ -66,8 +81,8 @@ extra-deps:
 
   # NP libs
   #- git: https://github.com/np/servant-job.git # waiting for PR
-- git: https://github.com/delanoe/servant-job.git
-  commit: 5b15f6ffbff6bc8e26c46206d6d227213fc1821f
+- git: https://github.com/alpmestan/servant-job.git
+  commit: ceb251b91e8ec1804198422a3cdbdab08d843b79
   #- git: https://github.com/np/patches-map
 - git: https://github.com/delanoe/patches-map
   commit: 76cae88f367976ff091e661ee69a5c3126b94694

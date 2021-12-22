@@ -67,7 +67,7 @@ type ErrC err =
   , HasTreeError     err
   , HasServerError   err
   , HasJoseError     err
-  , ToJSON           err -- TODO this is arguable
+--  , ToJSON           err -- TODO this is arguable
   , Exception        err
   )
 
@@ -76,7 +76,7 @@ type GargServerC env err m =
   , HasNodeStory env err m
   , EnvC  env
   , ErrC      err
-  , MimeRender JSON err
+  , ToJSON err
   )
 
 type GargServerT env err m api = GargServerC env err m => ServerT api m

@@ -30,7 +30,7 @@ import Data.Map (fromList, lookup)
 import Data.Text (Text, splitOn, pack, strip)
 import Gargantext.Core.Types (TODO(..), Typed(..))
 import Gargantext.Prelude
-import Servant (FromHttpApiData, parseUrlPiece, Proxy(..))
+import Servant (FromHttpApiData(..), Proxy(..), ToHttpApiData(..))
 import Text.Read (read)
 import Gargantext.Database.Types
 import Gargantext.Database.Schema.Prelude
@@ -112,6 +112,8 @@ instance ToJSONKey NgramsType where
 
 instance FromHttpApiData NgramsType where
   parseUrlPiece n = pure $ (read . cs) n
+instance ToHttpApiData NgramsType where
+  toUrlPiece = pack . show
 
 instance ToParamSchema NgramsType where
   toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
