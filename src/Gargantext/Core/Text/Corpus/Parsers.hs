@@ -78,23 +78,23 @@ data FileFormat = WOS | RIS | RisPresse
 --                | XML        -- Not Implemented / see :
 
 
-parseFormat :: FileFormat -> DB.ByteString -> Either Prelude.String [HyperdataDocument]
-parseFormat CsvGargV3 bs = parseCsv' $ DBL.fromStrict bs
-parseFormat CsvHal    bs = parseHal' $ DBL.fromStrict bs
+parseFormat :: FileFormat -> DB.ByteString -> IO (Either Prelude.String [HyperdataDocument])
+parseFormat CsvGargV3 bs = pure $ parseCsv' $ DBL.fromStrict bs
+parseFormat CsvHal    bs = pure $ parseHal' $ DBL.fromStrict bs
 parseFormat RisPresse bs = do
   let docs = map (toDoc RIS)
           <$> snd
           <$> enrichWith RisPresse
           $ partitionEithers
           $ [runParser'  RisPresse bs]
-  Right docs
+  pure $ Right docs
 parseFormat WOS bs = do
   let docs = map (toDoc WOS)
           <$> snd
           <$> enrichWith WOS
           $ partitionEithers
           $ [runParser'  WOS bs]
-  Right docs
+  pure $ Right docs
 parseFormat ZIP bs = do
   path <- emptySystemTempFile "parsed-zip"
   DB.writeFile path bs
