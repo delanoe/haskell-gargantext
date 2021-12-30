@@ -21,6 +21,7 @@ Portability : POSIX
 module Gargantext.Database.Query.Facet
   ( runViewAuthorsDoc
   , runViewDocuments
+  , viewDocuments'
   , runCountDocuments
   , filterWith
 
@@ -40,7 +41,7 @@ module Gargantext.Database.Query.Facet
   )
   where
 
-import Control.Arrow (returnA)
+import Control.Arrow (returnA, (>>>))
 import Control.Lens ((^.))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
@@ -272,13 +273,13 @@ viewAuthorsDoc cId _ nt = proc () -> do
   restrict -< _node_id   contact'  .== (toNullable $ pgNodeId cId)
   restrict -< _node_typename doc   .== (sqlInt4 $ toDBid nt)
 
-  returnA  -< FacetDoc (_node_id        doc)
-                       (_node_date      doc)
-                       (_node_name      doc)
-                       (_node_hyperdata doc)
-                       (toNullable $ sqlInt4 1)
-                       (toNullable $ pgDouble 1)
-                       (toNullable $ pgDouble 1)
+  returnA  -< FacetDoc { facetDoc_id         = _node_id        doc
+                       , facetDoc_created    = _node_date      doc
+                       , facetDoc_title      = _node_name      doc
+                       , facetDoc_hyperdata  = _node_hyperdata doc
+                       , facetDoc_category   = toNullable $ sqlInt4 1
+                       , facetDoc_ngramCount = toNullable $ pgDouble 1
+                       , facetDoc_score      = toNullable $ pgDouble 1 }
 
 queryAuthorsDoc :: Query (NodeRead, (NodeNodeNgramsReadNull, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull))))
 queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNodeNgramsTable queryNgramsTable queryNodeNodeNgramsTable queryNodeTable cond12 cond23 cond34 cond45
@@ -346,8 +347,36 @@ viewDocuments :: CorpusId
               -> NodeTypeId
               -> Maybe Text
               -> Query FacetDocRead
-viewDocuments cId t ntId mQuery = proc () -> do
-  --n  <- queryNodeTable     -< ()
+viewDocuments cId t ntId mQuery = viewDocumentsQuery cId t ntId mQuery >>> proc (n, nn) -> do
+  returnA  -< FacetDoc { facetDoc_id         = _ns_id        n
+                       , facetDoc_created    = _ns_date      n
+                       , facetDoc_title      = _ns_name      n
+                       , facetDoc_hyperdata  = _ns_hyperdata n
+                       , facetDoc_category   = toNullable $ nn^.nn_category
+                       , facetDoc_ngramCount = toNullable $ nn^.nn_score
+                       , facetDoc_score      = toNullable $ nn^.nn_score }
+
+viewDocuments' :: CorpusId
+               -> IsTrash
+               -> NodeTypeId
+               -> Maybe Text
+               -> Query NodeRead
+viewDocuments' cId t ntId mQuery = viewDocumentsQuery cId t ntId mQuery >>> proc (n, _nn) -> do
+  returnA  -< Node { _node_id        = _ns_id        n
+                   , _node_hash_id   = ""
+                   , _node_typename  = _ns_typename  n
+                   , _node_user_id   = _ns_user_id   n
+                   , _node_parent_id = -1
+                   , _node_name      = _ns_name      n
+                   , _node_date      = _ns_date      n
+                   , _node_hyperdata = _ns_hyperdata n }
+
+viewDocumentsQuery :: CorpusId
+                   -> IsTrash
+                   -> NodeTypeId
+                   -> Maybe Text
+                   -> Query (NodeSearchRead, NodeNodeRead)
+viewDocumentsQuery cId t ntId mQuery = proc () -> do
   n  <- queryNodeSearchTable -< ()
   nn <- queryNodeNodeTable -< ()
   restrict -< n^.ns_id       .== nn^.nn_node2_id
@@ -363,14 +392,8 @@ viewDocuments cId t ntId mQuery = proc () -> do
     then pgBool True
     --else (n^.ns_search) @@ (pgTSQuery (T.unpack query))
     else (n^.ns_search) @@ (plaintoTSQuery $ T.unpack query)
- 
-  returnA  -< FacetDoc (_ns_id        n)
-                       (_ns_date      n)
-                       (_ns_name      n)
-                       (_ns_hyperdata n)
-                       (toNullable $ nn^.nn_category)
-                       (toNullable $ nn^.nn_score)
-                       (toNullable $ nn^.nn_score)
+
+  returnA -< (n, nn)
 
 ------------------------------------------------------------------------
 filterWith :: (SqlOrd date, SqlOrd title, SqlOrd category, SqlOrd score, hyperdata ~ Column SqlJsonb) =>

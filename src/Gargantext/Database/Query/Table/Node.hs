@@ -180,7 +180,7 @@ getChildrenByType nId nType = do
     query = [sql|
       SELECT n.id, n.typename
       FROM nodes n
-        WHERE n.parent_id = ? AND 0 = ?;
+      WHERE n.parent_id = ? AND 0 = ?;
     |]
 
 ------------------------------------------------------------------------

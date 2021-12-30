@@ -230,7 +230,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> withAccess  (Proxy :: Proxy TableNgramsApi) Proxy uid
           <$> PathNode <*> apiNgramsTableDoc
 
-     :<|> DocumentExport.getDocuments
+     :<|> DocumentExport.getDocuments uid
 
      :<|> count -- TODO: undefined
 
