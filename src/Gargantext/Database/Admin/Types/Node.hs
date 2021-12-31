@@ -23,6 +23,7 @@ import Codec.Serialise (Serialise())
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
+import qualified Data.Csv as Csv
 import Data.Either
 import Data.Hashable (Hashable)
 import Data.Morpheus.Types (GQLType)
@@ -152,7 +153,7 @@ pgNodeId = O.sqlInt4 . id2int
 
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
-  deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable)
+  deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
 instance GQLType NodeId
 instance Show NodeId where
   show (NodeId n) = "nodeId-" <> show n
@@ -166,6 +167,8 @@ instance FromField NodeId where
        then return $ NodeId n
        else mzero
 instance ToSchema NodeId
+--instance Csv.ToField NodeId where
+--  toField (NodeId nodeId) = Csv.toField nodeId
 
 unNodeId :: NodeId -> Int
 unNodeId (NodeId n) = n

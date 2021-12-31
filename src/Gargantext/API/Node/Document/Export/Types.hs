@@ -14,12 +14,15 @@ Portability : POSIX
 module Gargantext.API.Node.Document.Export.Types where
 
 import Data.Aeson.TH (deriveJSON)
+import Data.Csv (DefaultOrdered(..), ToNamedRecord(..), (.=), header, namedRecord)
 import Data.Swagger
-import Data.Text (Text)
-import GHC.Generics (Generic)
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import Gargantext.Database.Schema.Node (NodePoly(..))
+import Gargantext.Utils.Servant (CSV)
+import Protolude
+--import Protolude.Partial (read)
 import Servant
 
 
@@ -34,6 +37,16 @@ data Document =
            , _d_ngrams   :: Ngrams
            , _d_hash     :: Hash
            } deriving (Generic)
+
+--instance Read Document where
+--  read "" = panic "not implemented"
+instance DefaultOrdered Document where
+  headerOrder _ = header ["id", "name"]
+instance ToNamedRecord Document where
+  toNamedRecord (Document { _d_document = Node { .. }}) =
+    namedRecord
+    [ "id" .= _node_id
+    , "name" .= _node_name ]
 
 data Ngrams =
   Ngrams { _ng_ngrams :: [Text]
@@ -63,7 +76,10 @@ instance ToParamSchema Ngrams where
 --------------------------------------------------
 type API = Summary "Document Export"
             :> "export"
-            :> Get '[JSON] DocumentExport
+            :> ( "json"
+               :> Get '[JSON] DocumentExport
+               :<|> "csv"
+               :> Get '[CSV] [Document])
 
 $(deriveJSON (unPrefix "_de_") ''DocumentExport)
 $(deriveJSON (unPrefix "_d_") ''Document)

@@ -359,7 +359,8 @@ pollDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> Maybe Limi
 waitDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
 -- document export API
-getDocumentExport :: Token -> DocId -> ClientM DocumentExport.DocumentExport
+getDocumentExportJSON :: Token -> DocId -> ClientM DocumentExport.DocumentExport
+getDocumentExportCSV :: Token -> DocId -> ClientM [DocumentExport.Document]
 
 -- count api
 postCountQuery :: Token -> Query -> ClientM Counts
@@ -656,7 +657,8 @@ postAuth
   :<|> killDocumentNgramsTableAsyncJob
   :<|> pollDocumentNgramsTableAsyncJob
   :<|> waitDocumentNgramsTableAsyncJob
-  :<|> getDocumentExport
+  :<|> getDocumentExportJSON
+  :<|> getDocumentExportCSV
   :<|> postCountQuery
   :<|> getGraphHyperdata
   :<|> postGraphAsync

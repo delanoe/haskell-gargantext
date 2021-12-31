@@ -14,7 +14,7 @@ module Gargantext.API.Node.Document.Export
 import qualified Data.Text as T
 import Data.Version (showVersion)
 import Gargantext.API.Node.Document.Export.Types
-import Gargantext.API.Prelude (GargNoServer)
+import Gargantext.API.Prelude (GargNoServer, GargServer)
 import Gargantext.Core (toDBid)
 import Gargantext.Core.Types
 -- import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
@@ -23,14 +23,18 @@ import Gargantext.Database.Query.Table.Node (getClosestParentIdByType)
 import Gargantext.Database.Schema.Node (NodePoly(..))
 import Gargantext.Prelude
 import qualified Paths_gargantext as PG -- cabal magic build module
--- import Servant (Proxy(..))
+import Servant
+
+api :: UserId -> DocId -> GargServer API
+api uid dId = getDocumentsJSON uid dId
+     :<|> getDocumentsCSV uid dId
 
 --------------------------------------------------
 -- | Hashes are ordered by Set
-getDocuments :: UserId
-             -> DocId
-             -> GargNoServer DocumentExport
-getDocuments uId pId = do
+getDocumentsJSON :: UserId
+                 -> DocId
+                 -> GargNoServer DocumentExport
+getDocumentsJSON uId pId = do
   printDebug "[getDocuments] pId" pId
   mcId <- getClosestParentIdByType pId NodeCorpus
   let cId = maybe (panic "[G.A.N.D.Export] Node has no parent") identity mcId
@@ -59,3 +63,12 @@ getDocuments uId pId = do
                          , _d_ngrams   = Ngrams { _ng_ngrams = []
                                                 , _ng_hash = "" }
                          , _d_hash     = ""}
+
+getDocumentsCSV :: UserId
+                -> DocId
+                -> GargNoServer [Document]
+getDocumentsCSV uId pId = do
+  DocumentExport { _de_documents } <- getDocumentsJSON uId pId
+
+  pure $ _de_documents
+
