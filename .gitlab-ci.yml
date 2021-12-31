@@ -14,8 +14,21 @@ variables:
   #- apt-get install make xz-utils
 
 stages:
+  - deps
   - docs
   - test
+
+deps:
+  cache:
+    # cache per branch name
+    # key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .stack
+      - .stack-root/
+      - .stack-work/
+      - target
+  script:
+    - stack build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast
 
 docs:
   cache:
@@ -47,3 +60,4 @@ test:
     - stack test --no-terminal --fast
 
       # TOOO
+
