@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -freduction-depth=0 #-}
 {-# OPTIONS_GHC -O0                 #-} 
 
-module Gargantext.Client where
+module Gargantext.API.Client where
 
 import Data.Int
 import Data.Maybe
