@@ -20,12 +20,12 @@ module Gargantext.Database.Query.Filter
 
 import Gargantext.Core.Types (Limit, Offset)
 import Data.Maybe (Maybe, maybe)
-import Opaleye (Query, limit, offset)
+import Opaleye (Select, limit, offset)
 
-limit' ::  Maybe Limit -> Query a -> Query a
+limit' ::  Maybe Limit -> Select a -> Select a
 limit' maybeLimit query = maybe query (\l -> limit l query) maybeLimit
 
-offset' :: Maybe Offset -> Query a  -> Query a
+offset' :: Maybe Offset -> Select a  -> Select a
 offset' maybeOffset query = maybe query (\o -> offset o query) maybeOffset
 
 

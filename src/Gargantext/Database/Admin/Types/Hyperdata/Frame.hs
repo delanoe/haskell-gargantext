@@ -23,10 +23,10 @@ module Gargantext.Database.Admin.Types.Hyperdata.Frame
 
 import Control.Lens
 import Data.ByteString.Lazy (toStrict)
-import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8)
-import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
+import Gargantext.Prelude
+import qualified Data.Text as T
 import qualified Network.Wreq as Wreq
 
 ------------------------------------------------------------------------
@@ -58,9 +58,9 @@ instance FromField HyperdataFrame
   where
     fromField = fromField'
 
-instance DefaultFromField PGJsonb HyperdataFrame
+instance DefaultFromField SqlJsonb HyperdataFrame
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
 instance ToSchema HyperdataFrame where
   declareNamedSchema proxy =

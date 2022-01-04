@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.4.9.9'
+version: '0.0.4.9.9.2'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -58,7 +58,7 @@ library:
   - Gargantext.API.Admin.EnvTypes
   - Gargantext.API.Admin.Types
   - Gargantext.API.Prelude
-  - Gargantext.Client
+  - Gargantext.API.Client
   - Gargantext.Core
   - Gargantext.Core.NodeStory
   - Gargantext.Core.Methods.Distances

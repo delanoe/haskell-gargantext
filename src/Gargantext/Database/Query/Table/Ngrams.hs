@@ -52,7 +52,7 @@ selectNgramsByDoc lIds dId nt = runOpaQuery (query lIds dId nt)
 
     query cIds' dId' nt' = proc () -> do
       (ng,nnng) <- join -< ()
-      restrict -< foldl (\b cId -> ((toNullable $ pgNodeId cId) .== nnng^.nnng_node1_id) .|| b) (pgBool True) cIds'
+      restrict -< foldl (\b cId -> ((toNullable $ pgNodeId cId) .== nnng^.nnng_node1_id) .|| b) (sqlBool True) cIds'
       restrict -< (toNullable $ pgNodeId dId')    .== nnng^.nnng_node2_id
       restrict -< (toNullable $ pgNgramsType nt') .== nnng^.nnng_ngramsType
       returnA  -< ng^.ngrams_terms

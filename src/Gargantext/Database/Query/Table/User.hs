@@ -84,18 +84,18 @@ updateUserDB us = mkCmd $ \c -> runUpdate_ c (updateUserQuery us)
 toUserWrite :: NewUser HashPassword -> UserWrite
 toUserWrite (NewUser u m (Auth.PasswordHash p)) = 
   UserDB (Nothing) (sqlStrictText p)
-         (Nothing) (pgBool True) (sqlStrictText u)
+         (Nothing) (sqlBool True) (sqlStrictText u)
          (sqlStrictText "first_name")
          (sqlStrictText "last_name")
          (sqlStrictText m)
-         (pgBool True)
-         (pgBool True) Nothing
+         (sqlBool True)
+         (sqlBool True) Nothing
 
 ------------------------------------------------------------------
 getUsersWith :: Username -> Cmd err [UserLight]
 getUsersWith u = map toUserLight <$> runOpaQuery (selectUsersLightWith u)
 
-selectUsersLightWith :: Username -> Query UserRead
+selectUsersLightWith :: Username -> Select UserRead
 selectUsersLightWith u = proc () -> do
       row      <- queryUserTable -< ()
       restrict -< user_username row .== sqlStrictText u
@@ -105,14 +105,14 @@ selectUsersLightWith u = proc () -> do
 getUsersWithId :: Int -> Cmd err [UserLight]
 getUsersWithId i = map toUserLight <$> runOpaQuery (selectUsersLightWithId i)
   where
-    selectUsersLightWithId :: Int -> Query UserRead
+    selectUsersLightWithId :: Int -> Select UserRead
     selectUsersLightWithId i' = proc () -> do
           row      <- queryUserTable -< ()
           restrict -< user_id row .== sqlInt4 i'
           returnA  -< row
 
 
-queryUserTable :: Query UserRead
+queryUserTable :: Select UserRead
 queryUserTable = selectTable userTable
 
 ----------------------------------------------------------------------
@@ -120,7 +120,7 @@ getUserHyperdata :: Int -> Cmd err [HyperdataUser]
 getUserHyperdata i = do
   runOpaQuery (selectUserHyperdataWithId i)
   where
-    selectUserHyperdataWithId :: Int -> Query (Column PGJsonb)
+    selectUserHyperdataWithId :: Int -> Select (Column SqlJsonb)
     selectUserHyperdataWithId i' = proc () -> do
       row      <- queryNodeTable -< ()
       restrict -< row^.node_id .== (sqlInt4 i')
@@ -166,5 +166,5 @@ insertNewUsers newUsers = do
   insertUsers $ map toUserWrite users'
 
 ----------------------------------------------------------------------
-instance DefaultFromField PGTimestamptz (Maybe UTCTime) where
-  defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField SqlTimestamptz (Maybe UTCTime) where
+  defaultFromField = fromPGSFromField

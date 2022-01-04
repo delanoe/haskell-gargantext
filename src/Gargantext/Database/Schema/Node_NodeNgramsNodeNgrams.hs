@@ -45,17 +45,17 @@ data Node_NodeNgrams_NodeNgrams_Poly node_id nng1_id nng2_id weight =
 
 type Node_NodeNgrams_NodeNgrams_Write =
   Node_NodeNgrams_NodeNgrams_Poly
-    (Column PGInt4          )
-    (Maybe (Column PGInt4  ))
-    (Column PGInt4          )
-    (Maybe (Column PGFloat8))
+    (Column SqlInt4          )
+    (Maybe (Column SqlInt4  ))
+    (Column SqlInt4          )
+    (Maybe (Column SqlFloat8))
 
 type Node_NodeNgrams_NodeNgrams_Read  =
   Node_NodeNgrams_NodeNgrams_Poly
-    (Column PGInt4  )
-    (Column PGInt4  )
-    (Column PGInt4  )
-    (Column PGFloat8)
+    (Column SqlInt4  )
+    (Column SqlInt4  )
+    (Column SqlInt4  )
+    (Column SqlFloat8)
 
 type ListNgramsId = Int
 
@@ -79,9 +79,9 @@ node_NodeNgrams_NodeNgrams_Table =
                        }
        )
 
-instance DefaultFromField PGInt4 (Maybe Int) where
-    defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField SqlInt4 (Maybe Int) where
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGFloat8 (Maybe Double) where
-    defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField SqlFloat8 (Maybe Double) where
+    defaultFromField = fromPGSFromField
 

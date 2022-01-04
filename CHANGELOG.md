@@ -1,3 +1,10 @@
+## Version 0.0.4.9.9.2
+* [BACK] Opaleye Upgrade
+
+## Version 0.0.4.9.9.1
+* [FRONT] 350-dev-graph-search-in-forms-not-labels
+* [FRONT] 359-dev-input-with-autocomplete
+
 ## Version 0.0.4.9.9
 * [FIX] Continuous Integration (CI)
 

@@ -29,7 +29,7 @@ import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
-import Opaleye hiding (Query, Order)
+import Opaleye hiding (Order)
 import Data.Profunctor.Product (p4)
 import qualified Opaleye as O hiding (Order)
 
@@ -41,10 +41,10 @@ searchDocInDatabase :: HasDBid NodeType
 searchDocInDatabase _p t = runOpaQuery (queryDocInDatabase t)
   where
     -- | Global search query where ParentId is Master Node Corpus Id 
-    queryDocInDatabase :: Text -> O.Query (Column PGInt4, Column PGJsonb)
+    queryDocInDatabase :: Text -> O.Select (Column SqlInt4, Column SqlJsonb)
     queryDocInDatabase q = proc () -> do
         row <- queryNodeSearchTable -< ()
-        restrict -< (_ns_search row)    @@ (pgTSQuery (unpack q))
+        restrict -< (_ns_search row)    @@ (sqlTSQuery (unpack q))
         restrict -< (_ns_typename row) .== (sqlInt4 $ toDBid NodeDocument)
         returnA  -< (_ns_id row, _ns_hyperdata row)
 
@@ -78,14 +78,14 @@ queryInCorpus :: HasDBid NodeType
               => CorpusId
               -> IsTrash
               -> Text
-              -> O.Query FacetDocRead
+              -> O.Select FacetDocRead
 queryInCorpus cId t q = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< (nn^.nn_node1_id) .== (toNullable $ pgNodeId cId)
   restrict -< if t
                  then (nn^.nn_category) .== (toNullable $ sqlInt4 0)
                  else (nn^.nn_category) .>= (toNullable $ sqlInt4 1)
-  restrict -< (n ^. ns_search)           @@ (pgTSQuery (unpack q))
+  restrict -< (n ^. ns_search)           @@ (sqlTSQuery (unpack q))
   restrict -< (n ^. ns_typename )       .== (sqlInt4 $ toDBid NodeDocument)
   returnA  -< FacetDoc { facetDoc_id = n^.ns_id
                        , facetDoc_created = n^.ns_date
@@ -96,10 +96,10 @@ queryInCorpus cId t q = proc () -> do
                        , facetDoc_score = nn^.nn_score
                        }
 
-joinInCorpus :: O.Query (NodeSearchRead, NodeNodeReadNull)
+joinInCorpus :: O.Select (NodeSearchRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
   where
-    cond :: (NodeSearchRead, NodeNodeRead) -> Column PGBool
+    cond :: (NodeSearchRead, NodeNodeRead) -> Column SqlBool
     cond (n, nn) = nn^.nn_node2_id .== _ns_id n
 
 ------------------------------------------------------------------------
@@ -125,15 +125,15 @@ selectContactViaDoc
   => CorpusId
   -> AnnuaireId
   -> Text
-  -> QueryArr ()
-              ( Column (Nullable PGInt4)
-              , Column (Nullable PGTimestamptz)
-              , Column (Nullable PGJsonb)
-              , Column (Nullable PGInt4)
-              )
+  -> SelectArr ()
+               ( Column (Nullable SqlInt4)
+               , Column (Nullable SqlTimestamptz)
+               , Column (Nullable SqlJsonb)
+               , Column (Nullable SqlInt4)
+               )
 selectContactViaDoc cId aId q = proc () -> do
   (doc, (corpus_doc, (_contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
-  restrict -< (doc^.ns_search)           @@ (pgTSQuery  $ unpack q  )
+  restrict -< (doc^.ns_search)           @@ (sqlTSQuery  $ unpack q  )
   restrict -< (doc^.ns_typename)        .== (sqlInt4 $ toDBid NodeDocument)
   restrict -< (corpus_doc^.nn_node1_id)  .== (toNullable $ pgNodeId cId)
   restrict -< (annuaire_contact^.nn_node1_id) .== (toNullable $ pgNodeId aId)
@@ -155,15 +155,15 @@ selectGroup cId aId q = proc () -> do
   returnA -< FacetPaired a b c d
 
 
-queryContactViaDoc :: O.Query ( NodeSearchRead
-                              , ( NodeNodeReadNull
-                                , ( NodeNodeReadNull
-                                  , ( NodeNodeReadNull
-                                    , NodeReadNull
-                                    )
-                                  )
-                                )
-                              )
+queryContactViaDoc :: O.Select ( NodeSearchRead
+                               , ( NodeNodeReadNull
+                                 , ( NodeNodeReadNull
+                                   , ( NodeNodeReadNull
+                                     , NodeReadNull
+                                     )
+                                   )
+                                 )
+                               )
 queryContactViaDoc =
   leftJoin5
   queryNodeTable
@@ -176,14 +176,14 @@ queryContactViaDoc =
   cond34
   cond45
     where
-      cond12 :: (NodeNodeRead, NodeRead) -> Column PGBool
+      cond12 :: (NodeNodeRead, NodeRead) -> Column SqlBool
       cond12 (annuaire_contact, contact) = contact^.node_id .== annuaire_contact^.nn_node2_id
 
       cond23 :: ( NodeNodeRead
                 , ( NodeNodeRead
                   , NodeReadNull
                   )
-                ) -> Column PGBool
+                ) -> Column SqlBool
       cond23 (contact_doc, (annuaire_contact, _)) = contact_doc^.nn_node1_id .== annuaire_contact^.nn_node2_id
 
       cond34 :: ( NodeNodeRead
@@ -192,7 +192,7 @@ queryContactViaDoc =
                     , NodeReadNull
                     )
                   )
-                ) -> Column PGBool
+                ) -> Column SqlBool
       cond34 (corpus_doc, (contact_doc, (_,_))) =  corpus_doc^.nn_node2_id .== contact_doc^.nn_node2_id
 
 
@@ -204,7 +204,7 @@ queryContactViaDoc =
                       )
                     )
                   )
-                ) -> Column PGBool
+                ) -> Column SqlBool
       cond45 (doc, (corpus_doc, (_,(_,_)))) = doc^.ns_id .== corpus_doc^.nn_node2_id
 
 

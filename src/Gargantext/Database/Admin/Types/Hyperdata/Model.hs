@@ -48,9 +48,9 @@ instance FromField HyperdataModel
   where
     fromField = fromField'
 
-instance DefaultFromField PGJsonb HyperdataModel
+instance DefaultFromField SqlJsonb HyperdataModel
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
 instance ToSchema HyperdataModel where
   declareNamedSchema proxy =

@@ -45,7 +45,7 @@ instance ToSchema HyperdataAny where
 instance FromField HyperdataAny where
     fromField = fromField'
 
-instance DefaultFromField PGJsonb HyperdataAny
+instance DefaultFromField SqlJsonb HyperdataAny
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 

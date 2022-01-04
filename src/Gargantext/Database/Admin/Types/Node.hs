@@ -35,7 +35,7 @@ import Database.PostgreSQL.Simple.ToField (ToField, toField)
 import GHC.Generics (Generic)
 import Servant
 import qualified Opaleye as O
-import Opaleye (DefaultFromField, defaultFromField, PGInt4, PGText, PGTSVector, Nullable, fieldQueryRunnerColumn)
+import Opaleye (DefaultFromField, defaultFromField, SqlInt4, SqlText, SqlTSVector, Nullable, fromPGSFromField)
 import Test.QuickCheck (elements)
 import Gargantext.Prelude.Crypto.Hash (Hash)
 import Test.QuickCheck.Arbitrary
@@ -145,7 +145,7 @@ instance (Arbitrary hyperdata
                            <*> arbitrary
 
 ------------------------------------------------------------------------
-pgNodeId :: NodeId -> O.Column O.PGInt4
+pgNodeId :: NodeId -> O.Column O.SqlInt4
 pgNodeId = O.sqlInt4 . id2int
   where
     id2int :: NodeId -> Int
@@ -360,28 +360,28 @@ instance FromField (NodeId, Text)
     fromField = fromField'
 -}
 ------------------------------------------------------------------------
-instance DefaultFromField PGTSVector (Maybe TSVector)
+instance DefaultFromField SqlTSVector (Maybe TSVector)
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGInt4 (Maybe NodeId)
+instance DefaultFromField SqlInt4 (Maybe NodeId)
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGInt4 NodeId
+instance DefaultFromField SqlInt4 NodeId
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField (Nullable PGInt4) NodeId
+instance DefaultFromField (Nullable SqlInt4) NodeId
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance (DefaultFromField (Nullable O.PGTimestamptz) UTCTime)
+instance (DefaultFromField (Nullable O.SqlTimestamptz) UTCTime)
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGText (Maybe Hash)
+instance DefaultFromField SqlText (Maybe Hash)
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
 
