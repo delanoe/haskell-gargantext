@@ -8,8 +8,7 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans        #-}
-
+{-# OPTIONS_GHC -fno-warn-orphans      #-}
 
 {-# LANGUAGE Arrows                    #-}
 {-# LANGUAGE FunctionalDependencies    #-}
@@ -151,28 +150,28 @@ instance ( Arbitrary id
          ) => Arbitrary (FacetPaired id date hyperdata score) where
   arbitrary = FacetPaired <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
-type FacetPairedRead = FacetPaired (Column PGInt4       )
-                                   (Column PGTimestamptz)
-                                   (Column PGJsonb      )
-                                   (Column PGInt4       )
+type FacetPairedRead = FacetPaired (Column SqlInt4       )
+                                   (Column SqlTimestamptz)
+                                   (Column SqlJsonb      )
+                                   (Column SqlInt4       )
 
-type FacetPairedReadNull = FacetPaired (Column (Nullable PGInt4)       )
-                                       (Column (Nullable PGTimestamptz))
-                                       (Column (Nullable PGJsonb)      )
-                                       (Column (Nullable PGInt4)       )
+type FacetPairedReadNull = FacetPaired (Column (Nullable SqlInt4)       )
+                                       (Column (Nullable SqlTimestamptz))
+                                       (Column (Nullable SqlJsonb)      )
+                                       (Column (Nullable SqlInt4)       )
 
-type FacetPairedReadNullAgg = FacetPaired (Aggregator (Column (Nullable PGInt4)       )
-                                                      (Column (Nullable PGInt4)       ) 
+type FacetPairedReadNullAgg = FacetPaired (Aggregator (Column (Nullable SqlInt4)       )
+                                                      (Column (Nullable SqlInt4)       ) 
                                           )
-                                          (Aggregator (Column (Nullable PGTimestamptz))
-                                                      (Column (Nullable PGTimestamptz))
+                                          (Aggregator (Column (Nullable SqlTimestamptz))
+                                                      (Column (Nullable SqlTimestamptz))
 
                                           )
-                                          (Aggregator (Column (Nullable PGJsonb)      )
-                                                      (Column (Nullable PGJsonb)      )
+                                          (Aggregator (Column (Nullable SqlJsonb)      )
+                                                      (Column (Nullable SqlJsonb)      )
                                           )
-                                          (Aggregator (Column (Nullable PGInt4)       )
-                                                      (Column (Nullable PGInt4)       )
+                                          (Aggregator (Column (Nullable SqlInt4)       )
+                                                      (Column (Nullable SqlInt4)       )
                                           )
 
 
@@ -202,13 +201,13 @@ instance Arbitrary FacetDoc where
 $(makeAdaptorAndInstance "pFacetDoc" ''Facet)
 -- $(makeLensesWith abbreviatedFields   ''Facet)
 
-type FacetDocRead = Facet (Column PGInt4       )
-                          (Column PGTimestamptz)
-                          (Column PGText       )
-                          (Column PGJsonb      )
-                          (Column (Nullable PGInt4)) -- Category
-                          (Column (Nullable PGFloat8)) -- Ngrams Count
-                          (Column (Nullable PGFloat8)) -- Score
+type FacetDocRead = Facet (Column SqlInt4       )
+                          (Column SqlTimestamptz)
+                          (Column SqlText       )
+                          (Column SqlJsonb      )
+                          (Column (Nullable SqlInt4)) -- Category
+                          (Column (Nullable SqlFloat8)) -- Ngrams Count
+                          (Column (Nullable SqlFloat8)) -- Score
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
@@ -260,13 +259,13 @@ viewAuthorsDoc :: HasDBid NodeType
                => ContactId
                -> IsTrash
                -> NodeType
-               -> Query FacetDocRead
+               -> Select FacetDocRead
 viewAuthorsDoc cId _ nt = proc () -> do
   (doc,(_,(_,(_,contact')))) <- queryAuthorsDoc      -< ()
 
   {-nn         <- queryNodeNodeTable -< ()
   restrict -< nn_node1_id nn .== _node_id doc
-  -- restrict -< nn_delete   nn .== (pgBool t)
+  -- restrict -< nn_delete   nn .== (sqlBool t)
   -}
 
   restrict -< _node_id   contact'  .== (toNullable $ pgNodeId cId)
@@ -277,24 +276,24 @@ viewAuthorsDoc cId _ nt = proc () -> do
                        (_node_name      doc)
                        (_node_hyperdata doc)
                        (toNullable $ sqlInt4 1)
-                       (toNullable $ pgDouble 1)
-                       (toNullable $ pgDouble 1)
+                       (toNullable $ sqlDouble 1)
+                       (toNullable $ sqlDouble 1)
 
-queryAuthorsDoc :: Query (NodeRead, (NodeNodeNgramsReadNull, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull))))
+queryAuthorsDoc :: Select (NodeRead, (NodeNodeNgramsReadNull, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull))))
 queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNodeNgramsTable queryNgramsTable queryNodeNodeNgramsTable queryNodeTable cond12 cond23 cond34 cond45
     where
-         cond12 :: (NodeNodeNgramsRead, NodeRead) -> Column PGBool
+         cond12 :: (NodeNodeNgramsRead, NodeRead) -> Column SqlBool
          cond12 (nodeNgram, doc) =  _node_id                  doc
                                 .== _nnng_node1_id nodeNgram
 
-         cond23 :: (NgramsRead, (NodeNodeNgramsRead, NodeReadNull)) -> Column PGBool
+         cond23 :: (NgramsRead, (NodeNodeNgramsRead, NodeReadNull)) -> Column SqlBool
          cond23 (ngrams', (nodeNgram, _)) =  ngrams'^.ngrams_id
                                         .== _nnng_ngrams_id nodeNgram
 
-         cond34 :: (NodeNodeNgramsRead, (NgramsRead, (NodeNodeNgramsReadNull, NodeReadNull))) -> Column PGBool
+         cond34 :: (NodeNodeNgramsRead, (NgramsRead, (NodeNodeNgramsReadNull, NodeReadNull))) -> Column SqlBool
          cond34 (nodeNgram2, (ngrams', (_,_)))= ngrams'^.ngrams_id .== _nnng_ngrams_id       nodeNgram2
 
-         cond45 :: (NodeRead, (NodeNodeNgramsRead, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull)))) -> Column PGBool
+         cond45 :: (NodeRead, (NodeNodeNgramsRead, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull)))) -> Column SqlBool
          cond45 (contact', (nodeNgram2', (_, (_,_)))) = _node_id  contact'  .== _nnng_node1_id         nodeNgram2'
 
 --}
@@ -345,7 +344,7 @@ viewDocuments :: CorpusId
               -> IsTrash
               -> NodeTypeId
               -> Maybe Text
-              -> Query FacetDocRead
+              -> Select FacetDocRead
 viewDocuments cId t ntId mQuery = proc () -> do
   --n  <- queryNodeTable     -< ()
   n  <- queryNodeSearchTable -< ()
@@ -360,7 +359,7 @@ viewDocuments cId t ntId mQuery = proc () -> do
       -- iLikeQuery = T.intercalate "" ["%", query, "%"]
   -- restrict -< (n^.node_name) `ilike` (sqlStrictText iLikeQuery)
   restrict -< if query == ""
-    then pgBool True
+    then sqlBool True
     --else (n^.ns_search) @@ (pgTSQuery (T.unpack query))
     else (n^.ns_search) @@ (plaintoTSQuery $ T.unpack query)
  
@@ -401,5 +400,5 @@ orderWith _                = asc facetDoc_created
 
 facetDoc_source :: SqlIsJson a
                 => Facet id created title (Column a) favorite ngramCount score
-                -> Column (Nullable PGText)
-facetDoc_source x = toNullable (facetDoc_hyperdata x) .->> pgString "source"
+                -> Column (Nullable SqlText)
+facetDoc_source x = toNullable (facetDoc_hyperdata x) .->> sqlString "source"

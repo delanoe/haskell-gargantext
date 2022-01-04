@@ -32,7 +32,7 @@ import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (readIniFile', val)
-import Opaleye (Query, Unpackspec, showSql, FromFields, Select, runSelect, PGJsonb, DefaultFromField)
+import Opaleye (Unpackspec, showSql, FromFields, Select, runSelect, SqlJsonb, DefaultFromField)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
 import System.IO (stderr)
@@ -57,7 +57,7 @@ instance HasConfig GargConfig where
   hasConfig = identity
 
 -------------------------------------------------------
-type JSONB = DefaultFromField PGJsonb
+type JSONB = DefaultFromField SqlJsonb
 -------------------------------------------------------
 
 type CmdM'' env err m =
@@ -185,6 +185,6 @@ fromField' field mb = do
                                               , show v
                                               ]
 
-printSqlOpa :: Default Unpackspec a a => Query a -> IO ()
+printSqlOpa :: Default Unpackspec a a => Select a -> IO ()
 printSqlOpa = putStrLn . maybe "Empty query" identity . showSql
 

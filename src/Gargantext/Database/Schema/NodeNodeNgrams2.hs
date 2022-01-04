@@ -30,19 +30,19 @@ data NodeNodeNgrams2Poly node_id nodengrams_id w
                      } deriving (Show)
 
 type NodeNodeNgrams2Write =
-     NodeNodeNgrams2Poly (Column PGInt4  )
-                         (Column PGInt4  )
-                         (Column PGFloat8)
+     NodeNodeNgrams2Poly (Column SqlInt4  )
+                         (Column SqlInt4  )
+                         (Column SqlFloat8)
 
 type NodeNodeNgrams2Read  =
-     NodeNodeNgrams2Poly (Column PGInt4  )
-                         (Column PGInt4  )
-                         (Column PGFloat8)
+     NodeNodeNgrams2Poly (Column SqlInt4  )
+                         (Column SqlInt4  )
+                         (Column SqlFloat8)
 
 type NodeNodeNgrams2ReadNull =
-     NodeNodeNgrams2Poly (Column (Nullable PGInt4  ))
-                         (Column (Nullable PGInt4  ))
-                         (Column (Nullable PGFloat8))
+     NodeNodeNgrams2Poly (Column (Nullable SqlInt4  ))
+                         (Column (Nullable SqlInt4  ))
+                         (Column (Nullable SqlFloat8))
 
 type NodeNodeNgrams2 =
   NodeNodeNgrams2Poly DocId NodeNgramsId Double

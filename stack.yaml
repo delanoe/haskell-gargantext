@@ -6,9 +6,7 @@ skip-ghc-check: true
 packages:
 - .
   #- 'deps/gargantext-graph'
-#- 'deps/patches-map'
-#- 'deps/accelerate'
-#- 'deps/accelerate-utility'
+  #- 'deps/haskell-opaleye'
 
 docker:
   enable: false
@@ -63,7 +61,7 @@ extra-deps:
 
   # Databases libs
 - git: https://github.com/delanoe/haskell-opaleye.git
-  commit: d3ab7acd5ede737478763630035aa880f7e34444
+  commit: 756cb90f4ce725463d957bc899d764e0ed73738c
 - git: https://github.com/delanoe/hsparql.git
   commit: 2acbbc55ac9bbd4bf1a713c586b8b8e8b82892eb
 - git: https://github.com/robstewart57/rdf4h.git

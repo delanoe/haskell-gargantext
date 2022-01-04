@@ -135,12 +135,12 @@ instance FromField HyperdataPublic where
   fromField = fromField'
 
 -- | Database (Opaleye instance)
-instance DefaultFromField PGJsonb HyperdataUser   where
-  defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField SqlJsonb HyperdataUser   where
+  defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGJsonb HyperdataPrivate   where
-  defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField SqlJsonb HyperdataPrivate   where
+  defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGJsonb HyperdataPublic   where
-  defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField SqlJsonb HyperdataPublic   where
+  defaultFromField = fromPGSFromField
 
