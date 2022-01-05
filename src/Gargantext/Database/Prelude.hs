@@ -148,16 +148,14 @@ runPGSQuery_ :: ( CmdM env err m
 runPGSQuery_ q = mkCmd $ \conn -> catch (PGS.query_ conn q) printError
   where
     printError (SomeException e) = do
-      printDebug "[G.D.P.runPGSQuery_]" ("TODO: format query error query" :: Text)
+      printDebug "[G.D.P.runPGSQuery_]" ("TODO: format query error" :: Text)
       throw (SomeException e)
-
 
 
 execPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err Int64
 execPGSQuery q a = mkCmd $ \conn -> PGS.execute conn q a
 
 ------------------------------------------------------------------------
-
 databaseParameters :: FilePath -> IO PGS.ConnectInfo
 databaseParameters fp = do
   ini <- readIniFile' fp

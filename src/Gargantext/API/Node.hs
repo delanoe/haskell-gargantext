@@ -212,7 +212,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> postNodeAsyncAPI  uId id'
            :<|> FrameCalcUpload.api uId id'
            :<|> putNode       id'
-           :<|> Update.api  uId id'
+           :<|> Update.api uId id'
            :<|> Action.deleteNode (RootId $ NodeId uId) id'
            :<|> getChildren   id' p
 

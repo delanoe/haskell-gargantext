@@ -33,21 +33,21 @@ import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Database.PostgreSQL.Simple.ToField (ToField, toField)
 import GHC.Generics (Generic)
-import Servant
-import qualified Opaleye as O
-import Opaleye (DefaultFromField, defaultFromField, SqlInt4, SqlText, SqlTSVector, Nullable, fromPGSFromField)
-import Test.QuickCheck (elements)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
+import Gargantext.Database.Schema.Context
+import Gargantext.Database.Schema.Node
+import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
+import Opaleye (DefaultFromField, defaultFromField, SqlInt4, SqlText, SqlTSVector, Nullable, fromPGSFromField)
+import Servant hiding (Context)
+import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Instances.Text ()
 import Test.QuickCheck.Instances.Time ()
 import Text.Read (read)
+import qualified Opaleye as O
 
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
--- import Gargantext.Database.Prelude (fromField')
-import Gargantext.Database.Schema.Node
-import Gargantext.Database.Schema.Context
-import Gargantext.Prelude
+
 
 type UserId = Int
 type MasterUserId = UserId
@@ -441,4 +441,8 @@ instance DefaultFromField SqlText (Maybe Hash)
   where
     defaultFromField = fromPGSFromField
 
+---------------------------------------------------------------------
+
+context2node :: Context a -> Node a
+context2node (Context ci ch ct cu cp cn cd chy) = Node ci ch ct cu cp cn cd chy
 
