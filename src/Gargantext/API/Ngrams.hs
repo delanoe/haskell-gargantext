@@ -495,7 +495,7 @@ type MaxSize = Int
 getTableNgrams :: forall env err m.
                   (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env, HasMail env)
                => NodeType -> NodeId -> TabType
-               -> ListId -> Limit -> Maybe Offset
+               -> ListId   -> Limit  -> Maybe Offset
                -> Maybe ListType
                -> Maybe MinSize -> Maybe MaxSize
                -> Maybe OrderBy

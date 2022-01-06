@@ -360,11 +360,20 @@ viewDocumentsQuery cId t ntId mQuery = proc () -> do
   restrict -< c^.cs_typename   .== (sqlInt4 ntId)
   restrict -< if t then nc^.nc_category .== (sqlInt4 0)
                    else nc^.nc_category .>= (sqlInt4 1)
-  let query = (fromMaybe "" mQuery)
-  restrict -< if query == ""
-    then sqlBool True
-    else (c^.cs_search) @@ (plaintoTSQuery $ T.unpack query)
+
+  let
+    query         = (fromMaybe "" mQuery)
+    iLikeQuery    = T.intercalate "" ["%", query, "%"]
+    abstractLHS h = fromNullable (sqlStrictText "")
+                  $ toNullable h .->> (sqlStrictText "abstract")
+
+  restrict -<
+    if query == "" then sqlBool True
+      else  ((c^.cs_name) `ilike` (sqlStrictText iLikeQuery))
+        .|| ((abstractLHS (c^.cs_hyperdata)) `ilike` (sqlStrictText iLikeQuery))
+
   returnA -< (c, nc)
+
 
 ------------------------------------------------------------------------
 filterWith :: (SqlOrd date, SqlOrd title, SqlOrd category, SqlOrd score, hyperdata ~ Column SqlJsonb) =>
