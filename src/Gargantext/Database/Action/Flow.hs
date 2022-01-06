@@ -330,7 +330,7 @@ saveDocNgramsWith lId mapNgramsDocs' = do
   -- insertDocNgrams
   _return <- insertContextNodeNgrams2
            $ catMaybes [ ContextNodeNgrams2 <$> Just nId
-                                            <*> getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms'')
+                                            <*> (getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms''))
                                             <*> Just (fromIntegral w :: Double)
                        | (terms'', mapNgramsTypes)      <- HashMap.toList mapNgramsDocs
                        , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
@@ -479,27 +479,24 @@ instance HasText a => HasText (Node a)
 -- | TODO putelsewhere
 -- | Upgrade function
 -- Suppose all documents are English (this is the case actually)
-indexAllDocumentsWithPosTag :: FlowCmdM env err m => m ()
+indexAllDocumentsWithPosTag :: FlowCmdM env err m
+                            => m ()
 indexAllDocumentsWithPosTag = do
   rootId    <- getRootId (UserName userMaster)
   corpusIds <- findNodesId rootId [NodeCorpus]
   docs      <- List.concat <$> mapM getDocumentsWithParentId corpusIds
-
   _ <- mapM extractInsert (splitEvery 1000 docs)
-
   pure ()
 
-extractInsert :: FlowCmdM env err m => [Node HyperdataDocument] -> m ()
+extractInsert :: FlowCmdM env err m
+              => [Node HyperdataDocument] -> m ()
 extractInsert docs = do
   let documentsWithId = map (\doc -> Indexed (doc ^. node_id) doc) docs
-
   mapNgramsDocs' <- mapNodeIdNgrams
                 <$> documentIdWithNgrams
                     (extractNgramsT $ withLang (Multi EN) documentsWithId)
                     documentsWithId
-
   _ <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
-
   pure ()
 
 

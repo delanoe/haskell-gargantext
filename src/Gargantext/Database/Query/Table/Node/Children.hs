@@ -116,7 +116,6 @@ getChildrenContext pId _ maybeNodeType maybeOffset maybeLimit = do
   pure $ TableResult { tr_docs = map context2node docs, tr_count = docCount }
 
 
-
 selectChildren' :: HasDBid NodeType
                => ParentId
                -> Maybe NodeType

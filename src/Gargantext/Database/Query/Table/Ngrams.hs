@@ -22,39 +22,44 @@ module Gargantext.Database.Query.Table.Ngrams
     where
 
 import Control.Lens ((^.))
-import Data.HashMap.Strict (HashMap)
 import Data.ByteString.Internal (ByteString)
+import Data.HashMap.Strict (HashMap)
 import Data.Text (Text)
-import qualified Database.PostgreSQL.Simple as PGS
-import qualified Data.List                  as List
 import qualified Data.HashMap.Strict        as HashMap
+import qualified Data.List                  as List
+import qualified Database.PostgreSQL.Simple as PGS
 
 import Gargantext.Core.Types
-import Gargantext.Database.Prelude (runOpaQuery, Cmd)
-import Gargantext.Database.Prelude (runPGSQuery, formatPGSQuery)
-import Gargantext.Database.Query.Table.ContextNodeNgrams
+import Gargantext.Database.Prelude (runOpaQuery, Cmd, formatPGSQuery, runPGSQuery)
+import Gargantext.Database.Query.Join (leftJoin3)
+import Gargantext.Database.Query.Table.ContextNodeNgrams2
 import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Schema.NodeNgrams
+import Gargantext.Database.Query.Table.NodeNgrams (queryNodeNgramsTable)
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Types
 import Gargantext.Prelude
 
-queryNgramsTable :: Query NgramsRead
+queryNgramsTable :: Select NgramsRead
 queryNgramsTable = selectTable ngramsTable
 
 selectNgramsByDoc :: [ListId] -> DocId -> NgramsType -> Cmd err [Text]
 selectNgramsByDoc lIds dId nt = runOpaQuery (query lIds dId nt)
   where
 
-    join :: Query (NgramsRead, ContextNodeNgramsReadNull)
-    join = leftJoin queryNgramsTable queryContextNodeNgramsTable on1
+    join :: Select (NgramsRead, NodeNgramsRead, ContextNodeNgrams2Read)
+    join = leftJoin3 queryNgramsTable queryNodeNgramsTable queryContextNodeNgrams2Table on1 -- on2
       where
-        on1 (ng,cnng) = ng^.ngrams_id .== cnng^.cnng_ngrams_id
+        on1 :: (NgramsRead, NodeNgramsRead, ContextNodeNgrams2Read) -> Column SqlBool
+        on1 (ng, nng, cnng) =  (.&&)
+                                 (ng^.ngrams_id .== nng^.nng_ngrams_id)
+                                 (nng^.nng_id   .== cnng^.cnng2_nodengrams_id)
 
-    query cIds' dId' nt' = proc () -> do
-      (ng,cnng) <- join -< ()
-      restrict -< foldl (\b cId -> ((toNullable $ pgNodeId cId) .== cnng^.cnng_node_id) .|| b) (sqlBool True) cIds'
-      restrict -< (toNullable $ pgNodeId dId')    .== cnng^.cnng_context_id
-      restrict -< (toNullable $ pgNgramsType nt') .== cnng^.cnng_ngramsType
+    query lIds' dId' nt' = proc () -> do
+      (ng,nng,cnng) <- join -< ()
+      restrict -< foldl (\b lId -> ((pgNodeId lId) .== nng^.nng_node_id) .|| b) (sqlBool True) lIds'
+      restrict -< (pgNodeId dId')    .== cnng^.cnng2_context_id
+      restrict -< (pgNgramsType nt') .== nng^.nng_ngrams_type
       returnA  -< ng^.ngrams_terms
 
 

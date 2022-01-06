@@ -18,6 +18,7 @@ Portability : POSIX
 module Gargantext.Database.Query.Table.ContextNodeNgrams2
   ( module Gargantext.Database.Schema.ContextNodeNgrams2
   , insertContextNodeNgrams2
+  , queryContextNodeNgrams2Table
   )
   where
 
@@ -28,15 +29,15 @@ import Gargantext.Database.Prelude (Cmd, mkCmd)
 import Prelude
 
 
-_queryContextNodeNgrams2Table :: Query ContextNodeNgrams2Read
-_queryContextNodeNgrams2Table = selectTable contextNodeNgrams2Table
+queryContextNodeNgrams2Table :: Query ContextNodeNgrams2Read
+queryContextNodeNgrams2Table = selectTable contextNodeNgrams2Table
 
 -- | Insert utils
 insertContextNodeNgrams2 :: [ContextNodeNgrams2] -> Cmd err Int
 insertContextNodeNgrams2 = insertContextNodeNgrams2W
                      . map (\(ContextNodeNgrams2 n1 n2 w) ->
                               ContextNodeNgrams2 (pgNodeId n1)
-                                                 (sqlInt4   n2)
+                                                 (sqlInt4  n2)
                                                  (sqlDouble w)
                            )
 

@@ -23,6 +23,7 @@ module Gargantext.Database.Schema.NodeNgrams where
 import Data.Text (Text)
 import Gargantext.Core.Types
 import Gargantext.Database.Schema.Ngrams (NgramsType)
+import Gargantext.Database.Schema.Prelude
 import Gargantext.Prelude
 
 
@@ -46,7 +47,7 @@ data NodeNgramsPoly id
                                 , _nng_ngrams_weight :: !weight
                               } deriving (Show, Eq, Ord)
 
-{-
+
 type NodeNgramsWrite = NodeNgramsPoly (Maybe (Column (SqlInt4)))
                                       (Column (SqlInt4))
                                       (Maybe  (Column (SqlInt4)))
@@ -57,7 +58,7 @@ type NodeNgramsWrite = NodeNgramsPoly (Maybe (Column (SqlInt4)))
                                       (Maybe  (Column (SqlInt4)))
                                       (Maybe  (Column (SqlFloat8)))
 
-type NodeNodeRead    = NodeNgramsPoly (Column SqlInt4)
+type NodeNgramsRead    = NodeNgramsPoly (Column SqlInt4)
                                       (Column SqlInt4)
                                       (Column SqlInt4)
                                       (Column SqlInt4)
@@ -66,6 +67,7 @@ type NodeNodeRead    = NodeNgramsPoly (Column SqlInt4)
                                       (Column SqlInt4)
                                       (Column SqlInt4)
                                       (Column SqlFloat8)
+
 
 type NodeNgramsReadNull = NodeNgramsPoly (Column (Nullable SqlInt4))
                                          (Column (Nullable SqlInt4))
@@ -77,9 +79,7 @@ type NodeNgramsReadNull = NodeNgramsPoly (Column (Nullable SqlInt4))
                                          (Column (Nullable SqlInt4))
                                          (Column (Nullable SqlInt4))
                                          (Column (Nullable SqlFloat8))
--}
 type NodeNgramsId = Int
-type NgramsId     = Int
 type NgramsField  = Int
 type NgramsTag    = Int
 type NgramsClass  = Int
@@ -93,3 +93,21 @@ type NodeNgramsW =
                   NgramsType (Maybe NgramsField) (Maybe NgramsTag) (Maybe NgramsClass)
                   Double
 
+$(makeAdaptorAndInstance "pNodeNgrams" ''NodeNgramsPoly)
+makeLenses ''NodeNgramsPoly
+
+nodeNgramsTable :: Table NodeNgramsWrite NodeNgramsRead
+nodeNgramsTable  =
+  Table "node_ngrams"
+         ( pNodeNgrams
+           NodeNgrams { _nng_id            = optionalTableField "id"
+                      , _nng_node_id       = requiredTableField "node_id"
+                      , _nng_node_subtype  = optionalTableField "node_subtype"
+                      , _nng_ngrams_id     = requiredTableField "ngrams_id"
+                      , _nng_ngrams_type   = optionalTableField "ngrams_type"
+                      , _nng_ngrams_field  = optionalTableField "ngrams_field"
+                      , _nng_ngrams_tag    = optionalTableField "ngrams_tag"
+                      , _nng_ngrams_class  = optionalTableField "ngrams_class"
+                      , _nng_ngrams_weight = optionalTableField "weight"
+                      }
+                  )

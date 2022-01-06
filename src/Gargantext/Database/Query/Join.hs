@@ -58,28 +58,10 @@ leftJoin2 = leftJoin
 
 ------------------------------------------------------------------------
 -- | LeftJoin3 in two ways to write it
-_leftJoin3 :: Select columnsA -> Select columnsB -> Select columnsC
+leftJoin3 :: Select columnsA -> Select columnsB -> Select columnsC
       -> ((columnsA, columnsB, columnsC) -> Column SqlBool) 
       -> Select (columnsA, columnsB, columnsC)
-_leftJoin3 q1 q2 q3 cond = ((,,) <$> q1 <*> q2 <*> q3) >>> keepWhen cond
-
-
-leftJoin3 :: ( Default Unpackspec b2 b2
-             , Default Unpackspec b3 b3
-             , Default Unpackspec fieldsL fieldsL
-             , Default Unpackspec fieldsR fieldsR
-             , Default NullMaker b3 b4
-             , Default NullMaker b2 b5
-             , Default NullMaker fieldsR b2) =>
-             Select fieldsR
-             -> Select b3
-             -> Select fieldsL
-             -> ((b3, fieldsR) -> Column SqlBool)
-             -> ((fieldsL, (b3, b2)) -> Column SqlBool)
-             -> Select (fieldsL, (b4, b5))
-leftJoin3 q1 q2     q3
-         cond12 cond23 =
-  leftJoin q3 (leftJoin q2 q1 cond12) cond23
+leftJoin3 q1 q2 q3 cond = ((,,) <$> q1 <*> q2 <*> q3) >>> keepWhen cond
 
 
 leftJoin4 :: (Default Unpackspec b2 b2,

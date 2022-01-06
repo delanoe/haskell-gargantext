@@ -24,10 +24,8 @@ import Gargantext.Database.Schema.Prelude
 import Prelude
 
 
-type ContextNodeNgrams2 =
-  ContextNodeNgrams2Poly ContextId NodeNgramsId Weight
+type ContextNodeNgrams2 = ContextNodeNgrams2Poly ContextId NodeNgramsId Double
 
-type Weight = Double
 
 data ContextNodeNgrams2Poly context_id nodengrams_id w
    = ContextNodeNgrams2 { _cnng2_context_id    :: !context_id
