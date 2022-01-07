@@ -101,40 +101,22 @@ deleteNodeContext n c = mkCmd $ \conn ->
 
 ------------------------------------------------------------------------
 -- | Favorite management
-_nodeContextCategory :: CorpusId -> DocId -> Int -> Cmd err [Int]
-_nodeContextCategory cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery favQuery (c,cId,dId)
-  where
-    favQuery :: PGS.Query
-    favQuery = [sql|UPDATE nodes_contexts SET category = ?
-               WHERE node_id = ? AND context_id = ?
-               RETURNING context_id;
-               |]
-
 nodeContextsCategory :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
 nodeContextsCategory inputData = map (\(PGS.Only a) -> a)
-                            <$> runPGSQuery catQuery (PGS.Only $ Values fields inputData)
+                            <$> runPGSQuery catSelect (PGS.Only $ Values fields inputData)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
-    catQuery :: PGS.Query
-    catQuery = [sql| UPDATE nodes_contexts as nn0
+    catSelect :: PGS.Query
+    catSelect = [sql| UPDATE nodes_contexts as nn0
                       SET category = nn1.category
                        FROM (?) as nn1(node_id,context_id,category)
-                       WHERE nn0.node1_id = nn1.node_id
-                       AND   nn0.node2_id = nn1.context_id
-                       RETURNING nn1.context_id
+                       WHERE nn0.node_id    = nn1.node_id
+                       AND   nn0.context_id = nn1.context_id
+                       RETURNING nn1.node_id
                   |]
 
 ------------------------------------------------------------------------
 -- | Score management
-_nodeContextScore :: CorpusId -> DocId -> Int -> Cmd err [Int]
-_nodeContextScore cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery scoreQuery (c,cId,dId)
-  where
-    scoreQuery :: PGS.Query
-    scoreQuery = [sql|UPDATE nodes_contexts SET score = ?
-                  WHERE node_id = ? AND context_id = ?
-                  RETURNING context_id;
-                  |]
-
 nodeContextsScore :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
 nodeContextsScore inputData = map (\(PGS.Only a) -> a)
                             <$> runPGSQuery catScore (PGS.Only $ Values fields inputData)
@@ -144,10 +126,11 @@ nodeContextsScore inputData = map (\(PGS.Only a) -> a)
     catScore = [sql| UPDATE nodes_contexts as nn0
                       SET score = nn1.score
                        FROM (?) as nn1(node_id, context_id, score)
-                       WHERE nn0.node_id   = nn1.node_id
+                       WHERE nn0.node_id    = nn1.node_id
                        AND   nn0.context_id = nn1.context_id
                        RETURNING nn1.context_id
                   |]
+
 
 ------------------------------------------------------------------------
 selectCountDocs :: HasDBid NodeType => CorpusId -> Cmd err Int

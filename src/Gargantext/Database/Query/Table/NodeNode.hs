@@ -24,8 +24,6 @@ module Gargantext.Database.Query.Table.NodeNode
   , selectDocsDates
   , selectDocNodes
   , selectDocs
-  , nodeNodesCategory
-  , nodeNodesScore
   , getNodeNode
   , insertNodeNode
   , deleteNodeNode
@@ -38,9 +36,6 @@ import Control.Arrow (returnA)
 import Control.Lens (view, (^.))
 import Data.Maybe (catMaybes)
 import Data.Text (Text, splitOn)
-import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
 import qualified Opaleye as O
 import Opaleye
 
@@ -123,56 +118,6 @@ deleteNodeNode n1 n2 = mkCmd $ \conn ->
                                       )
                                       rCount
                               )
-
-------------------------------------------------------------------------
--- | Favorite management
-_nodeNodeCategory :: CorpusId -> DocId -> Int -> Cmd err [Int]
-_nodeNodeCategory cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery favSelect (c,cId,dId)
-  where
-    favSelect :: PGS.Query
-    favSelect = [sql|UPDATE nodes_nodes SET category = ?
-               WHERE node1_id = ? AND node2_id = ?
-               RETURNING node2_id;
-               |]
-
-nodeNodesCategory :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
-nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
-                            <$> runPGSQuery catSelect (PGS.Only $ Values fields inputData)
-  where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
-    catSelect :: PGS.Query
-    catSelect = [sql| UPDATE nodes_nodes as nn0
-                      SET category = nn1.category
-                       FROM (?) as nn1(node1_id,node2_id,category)
-                       WHERE nn0.node1_id = nn1.node1_id
-                       AND   nn0.node2_id = nn1.node2_id
-                       RETURNING nn1.node2_id
-                  |]
-
-------------------------------------------------------------------------
--- | Score management
-_nodeNodeScore :: CorpusId -> DocId -> Int -> Cmd err [Int]
-_nodeNodeScore cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery scoreSelect (c,cId,dId)
-  where
-    scoreSelect :: PGS.Query
-    scoreSelect = [sql|UPDATE nodes_nodes SET score = ?
-                  WHERE node1_id = ? AND node2_id = ?
-                  RETURNING node2_id;
-                  |]
-
-nodeNodesScore :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
-nodeNodesScore inputData = map (\(PGS.Only a) -> a)
-                            <$> runPGSQuery catScore (PGS.Only $ Values fields inputData)
-  where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
-    catScore :: PGS.Query
-    catScore = [sql| UPDATE nodes_nodes as nn0
-                      SET score = nn1.score
-                       FROM (?) as nn1(node1_id, node2_id, score)
-                       WHERE nn0.node1_id = nn1.node1_id
-                       AND   nn0.node2_id = nn1.node2_id
-                       RETURNING nn1.node2_id
-                  |]
 
 ------------------------------------------------------------------------
 selectCountDocs :: HasDBid NodeType => CorpusId -> Cmd err Int

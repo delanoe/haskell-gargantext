@@ -64,6 +64,7 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.Node.Update (Update(..), update)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.NodeNode
+import Gargantext.Database.Query.Table.NodeContext (nodeContextsCategory, nodeContextsScore)
 import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Prelude
 import Gargantext.Core.Viz.Phylo.Legacy.LegacyAPI (PhyloAPI, phyloAPI)
@@ -271,7 +272,7 @@ catApi :: CorpusId -> GargServer CatApi
 catApi = putCat
   where
     putCat :: CorpusId -> NodesToCategory -> Cmd err [Int]
-    putCat cId cs' = nodeNodesCategory $ map (\n -> (cId, n, ntc_category cs')) (ntc_nodesId cs')
+    putCat cId cs' = nodeContextsCategory $ map (\n -> (cId, n, ntc_category cs')) (ntc_nodesId cs')
 
 ------------------------------------------------------------------------
 type ScoreApi =  Summary " To Score NodeNodes"
@@ -292,7 +293,7 @@ scoreApi :: CorpusId -> GargServer ScoreApi
 scoreApi = putScore
   where
     putScore :: CorpusId -> NodesToScore -> Cmd err [Int]
-    putScore cId cs' = nodeNodesScore $ map (\n -> (cId, n, nts_score cs')) (nts_nodesId cs')
+    putScore cId cs' = nodeContextsScore $ map (\n -> (cId, n, nts_score cs')) (nts_nodesId cs')
 
 ------------------------------------------------------------------------
 -- TODO adapt FacetDoc -> ListDoc (and add type of document as column)

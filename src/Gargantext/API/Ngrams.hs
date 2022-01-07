@@ -343,10 +343,10 @@ tableNgramsPull listId ngramsType p_version = do
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
 -- TODO-ACCESS check
-tableNgramsPut :: ( HasNodeStory env err m
-                  , HasInvalidError err
-                  , HasSettings env
-                  , HasMail env
+tableNgramsPut :: ( HasNodeStory    env err m
+                  , HasInvalidError     err
+                  , HasSettings     env
+                  , HasMail         env
                   )
                  => TabType
                  -> ListId

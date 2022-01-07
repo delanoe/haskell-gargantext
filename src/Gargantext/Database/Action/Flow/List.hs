@@ -100,6 +100,7 @@ flowList_DbRepo lId ngs = do
   _r <- insert_Node_NodeNgrams_NodeNgrams
      $ map (\(a,b) -> Node_NodeNgrams_NodeNgrams lId a b Nothing) toInsert
 
+  printDebug "flowList_Tficf':ngs" ngs
   listInsert lId ngs
 
   --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs
