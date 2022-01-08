@@ -21,7 +21,7 @@ commentary with @some markup@.
 module Gargantext.Database.Query.Table.NodeNode
   ( module Gargantext.Database.Schema.NodeNode
   , queryNodeNodeTable
-  , selectDocsDates
+  , selectNodesDates
   , selectDocNodes
   , selectDocs
   , getNodeNode
@@ -131,11 +131,9 @@ selectCountDocs cId = runCountOpaQuery (queryCountDocs cId)
       returnA -< n
 
 
-
-
 -- | TODO use UTCTime fast
-selectDocsDates :: HasDBid NodeType => CorpusId -> Cmd err [Text]
-selectDocsDates cId =  map (head' "selectDocsDates" . splitOn "-")
+selectNodesDates :: HasDBid NodeType => CorpusId -> Cmd err [Text]
+selectNodesDates cId =  map (head' "selectDocsDates" . splitOn "-")
                    <$> catMaybes
                    <$> map (view hd_publication_date)
                    <$> selectDocs cId
@@ -173,7 +171,6 @@ joinOn1 = leftJoin queryNodeTable queryNodeNodeTable cond
   where
     cond :: (NodeRead, NodeNodeRead) -> Column SqlBool
     cond (n, nn) = nn^.nn_node1_id .== n^.node_id
-
 
 ------------------------------------------------------------------------
 selectPublicNodes :: HasDBid NodeType => (Hyperdata a, DefaultFromField SqlJsonb a)
