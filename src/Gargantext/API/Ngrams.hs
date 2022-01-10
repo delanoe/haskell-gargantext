@@ -103,7 +103,7 @@ import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid, HasInvalidError)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.Database.Action.Flow.Types
-import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
+import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)

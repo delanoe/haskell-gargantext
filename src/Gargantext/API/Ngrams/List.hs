@@ -36,7 +36,7 @@ import Gargantext.Core.Text.Terms.WithList (buildPatterns, termsInText)
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Database.Action.Flow (saveDocNgramsWith)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
-import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
+import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Types.Hyperdata.Document
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.NodeNode (selectDocNodes)

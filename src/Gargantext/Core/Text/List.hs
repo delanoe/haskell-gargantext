@@ -34,7 +34,7 @@ import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.Metrics (scored', Scored(..), scored_speExc, scored_genInc, normalizeGlobal, normalizeLocal, scored_terms)
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsUser, getContextsByNgramsOnlyUser)
 import Gargantext.Database.Action.Metrics.TFICF (getTficf_withSample)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Prelude (CmdM)
@@ -98,7 +98,7 @@ buildNgramsOthersList :: ( HasNodeError err
                       -> (NgramsType, MapListSize)
                       -> m (Map NgramsType [NgramsElement])
 buildNgramsOthersList user uCid mfslw _groupParams (nt, MapListSize mapListSize) = do
-  allTerms  :: HashMap NgramsTerm (Set NodeId) <- getNodesByNgramsUser uCid nt
+  allTerms  :: HashMap NgramsTerm (Set NodeId) <- getContextsByNgramsUser uCid nt
 
   -- PrivateFirst for first developments since Public NodeMode is not implemented yet
   socialLists :: FlowCont NgramsTerm FlowListScores
@@ -212,7 +212,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
   userListId    <- defaultList uCid
   masterListId  <- defaultList mCid
 
-  mapTextDocIds <- getNodesByNgramsOnlyUser uCid
+  mapTextDocIds <- getContextsByNgramsOnlyUser uCid
                                             [userListId, masterListId]
                                             nt
                                             selectedTerms

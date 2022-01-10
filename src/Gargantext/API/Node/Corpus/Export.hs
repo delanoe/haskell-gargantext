@@ -32,7 +32,7 @@ import Gargantext.API.Prelude (GargNoServer)
 import Gargantext.Prelude.Crypto.Hash (hash)
 import Gargantext.Core.Types
 import Gargantext.Core.NodeStory
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNgramsByNodeOnlyUser)
+import Gargantext.Database.Action.Metrics.NgramsByContext (getNgramsByContextOnlyUser)
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Database.Prelude (Cmd)
@@ -94,7 +94,7 @@ getNodeNgrams cId lId nt repo = do
   lIds <- selectNodesWithUsername NodeList userMaster
   let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
   -- TODO HashMap
-  r <- getNgramsByNodeOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
+  r <- getNgramsByContextOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
   pure r
 
 -- TODO

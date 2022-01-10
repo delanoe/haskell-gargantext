@@ -22,7 +22,7 @@ import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types (ListType(..), Limit, NodeType(..))
 import Gargantext.Core.NodeStory
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser{-, getTficfWith-})
+import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOnlyUser{-, getTficfWith-})
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Node (ListId, CorpusId)
 import Gargantext.Database.Query.Table.Node (defaultList)
@@ -57,7 +57,7 @@ getNgramsCooc cId maybeListId tabType maybeLimit = do
 
   myCooc <- HM.filter (>1) <$> getCoocByNgrams (Diagonal True)
                            <$> groupNodesByNgrams ngs
-                           <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) (ngramsTypeFromTabType tabType)
+                           <$> getContextsByNgramsOnlyUser cId (lIds <> [lId]) (ngramsTypeFromTabType tabType)
                                                             (take' maybeLimit $ HM.keys ngs)
   pure $ (ngs', ngs, myCooc)
 

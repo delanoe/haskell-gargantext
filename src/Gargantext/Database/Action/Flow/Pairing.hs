@@ -28,7 +28,7 @@ import Gargantext.Core
 import Gargantext.Core.Types (TableResult(..))
 import Gargantext.Core.Types.Main
 import Gargantext.Database
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOnlyUser)
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
 import Gargantext.Database.Admin.Types.Node -- (AnnuaireId, CorpusId, ListId, DocId, ContactId, NodeId)
@@ -190,4 +190,4 @@ getNgramsDocId cId lId nt = do
   let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
 
   groupNodesByNgrams ngs
-    <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
+    <$> getContextsByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)

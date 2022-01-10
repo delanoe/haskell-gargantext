@@ -31,7 +31,7 @@ import Gargantext.Core.Types.Main
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.GEXF ()
 import Gargantext.Core.Viz.Graph.Tools -- (cooc2graph)
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOnlyUser)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Admin.Config
@@ -179,7 +179,7 @@ computeGraph cId d nt repo = do
          -- <$> getCoocByNgrams (if d == Conditional then Diagonal True else Diagonal False)
          <$> getCoocByNgrams (Diagonal True)
          <$> groupNodesByNgrams ngs
-         <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
+         <$> getContextsByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
 
   -- printDebug "myCooc" myCooc
   -- saveAsFileDebug "debug/my-cooc" myCooc
