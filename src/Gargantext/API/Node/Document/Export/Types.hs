@@ -16,11 +16,13 @@ module Gargantext.API.Node.Document.Export.Types where
 import Data.Aeson.TH (deriveJSON)
 import Data.Csv (DefaultOrdered(..), ToNamedRecord(..), (.=), header, namedRecord)
 import Data.Swagger
+--import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Database.Schema.Node (NodePoly(..))
-import Gargantext.Utils.Servant (CSV)
+--import Gargantext.Utils.Servant (CSV)
 import Protolude
 --import Protolude.Partial (read)
 import Servant
@@ -41,12 +43,23 @@ data Document =
 --instance Read Document where
 --  read "" = panic "not implemented"
 instance DefaultOrdered Document where
-  headerOrder _ = header ["id", "name"]
+  headerOrder _ = header ["Publication Day"
+                         , "Publication Month"
+                         , "Publication Year"
+                         , "Authors"
+                         , "Title"
+                         , "Source"
+                         , "Abstract"]
 instance ToNamedRecord Document where
   toNamedRecord (Document { _d_document = Node { .. }}) =
     namedRecord
-    [ "id" .= _node_id
-    , "name" .= _node_name ]
+    [ "Publication Day" .= _hd_publication_day _node_hyperdata
+    , "Publication Month" .= _hd_publication_month _node_hyperdata
+    , "Publication Year" .= _hd_publication_year _node_hyperdata
+    , "Authors" .= _hd_authors _node_hyperdata
+    , "Title" .= _hd_title _node_hyperdata
+    , "Source" .= (TE.encodeUtf8 <$> _hd_source _node_hyperdata)
+    , "Abstract" .= (TE.encodeUtf8 <$> _hd_abstract _node_hyperdata) ]
 
 data Ngrams =
   Ngrams { _ng_ngrams :: [Text]
@@ -79,7 +92,7 @@ type API = Summary "Document Export"
             :> ( "json"
                :> Get '[JSON] DocumentExport
                :<|> "csv"
-               :> Get '[CSV] [Document])
+               :> Get '[PlainText] Text) -- [Document])
 
 $(deriveJSON (unPrefix "_de_") ''DocumentExport)
 $(deriveJSON (unPrefix "_d_") ''Document)

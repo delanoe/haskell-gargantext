@@ -360,7 +360,8 @@ waitDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> ClientM (J
 
 -- document export API
 getDocumentExportJSON :: Token -> DocId -> ClientM DocumentExport.DocumentExport
-getDocumentExportCSV :: Token -> DocId -> ClientM [DocumentExport.Document]
+getDocumentExportCSV :: Token -> DocId -> ClientM Text
+--getDocumentExportCSV :: Token -> DocId -> ClientM [DocumentExport.Document]
 
 -- count api
 postCountQuery :: Token -> Query -> ClientM Counts

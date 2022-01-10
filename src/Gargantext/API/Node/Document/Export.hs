@@ -11,6 +11,8 @@ Portability : POSIX
 module Gargantext.API.Node.Document.Export
   where
 
+import qualified Data.ByteString.Lazy.Char8 as BSC
+import Data.Csv (encodeDefaultOrderedByName)
 import qualified Data.Text as T
 import Data.Version (showVersion)
 import Gargantext.API.Node.Document.Export.Types
@@ -66,9 +68,10 @@ getDocumentsJSON uId pId = do
 
 getDocumentsCSV :: UserId
                 -> DocId
-                -> GargNoServer [Document]
+                -> GargNoServer T.Text -- [Document]
 getDocumentsCSV uId pId = do
   DocumentExport { _de_documents } <- getDocumentsJSON uId pId
 
-  pure $ _de_documents
+  pure $ T.pack $ BSC.unpack $ encodeDefaultOrderedByName _de_documents
+
 
