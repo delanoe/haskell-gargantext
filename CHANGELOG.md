@@ -1,3 +1,6 @@
+## Version 0.0.4.9.9.3
+* [BACK] Graph update with force option
+
 ## Version 0.0.4.9.9.2
 * [BACK] Opaleye Upgrade
 
