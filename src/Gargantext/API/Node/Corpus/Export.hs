@@ -19,6 +19,7 @@ module Gargantext.API.Node.Corpus.Export
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
+import Data.Text (Text)
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -39,9 +40,9 @@ import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.Select (selectNodesWithUsername)
-import Gargantext.Database.Query.Table.NodeNode (selectDocNodes)
+import Gargantext.Database.Query.Table.NodeContext (selectDocNodes)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
-import Gargantext.Database.Schema.Node (_node_id, _node_hyperdata)
+import Gargantext.Database.Schema.Context (_context_id, _context_hyperdata)
 import Gargantext.Prelude
 
 --------------------------------------------------
@@ -62,31 +63,32 @@ getCorpus cId lId nt' = do
     Just l  -> pure l
   
   ns   <- Map.fromList
-       <$> map (\n -> (_node_id n, n))
+       <$> map (\n -> (_context_id n, n))
        <$> selectDocNodes cId
 
   repo <- getRepo' [listId]
-  ngs  <- getNodeNgrams cId listId nt repo
+  ngs  <- getContextNgrams cId listId nt repo
   let  -- uniqId is hash computed already for each document imported in database
     r = Map.intersectionWith
-        (\a b -> DocumentExport.Document { _d_document = a
+        (\a b -> DocumentExport.Document { _d_document = context2node a
                                          , _d_ngrams = DocumentExport.Ngrams (Set.toList b) (hash b)
                                          , _d_hash = d_hash a b }
         ) ns (Map.map (Set.map unNgramsTerm) ngs)
           where
-            d_hash  a b = hash [ fromMaybe "" (_hd_uniqId $ _node_hyperdata a)
+            d_hash :: Context HyperdataDocument -> Set Text -> Text
+            d_hash  a b = hash [ fromMaybe "" (_hd_uniqId $ _context_hyperdata a)
                                , hash b
                                ]
   pure $ Corpus { _c_corpus = Map.elems r
                 , _c_hash = hash $ List.map DocumentExport._d_hash $ Map.elems r }
 
-getNodeNgrams :: HasNodeError err
+getContextNgrams :: HasNodeError err
         => CorpusId
         -> ListId
         -> NgramsType
         -> NodeListStory
-        -> Cmd err (Map NodeId (Set NgramsTerm))
-getNodeNgrams cId lId nt repo = do
+        -> Cmd err (Map ContextId (Set NgramsTerm))
+getContextNgrams cId lId nt repo = do
 --  lId <- case lId' of
 --    Nothing -> defaultList cId
 --    Just  l -> pure l

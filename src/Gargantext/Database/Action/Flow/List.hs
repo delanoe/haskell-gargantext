@@ -21,7 +21,6 @@ import Control.Concurrent
 import Control.Lens ((^.), (+~), (%~), at, (.~), _Just)
 import Control.Monad.Reader
 import Data.Map (Map, toList)
-import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (saveNodeStory)
 import Gargantext.API.Ngrams.Tools (getNodeStoryVar)
@@ -31,8 +30,8 @@ import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Core.NodeStory
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
-import Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
+import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW{-, listInsertDb, getCgramsId -})
+-- import Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.List as List
@@ -89,18 +88,21 @@ flowList_DbRepo :: FlowCmdM env err m
          -> m ListId
 flowList_DbRepo lId ngs = do
   -- printDebug "listId flowList" lId
+{-
   mapCgramsId <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
+
   let toInsert = catMaybes [ (,) <$> (getCgramsId mapCgramsId ntype <$> (unNgramsTerm <$> parent))
                                  <*>  getCgramsId mapCgramsId ntype ngram
                            | (ntype, ngs') <- Map.toList ngs
                            , NgramsElement { _ne_ngrams = NgramsTerm ngram
                                            , _ne_parent = parent } <- ngs'
                            ]
+-}
   -- Inserting groups of ngrams
-  _r <- insert_Node_NodeNgrams_NodeNgrams
-     $ map (\(a,b) -> Node_NodeNgrams_NodeNgrams lId a b Nothing) toInsert
+  -- _r <- insert_Node_NodeNgrams_NodeNgrams
+  --   $ map (\(a,b) -> Node_NodeNgrams_NodeNgrams lId a b Nothing) toInsert
 
-  printDebug "flowList_Tficf':ngs" ngs
+  -- printDebug "flowList_Tficf':ngs" ngs
   listInsert lId ngs
 
   --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs

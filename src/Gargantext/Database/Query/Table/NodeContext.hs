@@ -141,7 +141,7 @@ selectCountDocs cId = runCountOpaQuery (queryCountDocs cId)
       restrict -< nc^.nc_node_id   .== (toNullable $ pgNodeId cId')
       restrict -< nc^.nc_category  .>= (toNullable $ sqlInt4 1)
       restrict -< c^.context_typename .== (sqlInt4 $ toDBid NodeDocument)
-      returnA -< c
+      returnA  -< c
 
 
 -- | TODO use UTCTime fast
@@ -177,7 +177,7 @@ joinInCorpus :: O.Select (ContextRead, NodeContextReadNull)
 joinInCorpus = leftJoin queryContextTable queryNodeContextTable cond
   where
     cond :: (ContextRead, NodeContextRead) -> Column SqlBool
-    cond (c, nc) = c^.context_id .== nc^.nc_node_id
+    cond (c, nc) = c^.context_id .== nc^.nc_context_id
 
 
 joinOn1 :: O.Select (NodeRead, NodeContextReadNull)

@@ -21,7 +21,7 @@ import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
-import Gargantext.Core.Types.Main (ListType(CandidateTerm))
+-- import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Database.Prelude (Cmd, execPGSQuery)
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as DPS
@@ -157,6 +157,7 @@ triggerUpdateDel lId = execPGSQuery query (lId, nodeTypeId NodeList)
   |]
 
 -- TODO add groups
+{-
 triggerCoocInsert :: MasterListId -> Cmd err Int64
 triggerCoocInsert lid = execPGSQuery query ( lid
                                            -- , nodeTypeId NodeCorpus
@@ -213,4 +214,4 @@ triggerCoocInsert lid = execPGSQuery query ( lid
           FOR EACH STATEMENT
           EXECUTE PROCEDURE nodes_nodes_set_cooc();
    |]
-
+-}

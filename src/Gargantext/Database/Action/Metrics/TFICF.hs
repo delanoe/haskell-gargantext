@@ -46,6 +46,8 @@ getTficf cId mId nt = do
   countLocal  <- selectCountDocs cId
   countGlobal <- selectCountDocs mId
 
+  printDebug "getTficf" (mapTextDoubleLocal, mapTextDoubleGlobal, countLocal, countGlobal)
+
   pure $ HM.mapWithKey (\t n ->
       tficf (TficfInfra (Count n                                               )
                         (Total $ fromIntegral countLocal))
@@ -71,6 +73,7 @@ getTficf_withSample cId mId nt = do
                      <$> getOccByNgramsOnlyFast_withSample mId countGlobal nt
                             (HM.keys mapTextDoubleLocal)
 
+  printDebug "getTficf_withSample" (mapTextDoubleLocal, mapTextDoubleGlobal, countLocal, countGlobal)
   pure $ HM.mapWithKey (\t n ->
       tficf (TficfInfra (Count n                                               )
                         (Total $ fromIntegral countLocal))

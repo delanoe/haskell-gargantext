@@ -31,6 +31,7 @@ Next Step benchmark:
 module Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
   where
 
+{-
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Schema.Node()
@@ -84,4 +85,4 @@ instance DefaultFromField SqlInt4 (Maybe Int) where
 
 instance DefaultFromField SqlFloat8 (Maybe Double) where
     defaultFromField = fromPGSFromField
-
+-}

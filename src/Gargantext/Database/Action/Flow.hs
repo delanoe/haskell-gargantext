@@ -268,7 +268,7 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
   let gp = GroupWithPosTag l CoreNLP HashMap.empty 
   ngs         <- buildNgramsLists user userCorpusId masterCorpusId mfslw gp
 
-  printDebug "flowCorpusUser:ngs" ngs
+  -- printDebug "flowCorpusUser:ngs" ngs
 
   _userListId <- flowList_DbRepo listId ngs
   _mastListId <- getOrMkList masterCorpusId masterUserId
@@ -329,8 +329,7 @@ saveDocNgramsWith lId mapNgramsDocs' = do
                $ map (first _ngramsTerms . second Map.keys)
                $ HashMap.toList mapNgramsDocs
 
-  printDebug "saveDocNgramsWith" mapCgramsId
-
+  -- printDebug "saveDocNgramsWith" mapCgramsId
   -- insertDocNgrams
   _return <- insertContextNodeNgrams2
            $ catMaybes [ ContextNodeNgrams2 <$> Just nId

@@ -21,21 +21,15 @@ commentary with @some markup@.
 module Gargantext.Database.Query.Table.NodeNode
   ( module Gargantext.Database.Schema.NodeNode
   , queryNodeNodeTable
-  , selectNodesDates
-  , selectDocNodes
-  , selectDocs
   , getNodeNode
   , insertNodeNode
   , deleteNodeNode
   , selectPublicNodes
-  , selectCountDocs
   )
   where
 
 import Control.Arrow (returnA)
-import Control.Lens (view, (^.))
-import Data.Maybe (catMaybes)
-import Data.Text (Text, splitOn)
+import Control.Lens ((^.))
 import qualified Opaleye as O
 import Opaleye
 
@@ -120,59 +114,6 @@ deleteNodeNode n1 n2 = mkCmd $ \conn ->
                               )
 
 ------------------------------------------------------------------------
-selectCountDocs :: HasDBid NodeType => CorpusId -> Cmd err Int
-selectCountDocs cId = runCountOpaQuery (queryCountDocs cId)
-  where
-    queryCountDocs cId' = proc () -> do
-      (n, nn) <- joinInCorpus -< ()
-      restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId')
-      restrict -< nn^.nn_category  .>= (toNullable $ sqlInt4 1)
-      restrict -< n^.node_typename .== (sqlInt4 $ toDBid NodeDocument)
-      returnA -< n
-
-
--- | TODO use UTCTime fast
-selectNodesDates :: HasDBid NodeType => CorpusId -> Cmd err [Text]
-selectNodesDates cId =  map (head' "selectDocsDates" . splitOn "-")
-                   <$> catMaybes
-                   <$> map (view hd_publication_date)
-                   <$> selectDocs cId
-
-selectDocs :: HasDBid NodeType => CorpusId -> Cmd err [HyperdataDocument]
-selectDocs cId = runOpaQuery (queryDocs cId)
-
-queryDocs :: HasDBid NodeType => CorpusId -> O.Select (Column SqlJsonb)
-queryDocs cId = proc () -> do
-  (n, nn) <- joinInCorpus -< ()
-  restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
-  restrict -< nn^.nn_category  .>= (toNullable $ sqlInt4 1)
-  restrict -< n^.node_typename .== (sqlInt4 $ toDBid NodeDocument)
-  returnA -< view (node_hyperdata) n
-
-selectDocNodes :: HasDBid NodeType =>CorpusId -> Cmd err [Node HyperdataDocument]
-selectDocNodes cId = runOpaQuery (queryDocNodes cId)
-
-queryDocNodes :: HasDBid NodeType =>CorpusId -> O.Select NodeRead
-queryDocNodes cId = proc () -> do
-  (n, nn) <- joinInCorpus -< ()
-  restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
-  restrict -< nn^.nn_category  .>= (toNullable $ sqlInt4 1)
-  restrict -< n^.node_typename .== (sqlInt4 $ toDBid NodeDocument)
-  returnA -<  n
-
-joinInCorpus :: O.Select (NodeRead, NodeNodeReadNull)
-joinInCorpus = leftJoin queryNodeTable queryNodeNodeTable cond
-  where
-    cond :: (NodeRead, NodeNodeRead) -> Column SqlBool
-    cond (n, nn) = nn^.nn_node2_id .== (view node_id n)
-
-joinOn1 :: O.Select (NodeRead, NodeNodeReadNull)
-joinOn1 = leftJoin queryNodeTable queryNodeNodeTable cond
-  where
-    cond :: (NodeRead, NodeNodeRead) -> Column SqlBool
-    cond (n, nn) = nn^.nn_node1_id .== n^.node_id
-
-------------------------------------------------------------------------
 selectPublicNodes :: HasDBid NodeType => (Hyperdata a, DefaultFromField SqlJsonb a)
                   => Cmd err [(Node a, Maybe Int)]
 selectPublicNodes = runOpaQuery (queryWithType NodeFolderPublic)
@@ -183,3 +124,8 @@ queryWithType nt = proc () -> do
   restrict -< n^.node_typename .== (sqlInt4 $ toDBid nt)
   returnA  -<  (n, nn^.nn_node2_id)
 
+joinOn1 :: O.Select (NodeRead, NodeNodeReadNull)
+joinOn1 = leftJoin queryNodeTable queryNodeNodeTable cond
+  where
+    cond :: (NodeRead, NodeNodeRead) -> Column SqlBool
+    cond (n, nn) = nn^.nn_node1_id .== n^.node_id

@@ -159,11 +159,11 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
 
 -- Filter 0 With Double
 -- Computing global speGen score
-  printDebug "[buldNgramsTermsList: Sample List] / start" nt
+  printDebug "[buildNgramsTermsList: Sample List] / start" nt
   allTerms :: HashMap NgramsTerm Double <- getTficf_withSample uCid mCid nt
-  printDebug "[buldNgramsTermsList: Sample List / end]" nt
+  printDebug "[buildNgramsTermsList: Sample List / end]" nt
 
-  printDebug "[buldNgramsTermsList: Flow Social List / start]" nt
+  printDebug "[buildNgramsTermsList: Flow Social List / start]" nt
   -- PrivateFirst for first developments since Public NodeMode is not implemented yet
   socialLists :: FlowCont NgramsTerm FlowListScores
     <- flowSocialList mfslw user nt ( FlowCont HashMap.empty
@@ -171,7 +171,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
                                                       $ List.zip (HashMap.keys   allTerms)
                                                                  (List.cycle     [mempty])
                                     )
-  printDebug "[buldNgramsTermsList: Flow Social List / end]" nt
+  printDebug "[buildNgramsTermsList: Flow Social List / end]" nt
 
   let ngramsKeys = HashMap.keysSet allTerms
 

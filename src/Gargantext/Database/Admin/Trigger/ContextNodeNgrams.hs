@@ -18,7 +18,7 @@ module Gargantext.Database.Admin.Trigger.ContextNodeNgrams
 
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core
-import Gargantext.Core.Types.Main (ListType(CandidateTerm))
+-- import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd, execPGSQuery)
 import Gargantext.Prelude
@@ -105,6 +105,7 @@ triggerCountInsert2 = execPGSQuery query ( toDBid NodeCorpus
 
 -- TODO add the groups
 -- TODO use context instead of nodes of type doc
+{-
 triggerCoocInsert :: HasDBid NodeType => Cmd err Int64
 triggerCoocInsert = execPGSQuery query ( toDBid NodeCorpus
                                        , toDBid NodeDocument
@@ -160,3 +161,4 @@ triggerCoocInsert = execPGSQuery query ( toDBid NodeCorpus
           FOR EACH STATEMENT
           EXECUTE PROCEDURE set_cooc();
    |]
+-}

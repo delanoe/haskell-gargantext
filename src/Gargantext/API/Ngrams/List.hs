@@ -39,7 +39,7 @@ import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Types.Hyperdata.Document
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.NodeNode (selectDocNodes)
+import Gargantext.Database.Query.Table.NodeContext (selectDocNodes)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Types (Indexed(..))
@@ -187,7 +187,7 @@ reIndexWith cId lId nt lts = do
                                                ]
                                  )
                                 (List.cycle [Map.fromList $ [(nt, Map.singleton (doc ^. node_id) 1 )]])
-                        ) docs
+                        ) (map context2node docs)
 
   -- printDebug "ngramsByDoc" ngramsByDoc
 

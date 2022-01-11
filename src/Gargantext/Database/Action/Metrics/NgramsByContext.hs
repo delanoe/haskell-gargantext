@@ -208,16 +208,16 @@ selectNgramsOccurrencesOnlyByContextUser cId nt tms =
 queryNgramsOccurrencesOnlyByContextUser :: DPS.Query
 queryNgramsOccurrencesOnlyByContextUser = [sql|
   WITH input_rows(terms) AS (?)
-  SELECT ng.terms, COUNT(cng.node_id) FROM context_node_ngrams cng
-    JOIN ngrams ng      ON cng.ngrams_id = ng.id
-    JOIN input_rows  ir ON ir.terms      = ng.terms
-    JOIN nodes_nodes nn ON nn.node_id   = cng.node_id
-    JOIN nodes  n       ON nn.node_id   = n.id
-    WHERE nn.node1_id     = ? -- CorpusId
+  SELECT ng.terms, COUNT(cng.context_id) FROM context_node_ngrams cng
+    JOIN ngrams         ng ON cng.ngrams_id = ng.id
+    JOIN input_rows     ir ON ir.terms      = ng.terms
+    JOIN nodes_contexts nn ON nn.context_id = cng.context_id
+    JOIN nodes           n ON nn.node_id    = n.id
+    WHERE nn.node_id     = ? -- CorpusId
       AND n.typename      = ? -- toDBid
       AND cng.ngrams_type = ? -- NgramsTypeId
       AND nn.category     > 0
-      GROUP BY cng.node_id, ng.terms
+      GROUP BY cng.context_id, ng.terms
   |]
 
 
@@ -242,17 +242,17 @@ selectNgramsOccurrencesOnlyByContextUser_withSample cId int nt tms =
 
 queryNgramsOccurrencesOnlyByContextUser_withSample :: DPS.Query
 queryNgramsOccurrencesOnlyByContextUser_withSample = [sql|
-  WITH nodes_sample AS (SELECT id FROM nodes n TABLESAMPLE SYSTEM_ROWS (?)
-                          JOIN nodes_nodes nn ON n.id = nn.node2_id
+  WITH nodes_sample AS (SELECT id FROM contexts n TABLESAMPLE SYSTEM_ROWS (?)
+                          JOIN nodes_contexts nn ON n.id = nn.context_id
                             WHERE n.typename  = ?
-                            AND nn.node1_id = ?),
+                            AND nn.node_id = ?),
        input_rows(terms) AS (?)
-  SELECT ng.terms, COUNT(cng.node_id) FROM context_node_ngrams cng
+  SELECT ng.terms, COUNT(cng.context_id) FROM context_node_ngrams cng
     JOIN ngrams ng      ON cng.ngrams_id = ng.id
     JOIN input_rows  ir ON ir.terms      = ng.terms
-    JOIN nodes_nodes nn ON nn.node2_id   = cng.node_id
-    JOIN nodes_sample n ON nn.node2_id   = n.id
-    WHERE nn.node1_id     = ? -- CorpusId
+    JOIN nodes_contexts nn ON nn.context_id   = cng.context_id
+    JOIN nodes_sample n ON nn.context_id   = n.id
+    WHERE nn.node_id      = ? -- CorpusId
       AND cng.ngrams_type = ? -- NgramsTypeId
       AND nn.category     > 0
       GROUP BY cng.node_id, ng.terms
