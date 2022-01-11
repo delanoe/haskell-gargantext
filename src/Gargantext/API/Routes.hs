@@ -33,6 +33,7 @@ import Servant.Auth.Swagger ()
 import Servant.Job.Async
 import Servant.Swagger.UI
 
+{-
 import qualified Gargantext.API.Ngrams.List              as List
 import qualified Gargantext.API.Node.Contact             as Contact
 import qualified Gargantext.API.Node.Corpus.Annuaire     as Annuaire
@@ -43,21 +44,31 @@ import qualified Gargantext.API.Node.Document.Export       as DocumentExport
 import qualified Gargantext.API.Node.Document.Export.Types as DocumentExport
 import qualified Gargantext.API.Public                   as Public
 import Gargantext.API.Admin.Auth.Types (AuthRequest, AuthResponse, AuthenticatedUser(..), PathId(..))
+-}
 import Gargantext.API.Admin.Auth (withAccess)
+import Gargantext.API.Admin.Auth.Types (AuthRequest, AuthResponse, AuthenticatedUser(..), PathId(..))
 import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
 import Gargantext.API.Count  (CountAPI, count, Query)
-import qualified Gargantext.API.GraphQL as GraphQL
 import Gargantext.API.Job (jobLogInit)
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
+import Gargantext.API.Context
 import Gargantext.API.Prelude
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Viz.Graph.API
-import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (gc_max_docs_scrapers)
+import qualified Gargantext.API.GraphQL as GraphQL
+import qualified Gargantext.API.Ngrams.List              as List
+import qualified Gargantext.API.Node.Contact             as Contact
+import qualified Gargantext.API.Node.Corpus.Annuaire     as Annuaire
+import qualified Gargantext.API.Node.Corpus.Export       as Export
+import qualified Gargantext.API.Node.Corpus.Export.Types as Export
+import qualified Gargantext.API.Node.Corpus.New          as New
+import qualified Gargantext.API.Public                   as Public
 
 
 type GargAPI = "api" :> Summary "API " :> GargAPIVersion
@@ -100,6 +111,11 @@ type GargPrivateAPI' =
            :<|> "node"     :> Summary "Node endpoint"
                            :> Capture "node_id" NodeId
                            :> NodeAPI HyperdataAny
+
+           -- Context endpoint
+           :<|> "context"  :> Summary "Node endpoint"
+                           :> Capture "node_id" ContextId
+                           :> ContextAPI HyperdataAny
 
            -- Corpus endpoints
            :<|> "corpus"   :> Summary "Corpus endpoint"
@@ -220,6 +236,7 @@ serverPrivateGargAPI' :: AuthenticatedUser -> GargServer GargPrivateAPI'
 serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
        =  serverGargAdminAPI
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAny)      uid
+     :<|> contextAPI  (Proxy :: Proxy HyperdataAny)      uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataCorpus)   uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
      :<|> CorpusExport.getCorpus   -- uid

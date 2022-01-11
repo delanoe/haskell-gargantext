@@ -40,8 +40,8 @@ import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
-import Gargantext.API.Admin.Auth.Types (PathId(..))
 import Gargantext.API.Admin.Auth (withAccess)
+import Gargantext.API.Admin.Auth.Types (PathId(..))
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableCorpus)
 import Gargantext.API.Ngrams.Types (TabType(..))
@@ -53,6 +53,7 @@ import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Viz.Phylo.Legacy.LegacyAPI (PhyloAPI, phyloAPI)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
@@ -63,13 +64,12 @@ import Gargantext.Database.Query.Table.Node.Children (getChildren)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.Node.Update (Update(..), update)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Table.NodeContext (nodeContextsCategory, nodeContextsScore)
+import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Prelude
-import Gargantext.Core.Viz.Phylo.Legacy.LegacyAPI (PhyloAPI, phyloAPI)
-import qualified Gargantext.API.Node.DocumentsFromWriteNodes as DocumentsFromWriteNodes
 import qualified Gargantext.API.Node.DocumentUpload as DocumentUpload
+import qualified Gargantext.API.Node.DocumentsFromWriteNodes as DocumentsFromWriteNodes
 import qualified Gargantext.API.Node.FrameCalcUpload as FrameCalcUpload
 import qualified Gargantext.API.Node.Share  as Share
 import qualified Gargantext.API.Node.Update as Update

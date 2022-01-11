@@ -66,7 +66,8 @@ putRoots :: Token -> ClientM Int -- not actually implemented in the backend
 deleteNodes :: Token -> [NodeId] -> ClientM Int
 
 -- node api
-getNode :: Token -> NodeId -> ClientM (Node HyperdataAny)
+getNode    :: Token -> NodeId -> ClientM (Node HyperdataAny)
+getContext :: Token -> ContextId -> ClientM (Node HyperdataAny)
 renameNode :: Token -> NodeId -> RenameNode -> ClientM [Int]
 postNode :: Token -> NodeId -> PostNode -> ClientM [NodeId]
 postNodeAsync :: Token -> NodeId -> ClientM (JobStatus 'Safe JobLog)
@@ -497,6 +498,7 @@ postAuth
   :<|> killNodeDocumentUploadAsyncJob
   :<|> pollNodeDocumentUploadAsyncJob
   :<|> waitNodeDocumentUploadAsyncJob
+  :<|> getContext
   :<|> getCorpus
   :<|> renameCorpus
   :<|> postCorpus
