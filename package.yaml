@@ -243,6 +243,7 @@ library:
   - tagsoup
   - template-haskell
   - temporary
+  - text-conversions
   - text-metrics
   - time
   - time-locale-compat

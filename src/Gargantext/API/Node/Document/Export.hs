@@ -14,6 +14,9 @@ module Gargantext.API.Node.Document.Export
 import qualified Data.ByteString.Lazy.Char8 as BSC
 import Data.Csv (encodeDefaultOrderedByName)
 import qualified Data.Text as T
+--import qualified Data.Text.Conversions as TC
+import qualified Data.Text.Encoding as TE
+import qualified Data.Text.IO as T
 import Data.Version (showVersion)
 import Gargantext.API.Node.Document.Export.Types
 import Gargantext.API.Prelude (GargNoServer, GargServer)
@@ -43,7 +46,7 @@ getDocumentsJSON uId pId = do
   printDebug "[getDocuments] cId" cId
   --docs <- getDocumentsWithParentId cId -- NodeDocument (Proxy :: Proxy HyperdataDocument)
   docs <- runViewDocuments cId False Nothing Nothing Nothing Nothing
-  printDebug "[getDocuments] got docs" docs
+  --printDebug "[getDocuments] got docs" docs
   --de_docs <- mapM mapFacetDoc docs
   pure $ DocumentExport { _de_documents = mapFacetDoc <$> docs
                         , _de_garg_version = T.pack $ showVersion PG.version }
@@ -72,6 +75,15 @@ getDocumentsCSV :: UserId
 getDocumentsCSV uId pId = do
   DocumentExport { _de_documents } <- getDocumentsJSON uId pId
 
-  pure $ T.pack $ BSC.unpack $ encodeDefaultOrderedByName _de_documents
+  printDebug "[getDocumentsCSV] documents" $ _d_document <$> head _de_documents
 
+  --let ret = T.pack $ BSC.unpack $ encodeDefaultOrderedByName _de_documents
+  --let ret = TC.convertText $ encodeDefaultOrderedByName _de_documents
+  let ret = TE.decodeUtf8 $ BSC.toStrict $ encodeDefaultOrderedByName _de_documents
 
+  --printDebug "[getDocumentsCSV] ret" ret
+  liftBase $ T.writeFile "/tmp/out.csv" ret
+  --liftBase $ BSC.writeFile "/tmp/out.csv" $ encodeDefaultOrderedByName _de_documents
+  
+  pure ret
+  
