@@ -35,6 +35,14 @@ import Opaleye hiding (FromField)
 import Prelude hiding (null, id, map, sum)
 
 
+getContextWith :: (HasNodeError err, JSONB a)
+            => ContextId -> proxy a -> Cmd err (Node a)
+getContextWith nId _ = do
+  maybeContext <- headMay <$> runOpaQuery (selectContext (pgNodeId nId))
+  case maybeContext of
+    Nothing -> nodeError (DoesNotExist nId)
+    Just  r -> pure $ context2node r
+
 queryContextSearchTable :: Select ContextSearchRead
 queryContextSearchTable = selectTable contextTableSearch
 
