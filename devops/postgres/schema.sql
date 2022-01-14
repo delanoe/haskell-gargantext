@@ -166,6 +166,29 @@ CREATE TABLE public.context_node_ngrams2 (
 );
 ALTER TABLE public.context_node_ngrams2 OWNER TO gargantua;
 
+
+--------------------------------------------------------------------
+CREATE TABLE public.node_node_ngrams (
+node1_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
+node2_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
+ngrams_id  INTEGER NOT NULL REFERENCES public.ngrams (id) ON DELETE CASCADE,
+ngrams_type INTEGER,
+weight double precision,
+PRIMARY KEY (node1_id, node2_id, ngrams_id, ngrams_type)
+);
+ALTER TABLE public.node_node_ngrams OWNER TO gargantua;
+
+CREATE TABLE public.node_node_ngrams2 (
+node_id         INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
+nodengrams_id   INTEGER NOT NULL REFERENCES public.node_ngrams  (id) ON DELETE CASCADE,
+weight double precision,
+PRIMARY KEY (node_id, nodengrams_id)
+);
+ALTER TABLE public.node_node_ngrams2 OWNER TO gargantua;
+
+
+
+
 --------------------------------------------------------------
 
 --CREATE TABLE public.nodes_ngrams_repo (
@@ -242,6 +265,15 @@ CREATE        INDEX ON public.context_node_ngrams USING btree (ngrams_type);
 CREATE INDEX ON public.context_node_ngrams2 USING btree (context_id);
 CREATE INDEX ON public.context_node_ngrams2 USING btree (nodengrams_id);
 CREATE INDEX ON public.context_node_ngrams2 USING btree (context_id, nodengrams_id);
+
+
+CREATE UNIQUE INDEX ON public.node_node_ngrams USING btree (node1_id, node2_id, ngrams_id, ngrams_type);
+CREATE        INDEX ON public.node_node_ngrams USING btree (node1_id,  node2_id);
+CREATE        INDEX ON public.node_node_ngrams USING btree (ngrams_id, node2_id);
+CREATE        INDEX ON public.node_node_ngrams USING btree (ngrams_type);
+CREATE INDEX ON public.node_node_ngrams2 USING btree (node_id);
+CREATE INDEX ON public.node_node_ngrams2 USING btree (nodengrams_id);
+CREATE INDEX ON public.node_node_ngrams2 USING btree (node_id, nodengrams_id);
 
 -- CREATE INDEX ON public.context_nodengrams_nodengrams USING btree (context_id, node_ngrams1_id, node_ngrams2_id);
 -- CREATE INDEX ON public.context_nodengrams_nodengrams USING btree (node_ngrams1_id);

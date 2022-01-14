@@ -562,21 +562,17 @@ getTableNgrams _nType nId tabType listId limit_ offset
     setScores False table = pure table
     setScores True  table = do
       let ngrams_terms = table ^.. each . ne_ngrams
+      printDebug "ngrams_terms" ngrams_terms
       t1 <- getTime
       occurrences <- getOccByNgramsOnlyFast' nId
                                              listId
                                             ngramsType
                                             ngrams_terms
+      printDebug "occurrences" occurrences
       t2 <- getTime
       liftBase $ hprint stderr
         ("getTableNgrams/setScores #ngrams=" % int % " time=" % hasTime % "\n")
         (length ngrams_terms) t1 t2
-      {-
-      occurrences <- getOccByNgramsOnlySlow nType nId
-                                            (lIds <> [listId])
-                                            ngramsType
-                                            ngrams_terms
-      -}
       let
         setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 

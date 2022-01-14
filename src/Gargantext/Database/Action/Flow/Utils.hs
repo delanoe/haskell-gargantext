@@ -31,11 +31,11 @@ data DocumentIdWithNgrams a b =
      , documentNgrams :: HashMap b (Map NgramsType Int)
      } deriving (Show)
 
-docNgrams2contextNodeNgrams :: CorpusId
+docNgrams2contextNodeNgrams :: ListId
                          -> DocNgrams
                          -> ContextNodeNgrams
-docNgrams2contextNodeNgrams cId (DocNgrams d n nt w) =
-  ContextNodeNgrams cId d n nt w
+docNgrams2contextNodeNgrams lId (DocNgrams d n nt w) =
+  ContextNodeNgrams d lId n nt w
 
 data DocNgrams = DocNgrams { dn_doc_id      :: DocId
                            , dn_ngrams_id   :: Int
@@ -43,15 +43,15 @@ data DocNgrams = DocNgrams { dn_doc_id      :: DocId
                            , dn_weight      :: Double
                            }
 
-insertDocNgramsOn :: CorpusId
+insertDocNgramsOn :: ListId
                   -> [DocNgrams]
                   -> Cmd err Int
 insertDocNgramsOn cId dn =
   insertContextNodeNgrams
   $ (map (docNgrams2contextNodeNgrams cId) dn)
 
-insertDocNgrams :: CorpusId
-                -> HashMap (Indexed Int Ngrams) (Map NgramsType (Map NodeId Int))
+insertDocNgrams :: ListId
+                -> HashMap (Indexed Int Ngrams) (Map NgramsType (Map DocId Int))
                 -> Cmd err Int
 insertDocNgrams cId m =
   insertDocNgramsOn cId [ DocNgrams { dn_doc_id = n

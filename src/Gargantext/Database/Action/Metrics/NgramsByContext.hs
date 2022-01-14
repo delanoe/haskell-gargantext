@@ -24,7 +24,7 @@ import Data.Text (Text)
 import Data.Tuple.Extra (first, second, swap)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 import Gargantext.Core
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Data.HashMap.Strict.Utils as HM
@@ -39,6 +39,7 @@ import qualified Database.PostgreSQL.Simple as DPS
 
 -- | fst is size of Supra Corpus
 --   snd is Texts and size of Occurrences (different docs)
+
 countContextsByNgramsWith :: (NgramsTerm -> NgramsTerm)
                        -> HashMap NgramsTerm (Set ContextId)
                        -> (Double, HashMap NgramsTerm (Double, Set NgramsTerm))
@@ -49,14 +50,15 @@ countContextsByNgramsWith f m = (total, m')
           $ groupContextsByNgramsWith f m
 
 
-groupContextsByNgramsWith :: (NgramsTerm -> NgramsTerm)
-                          -> HashMap NgramsTerm (Set NodeId)
-                          -> HashMap NgramsTerm (Set NgramsTerm, Set ContextId)
-groupContextsByNgramsWith f m =
-  HM.fromListWith (<>) $ map (\(t,ns) -> (f t, (Set.singleton t, ns)))
-                       $ HM.toList m
+    groupContextsByNgramsWith :: (NgramsTerm -> NgramsTerm)
+                              -> HashMap NgramsTerm (Set NodeId)
+                              -> HashMap NgramsTerm (Set NgramsTerm, Set ContextId)
+    groupContextsByNgramsWith f' m'' =
+      HM.fromListWith (<>) $ map (\(t,ns) -> (f' t, (Set.singleton t, ns)))
+                           $ HM.toList m''
 
 ------------------------------------------------------------------------
+
 getContextsByNgramsUser ::  HasDBid NodeType
                         => CorpusId
                         -> NgramsType
@@ -81,21 +83,22 @@ getContextsByNgramsUser cId nt =
 
       queryNgramsByContextUser :: DPS.Query
       queryNgramsByContextUser = [sql|
-        SELECT cng.node_id, ng.terms FROM context_node_ngrams cng
-          JOIN ngrams ng      ON cng.ngrams_id = ng.id
-          JOIN nodes_contexts nn ON nn.context_id   = cng.context_id
-          JOIN contexts  n       ON nn.context_id   = n.id
-          WHERE nn.node_id = ?     -- CorpusId
-            AND n.typename  = ?     -- toDBid
+        SELECT cng.context_id, ng.terms FROM context_node_ngrams cng
+          JOIN ngrams         ng ON cng.ngrams_id = ng.id
+          JOIN nodes_contexts nc ON nc.context_id   = cng.context_id
+          JOIN contexts        c ON nc.context_id   = c.id
+          WHERE nc.node_id      = ? -- CorpusId
+            AND c.typename      = ? -- toDBid
             AND cng.ngrams_type = ? -- NgramsTypeId
-            AND nn.category > 0
-            GROUP BY cng.node_id, ng.terms
-            ORDER BY (cng.node_id, ng.terms) DESC
-          --   LIMIT ?
-          --  OFFSET ?
+            AND nc.category     > 0 -- is not in Trash
+            GROUP BY cng.context_id, ng.terms
         |]
+
+
 ------------------------------------------------------------------------
 -- TODO add groups
+
+{-
 getOccByNgramsOnlyFast :: HasDBid NodeType
                        => CorpusId
                        -> NgramsType
@@ -103,7 +106,7 @@ getOccByNgramsOnlyFast :: HasDBid NodeType
                        -> Cmd err (HashMap NgramsTerm Int)
 getOccByNgramsOnlyFast cId nt ngs =
   HM.fromListWith (+) <$> selectNgramsOccurrencesOnlyByContextUser cId nt ngs
-
+-}
 
 getOccByNgramsOnlyFast_withSample :: HasDBid NodeType
                        => CorpusId
@@ -120,7 +123,7 @@ getOccByNgramsOnlyFast' :: CorpusId
                        -> NgramsType
                        -> [NgramsTerm]
                        -> Cmd err (HashMap NgramsTerm Int)
-getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $
+getOccByNgramsOnlyFast' cId lId nt tms = -- trace (show (cId, lId)) $
   HM.fromListWith (+) <$> map (second round) <$> run cId lId nt tms
 
     where
@@ -131,7 +134,7 @@ getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $
            -> NgramsType
            -> [NgramsTerm]
            -> Cmd err [(NgramsTerm, Double)]
-      run cId' lId' nt' tms' = fmap (first NgramsTerm) <$> runPGSQuery query
+      run cId' lId' nt' tms' = map (first NgramsTerm) <$> runPGSQuery query
                 ( Values fields ((DPS.Only . unNgramsTerm) <$> tms')
                 , cId'
                 , lId'
@@ -141,17 +144,19 @@ getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $
       query :: DPS.Query
       query = [sql|
         WITH input_rows(terms) AS (?)
-        SELECT ng.terms, cng.weight FROM context_node_ngrams cng
-          JOIN ngrams ng      ON cng.ngrams_id = ng.id
-          JOIN input_rows  ir ON ir.terms      = ng.terms
-          WHERE cng.context_id     = ?   -- CorpusId
-            AND cng.node_id        = ?   -- ListId
-            AND cng.ngrams_type    = ?   -- NgramsTypeId
-            -- AND nn.category     > 0   -- TODO
-            GROUP BY ng.terms, cng.weight
+        SELECT ng.terms, nng.weight FROM nodes_contexts nc
+          JOIN node_node_ngrams   nng  ON nng.node1_id  = nc.node_id
+          JOIN ngrams              ng  ON nng.ngrams_id = ng.id
+          JOIN input_rows          ir  ON ir.terms      = ng.terms
+          WHERE nng.node1_id       = ?  -- CorpusId
+            AND nng.node2_id       = ?  -- ListId
+            AND nng.ngrams_type    = ?  -- NgramsTypeId
+            AND nc.category        > 0  -- Not trash
+            GROUP BY ng.terms, nng.weight
         |]
 
 
+{-
 -- just slower than getOccByNgramsOnlyFast
 getOccByNgramsOnlySlow :: HasDBid NodeType
                        => NodeType
@@ -200,8 +205,6 @@ selectNgramsOccurrencesOnlyByContextUser cId nt tms =
     where
       fields = [QualifiedIdentifier Nothing "text"]
 
-
-
 -- same as queryNgramsOnlyByNodeUser but using COUNT on the node ids.
 -- Question: with the grouping is the result exactly the same (since Set NodeId for
 -- equivalent ngrams intersections are not empty)
@@ -220,6 +223,7 @@ queryNgramsOccurrencesOnlyByContextUser = [sql|
       GROUP BY cng.context_id, ng.terms
   |]
 
+-}
 
 selectNgramsOccurrencesOnlyByContextUser_withSample :: HasDBid NodeType
                                       => CorpusId
@@ -259,7 +263,7 @@ queryNgramsOccurrencesOnlyByContextUser_withSample = [sql|
   |]
 
 
-
+{-
 queryNgramsOccurrencesOnlyByContextUser' :: DPS.Query
 queryNgramsOccurrencesOnlyByContextUser' = [sql|
   WITH input_rows(terms) AS (?)
@@ -274,8 +278,10 @@ queryNgramsOccurrencesOnlyByContextUser' = [sql|
       AND nn.category     > 0
       GROUP BY cng.node_id, ng.terms
   |]
+-}
 
 ------------------------------------------------------------------------
+
 getContextsByNgramsOnlyUser :: HasDBid NodeType
                          => CorpusId
                          -> [ListId]
@@ -288,7 +294,6 @@ getContextsByNgramsOnlyUser cId ls nt ngs =
    . map (second Set.singleton))
   <$> mapM (selectNgramsOnlyByContextUser cId ls nt)
            (splitEvery 1000 ngs)
-
 
 getNgramsByContextOnlyUser :: HasDBid NodeType
                         => NodeId
@@ -306,12 +311,13 @@ getNgramsByContextOnlyUser cId ls nt ngs =
            (splitEvery 1000 ngs)
 
 ------------------------------------------------------------------------
+-- used in G.Core.Text.List
 selectNgramsOnlyByContextUser :: HasDBid NodeType
                            => CorpusId
                            -> [ListId]
                            -> NgramsType
                            -> [NgramsTerm]
-                           -> Cmd err [(NgramsTerm, NodeId)]
+                           -> Cmd err [(NgramsTerm, ContextId)]
 selectNgramsOnlyByContextUser cId ls nt tms =
   fmap (first NgramsTerm) <$>
   runPGSQuery queryNgramsOnlyByContextUser
@@ -329,20 +335,21 @@ queryNgramsOnlyByContextUser :: DPS.Query
 queryNgramsOnlyByContextUser = [sql|
   WITH input_rows(terms) AS (?),
        input_list(id)    AS (?)
-  SELECT ng.terms, cng.node_id FROM context_node_ngrams cng
+  SELECT ng.terms, cng.context_id FROM context_node_ngrams cng
     JOIN ngrams ng      ON cng.ngrams_id = ng.id
     JOIN input_rows  ir ON ir.terms      = ng.terms
-    JOIN input_list  il ON il.id         = cng.context_id
+    JOIN input_list  il ON il.id         = cng.node_id
     JOIN nodes_contexts nn ON nn.context_id   = cng.context_id
-    JOIN contexts  n       ON nn.context_id   = n.id
+    JOIN contexts  c       ON nn.context_id   = c.id
     WHERE nn.node_id      = ? -- CorpusId
-      AND n.typename      = ? -- toDBid
+      AND c.typename      = ? -- toDBid (maybe not useful with context table)
       AND cng.ngrams_type = ? -- NgramsTypeId
       AND nn.category     > 0
-      GROUP BY ng.terms, cng.node_id
+      GROUP BY ng.terms, cng.context_id
   |]
 
 
+{-
 selectNgramsOnlyByContextUser' :: HasDBid NodeType
                             => CorpusId
                             -> [ListId]
@@ -374,7 +381,7 @@ queryNgramsOnlyByContextUser' = [sql|
       -- AND nn.category     > 0
       GROUP BY ng.terms, cng.weight
   |]
-
+-}
 
 getNgramsByDocOnlyUser :: DocId
                        -> [ListId]
@@ -421,7 +428,9 @@ queryNgramsOnlyByDocUser = [sql|
 ------------------------------------------------------------------------
 -- | TODO filter by language, database, any social field
 getContextsByNgramsMaster :: HasDBid NodeType
-                       =>  UserCorpusId -> MasterCorpusId -> Cmd err (HashMap Text (Set NodeId))
+                          =>  UserCorpusId
+                          -> MasterCorpusId
+                          -> Cmd err (HashMap Text (Set NodeId))
 getContextsByNgramsMaster ucId mcId = unionsWith (<>)
                                  . map (HM.fromListWith (<>) . map (\(n,t) -> (t, Set.singleton n)))
                                  -- . takeWhile (not . List.null)

@@ -30,7 +30,7 @@ import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Core.NodeStory
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW{-, listInsertDb, getCgramsId -})
+import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb,{- getCgramsId -})
 -- import Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
@@ -88,9 +88,8 @@ flowList_DbRepo :: FlowCmdM env err m
          -> m ListId
 flowList_DbRepo lId ngs = do
   -- printDebug "listId flowList" lId
+  _mapCgramsId <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
 {-
-  mapCgramsId <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
-
   let toInsert = catMaybes [ (,) <$> (getCgramsId mapCgramsId ntype <$> (unNgramsTerm <$> parent))
                                  <*>  getCgramsId mapCgramsId ntype ngram
                            | (ntype, ngs') <- Map.toList ngs

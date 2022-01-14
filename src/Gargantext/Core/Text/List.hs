@@ -217,6 +217,9 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
                                             nt
                                             selectedTerms
 
+
+  printDebug "mapTextDocIds" mapTextDocIds
+
   let
     groupedTreeScores_SetNodeId :: HashMap NgramsTerm (GroupedTreeScores (Set NodeId))
     groupedTreeScores_SetNodeId = HashMap.filter (\g -> Set.size (view gts'_score g) > 1) -- removing hapax
