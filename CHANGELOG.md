@@ -1,3 +1,6 @@
+## Version 0.0.4.9.9.5
+* [FIX] Chart Sort
+
 ## Version 0.0.4.9.9.4
 * [FEAT] Corpus docs download
 
