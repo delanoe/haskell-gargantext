@@ -36,7 +36,7 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Schema.Node (node_parent_id)
 import Gargantext.Database.Schema.Ngrams (NgramsType(NgramsTerms))
-import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic)
+import Gargantext.Prelude (Bool(..), Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic)
 import qualified Gargantext.Utils.Aeson as GUA
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
@@ -95,7 +95,7 @@ updateNode uId nId (UpdateNodeParamsGraph metric) logStatus = do
                    , _scst_events    = Just []
                    }
 
-  _ <- recomputeGraph uId nId (Just metric)
+  _ <- recomputeGraph uId nId (Just metric) True
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0

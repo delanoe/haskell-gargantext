@@ -37,7 +37,7 @@ updateHyperdataQuery i h = Update
    , uWhere      = (\row -> _node_id row .== pgNodeId i )
    , uReturning  = rCount
    }
-    where h' =  (pgJSONB $ cs $ encode $ h)
+    where h' =  (sqlJSONB $ cs $ encode $ h)
 
 ----------------------------------------------------------------------------------
 updateNodesWithType :: ( HasNodeError err

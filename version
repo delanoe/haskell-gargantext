@@ -1,10 +1,15 @@
 #!/bin/bash
 
 # Prompt
+TMPFILE="xxxx"
+
 git tag
 echo "Which version ?"
 read VERSION
-echo "Change to: ${VERSION}"
+echo "## Version ${VERSION}" > $TMPFILE
+cat CHANGELOG.md >> $TMPFILE
+mv $TMPFILE CHANGELOG.md
+vim CHANGELOG.md < /dev/tty
 
 #################################################################
 # Haskell

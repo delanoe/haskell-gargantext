@@ -3,6 +3,7 @@
 {-# LANGUAGE AllowAmbiguousTypes     #-}
 {-# LANGUAGE TypeOperators     #-}
 
+{-# LANGUAGE IncoherentInstances #-}
 module Gargantext.API.Node.File where
 
 import Control.Lens ((^.))
@@ -30,6 +31,7 @@ import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
+import Data.Either
 
 data RESPONSE deriving Typeable
 
@@ -42,6 +44,9 @@ instance MimeRender RESPONSE BSResponse where
 type FileApi = Summary "File download"
             :> "download"
             :> Get '[RESPONSE] (Headers '[Servant.Header "Content-Type" Text] BSResponse)
+
+instance MimeUnrender RESPONSE BSResponse where
+  mimeUnrender _ lbs = Right $ BSResponse (BSL.toStrict lbs)
 
 fileApi :: UserId -> NodeId -> GargServer FileApi
 fileApi uId nId = fileDownload uId nId

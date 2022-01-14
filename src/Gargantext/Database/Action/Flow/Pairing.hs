@@ -52,14 +52,14 @@ import qualified Data.Text           as DT
 isPairedWith :: NodeId -> NodeType -> Cmd err [NodeId]
 isPairedWith nId nt = runOpaQuery (selectQuery nt nId)
   where
-    selectQuery :: NodeType -> NodeId -> Query (Column PGInt4)
+    selectQuery :: NodeType -> NodeId -> Select (Column SqlInt4)
     selectQuery nt' nId' = proc () -> do
       (node, node_node) <- queryJoin -< ()
       restrict -< (node^.node_typename)    .== (sqlInt4 $ toDBid nt')
       restrict -< (node_node^.nn_node1_id) .== (toNullable $ pgNodeId nId')
       returnA  -<  node^.node_id
 
-    queryJoin :: Query (NodeRead, NodeNodeReadNull)
+    queryJoin :: Select (NodeRead, NodeNodeReadNull)
     queryJoin = leftJoin2 queryNodeTable queryNodeNodeTable cond
       where
         cond (node, node_node) = node^.node_id .== node_node^. nn_node2_id

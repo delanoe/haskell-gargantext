@@ -21,17 +21,18 @@ import Control.Monad.Reader
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Aeson (Result(Error,Success), fromJSON, FromJSON)
 import Data.ByteString.Char8 (hPutStrLn)
-import Data.Either.Extra (Either(Left, Right))
-import Data.Ini (readIniFile, lookupValue)
+import Data.Either.Extra (Either)
 import Data.Pool (Pool, withResource)
 import Data.Profunctor.Product.Default (Default)
-import Data.Text (unpack, pack, Text)
+import Data.Text (unpack, Text)
 import Data.Word (Word16)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
+import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Prelude
-import Opaleye (Query, Unpackspec, showSql, FromFields, Select, runSelect, PGJsonb, DefaultFromField)
+import Gargantext.Prelude.Config (readIniFile', val)
+import Opaleye (Unpackspec, showSql, FromFields, Select, runSelect, SqlJsonb, DefaultFromField)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
 import System.IO (stderr)
@@ -56,7 +57,7 @@ instance HasConfig GargConfig where
   hasConfig = identity
 
 -------------------------------------------------------
-type JSONB = DefaultFromField PGJsonb
+type JSONB = DefaultFromField SqlJsonb
 -------------------------------------------------------
 
 type CmdM'' env err m =
@@ -77,13 +78,15 @@ type CmdM env err m =
   ( CmdM'             env err m
   , HasConnectionPool env
   , HasConfig         env
+  , HasMail           env
   )
 
 type CmdRandom env err m =
   ( CmdM'             env err m
   , HasConnectionPool env
   , HasConfig         env
-  , MonadRandom             m
+  , MonadRandom       m
+  , HasMail           env
   )
 
 type Cmd'' env err a = forall m.     CmdM''    env err m => m a
@@ -157,20 +160,14 @@ execPGSQuery q a = mkCmd $ \conn -> PGS.execute conn q a
 
 databaseParameters :: FilePath -> IO PGS.ConnectInfo
 databaseParameters fp = do
-  ini         <- readIniFile fp
-  let ini'' = case ini of
-        Left e     -> panic (pack $ "No ini file error" <> show e)
-        Right ini' -> ini'
+  ini <- readIniFile' fp
+  let val' key = unpack $ val ini "database" key
 
-  let val x = case (lookupValue (pack "database") (pack x) ini'') of
-        Left _ -> panic (pack $ "no" <> x)
-        Right p' -> unpack p'
-
-  pure $ PGS.ConnectInfo { PGS.connectHost     = val       "DB_HOST"
-                         , PGS.connectPort     = read (val "DB_PORT") :: Word16
-                         , PGS.connectUser     = val       "DB_USER"
-                         , PGS.connectPassword = val       "DB_PASS"
-                         , PGS.connectDatabase = val       "DB_NAME"
+  pure $ PGS.ConnectInfo { PGS.connectHost     = val' "DB_HOST"
+                         , PGS.connectPort     = read (val' "DB_PORT") :: Word16
+                         , PGS.connectUser     = val' "DB_USER"
+                         , PGS.connectPassword = val' "DB_PASS"
+                         , PGS.connectDatabase = val' "DB_NAME"
                          }
 
 connectGargandb :: FilePath -> IO Connection
@@ -188,6 +185,6 @@ fromField' field mb = do
                                               , show v
                                               ]
 
-printSqlOpa :: Default Unpackspec a a => Query a -> IO ()
+printSqlOpa :: Default Unpackspec a a => Select a -> IO ()
 printSqlOpa = putStrLn . maybe "Empty query" identity . showSql
 

@@ -58,7 +58,7 @@ insert_Node_NodeNgrams_NodeNgrams = insert_Node_NodeNgrams_NodeNgrams_W
                           Node_NodeNgrams_NodeNgrams (pgNodeId n  )
                                            (sqlInt4 <$> ng1)
                                            (sqlInt4 ng2)
-                                           (pgDouble <$> maybeWeight)
+                                           (sqlDouble <$> maybeWeight)
                         )
 
 insert_Node_NodeNgrams_NodeNgrams_W :: [Node_NodeNgrams_NodeNgrams_Write] -> Cmd err Int64

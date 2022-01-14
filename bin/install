@@ -1,3 +1,4 @@
 #!/bin/bash
 
-stack install --nix --profile --test --fast --no-install-ghc --skip-ghc-check
+#stack install --nix --profile --test --fast --no-install-ghc --skip-ghc-check
+stack install --nix --test --no-install-ghc --skip-ghc-check

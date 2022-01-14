@@ -218,14 +218,17 @@ hyperdataDocument2csvDoc h = CsvDoc { csv_title = m $ _hd_title h
     mI = maybe 0 identity
 
 
-csvDecodeOptions :: DecodeOptions
-csvDecodeOptions = defaultDecodeOptions {decDelimiter = delimiter}
+data Delimiter = Tab | Comma
 
-csvEncodeOptions :: EncodeOptions
-csvEncodeOptions = defaultEncodeOptions {encDelimiter = delimiter}
+csvDecodeOptions :: Delimiter -> DecodeOptions
+csvDecodeOptions d = defaultDecodeOptions {decDelimiter = delimiter d}
 
-delimiter :: Word8
-delimiter = fromIntegral $ ord '\t'
+csvEncodeOptions :: Delimiter -> EncodeOptions
+csvEncodeOptions d = defaultEncodeOptions {encDelimiter = delimiter d}
+
+delimiter :: Delimiter -> Word8
+delimiter Tab   = fromIntegral $ ord '\t'
+delimiter Comma = fromIntegral $ ord ','
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 readCsvOn' :: [CsvDoc -> Text] -> FilePath -> IO (Either Prelude.String [Text])
@@ -237,27 +240,44 @@ readCsvOn' fields fp = do
 
 ------------------------------------------------------------------------
 
-readFileLazy :: (FromNamedRecord a) => proxy a -> FilePath -> IO (Either Prelude.String (Header, Vector a))
-readFileLazy f = fmap (readByteStringLazy f) . BL.readFile
+readFileLazy :: (FromNamedRecord a) => proxy a -> Delimiter -> FilePath -> IO (Either Prelude.String (Header, Vector a))
+readFileLazy d f = fmap (readByteStringLazy d f) . BL.readFile
 
-readFileStrict :: (FromNamedRecord a) => proxy a -> FilePath -> IO (Either Prelude.String (Header, Vector a))
-readFileStrict f = fmap (readByteStringStrict f) . BS.readFile
+readFileStrict :: (FromNamedRecord a)
+               => proxy a
+               -> Delimiter
+               -> FilePath
+               -> IO (Either Prelude.String (Header, Vector a))
+readFileStrict d f = fmap (readByteStringStrict d f) . BS.readFile
 
-readByteStringLazy :: (FromNamedRecord a) => proxy a -> BL.ByteString -> Either Prelude.String (Header, Vector a)
-readByteStringLazy _f bs = decodeByNameWith csvDecodeOptions bs
+readByteStringLazy :: (FromNamedRecord a)
+                   => proxy a
+                   -> Delimiter
+                   -> BL.ByteString
+                   -> Either Prelude.String (Header, Vector a)
+readByteStringLazy _f d bs = decodeByNameWith (csvDecodeOptions d) bs
 
-readByteStringStrict :: (FromNamedRecord a) => proxy a -> BS.ByteString -> Either Prelude.String (Header, Vector a)
-readByteStringStrict ff = (readByteStringLazy ff) . BL.fromStrict
+readByteStringStrict :: (FromNamedRecord a)
+                     => proxy a
+                     -> Delimiter
+                     -> BS.ByteString
+                     -> Either Prelude.String (Header, Vector a)
+readByteStringStrict d ff = (readByteStringLazy d ff) . BL.fromStrict
 
 ------------------------------------------------------------------------
 -- | TODO use readFileLazy
 readFile :: FilePath -> IO (Either Prelude.String (Header, Vector CsvDoc))
-readFile = fmap readCsvLazyBS . BL.readFile
+readFile fp = do
+  result <- fmap (readCsvLazyBS Comma) $ BL.readFile fp
+  case result of
+    Left _err -> fmap (readCsvLazyBS Tab) $ BL.readFile fp
+    Right res -> pure $ Right res
+
 
 
 -- | TODO use readByteStringLazy
-readCsvLazyBS :: BL.ByteString -> Either Prelude.String (Header, Vector CsvDoc)
-readCsvLazyBS bs = decodeByNameWith csvDecodeOptions bs
+readCsvLazyBS :: Delimiter -> BL.ByteString -> Either Prelude.String (Header, Vector CsvDoc)
+readCsvLazyBS d bs = decodeByNameWith (csvDecodeOptions d) bs
 
 ------------------------------------------------------------------------
 -- | TODO use readFileLazy
@@ -266,7 +286,7 @@ readCsvHal = fmap readCsvHalLazyBS . BL.readFile
 
 -- | TODO use readByteStringLazy
 readCsvHalLazyBS :: BL.ByteString -> Either Prelude.String (Header, Vector CsvHal)
-readCsvHalLazyBS bs = decodeByNameWith csvDecodeOptions bs
+readCsvHalLazyBS bs = decodeByNameWith (csvDecodeOptions Tab) bs
 
 readCsvHalBSStrict :: BS.ByteString -> Either Prelude.String (Header, Vector CsvHal)
 readCsvHalBSStrict = readCsvHalLazyBS . BL.fromStrict
@@ -274,13 +294,13 @@ readCsvHalBSStrict = readCsvHalLazyBS . BL.fromStrict
 ------------------------------------------------------------------------
 writeFile :: FilePath -> (Header, Vector CsvDoc) -> IO ()
 writeFile fp (h, vs) = BL.writeFile fp $
-                      encodeByNameWith csvEncodeOptions h (V.toList vs)
+                      encodeByNameWith (csvEncodeOptions Tab) h (V.toList vs)
 
 writeDocs2Csv :: FilePath -> [HyperdataDocument] -> IO ()
 writeDocs2Csv fp hs = BL.writeFile fp $ hyperdataDocument2csv hs
 
 hyperdataDocument2csv :: [HyperdataDocument] -> BL.ByteString
-hyperdataDocument2csv hs = encodeByNameWith csvEncodeOptions headerCsvGargV3 (map hyperdataDocument2csvDoc hs)
+hyperdataDocument2csv hs = encodeByNameWith (csvEncodeOptions Tab) headerCsvGargV3 (map hyperdataDocument2csvDoc hs)
 
 ------------------------------------------------------------------------
 -- Hal Format
@@ -425,13 +445,22 @@ parseHal' :: BL.ByteString -> Either Prelude.String [HyperdataDocument]
 parseHal' bs = (V.toList . V.map csvHal2doc . snd) <$> readCsvHalLazyBS bs
 
 ------------------------------------------------------------------------
+
 parseCsv :: FilePath -> IO (Either Prelude.String [HyperdataDocument])
-parseCsv fp = do
-  r <- readFile fp
-  pure $ (V.toList . V.map csv2doc . snd) <$> r
+parseCsv fp = fmap (V.toList . V.map csv2doc . snd) <$> readFile fp
+
+{-
+parseCsv' ::  BL.ByteString -> Either Prelude.String [HyperdataDocument]
+parseCsv' bs = (V.toList . V.map csv2doc . snd) <$> readCsvLazyBS Comma bs
+-}
 
 parseCsv' :: BL.ByteString -> Either Prelude.String [HyperdataDocument]
-parseCsv' bs = (V.toList . V.map csv2doc . snd) <$> readCsvLazyBS bs
+parseCsv' bs = do
+  let
+    result = case readCsvLazyBS Comma bs of
+      Left  _err -> readCsvLazyBS Tab bs
+      Right res -> Right res
+  (V.toList . V.map csv2doc . snd) <$> result
 
 ------------------------------------------------------------------------
 -- Csv v3 weighted for phylo
@@ -460,9 +489,9 @@ instance FromNamedRecord Csv' where
     pure $ Csv' { .. }
 
 readWeightedCsv :: FilePath -> IO (Header, Vector Csv')
-readWeightedCsv fp = 
-  fmap (\bs -> 
-    case decodeByNameWith csvDecodeOptions bs of
+readWeightedCsv fp =
+  fmap (\bs ->
+    case decodeByNameWith (csvDecodeOptions Tab) bs of
       Left e       -> panic (pack e)
       Right corpus -> corpus
     ) $ BL.readFile fp

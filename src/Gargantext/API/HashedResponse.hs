@@ -25,6 +25,8 @@ data HashedResponse a = HashedResponse { hash :: Text, value :: a }
 instance ToSchema a => ToSchema (HashedResponse a)
 instance ToJSON a => ToJSON (HashedResponse a) where
   toJSON = genericToJSON defaultOptions
+instance FromJSON a => FromJSON (HashedResponse a) where
+  parseJSON = genericParseJSON defaultOptions
 
 constructHashedResponse :: ToJSON a => a -> HashedResponse a
 constructHashedResponse v = HashedResponse { hash = Crypto.hash $ encode v, value = v }

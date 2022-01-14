@@ -30,7 +30,7 @@ import Gargantext.Database.Query.Table.User (queryUserTable, UserPoly(..))
 import Gargantext.Database.Schema.Node (NodePoly(..), NodeRead)
 import Gargantext.Database.Schema.Node (queryNodeTable)
 import Gargantext.Prelude
-import Opaleye (restrict, (.==), Query)
+import Opaleye (restrict, (.==), Select)
 import Opaleye.SqlTypes (sqlStrictText, sqlInt4)
 
 
@@ -115,7 +115,7 @@ mkRoot user = do
          _   -> pure rs
        pure rs
 
-selectRoot :: User -> Query NodeRead
+selectRoot :: User -> Select NodeRead
 selectRoot (UserName username) = proc () -> do
     row   <- queryNodeTable -< ()
     users <- queryUserTable -< ()

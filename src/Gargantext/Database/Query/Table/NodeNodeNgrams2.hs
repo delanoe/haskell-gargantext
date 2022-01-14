@@ -37,7 +37,7 @@ insertNodeNodeNgrams2 = insertNodeNodeNgrams2W
                      . map (\(NodeNodeNgrams2 n1 n2 w) ->
                               NodeNodeNgrams2 (pgNodeId n1)
                                               (sqlInt4   n2)
-                                              (pgDouble w)
+                                              (sqlDouble w)
                            )
 
 insertNodeNodeNgrams2W :: [NodeNodeNgrams2Write] -> Cmd err Int

@@ -24,7 +24,9 @@ import Data.Maybe (catMaybes)
 import Data.Ord (Down(..))
 import Gargantext.Prelude
 import qualified Data.Map as DM
-import Gargantext.Core.Viz.Graph.Tools.IGraph (ClusterNode(..))
+import Gargantext.Core.Viz.Graph.Types (ClusterNode(..))
+
+
 
 ----------------------------------------------------------------------
 type Partitions a = Map (Int, Int) Double -> IO [a]
@@ -77,7 +79,6 @@ groupEdges m = fromListWith (<>)
              . toList
 
 -- | TODO : sortOn Confluence
-
 filterComs :: (Ord n1, Eq n2) 
            => p
            -> Map (n2, n2) [(a3, n1)]

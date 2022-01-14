@@ -21,10 +21,11 @@ Portability : POSIX
 module Gargantext.Database.Schema.NodesNgramsRepo
   where
 
+{-
 import Data.Map.Strict.Patch (PatchMap)
 
 import Gargantext.Database.Schema.Prelude
-import Gargantext.API.Ngrams.Types (NgramsStatePatch, NgramsTablePatch)
+import Gargantext.API.Ngrams.Types (NgramsTablePatch)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Prelude
@@ -36,21 +37,21 @@ data RepoDbPoly version patches
                   } deriving (Show)
 
 type RepoDbWrite
-  = RepoDbPoly (Column PGInt4)
-             (Column PGJsonb)
+  = RepoDbPoly (Column SqlInt4)
+             (Column SqlJsonb)
 type RepoDbRead
-  = RepoDbPoly (Column PGInt4)
-             (Column PGJsonb)
+  = RepoDbPoly (Column SqlInt4)
+             (Column SqlJsonb)
 
 type RepoDbNgrams = RepoDbPoly Int NgramsStatePatch
 $(makeAdaptorAndInstance "pRepoDbNgrams" ''RepoDbPoly)
 makeLenses ''RepoDbPoly
 
-instance DefaultFromField PGJsonb
+instance DefaultFromField SqlJsonb
                           (PatchMap NgramsType
                           (PatchMap NodeId NgramsTablePatch))
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
 repoTable :: Table RepoDbWrite RepoDbRead
 repoTable = Table "nodes_ngrams_repo"
@@ -59,4 +60,4 @@ repoTable = Table "nodes_ngrams_repo"
                    , _rdp_patches = requiredTableField "patches"
                    }
     )
-
+-}

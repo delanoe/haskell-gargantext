@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.4.4'
+version: '0.0.4.9.9.4'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -25,6 +25,15 @@ default-extensions:
   - OverloadedStrings
   - RankNTypes
   - RecordWildCards
+data-files:
+  - ekg-assets/index.html
+  - ekg-assets/monitor.js
+  - ekg-assets/monitor.css
+  - ekg-assets/jquery.flot.min.js
+  - ekg-assets/jquery-1.6.4.min.js
+  - ekg-assets/bootstrap-1.4.0.min.css
+  - ekg-assets/chart_line_add.png
+  - ekg-assets/cross.png
 library:
   source-dirs: src
   ghc-options:
@@ -49,6 +58,7 @@ library:
   - Gargantext.API.Admin.EnvTypes
   - Gargantext.API.Admin.Types
   - Gargantext.API.Prelude
+  - Gargantext.API.Client
   - Gargantext.Core
   - Gargantext.Core.NodeStory
   - Gargantext.Core.Methods.Distances
@@ -137,6 +147,8 @@ library:
   - deepseq
   - directory
   - duckling
+  - ekg-core
+  - ekg-json
   - exceptions
   - fast-logger
   - fclabels
@@ -147,6 +159,7 @@ library:
   - full-text-search
   - fullstop
   - gargantext-prelude
+    #  - gargantext-graph >= 0.1.0.0
   - graphviz
   - hashable
   - haskell-igraph
@@ -170,6 +183,10 @@ library:
   - matrix
   - monad-control
   - monad-logger
+  - morpheus-graphql
+  - morpheus-graphql-app
+  - morpheus-graphql-core
+  - morpheus-graphql-subscriptions
   - mtl
   - natural-transformation
   - opaleye
@@ -201,11 +218,14 @@ library:
   - serialise
   - servant
   - servant-auth
+  - servant-auth-client
   - servant-auth-server >= 0.4.4.0
   - servant-auth-swagger
   - servant-blaze
   - servant-cassava
   - servant-client
+  - servant-ekg
+  - servant-flatten
   - servant-job
   - servant-mock
   - servant-multipart
@@ -219,15 +239,18 @@ library:
   - split
   - stemmer
   - swagger2
+  - taggy-lens
   - tagsoup
   - template-haskell
   - temporary
+  - text-conversions
   - text-metrics
   - time
   - time-locale-compat
   - timezone-series
   - transformers
   - transformers-base
+  - tuple
   - unordered-containers
   - utf8-string
   - uuid
@@ -237,7 +260,10 @@ library:
   - wai-app-static
   - wai-cors
   - wai-extra
+  - wai-websockets
   - warp
+  - wikiparsec
+  - websockets
   - wreq
   - xml-conduit
   - xml-types
@@ -257,6 +283,7 @@ executables:
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N
+    - -with-rtsopts=-T
     - -fprof-auto
     dependencies:
       - base
@@ -352,19 +379,19 @@ executables:
       - gargantext-prelude
       - base
 
-  gargantext-upgrade:
-    main: Main.hs
-    source-dirs: bin/gargantext-upgrade
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -O2
-    - -Wmissing-signatures
-    dependencies:
-      - gargantext
-      - gargantext-prelude
-      - base
+#  gargantext-upgrade:
+#    main: Main.hs
+#    source-dirs: bin/gargantext-upgrade
+#    ghc-options:
+#    - -threaded
+#    - -rtsopts
+#    - -with-rtsopts=-N
+#    - -O2
+#    - -Wmissing-signatures
+#    dependencies:
+#      - gargantext
+#      - gargantext-prelude
+#      - base
 
   gargantext-admin:
     main: Main.hs
@@ -379,6 +406,7 @@ executables:
       - gargantext
       - gargantext-prelude
       - base
+
 
   gargantext-cbor2json:
     main: Main.hs

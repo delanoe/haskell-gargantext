@@ -48,7 +48,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Prelude (fromField')
 import Gargantext.Prelude
-import Opaleye (DefaultFromField, defaultFromField, PGJsonb, fieldQueryRunnerColumn, Nullable)
+import Opaleye (DefaultFromField, defaultFromField, Nullable, SqlJsonb, fromPGSFromField)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary hiding (vector)
 

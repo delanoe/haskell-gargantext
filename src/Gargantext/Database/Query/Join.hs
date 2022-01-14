@@ -33,12 +33,18 @@ module Gargantext.Database.Query.Join ( leftJoin2
                                       )
   where
 
-import Control.Arrow ((>>>))
+import Control.Arrow ((>>>), returnA)
 import Data.Profunctor.Product.Default
 import Gargantext.Prelude
-import Opaleye
+import Opaleye hiding (keepWhen)
 import Opaleye.Internal.Join (NullMaker(..))
 import qualified Opaleye.Internal.Unpackspec()
+
+
+keepWhen :: (a -> Field SqlBool) -> SelectArr a a  
+keepWhen p = proc a -> do
+  restrict  -< p a
+  returnA -< a
 
 ------------------------------------------------------------------------
 leftJoin2 :: (Default Unpackspec fieldsL fieldsL,
@@ -46,15 +52,15 @@ leftJoin2 :: (Default Unpackspec fieldsL fieldsL,
               Default NullMaker fieldsR nullableFieldsR) =>
              Select fieldsL
              -> Select fieldsR
-             -> ((fieldsL, fieldsR) -> Column PGBool)
+             -> ((fieldsL, fieldsR) -> Column SqlBool)
              -> Select (fieldsL, nullableFieldsR)
 leftJoin2 = leftJoin
 
 ------------------------------------------------------------------------
 -- | LeftJoin3 in two ways to write it
-_leftJoin3 :: Query columnsA -> Query columnsB -> Query columnsC
-      -> ((columnsA, columnsB, columnsC) -> Column PGBool) 
-      -> Query (columnsA, columnsB, columnsC)
+_leftJoin3 :: Select columnsA -> Select columnsB -> Select columnsC
+      -> ((columnsA, columnsB, columnsC) -> Column SqlBool) 
+      -> Select (columnsA, columnsB, columnsC)
 _leftJoin3 q1 q2 q3 cond = ((,,) <$> q1 <*> q2 <*> q3) >>> keepWhen cond
 
 
@@ -68,8 +74,8 @@ leftJoin3 :: ( Default Unpackspec b2 b2
              Select fieldsR
              -> Select b3
              -> Select fieldsL
-             -> ((b3, fieldsR) -> Column PGBool)
-             -> ((fieldsL, (b3, b2)) -> Column PGBool)
+             -> ((b3, fieldsR) -> Column SqlBool)
+             -> ((fieldsL, (b3, b2)) -> Column SqlBool)
              -> Select (fieldsL, (b4, b5))
 
 leftJoin3 q1 q2     q3
@@ -88,9 +94,9 @@ leftJoin4 :: (Default Unpackspec b2 b2,
              -> Select b3
              -> Select b2
              -> Select fieldsL
-             -> ((b3, fieldsR) -> Column PGBool)
-             -> ((b2, (b3, b4)) -> Column PGBool)
-             -> ((fieldsL, (b2, (b5, b6))) -> Column PGBool)
+             -> ((b3, fieldsR) -> Column SqlBool)
+             -> ((b2, (b3, b4)) -> Column SqlBool)
+             -> ((fieldsL, (b2, (b5, b6))) -> Column SqlBool)
              -> Select (fieldsL, (b7, (b8, b9)))
 leftJoin4 q1 q2     q3     q4
          cond12 cond23 cond34 =
@@ -117,10 +123,10 @@ leftJoin5 :: (Default Unpackspec b2 b2, Default Unpackspec b3 b3,
            -> Select b7
            -> Select b8
            -> Select fieldsL
-           -> ((b5, fieldsR) -> Column PGBool)
-           -> ((b7, (b5, b4)) -> Column PGBool)
-           -> ((b8, (b7, (b9, b10))) -> Column PGBool)
-           -> ((fieldsL, (b8, (b6, (b3, b2)))) -> Column PGBool)
+           -> ((b5, fieldsR) -> Column SqlBool)
+           -> ((b7, (b5, b4)) -> Column SqlBool)
+           -> ((b8, (b7, (b9, b10))) -> Column SqlBool)
+           -> ((fieldsL, (b8, (b6, (b3, b2)))) -> Column SqlBool)
            -> Select (fieldsL, (b12, (b11, (b13, b14))))
 leftJoin5 q1 q2     q3     q4     q5
          cond12 cond23 cond34 cond45 =
@@ -155,11 +161,11 @@ leftJoin6 :: (Default Unpackspec b2 b2, Default Unpackspec b3 b3,
              -> Select b5
              -> Select b6
              -> Select fieldsL
-             -> ((b8, fieldsR) -> Column PGBool)
-             -> ((b3, (b8, b9)) -> Column PGBool)
-             -> ((b5, (b3, (b14, b15))) -> Column PGBool)
-             -> ((b6, (b5, (b7, (b10, b11)))) -> Column PGBool)
-             -> ((fieldsL, (b6, (b4, (b2, (b12, b13))))) -> Column PGBool)
+             -> ((b8, fieldsR) -> Column SqlBool)
+             -> ((b3, (b8, b9)) -> Column SqlBool)
+             -> ((b5, (b3, (b14, b15))) -> Column SqlBool)
+             -> ((b6, (b5, (b7, (b10, b11)))) -> Column SqlBool)
+             -> ((fieldsL, (b6, (b4, (b2, (b12, b13))))) -> Column SqlBool)
              -> Select (fieldsL, (b17, (b16, (b18, (b19, b20)))))
 leftJoin6 q1 q2     q3     q4     q5     q6
          cond12 cond23 cond34 cond45 cond56 =
@@ -203,13 +209,13 @@ leftJoin7 :: (Default Unpackspec b2 b2, Default Unpackspec b3 b3,
              -> Select b14
              -> Select b13
              -> Select fieldsL
-             -> ((b7, fieldsR) -> Column PGBool)
-             -> ((b11, (b7, b6)) -> Column PGBool)
-             -> ((b16, (b11, (b20, b21))) -> Column PGBool)
-             -> ((b14, (b16, (b8, (b5, b4)))) -> Column PGBool)
-             -> ((b13, (b14, (b12, (b10, (b18, b19))))) -> Column PGBool)
+             -> ((b7, fieldsR) -> Column SqlBool)
+             -> ((b11, (b7, b6)) -> Column SqlBool)
+             -> ((b16, (b11, (b20, b21))) -> Column SqlBool)
+             -> ((b14, (b16, (b8, (b5, b4)))) -> Column SqlBool)
+             -> ((b13, (b14, (b12, (b10, (b18, b19))))) -> Column SqlBool)
              -> ((fieldsL, (b13, (b15, (b17, (b9, (b3, b2))))))
-                 -> Column PGBool)
+                 -> Column SqlBool)
              -> Select (fieldsL, (b24, (b25, (b23, (b22, (b26, b27))))))
 leftJoin7 q1 q2     q3     q4     q5     q6     q7
          cond12 cond23 cond34 cond45 cond56 cond67 =
@@ -263,14 +269,14 @@ leftJoin8 :: (Default Unpackspec b2 b2, Default Unpackspec b3 b3,
              -> Select b11
              -> Select b10
              -> Select fieldsL
-             -> ((b17, fieldsR) -> Column PGBool)
-             -> ((b4, (b17, b18)) -> Column PGBool)
-             -> ((b8, (b4, (b27, b28))) -> Column PGBool)
-             -> ((b13, (b8, (b16, (b19, b20)))) -> Column PGBool)
-             -> ((b11, (b13, (b5, (b3, (b25, b26))))) -> Column PGBool)
-             -> ((b10, (b11, (b9, (b7, (b15, (b21, b22)))))) -> Column PGBool)
+             -> ((b17, fieldsR) -> Column SqlBool)
+             -> ((b4, (b17, b18)) -> Column SqlBool)
+             -> ((b8, (b4, (b27, b28))) -> Column SqlBool)
+             -> ((b13, (b8, (b16, (b19, b20)))) -> Column SqlBool)
+             -> ((b11, (b13, (b5, (b3, (b25, b26))))) -> Column SqlBool)
+             -> ((b10, (b11, (b9, (b7, (b15, (b21, b22)))))) -> Column SqlBool)
              -> ((fieldsL, (b10, (b12, (b14, (b6, (b2, (b23, b24)))))))
-                 -> Column PGBool)
+                 -> Column SqlBool)
              -> Select (fieldsL, (b31, (b32, (b30, (b29, (b33, (b34, b35)))))))
 leftJoin8 q1 q2     q3     q4     q5     q6     q7     q8
          cond12 cond23 cond34 cond45 cond56 cond67 cond78 =
@@ -336,16 +342,16 @@ leftJoin9 :: (Default Unpackspec b2 b2, Default Unpackspec b3 b3,
            -> Select b21
            -> Select b22
            -> Select fieldsL
-           -> ((b9, fieldsR) -> Column PGBool)
-           -> ((b15, (b9, b8)) -> Column PGBool)
-           -> ((b28, (b15, (b35, b36))) -> Column PGBool)
-           -> ((b24, (b28, (b10, (b7, b6)))) -> Column PGBool)
-           -> ((b19, (b24, (b16, (b14, (b33, b34))))) -> Column PGBool)
-           -> ((b21, (b19, (b27, (b29, (b11, (b5, b4)))))) -> Column PGBool)
+           -> ((b9, fieldsR) -> Column SqlBool)
+           -> ((b15, (b9, b8)) -> Column SqlBool)
+           -> ((b28, (b15, (b35, b36))) -> Column SqlBool)
+           -> ((b24, (b28, (b10, (b7, b6)))) -> Column SqlBool)
+           -> ((b19, (b24, (b16, (b14, (b33, b34))))) -> Column SqlBool)
+           -> ((b21, (b19, (b27, (b29, (b11, (b5, b4)))))) -> Column SqlBool)
            -> ((b22, (b21, (b23, (b25, (b17, (b13, (b31, b32)))))))
-               -> Column PGBool)
+               -> Column SqlBool)
            -> ((fieldsL, (b22, (b20, (b18, (b26, (b30, (b12, (b3, b2))))))))
-               -> Column PGBool)
+               -> Column SqlBool)
            -> Select
                 (fieldsL, (b40, (b39, (b41, (b42, (b38, (b37, (b43, b44))))))))
 leftJoin9   q1 q2    q3     q4     q5     q6      q7    q8     q9

@@ -65,14 +65,15 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
 import qualified Data.Map as Map
 
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import Gargantext.Core (Lang(..), PosTagAlgo(..))
 import Gargantext.Core.Ext.IMT (toSchoolName)
 import Gargantext.Core.Ext.IMTUser (readFile_Annuaire)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
-import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
 import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Core.Text.List (buildNgramsLists)
+import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
 import Gargantext.Core.Text.List.Social (FlowSocialListWith)
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
@@ -154,11 +155,12 @@ flowDataText :: ( FlowCmdM env err m
                 -> TermType Lang
                 -> CorpusId
                 -> Maybe FlowSocialListWith
+                -> (JobLog -> m ())
                 -> m CorpusId
-flowDataText u (DataOld ids) tt cid mfslw = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids mfslw
+flowDataText u (DataOld ids) tt cid mfslw _ = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids mfslw
   where
     corpusType = (Nothing :: Maybe HyperdataCorpus)
-flowDataText u (DataNew txt) tt cid mfslw = flowCorpus u (Right [cid]) tt mfslw txt
+flowDataText u (DataNew txt) tt cid mfslw logStatus = flowCorpus u (Right [cid]) tt mfslw txt logStatus
 
 ------------------------------------------------------------------------
 -- TODO use proxy
@@ -167,10 +169,11 @@ flowAnnuaire :: (FlowCmdM env err m)
              -> Either CorpusName [CorpusId]
              -> (TermType Lang)
              -> FilePath
+             -> (JobLog -> m ())
              -> m AnnuaireId
-flowAnnuaire u n l filePath = do
+flowAnnuaire u n l filePath logStatus = do
   docs <- liftBase $ (( splitEvery 500 <$> readFile_Annuaire filePath) :: IO [[HyperdataContact]])
-  flow (Nothing :: Maybe HyperdataAnnuaire) u n l Nothing docs
+  flow (Nothing :: Maybe HyperdataAnnuaire) u n l Nothing docs logStatus
 
 ------------------------------------------------------------------------
 flowCorpusFile :: (FlowCmdM env err m)
@@ -179,13 +182,14 @@ flowCorpusFile :: (FlowCmdM env err m)
            -> Limit -- Limit the number of docs (for dev purpose)
            -> TermType Lang -> FileFormat -> FilePath
            -> Maybe FlowSocialListWith
+           -> (JobLog -> m ())
            -> m CorpusId
-flowCorpusFile u n l la ff fp mfslw = do
+flowCorpusFile u n l la ff fp mfslw logStatus = do
   eParsed <- liftBase $ parseFile ff fp
   case eParsed of
     Right parsed -> do
       let docs = splitEvery 500 $ take l parsed
-      flowCorpus u n la mfslw (map (map toHyperdataDocument) docs)
+      flowCorpus u n la mfslw (map (map toHyperdataDocument) docs) logStatus
     Left e       -> panic $ "Error: " <> (T.pack e)
 
 ------------------------------------------------------------------------
@@ -197,6 +201,7 @@ flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
            -> TermType Lang
            -> Maybe FlowSocialListWith
            -> [[a]]
+           -> (JobLog -> m ())
            -> m CorpusId
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
 
@@ -211,10 +216,19 @@ flow :: ( FlowCmdM env err m
         -> TermType Lang
         -> Maybe FlowSocialListWith
         -> [[a]]
+        -> (JobLog -> m ())
         -> m CorpusId
-flow c u cn la mfslw docs = do
+flow c u cn la mfslw docs logStatus = do
   -- TODO if public insertMasterDocs else insertUserDocs
-  ids <- traverse (insertMasterDocs c la) docs
+  ids <- traverse (\(idx, doc) -> do
+                      id <- insertMasterDocs c la doc
+                      logStatus JobLog { _scst_succeeded = Just $ 1 + idx
+                                       , _scst_failed    = Just 0
+                                       , _scst_remaining = Just $ length docs - idx
+                                       , _scst_events    = Just []
+                                       }
+                      pure id
+                  ) (zip [1..] docs)
   flowCorpusUser (la ^. tt_lang) u cn c (concat ids) mfslw
 
 ------------------------------------------------------------------------

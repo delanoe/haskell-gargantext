@@ -30,7 +30,7 @@ import Data.Map (fromList, lookup)
 import Data.Text (Text, splitOn, pack, strip)
 import Gargantext.Core.Types (TODO(..), Typed(..))
 import Gargantext.Prelude
-import Servant (FromHttpApiData, parseUrlPiece, Proxy(..))
+import Servant (FromHttpApiData(..), Proxy(..), ToHttpApiData(..))
 import Text.Read (read)
 import Gargantext.Database.Types
 import Gargantext.Database.Schema.Prelude
@@ -46,17 +46,17 @@ data NgramsPoly id terms n = NgramsDB { _ngrams_id    :: !id
                                       , _ngrams_n     :: !n
                                       } deriving (Show)
 
-type NgramsWrite = NgramsPoly (Maybe (Column PGInt4))
-                                   (Column PGText)
-                                   (Column PGInt4)
+type NgramsWrite = NgramsPoly (Maybe (Column SqlInt4))
+                                   (Column SqlText)
+                                   (Column SqlInt4)
 
-type NgramsRead  = NgramsPoly (Column PGInt4)
-                              (Column PGText)
-                              (Column PGInt4)
+type NgramsRead  = NgramsPoly (Column SqlInt4)
+                              (Column SqlText)
+                              (Column SqlInt4)
 
-type NgramsReadNull = NgramsPoly (Column (Nullable PGInt4))
-                                 (Column (Nullable PGText))
-                                 (Column (Nullable PGInt4))
+type NgramsReadNull = NgramsPoly (Column (Nullable SqlInt4))
+                                 (Column (Nullable SqlText))
+                                 (Column (Nullable SqlInt4))
 
 type NgramsDB = NgramsPoly Int Text Int
 
@@ -112,19 +112,21 @@ instance ToJSONKey NgramsType where
 
 instance FromHttpApiData NgramsType where
   parseUrlPiece n = pure $ (read . cs) n
+instance ToHttpApiData NgramsType where
+  toUrlPiece = pack . show
 
 instance ToParamSchema NgramsType where
   toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
 
 
-instance DefaultFromField (Nullable PGInt4) NgramsTypeId
+instance DefaultFromField (Nullable SqlInt4) NgramsTypeId
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-pgNgramsType :: NgramsType -> Column PGInt4
+pgNgramsType :: NgramsType -> Column SqlInt4
 pgNgramsType = pgNgramsTypeId . ngramsTypeId
 
-pgNgramsTypeId :: NgramsTypeId -> Column PGInt4
+pgNgramsTypeId :: NgramsTypeId -> Column SqlInt4
 pgNgramsTypeId (NgramsTypeId n) = sqlInt4 n
 
 ngramsTypeId :: NgramsType -> NgramsTypeId

@@ -23,17 +23,19 @@ import Codec.Serialise (Serialise())
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
+import qualified Data.Csv as Csv
 import Data.Either
 import Data.Hashable (Hashable)
+import Data.Morpheus.Types (GQLType)
 import Data.Swagger
-import Data.Text (Text, unpack)
+import Data.Text (Text, unpack, pack)
 import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Database.PostgreSQL.Simple.ToField (ToField, toField)
 import GHC.Generics (Generic)
 import Servant
 import qualified Opaleye as O
-import Opaleye (DefaultFromField, defaultFromField, PGInt4, PGText, PGTSVector, Nullable, fieldQueryRunnerColumn)
+import Opaleye (DefaultFromField, defaultFromField, SqlInt4, SqlText, SqlTSVector, Nullable, fromPGSFromField)
 import Test.QuickCheck (elements)
 import Gargantext.Prelude.Crypto.Hash (Hash)
 import Test.QuickCheck.Arbitrary
@@ -143,7 +145,7 @@ instance (Arbitrary hyperdata
                            <*> arbitrary
 
 ------------------------------------------------------------------------
-pgNodeId :: NodeId -> O.Column O.PGInt4
+pgNodeId :: NodeId -> O.Column O.SqlInt4
 pgNodeId = O.sqlInt4 . id2int
   where
     id2int :: NodeId -> Int
@@ -151,7 +153,8 @@ pgNodeId = O.sqlInt4 . id2int
 
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
-  deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable)
+  deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
+instance GQLType NodeId
 instance Show NodeId where
   show (NodeId n) = "nodeId-" <> show n
 instance Serialise NodeId
@@ -164,6 +167,8 @@ instance FromField NodeId where
        then return $ NodeId n
        else mzero
 instance ToSchema NodeId
+--instance Csv.ToField NodeId where
+--  toField (NodeId nodeId) = Csv.toField nodeId
 
 unNodeId :: NodeId -> Int
 unNodeId (NodeId n) = n
@@ -176,7 +181,8 @@ type TSVector     = Text
 ------------------------------------------------------------------------
 instance FromHttpApiData NodeId where
   parseUrlPiece n = pure $ NodeId $ (read . cs) n
-
+instance ToHttpApiData NodeId where
+  toUrlPiece (NodeId n) = toUrlPiece n
 instance ToParamSchema NodeId
 instance Arbitrary NodeId where
   arbitrary = NodeId <$> arbitrary
@@ -328,9 +334,10 @@ defaultName NodeFile          = "File"
 instance FromJSON NodeType
 instance ToJSON NodeType
 
-instance FromHttpApiData NodeType
-  where
-      parseUrlPiece = Right . read . unpack
+instance FromHttpApiData NodeType where
+  parseUrlPiece = Right . read . unpack
+instance ToHttpApiData NodeType where
+  toUrlPiece = pack . show
 
 instance ToParamSchema NodeType
 instance ToSchema      NodeType
@@ -353,28 +360,28 @@ instance FromField (NodeId, Text)
     fromField = fromField'
 -}
 ------------------------------------------------------------------------
-instance DefaultFromField PGTSVector (Maybe TSVector)
+instance DefaultFromField SqlTSVector (Maybe TSVector)
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGInt4 (Maybe NodeId)
+instance DefaultFromField SqlInt4 (Maybe NodeId)
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGInt4 NodeId
+instance DefaultFromField SqlInt4 NodeId
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField (Nullable PGInt4) NodeId
+instance DefaultFromField (Nullable SqlInt4) NodeId
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance (DefaultFromField (Nullable O.PGTimestamptz) UTCTime)
+instance (DefaultFromField (Nullable O.SqlTimestamptz) UTCTime)
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGText (Maybe Hash)
+instance DefaultFromField SqlText (Maybe Hash)
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
 

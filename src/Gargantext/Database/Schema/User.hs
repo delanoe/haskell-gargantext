@@ -13,20 +13,23 @@ Functions to deal with users, database side.
 
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
+{-# LANGUAGE DeriveAnyClass              #-}
 {-# LANGUAGE FunctionalDependencies      #-}
 {-# LANGUAGE Arrows                      #-}
-{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TemplateHaskell             #-}
 
 module Gargantext.Database.Schema.User where
 
+import Data.Morpheus.Types (GQLType(typeOptions))
 import Data.Text (Text)
 import Data.Time (UTCTime)
+import qualified Gargantext.API.GraphQL.Utils as GAGU
+import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Database.Prelude (fromField')
 import Gargantext.Prelude
 import GHC.Generics (Generic)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Data.Aeson.TH (deriveJSON)
-import Gargantext.Database.Prelude (fromField')
-import Gargantext.Core.Utils.Prefix (unPrefix)
 
 -- FIXME PLZ : the import below leads to an error, why ?
 -- import Gargantext.Database.Schema.Prelude hiding (makeLensesWith, abbreviatedFields, makeAdaptorAndInstance)
@@ -35,13 +38,16 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Opaleye hiding (FromField)
-
+import Opaleye.Internal.Table (Table(..))
 ------------------------------------------------------------------------
 data UserLight = UserLight { userLight_id       :: !Int
                            , userLight_username :: !Text
                            , userLight_email    :: !Text
                            , userLight_password :: !Text
                            } deriving (Show, Generic)
+
+instance GQLType UserLight where
+  typeOptions _ = GAGU.unPrefix "userLight_"
 
 toUserLight :: UserDB -> UserLight
 toUserLight (UserDB id p _ _ u _ _ e _ _ _ ) = UserLight id u e p
@@ -66,26 +72,26 @@ data UserPoly id pass llogin suser
            } deriving (Show, Generic)
 
 
-type UserWrite = UserPoly (Maybe (Column PGInt4))        (Column PGText)
-                          (Maybe (Column PGTimestamptz)) (Column PGBool)
-                                 (Column PGText)         (Column PGText)
-                                 (Column PGText)         (Column PGText)
-                                 (Column PGBool)         (Column PGBool)
-                                 (Maybe (Column PGTimestamptz))
+type UserWrite = UserPoly (Maybe (Column SqlInt4))        (Column SqlText)
+                          (Maybe (Column SqlTimestamptz)) (Column SqlBool)
+                                 (Column SqlText)         (Column SqlText)
+                                 (Column SqlText)         (Column SqlText)
+                                 (Column SqlBool)         (Column SqlBool)
+                                 (Maybe (Column SqlTimestamptz))
 
-type UserRead  = UserPoly        (Column PGInt4)         (Column PGText)
-                                 (Column PGTimestamptz)  (Column PGBool)
-                                 (Column PGText)         (Column PGText)
-                                 (Column PGText)         (Column PGText)
-                                 (Column PGBool)         (Column PGBool)
-                                 (Column PGTimestamptz)
+type UserRead  = UserPoly        (Column SqlInt4)         (Column SqlText)
+                                 (Column SqlTimestamptz)  (Column SqlBool)
+                                 (Column SqlText)         (Column SqlText)
+                                 (Column SqlText)         (Column SqlText)
+                                 (Column SqlBool)         (Column SqlBool)
+                                 (Column SqlTimestamptz)
 
-type UserReadNull = UserPoly     (Column (Nullable PGInt4))         (Column (Nullable PGText))
-                                 (Column (Nullable PGTimestamptz))  (Column (Nullable PGBool))
-                                 (Column (Nullable PGText))         (Column (Nullable PGText))
-                                 (Column (Nullable PGText))         (Column (Nullable PGText))
-                                 (Column (Nullable PGBool))         (Column (Nullable PGBool))
-                                 (Column (Nullable PGTimestamptz))
+type UserReadNull = UserPoly     (Column (Nullable SqlInt4))         (Column (Nullable SqlText))
+                                 (Column (Nullable SqlTimestamptz))  (Column (Nullable SqlBool))
+                                 (Column (Nullable SqlText))         (Column (Nullable SqlText))
+                                 (Column (Nullable SqlText))         (Column (Nullable SqlText))
+                                 (Column (Nullable SqlBool))         (Column (Nullable SqlBool))
+                                 (Column (Nullable SqlTimestamptz))
 
 type UserDB = UserPoly Int Text (Maybe UTCTime) Bool Text Text Text Text Bool Bool UTCTime
 

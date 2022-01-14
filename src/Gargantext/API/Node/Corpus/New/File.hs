@@ -63,8 +63,15 @@ instance FromHttpApiData FileType
     parseUrlPiece "CSV_HAL"   = pure CSV_HAL
     parseUrlPiece "PresseRis" = pure PresseRIS
     parseUrlPiece "ZIP"       = pure ZIP
+    parseUrlPiece "WOS"       = pure WOS
     parseUrlPiece _           = pure CSV -- TODO error here
-
+instance ToHttpApiData FileType where
+  toUrlPiece t = case t of
+    CSV -> "CSV"
+    CSV_HAL -> "CSV_HAL"
+    PresseRIS -> "PresseRis"
+    ZIP -> "ZIP"
+    WOS -> "WOS"
 
 instance (ToParamSchema a, HasSwagger sub) =>
          HasSwagger (MultipartForm tag a :> sub) where

@@ -39,6 +39,7 @@ import Gargantext.Core.Viz.LegacyPhylo
 import Gargantext.Core.Viz.Phylo.Legacy.LegacyMain
 -- import Gargantext.Core.Viz.Phylo.Example
 import Gargantext.Core.Types (TODO(..))
+import Data.Either
 
 ------------------------------------------------------------------------
 type PhyloAPI = Summary "Phylo API"
@@ -65,11 +66,14 @@ instance Show SVG where
 instance Accept SVG where
    contentType _ = "SVG" // "image/svg+xml" /: ("charset", "utf-8")
 
-instance Show a => MimeRender PlainText a where
-   mimeRender _ val = cs ("" <> show val)
+--instance Show a => MimeRender PlainText a where
+--   mimeRender _ val = cs ("" <> show val)
 
 instance MimeRender SVG SVG where
    mimeRender _ (SVG s) = DBL.fromStrict s
+
+instance MimeUnrender SVG SVG where
+   mimeUnrender _ lbs = Right $ SVG (DBL.toStrict lbs)
 
 ------------------------------------------------------------------------
 type GetPhylo =  QueryParam "listId"      ListId

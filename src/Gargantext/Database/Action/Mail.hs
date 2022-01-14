@@ -14,21 +14,23 @@ module Gargantext.Database.Action.Mail
   where
 
 import Control.Lens (view)
-import Gargantext.Prelude
+import Gargantext.Core.Mail (mail, MailModel(..))
+import Gargantext.Core.Mail.Types (mailSettings)
+import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Action.User
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
-import Gargantext.Core.Mail
-import Gargantext.Prelude.Config
 import Gargantext.Database.Schema.User
-import Gargantext.Database.Action.User
-import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 
-sendMail :: HasNodeError err => User -> Cmd err ()
+sendMail :: (HasNodeError err, CmdM env err m) => User -> m ()
 sendMail u = do
-  server <- view $ hasConfig . gc_url
+  cfg       <- view $ mailSettings
   userLight <- getUserLightDB u
-  liftBase $ mail server (MailInfo { mailInfo_username = userLight_username userLight
-                                   , mailInfo_address = userLight_email userLight })
+  mail cfg (MailInfo { mailInfo_username = userLight_username userLight
+                     , mailInfo_address  = userLight_email    userLight
+                     }
+           )
 

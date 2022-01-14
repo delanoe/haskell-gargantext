@@ -35,12 +35,12 @@ mergeNgramsElement _neOld neNew = neNew
 
 type RootTerm = NgramsTerm
 
-
+{-
 getRepo :: RepoCmdM env err m => m NgramsRepo
 getRepo = do
   v <- view repoVar
   liftBase $ readMVar v
-
+-}
 
 getRepo' :: HasNodeStory env err m
          => [ListId] -> m NodeListStory

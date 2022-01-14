@@ -56,6 +56,6 @@ instance ToSchema HyperdataPhylo where
 instance FromField HyperdataPhylo where
     fromField = fromField'
 
-instance DefaultFromField PGJsonb HyperdataPhylo
+instance DefaultFromField SqlJsonb HyperdataPhylo
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField

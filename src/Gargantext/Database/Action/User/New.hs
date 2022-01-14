@@ -16,24 +16,25 @@ module Gargantext.Database.Action.User.New
 import Control.Lens (view)
 import Control.Monad.Random
 import Data.Text (Text, splitOn)
+import qualified Data.Text as Text
 import Gargantext.Core.Mail
+import Gargantext.Core.Mail.Types (HasMail, mailSettings)
 import Gargantext.Core.Types.Individu
 import Gargantext.Database.Action.Flow (getOrMkRoot)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..), nodeError, NodeError(..))
 import Gargantext.Database.Query.Table.User
 import Gargantext.Prelude
-import Gargantext.Prelude.Config
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
-import qualified Data.Text as Text
+import Gargantext.Prelude.Mail.Types (MailConfig)
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-newUsers :: (CmdM env err m, MonadRandom m, HasNodeError err)
+newUsers :: (CmdM env err m, MonadRandom m, HasNodeError err, HasMail env)
          => [EmailAddress] -> m Int64
 newUsers us = do
   us' <- mapM newUserQuick us
-  url <- view $ hasConfig . gc_url
-  newUsers' url us'
+  config <- view $ mailSettings
+  newUsers' config us'
 ------------------------------------------------------------------------
 newUserQuick :: (MonadRandom m)
              => Text -> m (NewUser GargPassword)
@@ -54,27 +55,27 @@ guessUserName n = case splitOn "@" n of
     _       -> Nothing
 ------------------------------------------------------------------------
 newUser' :: HasNodeError err
-        => ServerAddress -> NewUser GargPassword -> Cmd err Int64
-newUser' address u = newUsers' address [u]
+        => MailConfig -> NewUser GargPassword -> Cmd err Int64
+newUser' cfg u = newUsers' cfg [u]
 
 newUsers' :: HasNodeError err
-         => ServerAddress -> [NewUser GargPassword] -> Cmd err Int64
-newUsers' address us = do
+         => MailConfig -> [NewUser GargPassword] -> Cmd err Int64
+newUsers' cfg us = do
   us' <- liftBase         $ mapM toUserHash  us
   r   <- insertUsers      $ map  toUserWrite us'
   _   <- mapM getOrMkRoot $ map  (\u -> UserName   (_nu_username u)) us
-  _   <- liftBase         $ mapM (\u -> mail address (Invitation u)) us
+  _   <- mapM (\u -> mail cfg (Invitation u)) us
   printDebug "newUsers'" us
   pure r
 ------------------------------------------------------------------------
 
 updateUser :: HasNodeError err
-           => SendEmail -> Text -> NewUser GargPassword -> Cmd err Int64
-updateUser (SendEmail send) server u = do
+           => SendEmail -> MailConfig -> NewUser GargPassword -> Cmd err Int64
+updateUser (SendEmail send) cfg u = do
   u' <- liftBase     $ toUserHash   u
   n  <- updateUserDB $ toUserWrite  u'
   _  <- case send of
-     True  -> liftBase     $ mail server (PassUpdate u)
+     True  -> mail cfg (PassUpdate u)
      False -> pure ()
   pure n
 

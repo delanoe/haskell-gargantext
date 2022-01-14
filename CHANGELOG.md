@@ -1,3 +1,64 @@
+## Version 0.0.4.9.9.4
+* [FEAT] Corpus docs download
+
+## Version 0.0.4.9.9.3
+* [BACK] Graph update with force option
+
+## Version 0.0.4.9.9.2
+* [BACK] Opaleye Upgrade
+
+## Version 0.0.4.9.9.1
+* [FRONT] 350-dev-graph-search-in-forms-not-labels
+* [FRONT] 359-dev-input-with-autocomplete
+
+## Version 0.0.4.9.9
+* [FIX] Continuous Integration (CI)
+
+## Version 0.0.4.9.8
+* [FEAT] All backend routes with clients functions
+
+## Version 0.0.4.9.7
+* [FEAT] Searx API done (needs a fix for language selection)
+
+## Version 0.0.4.9.6
+* [UX] GT.query forces trees reload for async tasks
+
+## Version 0.0.4.9.5
+* [FEAT] Order 2 fixed with filtered edges
+
+## Version 0.0.4.9.4
+* [FEAT] Order 1 similarity validated and optimized
+
+## Version 0.0.4.9.3
+* [FIX] Node Calc import + more flexible delimiter for CSV parser
+
+## Version 0.0.4.9.2
+* [FEAT] Node Calc Parsing added (in tests)
+
+## Version 0.0.4.9.1
+* [FIX] Graph Screenshot
+
+## Version 0.0.4.9
+* [FEAT] Graph with order 1 and order 2 and node size
+
+## Version 0.0.4.8.9
+* BACKEND: fix psql function util without sensitive data
+* FRONTEND: fix folder navigation (up link)
+
+## Version 0.0.4.8.8
+* FIX for CI
+
+## Version 0.0.4.8.7
+* FIX the graph generation (automatic/default, renewal, any distance)
+
+## Version 0.0.4.8.6
+* FIX the ngrams grouping
+
+## Version 0.0.4.8.5
+* Unary document insertion: Doc table is reloaded after upload
+
+## Version 0.0.4.8.4
+* Migration: instance dev is now dev.sub.gargantext.org
 
 ## Version 0.0.4.1
 * Refact/code design better syntax for DataType fields

@@ -32,20 +32,20 @@ data NodeNodePoly node1_id node2_id score cat
                               , _nn_category   :: !cat
                               } deriving (Show)
 
-type NodeNodeWrite     = NodeNodePoly (Column (PGInt4))
-                                      (Column (PGInt4))
-                                      (Maybe  (Column (PGFloat8)))
-                                      (Maybe  (Column (PGInt4)))
+type NodeNodeWrite     = NodeNodePoly (Column (SqlInt4))
+                                      (Column (SqlInt4))
+                                      (Maybe  (Column (SqlFloat8)))
+                                      (Maybe  (Column (SqlInt4)))
 
-type NodeNodeRead      = NodeNodePoly (Column (PGInt4))
-                                      (Column (PGInt4))
-                                      (Column (PGFloat8))
-                                      (Column (PGInt4))
+type NodeNodeRead      = NodeNodePoly (Column (SqlInt4))
+                                      (Column (SqlInt4))
+                                      (Column (SqlFloat8))
+                                      (Column (SqlInt4))
 
-type NodeNodeReadNull  = NodeNodePoly (Column (Nullable PGInt4))
-                                      (Column (Nullable PGInt4))
-                                      (Column (Nullable PGFloat8))
-                                      (Column (Nullable PGInt4))
+type NodeNodeReadNull  = NodeNodePoly (Column (Nullable SqlInt4))
+                                      (Column (Nullable SqlInt4))
+                                      (Column (Nullable SqlFloat8))
+                                      (Column (Nullable SqlInt4))
 
 type NodeNode = NodeNodePoly NodeId NodeId (Maybe Double) (Maybe Int)
 
@@ -63,18 +63,18 @@ nodeNodeTable  =
                     }
                 )
 
-instance DefaultFromField (Nullable PGInt4)   Int            where
-    defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField (Nullable SqlInt4)   Int            where
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField (Nullable PGFloat8) Int            where
-    defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField (Nullable SqlFloat8) Int            where
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField (Nullable PGFloat8) Double         where
-    defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField (Nullable SqlFloat8) Double         where
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGFloat8            (Maybe Double) where
-    defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField SqlFloat8            (Maybe Double) where
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGInt4              (Maybe Int)    where
-    defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField SqlInt4              (Maybe Int)    where
+    defaultFromField = fromPGSFromField
 

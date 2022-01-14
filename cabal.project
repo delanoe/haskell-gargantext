@@ -1,8 +1,39 @@
 packages: .
+          -- ../servant-job
+          -- ../ekg-json
+          -- ../../../code/servant/servant
+          -- ../../../code/servant/servant-server
+          -- ../../../code/servant/servant-client-core
+          -- ../../../code/servant/servant-client
+          -- ../../../code/servant/servant-auth/servant-auth
+          -- ../../../code/servant/servant-auth/servant-auth-client
+          -- ../../../code/servant/servant-auth/servant-auth-server
 
-allow-newer: base, accelerate
+allow-newer: base, accelerate, servant, time
 
 -- Patches
+source-repository-package
+  type: git
+  location: https://github.com/alpmestan/servant-job.git
+  tag: ceb251b91e8ec1804198422a3cdbdab08d843b79
+
+source-repository-package
+  type: git
+  location: https://github.com/alpmestan/ekg-json.git
+  tag: c7bde4851a7cd41b3f3debf0c57f11bbcb11d698
+
+source-repository-package
+  type: git
+  location: https://github.com/haskell-servant/servant.git
+  tag: c2af6e775d1d36f2011d43aff230bb502f8fba63
+  subdir: servant/
+          servant-server/
+          servant-client-core/
+          servant-client/
+          servant-auth/servant-auth/
+          servant-auth/servant-auth-client/
+          servant-auth/servant-auth-server/
+
 source-repository-package
   type: git
   location: https://github.com/delanoe/patches-map.git
@@ -12,6 +43,11 @@ source-repository-package
   type: git
   location: https://gitlab.iscpif.fr/gargantext/patches-class.git
   tag: 271ba32d6c940029dc653354dd7974a819f48e77
+
+source-repository-package
+  type: git
+  location: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude.git
+  tag: 6bfdb29e9a576472c7fd7ebe648ad101e5b3927f
 
 -- External Data API connectors
 source-repository-package
@@ -67,16 +103,16 @@ source-repository-package
   location: https://github.com/delanoe/servant-static-th.git
   tag: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
 
-source-repository-package
-  type: git
-  location: https://github.com/alpmestan/servant-job.git
-  tag: e9a4c57ca3ddee450627ed251df942effb27e4be
+-- source-repository-package
+--   type: git
+--   location: https://github.com/alpmestan/servant-job.git
+--   tag: e9a4c57ca3ddee450627ed251df942effb27e4be
 
 -- Database libraries
 source-repository-package
   type: git
   location: https://github.com/delanoe/haskell-opaleye.git
-  tag: 63ee65d974e9d20eaaf17a2e83652175988cbb79
+  tag: d3ab7acd5ede737478763630035aa880f7e34444
 
 source-repository-package
   type: git
@@ -100,4 +136,14 @@ source-repository-package
   location: https://gitlab.iscpif.fr/anoe/accelerate-utility.git
   tag: 83ada76e78ac10d9559af8ed6bd4064ec81308e4
 
-constraints: unordered-containers==0.2.13.*
+
+-- Wikidata 
+source-repository-package
+  type: git
+  location: https://github.com/rspeer/wikiparsec.git
+  tag: 9637a82344bb70f7fa8f02e75db3c081ccd434ce
+
+
+constraints: unordered-containers==0.2.14.*,
+             servant-ekg==0.3.1,
+             time==1.9.3

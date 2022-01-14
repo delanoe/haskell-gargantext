@@ -11,6 +11,7 @@ Portability : POSIX
 
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE DeriveAnyClass             #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
@@ -23,11 +24,13 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Hyperdata.User
   where
 
-import Gargantext.Prelude
+import Data.Morpheus.Types (GQLType(typeOptions))
+import qualified Gargantext.API.GraphQL.Utils as GAGU
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Contact
 import Gargantext.Database.Admin.Types.Node (DocumentId)
+import Gargantext.Prelude
 
 -- import Gargantext.Database.Schema.Node -- (Node(..))
 
@@ -37,11 +40,18 @@ data HyperdataUser =
                    , _hu_public    :: !(Maybe HyperdataPublic)
                    } deriving (Eq, Show, Generic)
 
+instance GQLType HyperdataUser where
+  typeOptions _ = GAGU.unPrefix "_hu_"
+
 data HyperdataPrivate =
      HyperdataPrivate { _hpr_password :: !Text
                       , _hpr_lang     :: !Lang
                       }
      deriving (Eq, Show, Generic)
+
+instance GQLType HyperdataPrivate where
+  typeOptions _ = GAGU.unPrefix "_hpr_"
+
 
 data HyperdataPublic =
      HyperdataPublic { _hpu_pseudo       :: !Text
@@ -49,11 +59,16 @@ data HyperdataPublic =
                      }
      deriving (Eq, Show, Generic)
 
+instance GQLType HyperdataPublic where
+  typeOptions _ = GAGU.unPrefix "_hpu_"
+
 -- | Default
 defaultHyperdataUser :: HyperdataUser
-defaultHyperdataUser = HyperdataUser (Just defaultHyperdataPrivate)
-                                   (Just defaultHyperdataContact)
-                                   (Just defaultHyperdataPublic)
+defaultHyperdataUser =
+  HyperdataUser
+    { _hu_private = Just defaultHyperdataPrivate
+    , _hu_shared = Just defaultHyperdataContact
+    , _hu_public = Just defaultHyperdataPublic }
 
 defaultHyperdataPublic :: HyperdataPublic
 defaultHyperdataPublic = HyperdataPublic "pseudo" [1..10]
@@ -120,12 +135,12 @@ instance FromField HyperdataPublic where
   fromField = fromField'
 
 -- | Database (Opaleye instance)
-instance DefaultFromField PGJsonb HyperdataUser   where
-  defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField SqlJsonb HyperdataUser   where
+  defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGJsonb HyperdataPrivate   where
-  defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField SqlJsonb HyperdataPrivate   where
+  defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGJsonb HyperdataPublic   where
-  defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField SqlJsonb HyperdataPublic   where
+  defaultFromField = fromPGSFromField
 

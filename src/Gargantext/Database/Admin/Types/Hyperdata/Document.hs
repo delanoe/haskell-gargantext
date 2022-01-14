@@ -202,11 +202,11 @@ instance ToField HyperdataDocumentV3 where
   toField = toJSONField
 
 ------------------------------------------------------------------------
-instance DefaultFromField PGJsonb HyperdataDocument
+instance DefaultFromField SqlJsonb HyperdataDocument
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGJsonb HyperdataDocumentV3
+instance DefaultFromField SqlJsonb HyperdataDocumentV3
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 ------------------------------------------------------------------------

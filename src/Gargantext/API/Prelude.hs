@@ -34,6 +34,7 @@ import Data.Validity
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Admin.Types
 import Gargantext.Core.NodeStory
+import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (NodeError(..), HasNodeError(..))
@@ -49,12 +50,15 @@ class HasJoseError e where
 joseError :: (MonadError e m, HasJoseError e) => Jose.Error -> m a
 joseError = throwError . (_JoseError #)
 
+type HasJobEnv' env = HasJobEnv env JobLog JobLog
+
 type EnvC env =
   ( HasConnectionPool env
   , HasSettings       env  -- TODO rename HasDbSettings
   , HasJobEnv         env JobLog JobLog
   , HasConfig         env
-  , HasNodeStoryEnv    env
+  , HasNodeStoryEnv   env
+  , HasMail           env
   )
 
 type ErrC err =
@@ -63,7 +67,7 @@ type ErrC err =
   , HasTreeError     err
   , HasServerError   err
   , HasJoseError     err
-  , ToJSON           err -- TODO this is arguable
+--  , ToJSON           err -- TODO this is arguable
   , Exception        err
   )
 
@@ -72,7 +76,7 @@ type GargServerC env err m =
   , HasNodeStory env err m
   , EnvC  env
   , ErrC      err
-  , MimeRender JSON err
+  , ToJSON err
   )
 
 type GargServerT env err m api = GargServerC env err m => ServerT api m
