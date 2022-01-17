@@ -321,9 +321,6 @@ saveDocNgramsWith lId mapNgramsDocs' = do
   terms2id <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
   let mapNgramsDocs = HashMap.mapKeys extracted2ngrams mapNgramsDocs'
 
-  -- to be removed
-  let indexedNgrams = HashMap.mapKeys (indexNgrams terms2id) mapNgramsDocs
-
   -- new
   mapCgramsId <- listInsertDb lId toNodeNgramsW'
                $ map (first _ngramsTerms . second Map.keys)
@@ -341,7 +338,7 @@ saveDocNgramsWith lId mapNgramsDocs' = do
                        ]
 
   -- to be removed
-  _   <- insertDocNgrams lId indexedNgrams
+  _   <- insertDocNgrams lId $ HashMap.mapKeys (indexNgrams terms2id) mapNgramsDocs
 
   pure ()
 
@@ -355,7 +352,7 @@ insertDocs :: ( FlowCmdM env err m
               => UserId
               -> CorpusId
               -> [a]
-              -> m ([DocId], [Indexed NodeId a])
+              -> m ([ContextId], [Indexed ContextId a])
 insertDocs uId cId hs = do
   let docs = map addUniqId hs
   newIds <- insertDb uId cId docs

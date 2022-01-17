@@ -147,9 +147,9 @@ ALTER TABLE public.nodes_contexts OWNER TO gargantua;
 
 ---------------------------------------------------------------
 CREATE TABLE public.context_node_ngrams (
-    context_id    INTEGER NOT NULL REFERENCES public.nodes    (id) ON DELETE CASCADE,
-    node_id INTEGER NOT NULL REFERENCES public.contexts (id) ON DELETE CASCADE,
-    ngrams_id  INTEGER NOT NULL REFERENCES public.ngrams   (id) ON DELETE CASCADE,
+    context_id    INTEGER NOT NULL REFERENCES public.contexts (id) ON DELETE CASCADE,
+    node_id       INTEGER NOT NULL REFERENCES public.nodes    (id) ON DELETE CASCADE,
+    ngrams_id     INTEGER NOT NULL REFERENCES public.ngrams   (id) ON DELETE CASCADE,
     ngrams_type   INTEGER  ,
     weight double precision,
     PRIMARY KEY (context_id, node_id, ngrams_id, ngrams_type)

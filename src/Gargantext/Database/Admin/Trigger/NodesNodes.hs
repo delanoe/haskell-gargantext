@@ -66,16 +66,16 @@ triggerUpdateAdd lId = execPGSQuery query (lId, nodeTypeId NodeList)
        CREATE OR REPLACE FUNCTION set_update_ngrams_add() RETURNS trigger AS $$
         BEGIN
                UPDATE node_node_ngrams nnn0 SET weight = weight + d.fix_count
-               FROM ( SELECT lists.parent_id as node1_id
-                    , lists.id as node2_id
-                    , nnn.ngrams_id as ngrams_id
-                    , nnn.ngrams_type as ngrams_type
-                    , count(*) as fix_count
+               FROM ( SELECT lists.parent_id AS node1_id
+                    , lists.id               AS node2_id
+                    , cnn.ngrams_id          AS ngrams_id
+                    , cnn.ngrams_type        AS ngrams_type
+                    , count(*)               AS fix_count
                        FROM NEW as new1
-                       INNER JOIN contexts    doc         ON doc.id   = new1.context_id
-                       INNER JOIN nodes       lists       ON lists.id = new1.node_id
-                       INNER JOIN context_node_ngrams nnn ON nnn.context_id  = doc.id
-                      WHERE nnn.node_id in (?, lists.id)  -- (masterList_id, userLists)
+                       INNER JOIN contexts    doc         ON doc.id         = new1.context_id
+                       INNER JOIN nodes       lists       ON new1.node_id   = lists.parent_id
+                       INNER JOIN context_node_ngrams cnn ON cnn.context_id = doc.id
+                      WHERE lists.id in (?, lists.id)  -- (masterList_id, userLists)
                         AND lists.typename = ?
                       GROUP BY node1_id, node2_id, ngrams_id, ngrams_type
                     ) as d
