@@ -28,7 +28,7 @@ import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Core
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Data.HashMap.Strict.Utils as HM
-import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
+import Gargantext.Database.Admin.Types.Node (ListId, CorpusId, NodeId(..), ContextId, MasterCorpusId, NodeType(NodeDocument), UserCorpusId, DocId)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Prelude

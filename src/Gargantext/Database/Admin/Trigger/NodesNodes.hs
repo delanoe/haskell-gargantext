@@ -35,14 +35,18 @@ triggerInsertCount lId = execPGSQuery query (lId, nodeTypeId NodeList)
         AS $$
           BEGIN
                 INSERT INTO node_node_ngrams (node1_id, node2_id, ngrams_id, ngrams_type, weight)
-                SELECT new1.node_id, lists.id, nnn.ngrams_id, nnn.ngrams_type, count(*) as weight
+                SELECT lists.parent_id
+                     , lists.id
+                     , cnn.ngrams_id
+                     , cnn.ngrams_type
+                     , count(*)         AS weight
                 FROM NEW as new1
                     INNER JOIN contexts            doc ON doc.id          = new1.context_id
-                    INNER JOIN nodes             lists ON lists.parent_id = new1.node_id
-                    INNER JOIN context_node_ngrams nnn ON nnn.context_id  = doc.id
+                    INNER JOIN nodes             lists ON lists.parent_id = lists.parent_id
+                    INNER JOIN context_node_ngrams cnn ON cnn.context_id  = doc.id
                     WHERE lists.id in (?, lists.id)
                       AND lists.typename = ?
-                    GROUP BY new1.node_id, lists.id, nnn.ngrams_id, nnn.ngrams_type
+                    GROUP BY lists.parent_id, lists.id, cnn.ngrams_id, cnn.ngrams_type
                 ON CONFLICT (node1_id, node2_id, ngrams_id, ngrams_type)
                    DO UPDATE set weight = node_node_ngrams.weight + excluded.weight
                     ;

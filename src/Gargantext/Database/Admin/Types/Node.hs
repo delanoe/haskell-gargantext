@@ -212,6 +212,7 @@ pgContextId = pgNodeId
 newtype NodeId = NodeId Int
   deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
 
+
 -- TODO make another type?
 type ContextId = NodeId
 
@@ -244,13 +245,13 @@ instance ToParamSchema NodeId
 instance Arbitrary NodeId where
   arbitrary = NodeId <$> arbitrary
 
-type ParentId = NodeId
+type ParentId    = NodeId
 type CorpusId    = NodeId
 type CommunityId = NodeId
-type ListId   = NodeId
-type DocumentId = NodeId
-type DocId      = NodeId
-type RootId     = NodeId
+type ListId      = NodeId
+type DocumentId  = NodeId
+type DocId       = NodeId
+type RootId      = NodeId
 type MasterCorpusId = CorpusId
 type UserCorpusId   = CorpusId
 
