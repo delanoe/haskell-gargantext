@@ -13,7 +13,7 @@ Triggers on NodesNodes table.
 
 {-# LANGUAGE QuasiQuotes       #-}
 
-module Gargantext.Database.Admin.Trigger.NodesNodes
+module Gargantext.Database.Admin.Trigger.NodesContexts
   where
 
 import Database.PostgreSQL.Simple.SqlQQ (sql)
