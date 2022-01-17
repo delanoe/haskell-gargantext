@@ -161,7 +161,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
 -- Computing global speGen score
   printDebug "[buildNgramsTermsList: Sample List] / start" nt
   allTerms :: HashMap NgramsTerm Double <- getTficf_withSample uCid mCid nt
-  printDebug "[buildNgramsTermsList: Sample List / end]" nt
+  printDebug "[buildNgramsTermsList: Sample List / end]" (nt, HashMap.size allTerms)
 
   printDebug "[buildNgramsTermsList: Flow Social List / start]" nt
   -- PrivateFirst for first developments since Public NodeMode is not implemented yet
@@ -218,7 +218,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
                                             selectedTerms
 
 
-  printDebug "mapTextDocIds" mapTextDocIds
+  -- printDebug "mapTextDocIds" mapTextDocIds
 
   let
     groupedTreeScores_SetNodeId :: HashMap NgramsTerm (GroupedTreeScores (Set NodeId))

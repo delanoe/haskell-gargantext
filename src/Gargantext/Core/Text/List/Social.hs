@@ -15,14 +15,15 @@ module Gargantext.Core.Text.List.Social
 
 import Control.Monad (mzero)
 import Data.Aeson
-import GHC.Generics
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Monoid (mconcat)
-import qualified Data.Scientific as Scientific
 import Data.Swagger
-import qualified Data.Text as T
-import qualified Data.Vector as V
+import GHC.Generics
+import qualified Data.Scientific as Scientific
+import qualified Data.Text       as T
+import qualified Data.Vector     as V
+
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.NodeStory
