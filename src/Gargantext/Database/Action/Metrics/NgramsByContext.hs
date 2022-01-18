@@ -96,18 +96,6 @@ getContextsByNgramsUser cId nt =
 
 
 ------------------------------------------------------------------------
--- TODO add groups
-
-{-
-getOccByNgramsOnlyFast :: HasDBid NodeType
-                       => CorpusId
-                       -> NgramsType
-                       -> [NgramsTerm]
-                       -> Cmd err (HashMap NgramsTerm Int)
-getOccByNgramsOnlyFast cId nt ngs =
-  HM.fromListWith (+) <$> selectNgramsOccurrencesOnlyByContextUser cId nt ngs
--}
-
 getOccByNgramsOnlyFast_withSample :: HasDBid NodeType
                        => CorpusId
                        -> Int
@@ -156,75 +144,6 @@ getOccByNgramsOnlyFast' cId lId nt tms = -- trace (show (cId, lId)) $
         |]
 
 
-{-
--- just slower than getOccByNgramsOnlyFast
-getOccByNgramsOnlySlow :: HasDBid NodeType
-                       => NodeType
-                       -> CorpusId
-                       -> [ListId]
-                       -> NgramsType
-                       -> [NgramsTerm]
-                       -> Cmd err (HashMap NgramsTerm Int)
-getOccByNgramsOnlySlow t cId ls nt ngs =
-  HM.map Set.size <$> getScore' t cId ls nt ngs
-    where
-      getScore' NodeCorpus   = getContextsByNgramsOnlyUser
-      getScore' NodeDocument = getNgramsByDocOnlyUser
-      getScore' _            = getContextsByNgramsOnlyUser
-
-getOccByNgramsOnlySafe :: HasDBid NodeType
-                       => CorpusId
-                       -> [ListId]
-                       -> NgramsType
-                       -> [NgramsTerm]
-                       -> Cmd err (HashMap NgramsTerm Int)
-getOccByNgramsOnlySafe cId ls nt ngs = do
-  printDebug "getOccByNgramsOnlySafe" (cId, nt, length ngs)
-  fast <- getOccByNgramsOnlyFast cId nt ngs
-  slow <- getOccByNgramsOnlySlow NodeCorpus cId ls nt ngs
-  when (fast /= slow) $
-    printDebug "getOccByNgramsOnlySafe: difference"
-               (HM.difference slow fast, HM.difference fast slow)
-               -- diff slow fast :: PatchMap Text (Replace (Maybe Int))
-  pure slow
-
-
-selectNgramsOccurrencesOnlyByContextUser :: HasDBid NodeType
-                                      => CorpusId
-                                      -> NgramsType
-                                      -> [NgramsTerm]
-                                      -> Cmd err [(NgramsTerm, Int)]
-selectNgramsOccurrencesOnlyByContextUser cId nt tms =
-  fmap (first NgramsTerm) <$>
-  runPGSQuery queryNgramsOccurrencesOnlyByContextUser
-                ( Values fields ((DPS.Only . unNgramsTerm) <$> tms)
-                , cId
-                , toDBid NodeDocument
-                , ngramsTypeId nt
-                )
-    where
-      fields = [QualifiedIdentifier Nothing "text"]
-
--- same as queryNgramsOnlyByNodeUser but using COUNT on the node ids.
--- Question: with the grouping is the result exactly the same (since Set NodeId for
--- equivalent ngrams intersections are not empty)
-queryNgramsOccurrencesOnlyByContextUser :: DPS.Query
-queryNgramsOccurrencesOnlyByContextUser = [sql|
-  WITH input_rows(terms) AS (?)
-  SELECT ng.terms, COUNT(cng.context_id) FROM context_node_ngrams cng
-    JOIN ngrams         ng ON cng.ngrams_id = ng.id
-    JOIN input_rows     ir ON ir.terms      = ng.terms
-    JOIN nodes_contexts nn ON nn.context_id = cng.context_id
-    JOIN nodes           n ON nn.node_id    = n.id
-    WHERE nn.node_id     = ? -- CorpusId
-      AND n.typename      = ? -- toDBid
-      AND cng.ngrams_type = ? -- NgramsTypeId
-      AND nn.category     > 0
-      GROUP BY cng.context_id, ng.terms
-  |]
-
--}
-
 selectNgramsOccurrencesOnlyByContextUser_withSample :: HasDBid NodeType
                                       => CorpusId
                                       -> Int
@@ -262,23 +181,6 @@ queryNgramsOccurrencesOnlyByContextUser_withSample = [sql|
       GROUP BY cng.node_id, ng.terms
   |]
 
-
-{-
-queryNgramsOccurrencesOnlyByContextUser' :: DPS.Query
-queryNgramsOccurrencesOnlyByContextUser' = [sql|
-  WITH input_rows(terms) AS (?)
-  SELECT ng.terms, COUNT(cng.node_id) FROM context_node_ngrams cng
-    JOIN ngrams ng      ON cng.ngrams_id = ng.id
-    JOIN input_rows  ir ON ir.terms      = ng.terms
-    JOIN nodes_nodes nn ON nn.node2_id   = cng.node_id
-    JOIN nodes  n       ON nn.node2_id   = n.id
-    WHERE nn.node1_id     = ? -- CorpusId
-      AND n.typename      = ? -- toDBid
-      AND cng.ngrams_type = ? -- NgramsTypeId
-      AND nn.category     > 0
-      GROUP BY cng.node_id, ng.terms
-  |]
--}
 
 ------------------------------------------------------------------------
 
@@ -336,52 +238,17 @@ queryNgramsOnlyByContextUser = [sql|
   WITH input_rows(terms) AS (?),
        input_list(id)    AS (?)
   SELECT ng.terms, cng.context_id FROM context_node_ngrams cng
-    JOIN ngrams ng      ON cng.ngrams_id = ng.id
-    JOIN input_rows  ir ON ir.terms      = ng.terms
-    JOIN input_list  il ON il.id         = cng.node_id
-    JOIN nodes_contexts nn ON nn.context_id   = cng.context_id
-    JOIN contexts  c       ON nn.context_id   = c.id
-    WHERE nn.node_id      = ? -- CorpusId
+    JOIN ngrams         ng ON cng.ngrams_id = ng.id
+    JOIN input_rows     ir ON ir.terms      = ng.terms
+    JOIN input_list     il ON il.id         = cng.node_id
+    JOIN nodes_contexts nc ON nc.context_id   = cng.context_id
+    JOIN contexts        c ON nc.context_id   = c.id
+    WHERE nc.node_id      = ? -- CorpusId
       AND c.typename      = ? -- toDBid (maybe not useful with context table)
       AND cng.ngrams_type = ? -- NgramsTypeId
-      AND nn.category     > 0
+      AND nc.category     > 0
       GROUP BY ng.terms, cng.context_id
   |]
-
-
-{-
-selectNgramsOnlyByContextUser' :: HasDBid NodeType
-                            => CorpusId
-                            -> [ListId]
-                            -> NgramsType
-                            -> [Text]
-                            -> Cmd err [(Text, Int)]
-selectNgramsOnlyByContextUser' cId ls nt tms =
-  runPGSQuery queryNgramsOnlyByContextUser
-                ( Values fields (DPS.Only <$> tms)
-                , Values [QualifiedIdentifier Nothing "int4"]
-                         (DPS.Only <$> (map (\(NodeId n) -> n) ls))
-                , cId
-                , toDBid NodeDocument
-                , ngramsTypeId nt
-                )
-    where
-      fields = [QualifiedIdentifier Nothing "text"]
-
-queryNgramsOnlyByContextUser' :: DPS.Query
-queryNgramsOnlyByContextUser' = [sql|
-  WITH input_rows(terms) AS (?),
-       input_list(id)    AS (?)
-  SELECT ng.terms, cng.weight FROM context_node_ngrams cng
-    JOIN ngrams ng      ON cng.ngrams_id = ng.id
-    JOIN input_rows  ir ON ir.terms      = ng.terms
-    JOIN input_list  il ON il.id         = cng.node_id
-    WHERE cng.context_id     = ? -- CorpusId
-      AND cng.ngrams_type    = ? -- NgramsTypeId
-      -- AND nn.category     > 0
-      GROUP BY ng.terms, cng.weight
-  |]
--}
 
 getNgramsByDocOnlyUser :: DocId
                        -> [ListId]
