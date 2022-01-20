@@ -154,8 +154,6 @@ CREATE TABLE public.context_node_ngrams (
     weight double precision,
     PRIMARY KEY (context_id, node_id, ngrams_id, ngrams_type)
   );
-
-
 ALTER TABLE public.context_node_ngrams OWNER TO gargantua;
 
 CREATE TABLE public.context_node_ngrams2 (

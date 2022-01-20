@@ -73,5 +73,10 @@ CREATE INDEX ON public.context_node_ngrams2 USING btree (context_id);
 CREATE INDEX ON public.context_node_ngrams2 USING btree (nodengrams_id);
 CREATE INDEX ON public.context_node_ngrams2 USING btree (context_id, nodengrams_id);
 
+DROP TABLE if EXISTS public.node_nodengrams_nodengrams;
 
-DELETE TABLE public.node_nodengrams_nodengrams
+DROP TRIGGER if EXISTS trigger_count_delete2    ON nodes_nodes;
+DROP TRIGGER if EXISTS trigger_count_update_add ON nodes_nodes;
+DROP TRIGGER if EXISTS trigger_delete_count     ON nodes_nodes;
+DROP TRIGGER if EXISTS trigger_insert_count     ON nodes_nodes;
+

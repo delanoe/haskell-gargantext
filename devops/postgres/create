@@ -13,7 +13,9 @@ USER="gargantua"
 
 psql -c "DROP DATABASE IF EXISTS \"${DB}\""
 createdb "${DB}"
-psql "${DB}" < schema.sql
+#psql "${DB}" < schema.sql
+
+../../bin/psql ../../gargantext.ini < gargandb.dump
 
 psql -c "ALTER DATABASE \"${DB}\" OWNER to \"${USER}\""
 

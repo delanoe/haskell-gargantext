@@ -18,7 +18,7 @@ module Gargantext.Database.Admin.Trigger.Init
 
 import Data.Text (Text)
 import Gargantext.Database.Admin.Trigger.ContextNodeNgrams (triggerCountInsert, triggerCountInsert2)
-import Gargantext.Database.Admin.Trigger.Nodes (triggerSearchUpdate, triggerUpdateHash)
+import Gargantext.Database.Admin.Trigger.Contexts (triggerSearchUpdate, triggerUpdateHash)
 import Gargantext.Database.Admin.Trigger.NodesContexts ({-triggerDeleteCount,-} triggerInsertCount, triggerUpdateAdd, triggerUpdateDel, MasterListId) -- , triggerCoocInsert)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Prelude

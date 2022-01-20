@@ -52,7 +52,7 @@ triggerCountInsert = execPGSQuery query (toDBid NodeDocument, toDBid NodeList)
           END
           $$ LANGUAGE plpgsql;
 
-          -- DROP trigger trigger_count_insert on context_node_ngrams;
+          DROP trigger IF EXISTS trigger_count_insert on context_node_ngrams;
 
           CREATE TRIGGER trigger_count_insert AFTER INSERT on context_node_ngrams
           REFERENCING NEW TABLE AS NEW
@@ -95,7 +95,7 @@ triggerCountInsert2 = execPGSQuery query ( toDBid NodeCorpus
           END
           $$ LANGUAGE plpgsql;
 
-          -- DROP trigger trigger_count_insert2 on context_node_ngrams2;
+          DROP trigger IF EXISTS trigger_count_insert2 on context_node_ngrams2;
 
           CREATE TRIGGER trigger_count_insert2 AFTER INSERT on context_node_ngrams2
           REFERENCING NEW TABLE AS NEW
