@@ -133,6 +133,7 @@ groupToDotNode fdt g bId =
     node (groupIdToDotId $ getGroupId g)
                      ([FontName "Arial", Shape Square, penWidth 4,  toLabel (groupToTable fdt g)]
                       <> [ toAttr "nodeType" "group"
+                         , toAttr "gid" (groupIdToDotId $ getGroupId g)
                          , toAttr "from" (pack $ show (fst $ g ^. phylo_groupPeriod))
                          , toAttr "to"   (pack $ show (snd $ g ^. phylo_groupPeriod))
                          , toAttr "strFrom" (pack $ show (fst $ g ^. phylo_groupPeriod'))
@@ -142,6 +143,7 @@ groupToDotNode fdt g bId =
                          , toAttr "support" (pack $ show (g ^. phylo_groupSupport))
                          , toAttr "weight" (pack $ show (g ^. phylo_groupWeight))
                          , toAttr "source" (pack $ show (nub $ g ^. phylo_groupSources))
+                         , toAttr "sourceFull" (pack $ show (g ^. phylo_groupSources))
                          , toAttr "lbl" (pack $ show (ngramsToLabel fdt (g ^. phylo_groupNgrams)))
                          , toAttr "foundation" (pack $ show (idxToLabel (g ^. phylo_groupNgrams)))
                          , toAttr "role" (pack $ show (idxToLabel' ((g ^. phylo_groupMeta) ! "dynamics")))
@@ -164,11 +166,11 @@ toDotEdge' source target thr w edgeType = edge source target
 toDotEdge :: DotId -> DotId -> [Char] -> EdgeType -> Dot DotId
 toDotEdge source target lbl edgeType = edge source target
     (case edgeType of
-        GroupToGroup    -> [ Width 3, penWidth 4, Color [toWColor Black], Constraint True] <> [toAttr "edgeType" "link", toAttr "lbl" (pack lbl)]
+        GroupToGroup    -> [ Width 3, penWidth 4, Color [toWColor Black], Constraint True] <> [toAttr "edgeType" "link", toAttr "lbl" (pack lbl), toAttr "source" source, toAttr "target" target]
         GroupToGroupMemory  -> undefined
         BranchToGroup   -> [ Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])] <> [toAttr "edgeType" "branchLink" ]
         BranchToBranch  -> [ Width 2, Color [toWColor Black], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,DotArrow)])]
-        GroupToAncestor -> [ Width 3, Color [toWColor Red], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,NoArrow)]), PenWidth 4] <> [toAttr "edgeType" "ancestorLink", toAttr "lbl" (pack lbl)]                          
+        GroupToAncestor -> [ Width 3, Color [toWColor Red], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,NoArrow)]), PenWidth 4] <> [toAttr "edgeType" "ancestorLink", toAttr "lbl" (pack lbl), toAttr "source" source, toAttr "target" target]
         PeriodToPeriod  -> [ Width 5, Color [toWColor Black]])
 
 
@@ -265,11 +267,11 @@ exportToDot phylo export =
             ) $ (toList . mergePointers) $ export ^. export_groups
 
         {-  8-bis) create the edges between the groups -}
-        _ <- mapM (\((k,k'),v) ->
+{-        _ <- mapM (\((k,k'),v) ->
                 toDotEdge' (groupIdToDotId k) (groupIdToDotId k') (show (fst v)) (show (snd v)) GroupToGroupMemory
-            ) $ mergePointersMemory $ export ^. export_groups
+            ) $ mergePointersMemory $ export ^. export_groups       -}
 
-        _ <- mapM (\((k,k'),v) -> 
+        _ <- mapM (\((k,k'),v) ->
                 toDotEdge (groupIdToDotId k) (groupIdToDotId k') (show v) GroupToAncestor
           ) $ mergeAncestors $ export ^. export_groups
 
