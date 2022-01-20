@@ -1,3 +1,7 @@
+## Version 0.0.4.9.9.6
+* [BACK] PubMed parser fixed
+* [FRONT] Visio Frame resized
+
 ## Version 0.0.4.9.9.5
 * [FIX] Chart Sort
 
