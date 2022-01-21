@@ -1,3 +1,6 @@
+## Version 0.0.5
+* [OPTIM][DATABASE] Upgrade Schema, move conTexts in contexts table which requires a version bump.
+
 ## Version 0.0.4.9.9.6
 * [BACK] PubMed parser fixed
 * [FRONT] Visio Frame resized
