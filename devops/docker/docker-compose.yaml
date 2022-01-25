@@ -35,5 +35,10 @@ services:
     ports:
       - 9000:9000
 
+  johnsnownlp:
+    image: 'johnsnowlabs/nlp-server:latest'
+    ports:
+      - 5000:5000
+
 volumes:
   garg-pgdata:
