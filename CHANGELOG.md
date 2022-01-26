@@ -1,3 +1,6 @@
+## Version 0.0.5.1
+* [OPTIM] Upgrade fix with indexes and scores counts
+
 ## Version 0.0.5
 * [OPTIM][DATABASE] Upgrade Schema, move conTexts in contexts table which requires a version bump.
 
