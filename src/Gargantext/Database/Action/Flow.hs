@@ -319,6 +319,8 @@ saveDocNgramsWith :: ( FlowCmdM env err m)
                   -> m ()
 saveDocNgramsWith lId mapNgramsDocs' = do
   terms2id <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
+  printDebug "terms2id" terms2id
+
   let mapNgramsDocs = HashMap.mapKeys extracted2ngrams mapNgramsDocs'
 
   -- new
@@ -326,7 +328,7 @@ saveDocNgramsWith lId mapNgramsDocs' = do
                $ map (first _ngramsTerms . second Map.keys)
                $ HashMap.toList mapNgramsDocs
 
-  -- printDebug "saveDocNgramsWith" mapCgramsId
+  printDebug "saveDocNgramsWith" mapCgramsId
   -- insertDocNgrams
   _return <- insertContextNodeNgrams2
            $ catMaybes [ ContextNodeNgrams2 <$> Just nId

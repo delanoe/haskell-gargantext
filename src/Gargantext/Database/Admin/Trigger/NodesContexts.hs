@@ -42,7 +42,7 @@ triggerInsertCount lId = execPGSQuery query (lId, nodeTypeId NodeList)
                      , count(*)         AS weight
                 FROM NEW as new1
                     INNER JOIN contexts            doc ON doc.id          = new1.context_id
-                    INNER JOIN nodes             lists ON lists.parent_id = lists.parent_id
+                    INNER JOIN nodes             lists ON lists.parent_id = new1.node_id
                     INNER JOIN context_node_ngrams cnn ON cnn.context_id  = doc.id
                     WHERE lists.id in (?, lists.id)
                       AND lists.typename = ?
@@ -76,9 +76,9 @@ triggerUpdateAdd lId = execPGSQuery query (lId, nodeTypeId NodeList)
                     , cnn.ngrams_type        AS ngrams_type
                     , count(*)               AS fix_count
                        FROM NEW as new1
-                       INNER JOIN contexts    doc         ON doc.id         = new1.context_id
-                       INNER JOIN nodes       lists       ON new1.node_id   = lists.parent_id
-                       INNER JOIN context_node_ngrams cnn ON cnn.context_id = doc.id
+                       INNER JOIN contexts    doc         ON doc.id          = new1.context_id
+                       INNER JOIN nodes       lists       ON lists.parent_id = new1.node_id
+                       INNER JOIN context_node_ngrams cnn ON cnn.context_id  = doc.id
                       WHERE lists.id in (?, lists.id)  -- (masterList_id, userLists)
                         AND lists.typename = ?
                       GROUP BY node1_id, node2_id, ngrams_id, ngrams_type
