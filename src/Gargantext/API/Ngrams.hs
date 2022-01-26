@@ -245,7 +245,7 @@ setListNgrams ::  HasNodeStory env err m
               -> Map NgramsTerm NgramsRepoElement
               -> m ()
 setListNgrams listId ngramsType ns = do
-  printDebug "[setListNgrams]" (listId, ngramsType)
+  -- printDebug "[setListNgrams]" (listId, ngramsType)
   getter <- view hasNodeStory
   var <- liftBase $ (getter ^. nse_getter) [listId]
   liftBase $ modifyMVar_ var $
@@ -283,7 +283,7 @@ commitStatePatch :: (HasNodeStory env err m, HasMail env)
                  ->    Versioned NgramsStatePatch'
                  -> m (Versioned NgramsStatePatch')
 commitStatePatch listId (Versioned p_version p) = do
-  printDebug "[commitStatePatch]" listId
+  -- printDebug "[commitStatePatch]" listId
   var <- getNodeStoryVar [listId]
   vq' <- liftBase $ modifyMVar var $ \ns -> do
     let
@@ -562,13 +562,13 @@ getTableNgrams _nType nId tabType listId limit_ offset
     setScores False table = pure table
     setScores True  table = do
       let ngrams_terms = table ^.. each . ne_ngrams
-      printDebug "ngrams_terms" ngrams_terms
+      -- printDebug "ngrams_terms" ngrams_terms
       t1 <- getTime
       occurrences <- getOccByNgramsOnlyFast' nId
                                              listId
                                             ngramsType
                                             ngrams_terms
-      printDebug "occurrences" occurrences
+      --printDebug "occurrences" occurrences
       t2 <- getTime
       liftBase $ hprint stderr
         ("getTableNgrams/setScores #ngrams=" % int % " time=" % hasTime % "\n")
