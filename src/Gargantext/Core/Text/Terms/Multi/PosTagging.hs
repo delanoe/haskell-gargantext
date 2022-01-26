@@ -139,4 +139,13 @@ tokenWith f lang s = map (map (\t -> (_tokenWord t, f t)))
                   <$> _sentences
                   <$> corenlp lang s
 
+----------------------------------------------------------------------------------
+-- Here connect to the JohnSnow Server as it has been done above with the corenlp'
+-- We need the PosTagging according to the language and the lems
+serverNLP :: Lang -> Text -> IO PosSentences
+serverNLP = undefined
+
+
+
+
 

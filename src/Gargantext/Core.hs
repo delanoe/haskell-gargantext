@@ -77,7 +77,7 @@ instance HasDBid Lang where
 type Form = Text
 type Lem  = Text
 ------------------------------------------------------------------------
-data PosTagAlgo = CoreNLP
+data PosTagAlgo = CoreNLP | JohnSnowServer
   deriving (Show, Read, Eq, Ord, Generic)
 
 instance Hashable PosTagAlgo
@@ -85,5 +85,6 @@ instance Hashable PosTagAlgo
 instance HasDBid PosTagAlgo where
   toDBid CoreNLP = 1
   fromDBid 1 = CoreNLP
+  fromDBid 2 = JohnSnowServer
   fromDBid _ = panic "HasDBid posTagAlgo : Not implemented"
 
