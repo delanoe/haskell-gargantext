@@ -84,6 +84,7 @@ instance Hashable PosTagAlgo
 
 instance HasDBid PosTagAlgo where
   toDBid CoreNLP = 1
+  toDBid JohnSnowServer = 2
   fromDBid 1 = CoreNLP
   fromDBid 2 = JohnSnowServer
   fromDBid _ = panic "HasDBid posTagAlgo : Not implemented"

@@ -23,6 +23,7 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
 
 import Gargantext.Core.Text.Terms.Multi.PosTagging
+import Gargantext.Core.Text.Terms.Multi.PosTagging.Types
 import qualified Gargantext.Core.Text.Terms.Multi.Lang.En as En
 import qualified Gargantext.Core.Text.Terms.Multi.Lang.Fr as Fr
 
