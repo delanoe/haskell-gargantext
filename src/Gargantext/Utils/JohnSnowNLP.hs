@@ -174,9 +174,10 @@ waitForJsTask jsTask = wait' 0
 getPosTagAndLems :: Lang -> Text -> IO PosSentences
 getPosTagAndLems _l t = do
   jsPosTask <- jsRequest t JSPOS
-  jsPos <- waitForJsTask jsPosTask
-
   jsLemmaTask <- jsRequest t JSLemma
+
+  -- wait for both tasks
+  jsPos <- waitForJsTask jsPosTask
   jsLemma <- waitForJsTask jsLemmaTask
 
   printDebug "[getPosTagAndLems] sentences" $ jsAsyncTaskResponseToSentences jsPos jsLemma
