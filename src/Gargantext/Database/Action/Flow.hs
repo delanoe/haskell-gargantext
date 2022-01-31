@@ -86,6 +86,7 @@ import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Flow.Utils (insertDocNgrams, DocumentIdWithNgrams(..))
 import Gargantext.Database.Action.Search (searchDocInDatabase)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
+import Gargantext.Database.Action.Metrics (updateNgramsOccurrences)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Prelude
@@ -280,6 +281,8 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
   --_ <- mkPhylo  userCorpusId userId
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId
+  _ <- updateNgramsOccurrences userCorpusId (Just listId)
+
   pure userCorpusId
 
 

@@ -10,18 +10,26 @@ Portability : POSIX
 Node API
 -}
 
+{-# LANGUAGE QuasiQuotes          #-}
+
 module Gargantext.Database.Action.Metrics
   where
 
+import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Set (Set)
+import Database.PostgreSQL.Simple (Query, Only(..))
+import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Data.Vector (Vector)
+import Gargantext.Core (HasDBid(toDBid))
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo')
-import Gargantext.API.Ngrams.Types (TabType(..), ngramsTypeFromTabType, NgramsTerm)
+import Gargantext.Database.Prelude (runPGSQuery{-, formatPGSQuery-})
+import Gargantext.API.Ngrams.Types (TabType(..), ngramsTypeFromTabType, NgramsTerm(..))
 import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
+import Database.PostgreSQL.Simple.ToField (toField, Action{-, ToField-})
 import Gargantext.Core.Types (ListType(..), Limit, NodeType(..), ContextId)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOnlyUser{-, getTficfWith-})
@@ -34,6 +42,7 @@ import qualified Data.HashMap.Strict as HM
 import qualified Data.Map            as Map
 import qualified Data.Set            as Set
 import qualified Data.List           as List
+import qualified Data.Text           as Text
 
 getMetrics :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
@@ -51,9 +60,13 @@ getNgramsCooc :: (FlowCmdM env err m)
                  , HashMap (NgramsTerm, NgramsTerm) Int
                  )
 getNgramsCooc cId maybeListId tabType maybeLimit = do
-  (ngs', ngs) <- getNgrams cId maybeListId tabType
 
-  lId  <- defaultList cId
+  lId <- case maybeListId of
+    Nothing   -> defaultList cId
+    Just lId' -> pure lId'
+
+  (ngs', ngs) <- getNgrams lId tabType
+
   lIds <- selectNodesWithUsername NodeList userMaster
 
   myCooc <- HM.filter (>1) <$> getCoocByNgrams (Diagonal True)
@@ -64,21 +77,69 @@ getNgramsCooc cId maybeListId tabType maybeLimit = do
                                                            (take' maybeLimit $ HM.keys ngs)
   pure $ (ngs', ngs, myCooc)
 
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+updateNgramsOccurrences :: (FlowCmdM env err m)
+             => CorpusId -> Maybe ListId
+             -> m ()
+updateNgramsOccurrences cId mlId = do
+  _ <- mapM (updateNgramsOccurrences' cId mlId Nothing) [Terms, Sources, Authors, Institutes]
+  pure ()
+
+
+updateNgramsOccurrences' :: (FlowCmdM env err m)
+             => CorpusId -> Maybe ListId -> Maybe Limit -> TabType 
+             -> m [Int]
+updateNgramsOccurrences' cId maybeListId maybeLimit tabType = do
+
+  lId <- case maybeListId of
+    Nothing   -> defaultList cId
+    Just lId' -> pure lId'
+
+  result <- getNgramsOccurrences cId lId tabType maybeLimit
+  
+  let
+    toInsert :: [[Action]]
+    toInsert =  map (\(ngramsTerm, score)
+                        -> [ toField cId
+                           , toField lId
+                           , toField $ unNgramsTerm ngramsTerm
+                           , toField $ toDBid $ ngramsTypeFromTabType tabType
+                           , toField score
+                           ]
+                      )
+       $ HM.toList result
+
+    queryInsert :: Query
+    queryInsert = [sql|
+                  WITH input(corpus_id, list_id, terms, type_id, weight) AS (?)
+                  INSERT into node_node_ngrams (node1_id, node2_id, ngrams_id, ngrams_type, weight)
+                  SELECT input.corpus_id,input.list_id,ngrams.id,input.type_id,input.weight FROM input
+                  JOIN ngrams on ngrams.terms = input.terms
+                  ON CONFLICT (node1_id, node2_id, ngrams_id, ngrams_type)
+                  DO UPDATE SET weight = excluded.weight
+                  RETURNING 1
+                  |]
+
+  let fields = map (\t-> QualifiedIdentifier Nothing t) 
+             $ map Text.pack ["int4", "int4","text","int4","int4"]
+
+  map (\(Only a) -> a) <$> runPGSQuery queryInsert (Only $ Values fields toInsert)
+
+------------------------------------------------------------------------
 -- Used for scores in Ngrams Table
 getNgramsOccurrences :: (FlowCmdM env err m)
-             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
+             => CorpusId -> ListId -> TabType -> Maybe Limit
              -> m (HashMap NgramsTerm Int)
 getNgramsOccurrences c l t ml = HM.map Set.size <$> getNgramsContexts c l t ml
 
 
 
 getNgramsContexts :: (FlowCmdM env err m)
-             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
+             => CorpusId -> ListId -> TabType -> Maybe Limit
              -> m (HashMap NgramsTerm (Set ContextId))
-getNgramsContexts cId maybeListId tabType maybeLimit = do
-  (_ngs', ngs) <- getNgrams cId maybeListId tabType
-
-  lId  <- defaultList cId
+getNgramsContexts cId lId tabType maybeLimit = do
+  (_ngs', ngs) <- getNgrams lId tabType
   lIds <- selectNodesWithUsername NodeList userMaster
 
   -- TODO maybe add an option to group here
@@ -91,17 +152,16 @@ getNgramsContexts cId maybeListId tabType maybeLimit = do
 
 -- Used for scores in Doc Table
 getContextsNgramsScore :: (FlowCmdM env err m)
-             => CorpusId -> Maybe ListId -> TabType -> ListType -> Maybe Limit
+             => CorpusId -> ListId -> TabType -> ListType -> Maybe Limit
              -> m (Map ContextId Int)
-getContextsNgramsScore cId maybeListId tabType listType maybeLimit 
- = Map.map Set.size <$> getContextsNgrams cId maybeListId tabType listType maybeLimit
+getContextsNgramsScore cId lId tabType listType maybeLimit
+ = Map.map Set.size <$> getContextsNgrams cId lId tabType listType maybeLimit
 
 getContextsNgrams :: (FlowCmdM env err m)
-             => CorpusId -> Maybe ListId -> TabType -> ListType -> Maybe Limit
+             => CorpusId -> ListId -> TabType -> ListType -> Maybe Limit
              -> m (Map ContextId (Set NgramsTerm))
-getContextsNgrams cId maybeListId tabType listType maybeLimit = do
-  (ngs', ngs) <- getNgrams cId maybeListId tabType
-  lId  <- defaultList cId
+getContextsNgrams cId lId tabType listType maybeLimit = do
+  (ngs', ngs) <- getNgrams lId tabType
   lIds <- selectNodesWithUsername NodeList userMaster
 
   result <- groupNodesByNgrams ngs <$> getContextsByNgramsOnlyUser
@@ -121,15 +181,11 @@ getContextsNgrams cId maybeListId tabType listType maybeLimit = do
 
 
 getNgrams :: (HasMail env, HasNodeStory env err m)
-            => CorpusId -> Maybe ListId -> TabType
+            => ListId -> TabType
             -> m ( HashMap NgramsTerm (ListType, Maybe NgramsTerm)
                  , HashMap NgramsTerm (Maybe RootTerm)
                  )
-getNgrams cId maybeListId tabType = do
-
-  lId <- case maybeListId of
-    Nothing   -> defaultList cId
-    Just lId' -> pure lId'
+getNgrams lId tabType = do
 
   lists <- mapTermListRoot [lId] (ngramsTypeFromTabType tabType) <$> getRepo' [lId]
   let maybeSyn = HM.unions $ map (\t -> filterListWithRoot t lists)

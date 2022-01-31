@@ -30,6 +30,7 @@ import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core.Methods.Distances (GraphMetric(..))
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
+import Gargantext.Database.Action.Metrics (updateNgramsOccurrences)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
@@ -165,7 +166,10 @@ updateNode _uId lId (UpdateNodeParamsList _mode) logStatus = do
                    }
 
   _ <- case corpusId of
-    Just cId -> reIndexWith cId lId NgramsTerms (Set.singleton MapTerm)
+    Just cId -> do
+      _ <- reIndexWith cId lId NgramsTerms (Set.singleton MapTerm)
+      _ <- updateNgramsOccurrences cId (Just lId)
+      pure ()
     Nothing  -> pure ()
 
   pure  JobLog { _scst_succeeded = Just 3
