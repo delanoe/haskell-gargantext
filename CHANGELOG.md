@@ -1,3 +1,7 @@
+## Version 0.0.5.2
+* [QUAL] Scores in Ngrams Table fixed during workflow and user can
+  refresh it if needed.
+
 ## Version 0.0.5.1
 * [OPTIM] Upgrade fix with indexes and scores counts
 
