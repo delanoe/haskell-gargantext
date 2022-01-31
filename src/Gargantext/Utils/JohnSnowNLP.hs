@@ -32,16 +32,24 @@ import Gargantext.Core.Text.Terms.Multi.PosTagging.Types
 import Gargantext.Core.Utils.Prefix (unPrefix)
 
 
-data JSSpell = JSPOS | JSLemma
+data JSSpell = JSPOS Lang | JSLemma Lang
   deriving (Show)
 
 instance ToJSON JSSpell where
-  toJSON JSPOS   = "pos"
-  toJSON JSLemma = "lemma"
+  toJSON (JSPOS EN)    = "en.pos"
+  toJSON (JSPOS FR)    = "fr.pos"
+  toJSON (JSPOS All)   = "pos"
+  toJSON (JSLemma EN)  = "en.lemma"
+  toJSON (JSLemma FR)  = "fr.lemma"
+  toJSON (JSLemma All) = "lemma"
 
 instance FromJSON JSSpell where
-  parseJSON (String "pos") = pure JSPOS
-  parseJSON (String "lemma") = pure JSLemma
+  parseJSON (String "en.pos")   = pure $ JSPOS EN
+  parseJSON (String "fr.pos")   = pure $ JSPOS FR
+  parseJSON (String "pos")      = pure $ JSPOS All
+  parseJSON (String "en.lemma") = pure $ JSLemma EN
+  parseJSON (String "fr.lemma") = pure $ JSLemma FR
+  parseJSON (String "lemma")    = pure $ JSLemma All
   parseJSON s =
     prependFailure "parsing spell failed, "
     (typeMismatch "Spell" s)
@@ -172,9 +180,9 @@ waitForJsTask jsTask = wait' 0
           wait' $ counter + 1
 
 getPosTagAndLems :: Lang -> Text -> IO PosSentences
-getPosTagAndLems _l t = do
-  jsPosTask <- jsRequest t JSPOS
-  jsLemmaTask <- jsRequest t JSLemma
+getPosTagAndLems l t = do
+  jsPosTask <- jsRequest t (JSPOS l)
+  jsLemmaTask <- jsRequest t (JSLemma l)
 
   -- wait for both tasks
   jsPos <- waitForJsTask jsPosTask
