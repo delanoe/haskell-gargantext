@@ -37,8 +37,11 @@ services:
 
   johnsnownlp:
     image: 'johnsnowlabs/nlp-server:latest'
+    volumes:
+      - js-cache:/home/johnsnowlabs/cache_pretrained
     ports:
       - 5000:5000
 
 volumes:
   garg-pgdata:
+  js-cache:

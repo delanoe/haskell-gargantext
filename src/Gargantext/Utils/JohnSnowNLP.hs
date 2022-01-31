@@ -15,7 +15,7 @@ module Gargantext.Utils.JohnSnowNLP where
 
 import Control.Concurrent (threadDelay)
 import Control.Lens
-import Data.Aeson (encode, ToJSON, toJSON, FromJSON, parseJSON, Value(..), (.:))
+import Data.Aeson (encode, ToJSON, toJSON, FromJSON, parseJSON, Value(..), (.:), (.:?))
 import Data.Aeson.Types (prependFailure, typeMismatch)
 import Data.Aeson.TH (deriveJSON)
 import qualified Data.List.Safe as LS
@@ -89,7 +89,7 @@ instance FromJSON JSAsyncTaskStatus where
   parseJSON (Object v) = do
     status <- v .: "status"
     code <- status .: "code"
-    message <- status .: "message"
+    message <- status .:? "message"
     pure $ JSAsyncTaskStatus { _jsAsyncTaskStatus_code = code
                              , _jsAsyncTaskStatus_message = message }
   parseJSON s =
@@ -176,7 +176,7 @@ waitForJsTask jsTask = wait' 0
           panic "[waitForJsTask] waited for 1 minute and still no answer from JohnSnow NLP"
         else do
           printDebug "[waitForJsTask] task not ready, waiting" counter
-          _ <- threadDelay $ 100000*1
+          _ <- threadDelay $ 1000000*1
           wait' $ counter + 1
 
 getPosTagAndLems :: Lang -> Text -> IO PosSentences
