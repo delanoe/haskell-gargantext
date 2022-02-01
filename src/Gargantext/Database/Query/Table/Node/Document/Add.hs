@@ -48,14 +48,14 @@ add_debug pId ns = formatPGSQuery queryAdd (Only $ Values fields inputData)
 
 -- | Input Tables: types of the tables
 inputSqlTypes :: [Text]
-inputSqlTypes = ["int4","int4","int4"]
+inputSqlTypes = ["int4","int4","int4","int4"]
 
 -- | SQL query to add documents
 -- TODO return id of added documents only
 queryAdd :: Query
 queryAdd = [sql|
-       WITH input_rows(node_id,context_id,category) AS (?)
-       INSERT INTO nodes_contexts (node_id, context_id,category)
+       WITH input_rows(node_id,context_id,score,category) AS (?)
+       INSERT INTO nodes_contexts (node_id, context_id,score,category)
        SELECT * FROM input_rows
        ON CONFLICT (node_id, context_id) DO NOTHING -- on unique index
        RETURNING 1
@@ -75,6 +75,7 @@ data InputData = InputData { inNode_id    :: NodeId
 instance ToRow InputData where
   toRow inputData = [ toField (inNode_id    inputData)
                     , toField (inContext_id inputData)
+                    , toField (0 :: Int)
                     , toField (1 :: Int)
                     ]
 

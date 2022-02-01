@@ -126,6 +126,8 @@ updateNgramsOccurrences' cId maybeListId maybeLimit tabType = do
 
   map (\(Only a) -> a) <$> runPGSQuery queryInsert (Only $ Values fields toInsert)
 
+
+
 ------------------------------------------------------------------------
 -- Used for scores in Ngrams Table
 getNgramsOccurrences :: (FlowCmdM env err m)
@@ -147,6 +149,47 @@ getNgramsContexts cId lId tabType maybeLimit = do
                                (lIds <> [lId])
                                (ngramsTypeFromTabType tabType)
                                (take' maybeLimit $ HM.keys ngs)
+
+
+
+------------------------------------------------------------------------
+updateContextScore :: (FlowCmdM env err m)
+             => CorpusId -> Maybe ListId
+             -> m [Int]
+updateContextScore cId maybeListId = do
+
+  lId <- case maybeListId of
+    Nothing   -> defaultList cId
+    Just lId' -> pure lId'
+
+  result <- getContextsNgramsScore cId lId Terms MapTerm Nothing
+  
+  let
+    toInsert :: [[Action]]
+    toInsert =  map (\(contextId, score)
+                        -> [ toField cId
+                           , toField contextId
+                           , toField score
+                           ]
+                      )
+       $ Map.toList result
+
+    queryInsert :: Query
+    queryInsert = [sql|
+                  WITH input(node_id, context_id, score) AS (?)
+                    UPDATE nodes_contexts nc
+                    SET score = input.score
+                    FROM input
+                    WHERE nc.node_id = input.node_id
+                    AND nc.context_id = input.context_id
+                    RETURNING 1
+                  |]
+
+  let fields = map (\t-> QualifiedIdentifier Nothing t) 
+             $ map Text.pack ["int4", "int4","int4"]
+
+  map (\(Only a) -> a) <$> runPGSQuery queryInsert (Only $ Values fields toInsert)
+
 
 
 
@@ -172,12 +215,15 @@ getContextsNgrams cId lId tabType listType maybeLimit = do
                                $ HM.keys
                                $ HM.filter (\v -> fst v == listType) ngs'
                                )
-
+  -- printDebug "getCoocByNgrams" result
   pure $ Map.fromListWith (<>)
        $ List.concat
        $ map (\(ng, contexts) -> List.zip (Set.toList contexts) (List.cycle [Set.singleton ng]))
        $ HM.toList result
 
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 
 
 getNgrams :: (HasMail env, HasNodeStory env err m)
