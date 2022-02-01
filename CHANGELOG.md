@@ -1,3 +1,6 @@
+## Version 0.0.5.3
+* [FRONT] SSL local option
+
 ## Version 0.0.5.2
 * [QUAL] Scores in Ngrams Table fixed during workflow and user can
   refresh it if needed.
