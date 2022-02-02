@@ -1,3 +1,7 @@
+## Version 0.0.5.5
+* [FRONT] Visio frame removed, using a new tab instead (which is working)
+* [BACK] Scores on the docs view fixed
+
 ## Version 0.0.5.3
 * [FRONT] SSL local option
 
