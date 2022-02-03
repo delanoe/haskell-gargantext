@@ -1,3 +1,7 @@
+## Version 0.0.5.5.1
+* [BACK] FIX Graph Explorer search with selected ngrams
+* [FRONT] Clean CSS
+
 ## Version 0.0.5.5
 * [FRONT] Visio frame removed, using a new tab instead (which is working)
 * [BACK] Scores on the docs view fixed
