@@ -20,7 +20,7 @@ Portability : POSIX
 module Gargantext.Database.Query.Facet
   ( runViewAuthorsDoc
   , runViewDocuments
-  , viewDocuments'
+--   , viewDocuments'
   , runCountDocuments
   , filterWith
 
@@ -306,8 +306,7 @@ runViewDocuments cId t o l order query = do
     printDebug "[runViewDocuments] sqlQuery" $ showSql sqlQuery
     runOpaQuery $ filterWith o l order sqlQuery
   where
-    ntId = toDBid NodeDocument
-    sqlQuery = viewDocuments cId t ntId query
+    sqlQuery = viewDocuments cId t (toDBid NodeDocument) query
 
 runCountDocuments :: HasDBid NodeType => CorpusId -> IsTrash -> Maybe Text -> Cmd err Int
 runCountDocuments cId t mQuery = do
@@ -330,22 +329,6 @@ viewDocuments cId t ntId mQuery = viewDocumentsQuery cId t ntId mQuery >>> proc 
                        , facetDoc_ngramCount = toNullable $ nc^.nc_score
                        , facetDoc_score      = toNullable $ nc^.nc_score
                        }
-
-viewDocuments' :: CorpusId
-               -> IsTrash
-               -> NodeTypeId
-               -> Maybe Text
-               -> Select NodeRead
-viewDocuments' cId t ntId mQuery = viewDocumentsQuery cId t ntId mQuery >>> proc (c, _nc) -> do
-  returnA  -< Node { _node_id        = _cs_id        c
-                   , _node_hash_id   = ""
-                   , _node_typename  = _cs_typename  c
-                   , _node_user_id   = _cs_user_id   c
-                   , _node_parent_id = -1
-                   , _node_name      = _cs_name      c
-                   , _node_date      = _cs_date      c
-                   , _node_hyperdata = _cs_hyperdata c
-                   }
 
 viewDocumentsQuery :: CorpusId
                    -> IsTrash
