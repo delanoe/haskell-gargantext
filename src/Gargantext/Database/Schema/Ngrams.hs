@@ -19,6 +19,7 @@ Ngrams connection to the Database.
 module Gargantext.Database.Schema.Ngrams
   where
 
+import Data.Maybe (fromMaybe)
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
 import Codec.Serialise (Serialise())
@@ -32,6 +33,7 @@ import Gargantext.Core.Types (TODO(..), Typed(..))
 import Gargantext.Prelude
 import Servant (FromHttpApiData(..), Proxy(..), ToHttpApiData(..))
 import Text.Read (read)
+import Gargantext.Core (HasDBid(..))
 import Gargantext.Database.Types
 import Gargantext.Database.Schema.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
@@ -46,17 +48,17 @@ data NgramsPoly id terms n = NgramsDB { _ngrams_id    :: !id
                                       , _ngrams_n     :: !n
                                       } deriving (Show)
 
-type NgramsWrite = NgramsPoly (Maybe (Column PGInt4))
-                                   (Column PGText)
-                                   (Column PGInt4)
+type NgramsWrite = NgramsPoly (Maybe (Column SqlInt4))
+                                   (Column SqlText)
+                                   (Column SqlInt4)
 
-type NgramsRead  = NgramsPoly (Column PGInt4)
-                              (Column PGText)
-                              (Column PGInt4)
+type NgramsRead  = NgramsPoly (Column SqlInt4)
+                              (Column SqlText)
+                              (Column SqlInt4)
 
-type NgramsReadNull = NgramsPoly (Column (Nullable PGInt4))
-                                 (Column (Nullable PGText))
-                                 (Column (Nullable PGInt4))
+type NgramsReadNull = NgramsPoly (Column (Nullable SqlInt4))
+                                 (Column (Nullable SqlText))
+                                 (Column (Nullable SqlInt4))
 
 type NgramsDB = NgramsPoly Int Text Int
 
@@ -81,6 +83,7 @@ data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Read, Ord, Enum, Bounded, Generic)
 
 instance Serialise NgramsType
+
 
 ngramsTypes :: [NgramsType]
 ngramsTypes = [minBound..]
@@ -119,14 +122,14 @@ instance ToParamSchema NgramsType where
   toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
 
 
-instance DefaultFromField (Nullable PGInt4) NgramsTypeId
+instance DefaultFromField (Nullable SqlInt4) NgramsTypeId
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-pgNgramsType :: NgramsType -> Column PGInt4
+pgNgramsType :: NgramsType -> Column SqlInt4
 pgNgramsType = pgNgramsTypeId . ngramsTypeId
 
-pgNgramsTypeId :: NgramsTypeId -> Column PGInt4
+pgNgramsTypeId :: NgramsTypeId -> Column SqlInt4
 pgNgramsTypeId (NgramsTypeId n) = sqlInt4 n
 
 ngramsTypeId :: NgramsType -> NgramsTypeId
@@ -140,6 +143,16 @@ fromNgramsTypeId id = lookup id
                     $ fromList [ (ngramsTypeId nt,nt)
                                | nt <- [minBound .. maxBound] :: [NgramsType]
                                ]
+
+unNgramsTypeId :: NgramsTypeId -> Int
+unNgramsTypeId (NgramsTypeId i) = i
+
+toNgramsTypeId :: Int -> NgramsTypeId
+toNgramsTypeId i = NgramsTypeId i
+
+instance HasDBid NgramsType where
+  toDBid   = unNgramsTypeId . ngramsTypeId
+  fromDBid = fromMaybe (panic "NgramsType id not indexed") . fromNgramsTypeId . toNgramsTypeId
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

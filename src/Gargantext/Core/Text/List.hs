@@ -34,7 +34,7 @@ import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.Metrics (scored', Scored(..), scored_speExc, scored_genInc, normalizeGlobal, normalizeLocal, scored_terms)
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsUser, getContextsByNgramsOnlyUser)
 import Gargantext.Database.Action.Metrics.TFICF (getTficf_withSample)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Prelude (CmdM)
@@ -98,7 +98,7 @@ buildNgramsOthersList :: ( HasNodeError err
                       -> (NgramsType, MapListSize)
                       -> m (Map NgramsType [NgramsElement])
 buildNgramsOthersList user uCid mfslw _groupParams (nt, MapListSize mapListSize) = do
-  allTerms  :: HashMap NgramsTerm (Set NodeId) <- getNodesByNgramsUser uCid nt
+  allTerms  :: HashMap NgramsTerm (Set NodeId) <- getContextsByNgramsUser uCid nt
 
   -- PrivateFirst for first developments since Public NodeMode is not implemented yet
   socialLists :: FlowCont NgramsTerm FlowListScores
@@ -159,11 +159,11 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
 
 -- Filter 0 With Double
 -- Computing global speGen score
-  printDebug "[buldNgramsTermsList: Sample List] / start" nt
+  printDebug "[buildNgramsTermsList: Sample List] / start" nt
   allTerms :: HashMap NgramsTerm Double <- getTficf_withSample uCid mCid nt
-  printDebug "[buldNgramsTermsList: Sample List / end]" nt
+  printDebug "[buildNgramsTermsList: Sample List / end]" (nt, HashMap.size allTerms)
 
-  printDebug "[buldNgramsTermsList: Flow Social List / start]" nt
+  printDebug "[buildNgramsTermsList: Flow Social List / start]" nt
   -- PrivateFirst for first developments since Public NodeMode is not implemented yet
   socialLists :: FlowCont NgramsTerm FlowListScores
     <- flowSocialList mfslw user nt ( FlowCont HashMap.empty
@@ -171,7 +171,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
                                                       $ List.zip (HashMap.keys   allTerms)
                                                                  (List.cycle     [mempty])
                                     )
-  printDebug "[buldNgramsTermsList: Flow Social List / end]" nt
+  printDebug "[buildNgramsTermsList: Flow Social List / end]" nt
 
   let ngramsKeys = HashMap.keysSet allTerms
 
@@ -212,10 +212,13 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
   userListId    <- defaultList uCid
   masterListId  <- defaultList mCid
 
-  mapTextDocIds <- getNodesByNgramsOnlyUser uCid
+  mapTextDocIds <- getContextsByNgramsOnlyUser uCid
                                             [userListId, masterListId]
                                             nt
                                             selectedTerms
+
+
+  -- printDebug "mapTextDocIds" mapTextDocIds
 
   let
     groupedTreeScores_SetNodeId :: HashMap NgramsTerm (GroupedTreeScores (Set NodeId))

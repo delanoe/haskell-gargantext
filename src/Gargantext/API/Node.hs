@@ -40,8 +40,8 @@ import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
-import Gargantext.API.Admin.Auth.Types (PathId(..))
 import Gargantext.API.Admin.Auth (withAccess)
+import Gargantext.API.Admin.Auth.Types (PathId(..))
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableCorpus)
 import Gargantext.API.Ngrams.Types (TabType(..))
@@ -53,6 +53,7 @@ import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Viz.Phylo.Legacy.LegacyAPI (PhyloAPI, phyloAPI)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
@@ -63,12 +64,12 @@ import Gargantext.Database.Query.Table.Node.Children (getChildren)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.Node.Update (Update(..), update)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
+import Gargantext.Database.Query.Table.NodeContext (nodeContextsCategory, nodeContextsScore)
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Prelude
-import Gargantext.Core.Viz.Phylo.Legacy.LegacyAPI (PhyloAPI, phyloAPI)
-import qualified Gargantext.API.Node.DocumentsFromWriteNodes as DocumentsFromWriteNodes
 import qualified Gargantext.API.Node.DocumentUpload as DocumentUpload
+import qualified Gargantext.API.Node.DocumentsFromWriteNodes as DocumentsFromWriteNodes
 import qualified Gargantext.API.Node.FrameCalcUpload as FrameCalcUpload
 import qualified Gargantext.API.Node.Share  as Share
 import qualified Gargantext.API.Node.Update as Update
@@ -212,7 +213,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> postNodeAsyncAPI  uId id'
            :<|> FrameCalcUpload.api uId id'
            :<|> putNode       id'
-           :<|> Update.api  uId id'
+           :<|> Update.api uId id'
            :<|> Action.deleteNode (RootId $ NodeId uId) id'
            :<|> getChildren   id' p
 
@@ -271,7 +272,7 @@ catApi :: CorpusId -> GargServer CatApi
 catApi = putCat
   where
     putCat :: CorpusId -> NodesToCategory -> Cmd err [Int]
-    putCat cId cs' = nodeNodesCategory $ map (\n -> (cId, n, ntc_category cs')) (ntc_nodesId cs')
+    putCat cId cs' = nodeContextsCategory $ map (\n -> (cId, n, ntc_category cs')) (ntc_nodesId cs')
 
 ------------------------------------------------------------------------
 type ScoreApi =  Summary " To Score NodeNodes"
@@ -292,7 +293,7 @@ scoreApi :: CorpusId -> GargServer ScoreApi
 scoreApi = putScore
   where
     putScore :: CorpusId -> NodesToScore -> Cmd err [Int]
-    putScore cId cs' = nodeNodesScore $ map (\n -> (cId, n, nts_score cs')) (nts_nodesId cs')
+    putScore cId cs' = nodeContextsScore $ map (\n -> (cId, n, nts_score cs')) (nts_nodesId cs')
 
 ------------------------------------------------------------------------
 -- TODO adapt FacetDoc -> ListDoc (and add type of document as column)

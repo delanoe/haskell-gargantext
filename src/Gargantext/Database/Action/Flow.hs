@@ -86,15 +86,16 @@ import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Flow.Utils (insertDocNgrams, DocumentIdWithNgrams(..))
 import Gargantext.Database.Action.Search (searchDocInDatabase)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
+import Gargantext.Database.Action.Metrics (updateNgramsOccurrences)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Prelude
+import Gargantext.Database.Query.Table.ContextNodeNgrams2
 import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.NodeNgrams (listInsertDb , getCgramsId)
-import Gargantext.Database.Query.Table.NodeNodeNgrams2
 import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Schema.Node (NodePoly(..), node_id)
 import Gargantext.Database.Types
@@ -231,6 +232,9 @@ flow c u cn la mfslw docs logStatus = do
                   ) (zip [1..] docs)
   flowCorpusUser (la ^. tt_lang) u cn c (concat ids) mfslw
 
+
+
+
 ------------------------------------------------------------------------
 flowCorpusUser :: ( FlowCmdM env err m
                   , MkCorpus c
@@ -265,6 +269,8 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
   let gp = GroupWithPosTag l CoreNLP HashMap.empty 
   ngs         <- buildNgramsLists user userCorpusId masterCorpusId mfslw gp
 
+  -- printDebug "flowCorpusUser:ngs" ngs
+
   _userListId <- flowList_DbRepo listId ngs
   _mastListId <- getOrMkList masterCorpusId masterUserId
   -- _ <- insertOccsUpdates userCorpusId mastListId
@@ -275,6 +281,8 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
   --_ <- mkPhylo  userCorpusId userId
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId
+  _ <- updateNgramsOccurrences userCorpusId (Just listId)
+
   pure userCorpusId
 
 
@@ -314,27 +322,28 @@ saveDocNgramsWith :: ( FlowCmdM env err m)
                   -> m ()
 saveDocNgramsWith lId mapNgramsDocs' = do
   terms2id <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
-  let mapNgramsDocs = HashMap.mapKeys extracted2ngrams mapNgramsDocs'
+  printDebug "terms2id" terms2id
 
-  -- to be removed
-  let indexedNgrams = HashMap.mapKeys (indexNgrams terms2id) mapNgramsDocs
+  let mapNgramsDocs = HashMap.mapKeys extracted2ngrams mapNgramsDocs'
 
   -- new
   mapCgramsId <- listInsertDb lId toNodeNgramsW'
                $ map (first _ngramsTerms . second Map.keys)
                $ HashMap.toList mapNgramsDocs
 
+  printDebug "saveDocNgramsWith" mapCgramsId
   -- insertDocNgrams
-  _return <- insertNodeNodeNgrams2
-           $ catMaybes [ NodeNodeNgrams2 <$> Just nId
-                                         <*> getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms'')
-                                         <*> Just (fromIntegral w :: Double)
+  _return <- insertContextNodeNgrams2
+           $ catMaybes [ ContextNodeNgrams2 <$> Just nId
+                                            <*> (getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms''))
+                                            <*> Just (fromIntegral w :: Double)
                        | (terms'', mapNgramsTypes)      <- HashMap.toList mapNgramsDocs
                        , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
                        , (nId, w)                       <- Map.toList mapNodeIdWeight
                        ]
+
   -- to be removed
-  _   <- insertDocNgrams lId indexedNgrams
+  _   <- insertDocNgrams lId $ HashMap.mapKeys (indexNgrams terms2id) mapNgramsDocs
 
   pure ()
 
@@ -348,7 +357,7 @@ insertDocs :: ( FlowCmdM env err m
               => UserId
               -> CorpusId
               -> [a]
-              -> m ([DocId], [Indexed NodeId a])
+              -> m ([ContextId], [Indexed ContextId a])
 insertDocs uId cId hs = do
   let docs = map addUniqId hs
   newIds <- insertDb uId cId docs
@@ -476,27 +485,24 @@ instance HasText a => HasText (Node a)
 -- | TODO putelsewhere
 -- | Upgrade function
 -- Suppose all documents are English (this is the case actually)
-indexAllDocumentsWithPosTag :: FlowCmdM env err m => m ()
+indexAllDocumentsWithPosTag :: FlowCmdM env err m
+                            => m ()
 indexAllDocumentsWithPosTag = do
   rootId    <- getRootId (UserName userMaster)
   corpusIds <- findNodesId rootId [NodeCorpus]
   docs      <- List.concat <$> mapM getDocumentsWithParentId corpusIds
-
   _ <- mapM extractInsert (splitEvery 1000 docs)
-
   pure ()
 
-extractInsert :: FlowCmdM env err m => [Node HyperdataDocument] -> m ()
+extractInsert :: FlowCmdM env err m
+              => [Node HyperdataDocument] -> m ()
 extractInsert docs = do
   let documentsWithId = map (\doc -> Indexed (doc ^. node_id) doc) docs
-
   mapNgramsDocs' <- mapNodeIdNgrams
                 <$> documentIdWithNgrams
                     (extractNgramsT $ withLang (Multi EN) documentsWithId)
                     documentsWithId
-
   _ <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
-
   pure ()
 
 

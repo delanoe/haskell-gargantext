@@ -41,7 +41,7 @@ insertNodeNodeNgrams = insertNodeNodeNgramsW
                                              (pgNodeId n2)
                                              (sqlInt4   ng)
                                              (pgNgramsTypeId nt)
-                                             (pgDouble w)
+                                             (sqlDouble w)
                                                   )
 
 insertNodeNodeNgramsW :: [NodeNodeNgramsWrite] -> Cmd err Int
@@ -53,4 +53,7 @@ insertNodeNodeNgramsW nnnw =
                               , iReturning = rCount
                               , iOnConflict = (Just DoNothing)
       })
+
+
+
 

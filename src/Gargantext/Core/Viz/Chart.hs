@@ -25,7 +25,7 @@ import Gargantext.Database.Admin.Config
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Select
-import Gargantext.Database.Query.Table.NodeNode (selectDocsDates)
+import Gargantext.Database.Query.Table.NodeContext (selectDocsDates)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
@@ -36,7 +36,7 @@ import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types
 import Gargantext.Database.Action.Flow.Types
-import Gargantext.Database.Action.Metrics.NgramsByNode
+import Gargantext.Database.Action.Metrics.NgramsByContext
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Core.Viz.Types
 import qualified Data.HashMap.Strict as HashMap
@@ -67,8 +67,8 @@ chartData cId nt lt = do
         Nothing -> x
         Just x' -> maybe x identity x'
 
-  (_total,mapTerms) <- countNodesByNgramsWith (group dico)
-                    <$> getNodesByNgramsOnlyUser cId (ls' <> ls) nt terms
+  (_total,mapTerms) <- countContextsByNgramsWith (group dico)
+                    <$> getContextsByNgramsOnlyUser cId (ls' <> ls) nt terms
   let (dates, count) = V.unzip $
                        V.fromList $
                        List.sortOn snd $
@@ -89,7 +89,7 @@ treeData cId nt lt = do
     dico = filterListWithRoot lt ts
     terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ HashMap.toList dico
 
-  cs' <- getNodesByNgramsOnlyUser cId (ls' <> ls) nt terms
+  cs' <- getContextsByNgramsOnlyUser cId (ls' <> ls) nt terms
 
   m  <- getListNgrams ls nt
   pure $ V.fromList $ toTree lt cs' m

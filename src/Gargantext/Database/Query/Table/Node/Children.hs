@@ -23,10 +23,15 @@ import Gargantext.Core.Types
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument, HyperdataContact)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Filter
-import Gargantext.Database.Query.Table.NodeNode
+
 import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.Context
+import Gargantext.Database.Schema.NodeContext
+import Gargantext.Database.Query.Table.NodeContext
+
+
+import Gargantext.Prelude
 import Opaleye
-import Protolude
 
 
 -- TODO getAllTableDocuments
@@ -46,6 +51,7 @@ getAllChildren :: (JSONB a, HasDBid NodeType)
                -> Cmd err (NodeTableResult a)
 getAllChildren pId p maybeNodeType = getChildren pId p maybeNodeType Nothing Nothing
 
+
 getChildren :: (JSONB a, HasDBid NodeType)
             => ParentId
             -> proxy a
@@ -53,31 +59,74 @@ getChildren :: (JSONB a, HasDBid NodeType)
             -> Maybe Offset
             -> Maybe Limit
             -> Cmd err (NodeTableResult a)
-getChildren pId _ maybeNodeType maybeOffset maybeLimit = do
+getChildren pId p t@(Just NodeDocument) maybeOffset maybeLimit = getChildrenContext pId p t maybeOffset maybeLimit
+getChildren pId p t@(Just NodeContact ) maybeOffset maybeLimit = getChildrenContext pId p t maybeOffset maybeLimit
+getChildren a b c d e = getChildrenNode a b c d e
+
+
+getChildrenNode :: (JSONB a, HasDBid NodeType)
+            => ParentId
+            -> proxy a
+            -> Maybe NodeType
+            -> Maybe Offset
+            -> Maybe Limit
+            -> Cmd err (NodeTableResult a)
+getChildrenNode pId _ maybeNodeType maybeOffset maybeLimit = do
+  printDebug "getChildrenNode" (pId, maybeNodeType)
+  let query = selectChildrenNode pId maybeNodeType
   docs <- runOpaQuery
-          $ limit' maybeLimit $ offset' maybeOffset
-          $ orderBy (asc _node_id)
-          $ query
-
+        $ limit'  maybeLimit
+        $ offset' maybeOffset
+        $ orderBy (asc _node_id)
+        $ query
   docCount <- runCountOpaQuery query
-
   pure $ TableResult { tr_docs = docs, tr_count = docCount }
 
-  where
-    query = selectChildren pId maybeNodeType
 
-selectChildren :: HasDBid NodeType
+selectChildrenNode :: HasDBid NodeType
                => ParentId
                -> Maybe NodeType
-               -> Query NodeRead
-selectChildren parentId maybeNodeType = proc () -> do
-    row@(Node nId _ typeName _ parent_id _ _ _) <- queryNodeTable -< ()
-    (NodeNode n1id n2id _ _) <- queryNodeNodeTable -< ()
+               -> Select NodeRead
+selectChildrenNode parentId maybeNodeType = proc () -> do
+    row@(Node _ _ typeName _ parent_id _ _ _) <- queryNodeTable -< ()
+    let nodeType = maybe 0 toDBid maybeNodeType
+    restrict -< typeName  .== sqlInt4 nodeType
+    restrict -< parent_id .== (pgNodeId parentId)
+    returnA -< row
+
+
+getChildrenContext :: (JSONB a, HasDBid NodeType)
+            => ParentId
+            -> proxy a
+            -> Maybe NodeType
+            -> Maybe Offset
+            -> Maybe Limit
+            -> Cmd err (NodeTableResult a)
+getChildrenContext pId _ maybeNodeType maybeOffset maybeLimit = do
+  printDebug "getChildrenContext" (pId, maybeNodeType)
+  let query = selectChildren' pId maybeNodeType
+
+  docs <- runOpaQuery
+        $ limit'  maybeLimit
+        $ offset' maybeOffset
+        $ orderBy (asc _context_id)
+        $ query
+
+  docCount <- runCountOpaQuery query
+  pure $ TableResult { tr_docs = map context2node docs, tr_count = docCount }
+
+
+selectChildren' :: HasDBid NodeType
+               => ParentId
+               -> Maybe NodeType
+               -> Select ContextRead
+selectChildren' parentId maybeNodeType = proc () -> do
+    row@(Context cid _ typeName _ _ _ _ _) <- queryContextTable     -< ()
+    (NodeContext nid cid' _ _)                    <- queryNodeContextTable -< ()
 
     let nodeType = maybe 0 toDBid maybeNodeType
     restrict -< typeName  .== sqlInt4 nodeType
 
-    restrict -< (.||) (parent_id .== (pgNodeId parentId))
-                      ( (.&&) (n1id .== pgNodeId parentId)
-                              (n2id .== nId))
+    restrict -< nid .== pgNodeId parentId
+    restrict -< cid .== cid'
     returnA -< row

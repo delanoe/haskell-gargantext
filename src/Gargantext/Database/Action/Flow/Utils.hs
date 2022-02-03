@@ -17,10 +17,11 @@ import Data.Map (Map)
 import Data.HashMap.Strict (HashMap)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
-import Gargantext.Database.Query.Table.NodeNodeNgrams
+import Gargantext.Database.Query.Table.ContextNodeNgrams
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Types
 import Gargantext.Prelude
+import Control.Lens ((^.))
 import qualified Data.Map as DM
 import qualified Data.HashMap.Strict as HashMap
 
@@ -31,35 +32,21 @@ data DocumentIdWithNgrams a b =
      , documentNgrams :: HashMap b (Map NgramsType Int)
      } deriving (Show)
 
-docNgrams2nodeNodeNgrams :: CorpusId
-                         -> DocNgrams
-                         -> NodeNodeNgrams
-docNgrams2nodeNodeNgrams cId (DocNgrams d n nt w) =
-  NodeNodeNgrams cId d n nt w
-
-data DocNgrams = DocNgrams { dn_doc_id      :: DocId
-                           , dn_ngrams_id   :: Int
-                           , dn_ngrams_type :: NgramsTypeId
-                           , dn_weight      :: Double
-                           }
-
-insertDocNgramsOn :: CorpusId
-                  -> [DocNgrams]
-                  -> Cmd err Int
-insertDocNgramsOn cId dn =
-  insertNodeNodeNgrams
-  $ (map (docNgrams2nodeNodeNgrams cId) dn)
-
-insertDocNgrams :: CorpusId
-                -> HashMap (Indexed Int Ngrams) (Map NgramsType (Map NodeId Int))
+insertDocNgrams :: ListId
+                -> HashMap (Indexed NgramsId Ngrams) (Map NgramsType (Map DocId Int))
                 -> Cmd err Int
-insertDocNgrams cId m =
-  insertDocNgramsOn cId [ DocNgrams { dn_doc_id = n
-                                    , dn_ngrams_id = _index ng
-                                    , dn_ngrams_type = ngramsTypeId t
-                                    , dn_weight = fromIntegral i }
-                          | (ng, t2n2i) <- HashMap.toList m
-                          , (t,  n2i)   <- DM.toList t2n2i
-                          , (n,  i)     <- DM.toList n2i
-                        ]
+insertDocNgrams lId m = insertContextNodeNgrams ns
+  where
+    ns = [ ContextNodeNgrams docId lId (ng^.index)
+                                   (ngramsTypeId t)
+                                   (fromIntegral i)
+         | (ng, t2n2i) <- HashMap.toList m
+         , (t,  n2i)   <- DM.toList t2n2i
+         , (docId,  i)     <- DM.toList n2i
+         ]
+
+
+
+
+
 

@@ -29,11 +29,9 @@ Next Step benchmark:
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
-  ( module Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
-  , insert_Node_NodeNgrams_NodeNgrams
-  )
   where
 
+{-
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Prelude (Cmd, runOpaQuery, mkCmd)
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
@@ -58,7 +56,7 @@ insert_Node_NodeNgrams_NodeNgrams = insert_Node_NodeNgrams_NodeNgrams_W
                           Node_NodeNgrams_NodeNgrams (pgNodeId n  )
                                            (sqlInt4 <$> ng1)
                                            (sqlInt4 ng2)
-                                           (pgDouble <$> maybeWeight)
+                                           (sqlDouble <$> maybeWeight)
                         )
 
 insert_Node_NodeNgrams_NodeNgrams_W :: [Node_NodeNgrams_NodeNgrams_Write] -> Cmd err Int64
@@ -68,3 +66,4 @@ insert_Node_NodeNgrams_NodeNgrams_W ns =
                                     , iReturning = rCount
                                     , iOnConflict = (Just DoNothing)
                                     }
+-}

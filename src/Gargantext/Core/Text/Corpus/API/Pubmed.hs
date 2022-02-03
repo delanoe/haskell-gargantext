@@ -58,22 +58,21 @@ toDoc l (PubMedDoc.PubMed (PubMedDoc.PubMedArticle t j as aus)
                                 , _hd_publication_second = Nothing
                                 , _hd_language_iso2 = Just $ (Text.pack . show) l }
       where
-        authors :: Maybe [PubMedDoc.Author] -> Maybe Text
-        authors aus' = case aus' of
-            Nothing -> Nothing
-            Just au -> Just $ (Text.intercalate ", ")
-                            $ catMaybes
-                            $ map (\n -> PubMedDoc.foreName n <> Just " " <> PubMedDoc.lastName n) au
+        authors :: [PubMedDoc.Author] -> Maybe Text
+        authors [] = Nothing
+        authors au = Just $ (Text.intercalate ", ")
+                          $ catMaybes
+                          $ map (\n -> PubMedDoc.foreName n <> Just " " <> PubMedDoc.lastName n) au
 
-        institutes :: Maybe [PubMedDoc.Author] -> Maybe Text
-        institutes aus' = case aus' of
-            Nothing -> Nothing
-            Just au -> Just $ (Text.intercalate ", ")
-                            $ (map (Text.replace ", " " - "))
-                            $ catMaybes
-                            $ map PubMedDoc.affiliation au
+        institutes :: [PubMedDoc.Author] -> Maybe Text
+        institutes [] = Nothing
+        institutes au = Just $ (Text.intercalate ", ")
+                             $ (map (Text.replace ", " " - "))
+                             $ catMaybes
+                             $ map PubMedDoc.affiliation au
 
 
-        abstract :: Maybe [Text] -> Maybe Text
-        abstract as' = fmap (Text.intercalate ", ") as'
+        abstract :: [Text] -> Maybe Text
+        abstract [] = Nothing
+        abstract as' = Just $ Text.intercalate ", " as'
 

@@ -90,10 +90,10 @@ instance FromField HyperdataAnnuaire
   where
     fromField = fromField'
 ------------------------------------------------------------------------
-instance DefaultFromField PGJsonb HyperdataCorpus
+instance DefaultFromField SqlJsonb HyperdataCorpus
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGJsonb HyperdataAnnuaire
+instance DefaultFromField SqlJsonb HyperdataAnnuaire
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField

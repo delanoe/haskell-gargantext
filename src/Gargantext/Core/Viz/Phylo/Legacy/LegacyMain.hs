@@ -32,7 +32,7 @@ import Gargantext.Database.Action.Flow.Types
 import Gargantext.Core.Viz.LegacyPhylo hiding (Svg, Dot)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
-import Gargantext.Database.Query.Table.NodeNode (selectDocs)
+import Gargantext.Database.Query.Table.NodeContext (selectDocs)
 import Gargantext.Core.Types
 import Gargantext.Core (HasDBid)
 

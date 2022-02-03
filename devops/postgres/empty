@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# sudo su postgres
+
+# postgresql://$USER:$PW@localhost/$DB
+
+PW="C8kdcUrAQy66U"
+DB="gargandb1"
+USER="gargantua"
+
+#psql -c "CREATE USER \"${USER}\""
+#psql -c "ALTER USER \"${USER}\" with PASSWORD '${PW}'"
+
+psql -c "DROP DATABASE IF EXISTS \"${DB}\""
+createdb "${DB}"
+psql -c "ALTER DATABASE \"${DB}\" OWNER to \"${USER}\""
+
+
+
+
+

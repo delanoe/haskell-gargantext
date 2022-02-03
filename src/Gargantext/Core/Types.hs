@@ -147,7 +147,7 @@ type NodeTableResult a = TableResult (Node a)
 
 data TableResult a = TableResult { tr_count :: Int
                                  , tr_docs  :: [a]
-                                 } deriving (Generic)
+                                 } deriving (Generic, Show)
 
 $(deriveJSON (unPrefix "tr_") ''TableResult)
 

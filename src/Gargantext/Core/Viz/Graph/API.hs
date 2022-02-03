@@ -31,7 +31,7 @@ import Gargantext.Core.Types.Main
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.GEXF ()
 import Gargantext.Core.Viz.Graph.Tools -- (cooc2graph)
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOnlyUser)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Admin.Config
@@ -120,8 +120,9 @@ recomputeGraph :: FlowCmdM env err m
                => UserId
                -> NodeId
                -> Maybe GraphMetric
+               -> Bool
                -> m Graph
-recomputeGraph _uId nId maybeDistance = do
+recomputeGraph _uId nId maybeDistance force = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
@@ -142,21 +143,22 @@ recomputeGraph _uId nId maybeDistance = do
   repo <- getRepo' [listId]
   let v   = repo ^. unNodeStory . at listId . _Just . a_version
 
+  let computeG mt = do
+        g <- computeGraph cId similarity NgramsTerms repo
+        let g' = set graph_metadata mt g
+        _ <- updateHyperdata nId (HyperdataGraph (Just g') camera)
+        pure g'
+
   case graph of
     Nothing     -> do
-      graph' <- computeGraph cId similarity NgramsTerms repo
       mt     <- defaultGraphMetadata cId "Title" repo (fromMaybe Order1 maybeDistance)
-      let graph'' = set graph_metadata (Just mt) graph'
-      _ <- updateHyperdata nId (HyperdataGraph (Just graph'') camera)
-      pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" graph''
-
-    Just graph' -> if listVersion == Just v
+      g <- computeG $ Just mt
+      pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" g
+    Just graph' -> if (listVersion == Just v) && (not force)
                      then pure graph'
                      else do
-                       graph'' <- computeGraph cId similarity NgramsTerms repo
-                       let graph''' = set graph_metadata graphMetadata graph''
-                       _ <- updateHyperdata nId (HyperdataGraph (Just graph''') camera)
-                       pure $ trace "[G.V.G.API] Graph exists, recomputing" graph'''
+                       g <- computeG graphMetadata
+                       pure $ trace "[G.V.G.API] Graph exists, recomputing" g
 
 
 computeGraph :: FlowCmdM env err m
@@ -177,7 +179,7 @@ computeGraph cId d nt repo = do
          -- <$> getCoocByNgrams (if d == Conditional then Diagonal True else Diagonal False)
          <$> getCoocByNgrams (Diagonal True)
          <$> groupNodesByNgrams ngs
-         <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
+         <$> getContextsByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
 
   -- printDebug "myCooc" myCooc
   -- saveAsFileDebug "debug/my-cooc" myCooc
@@ -242,7 +244,7 @@ graphRecompute u n logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _g <- trace (show u) $ recomputeGraph u n Nothing
+  _g <- trace (show u) $ recomputeGraph u n Nothing False
   pure  JobLog { _scst_succeeded = Just 1
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
@@ -297,7 +299,7 @@ recomputeVersions :: FlowCmdM env err m
                   => UserId
                   -> NodeId
                   -> m Graph
-recomputeVersions uId nId = recomputeGraph uId nId Nothing
+recomputeVersions uId nId = recomputeGraph uId nId Nothing False
 
 ------------------------------------------------------------
 graphClone :: UserId

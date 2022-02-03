@@ -32,7 +32,7 @@ import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (readIniFile', val)
-import Opaleye (Query, Unpackspec, showSql, FromFields, Select, runSelect, PGJsonb, DefaultFromField)
+import Opaleye (Unpackspec, showSql, FromFields, Select, runSelect, SqlJsonb, DefaultFromField)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
 import System.IO (stderr)
@@ -57,7 +57,7 @@ instance HasConfig GargConfig where
   hasConfig = identity
 
 -------------------------------------------------------
-type JSONB = DefaultFromField PGJsonb
+type JSONB = DefaultFromField SqlJsonb
 -------------------------------------------------------
 
 type CmdM'' env err m =
@@ -148,16 +148,14 @@ runPGSQuery_ :: ( CmdM env err m
 runPGSQuery_ q = mkCmd $ \conn -> catch (PGS.query_ conn q) printError
   where
     printError (SomeException e) = do
-      printDebug "[G.D.P.runPGSQuery_]" ("TODO: format query error query" :: Text)
+      printDebug "[G.D.P.runPGSQuery_]" ("TODO: format query error" :: Text)
       throw (SomeException e)
-
 
 
 execPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err Int64
 execPGSQuery q a = mkCmd $ \conn -> PGS.execute conn q a
 
 ------------------------------------------------------------------------
-
 databaseParameters :: FilePath -> IO PGS.ConnectInfo
 databaseParameters fp = do
   ini <- readIniFile' fp
@@ -185,6 +183,6 @@ fromField' field mb = do
                                               , show v
                                               ]
 
-printSqlOpa :: Default Unpackspec a a => Query a -> IO ()
+printSqlOpa :: Default Unpackspec a a => Select a -> IO ()
 printSqlOpa = putStrLn . maybe "Empty query" identity . showSql
 

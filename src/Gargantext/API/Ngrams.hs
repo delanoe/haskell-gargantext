@@ -103,7 +103,7 @@ import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid, HasInvalidError)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.Database.Action.Flow.Types
-import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
+import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
@@ -245,7 +245,7 @@ setListNgrams ::  HasNodeStory env err m
               -> Map NgramsTerm NgramsRepoElement
               -> m ()
 setListNgrams listId ngramsType ns = do
-  printDebug "[setListNgrams]" (listId, ngramsType)
+  -- printDebug "[setListNgrams]" (listId, ngramsType)
   getter <- view hasNodeStory
   var <- liftBase $ (getter ^. nse_getter) [listId]
   liftBase $ modifyMVar_ var $
@@ -283,7 +283,7 @@ commitStatePatch :: (HasNodeStory env err m, HasMail env)
                  ->    Versioned NgramsStatePatch'
                  -> m (Versioned NgramsStatePatch')
 commitStatePatch listId (Versioned p_version p) = do
-  printDebug "[commitStatePatch]" listId
+  -- printDebug "[commitStatePatch]" listId
   var <- getNodeStoryVar [listId]
   vq' <- liftBase $ modifyMVar var $ \ns -> do
     let
@@ -343,10 +343,10 @@ tableNgramsPull listId ngramsType p_version = do
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
 -- TODO-ACCESS check
-tableNgramsPut :: ( HasNodeStory env err m
-                  , HasInvalidError err
-                  , HasSettings env
-                  , HasMail env
+tableNgramsPut :: ( HasNodeStory    env err m
+                  , HasInvalidError     err
+                  , HasSettings     env
+                  , HasMail         env
                   )
                  => TabType
                  -> ListId
@@ -495,7 +495,7 @@ type MaxSize = Int
 getTableNgrams :: forall env err m.
                   (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env, HasMail env)
                => NodeType -> NodeId -> TabType
-               -> ListId -> Limit -> Maybe Offset
+               -> ListId   -> Limit  -> Maybe Offset
                -> Maybe ListType
                -> Maybe MinSize -> Maybe MaxSize
                -> Maybe OrderBy
@@ -562,21 +562,17 @@ getTableNgrams _nType nId tabType listId limit_ offset
     setScores False table = pure table
     setScores True  table = do
       let ngrams_terms = table ^.. each . ne_ngrams
+      -- printDebug "ngrams_terms" ngrams_terms
       t1 <- getTime
       occurrences <- getOccByNgramsOnlyFast' nId
                                              listId
                                             ngramsType
                                             ngrams_terms
+      --printDebug "occurrences" occurrences
       t2 <- getTime
       liftBase $ hprint stderr
         ("getTableNgrams/setScores #ngrams=" % int % " time=" % hasTime % "\n")
         (length ngrams_terms) t1 t2
-      {-
-      occurrences <- getOccByNgramsOnlySlow nType nId
-                                            (lIds <> [listId])
-                                            ngramsType
-                                            ngrams_terms
-      -}
       let
         setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 

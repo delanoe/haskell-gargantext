@@ -25,6 +25,7 @@ module Gargantext.Database.Schema.Prelude
   , module GHC.Generics
   , module Gargantext.Core.Utils.Prefix
   , module Opaleye
+  , module Opaleye.Internal.Table
   , module Opaleye.Internal.QueryArr
   , module Test.QuickCheck.Arbitrary
   )
@@ -37,8 +38,9 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Swagger hiding (required, in_)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Opaleye hiding (FromField, readOnly)
+import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
+import Opaleye.Internal.Table (Table(..))
 import Test.QuickCheck.Arbitrary hiding (vector)
 
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)

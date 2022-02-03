@@ -1,23 +1,32 @@
 #!/bin/bash
 
 # sudo su postgres
-
 # postgresql://$USER:$PW@localhost/$DB
 
-PW="C8kdcUrAQy66U"
-DB="gargandbV5"
-USER="gargantua"
+INIFILE=$1
 
-psql -c "CREATE USER \"${USER}\""
-psql -c "ALTER USER \"${USER}\" with PASSWORD '${PW}'"
+getter () {
+  grep $1 $INIFILE | sed "s/^.*= //"
+}
 
-psql -c "DROP DATABASE IF EXISTS \"${DB}\""
-createdb "${DB}"
-psql "${DB}" < schema.sql
-
-psql -c "ALTER DATABASE \"${DB}\" OWNER to \"${USER}\""
-
+USER=$(getter "DB_USER")
+NAME=$(getter "DB_NAME")
+PASS=$(getter "DB_PASS")
+HOST=$(getter "DB_HOST")
+PORT=$(getter "DB_PORT")
 
 
+#psql -c "CREATE USER \"${USER}\""
+#psql -c "ALTER USER \"${USER}\" with PASSWORD '${PW}'"
+
+psql -c "DROP DATABASE IF EXISTS \"${NAME}\""
+createdb "${NAME}"
+psql "${NAME}" <  extensions.sql
+#psql "${NAME}" < schema.sql
+
+
+#../../bin/psql ../../gargantext.ini < gargandb.dump
+
+psql -c "ALTER DATABASE \"${NAME}\" OWNER to \"${USER}\""
 
 

@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -freduction-depth=0 #-}
 {-# OPTIONS_GHC -O0                 #-} 
 
-module Gargantext.Client where
+module Gargantext.API.Client where
 
 import Data.Int
 import Data.Maybe
@@ -23,6 +23,7 @@ import Gargantext.API.Node
 import Gargantext.API.Node.Contact
 import Gargantext.API.Node.Corpus.Export.Types
 import Gargantext.API.Node.Corpus.New
+import qualified Gargantext.API.Node.Document.Export.Types as DocumentExport
 import Gargantext.API.Node.DocumentsFromWriteNodes
 import Gargantext.API.Node.DocumentUpload
 import Gargantext.API.Node.File
@@ -65,7 +66,8 @@ putRoots :: Token -> ClientM Int -- not actually implemented in the backend
 deleteNodes :: Token -> [NodeId] -> ClientM Int
 
 -- node api
-getNode :: Token -> NodeId -> ClientM (Node HyperdataAny)
+getNode    :: Token -> NodeId -> ClientM (Node HyperdataAny)
+getContext :: Token -> ContextId -> ClientM (Node HyperdataAny)
 renameNode :: Token -> NodeId -> RenameNode -> ClientM [Int]
 postNode :: Token -> NodeId -> PostNode -> ClientM [NodeId]
 postNodeAsync :: Token -> NodeId -> ClientM (JobStatus 'Safe JobLog)
@@ -357,6 +359,11 @@ killDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> Maybe Limi
 pollDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
+-- document export API
+getDocumentExportJSON :: Token -> DocId -> ClientM DocumentExport.DocumentExport
+getDocumentExportCSV :: Token -> DocId -> ClientM Text
+--getDocumentExportCSV :: Token -> DocId -> ClientM [DocumentExport.Document]
+
 -- count api
 postCountQuery :: Token -> Query -> ClientM Counts
 
@@ -491,6 +498,7 @@ postAuth
   :<|> killNodeDocumentUploadAsyncJob
   :<|> pollNodeDocumentUploadAsyncJob
   :<|> waitNodeDocumentUploadAsyncJob
+  :<|> getContext
   :<|> getCorpus
   :<|> renameCorpus
   :<|> postCorpus
@@ -652,6 +660,8 @@ postAuth
   :<|> killDocumentNgramsTableAsyncJob
   :<|> pollDocumentNgramsTableAsyncJob
   :<|> waitDocumentNgramsTableAsyncJob
+  :<|> getDocumentExportJSON
+  :<|> getDocumentExportCSV
   :<|> postCountQuery
   :<|> getGraphHyperdata
   :<|> postGraphAsync

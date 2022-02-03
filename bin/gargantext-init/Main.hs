@@ -15,31 +15,32 @@ Import a corpus binary.
 
 module Main where
 
-import Data.Text (Text)
 import Data.Either (Either(..))
 import Gargantext.API.Dev (withDevEnv, runCmdDev)
-import Gargantext.API.Prelude (GargError)
 import Gargantext.API.Node () -- instances only
+import Gargantext.API.Prelude (GargError)
 import Gargantext.Core.Types.Individu (User(..), arbitraryNewUsers, NewUser(..), arbitraryUsername, GargPassword(..))
 import Gargantext.Database.Action.Flow (getOrMkRoot, getOrMk_RootWithCorpus)
-import Gargantext.Database.Query.Table.Node (getOrMkList)
-import Gargantext.Database.Query.Table.User (insertNewUsers, )
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
-import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Trigger.Init (initFirstTriggers, initLastTriggers)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataCorpus)
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, )
+import Gargantext.Database.Query.Table.Node (getOrMkList)
+import Gargantext.Database.Query.Table.User (insertNewUsers, )
 import Gargantext.Prelude
-import System.Environment (getArgs)
+import Gargantext.Prelude.Config (GargConfig(..), readConfig)
 import Prelude (getLine)
+import System.Environment (getArgs)
 
--- TODO put this in gargantext.ini
-secret :: Text
-secret = "Database secret to change"
 
 main :: IO ()
 main = do
-  [iniPath] <- getArgs
+  params@[iniPath] <- getArgs
+
+  _ <- if length params /= 1
+      then panic "USAGE: ./gargantext-init gargantext.ini"
+      else pure ()
 
   putStrLn "Enter master user (gargantua) _password_ :"
   password  <- getLine
@@ -47,6 +48,8 @@ main = do
   putStrLn "Enter master user (gargantua) _email_ :"
   email     <- getLine
 
+  cfg       <- readConfig         iniPath
+  let secret = _gc_secretkey cfg
 
   let createUsers :: Cmd GargError Int64
       createUsers = insertNewUsers (NewUser "gargantua" (cs email) (GargPassword $ cs password)

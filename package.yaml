@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.4.9.9'
+version: '0.0.5.5.1'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -58,7 +58,7 @@ library:
   - Gargantext.API.Admin.EnvTypes
   - Gargantext.API.Admin.Types
   - Gargantext.API.Prelude
-  - Gargantext.Client
+  - Gargantext.API.Client
   - Gargantext.Core
   - Gargantext.Core.NodeStory
   - Gargantext.Core.Methods.Distances
@@ -244,6 +244,7 @@ library:
   - tagsoup
   - template-haskell
   - temporary
+  - text-conversions
   - text-metrics
   - time
   - time-locale-compat
@@ -379,19 +380,20 @@ executables:
       - gargantext-prelude
       - base
 
-#  gargantext-upgrade:
-#    main: Main.hs
-#    source-dirs: bin/gargantext-upgrade
-#    ghc-options:
-#    - -threaded
-#    - -rtsopts
-#    - -with-rtsopts=-N
-#    - -O2
-#    - -Wmissing-signatures
-#    dependencies:
-#      - gargantext
-#      - gargantext-prelude
-#      - base
+  gargantext-upgrade:
+    main: Main.hs
+    source-dirs: bin/gargantext-upgrade
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    dependencies:
+      - gargantext
+      - gargantext-prelude
+      - base
+      - postgresql-simple
 
   gargantext-admin:
     main: Main.hs

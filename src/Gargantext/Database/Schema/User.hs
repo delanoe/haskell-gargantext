@@ -38,7 +38,7 @@ import Data.Aeson.TH (deriveJSON)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Opaleye hiding (FromField)
-
+import Opaleye.Internal.Table (Table(..))
 ------------------------------------------------------------------------
 data UserLight = UserLight { userLight_id       :: !Int
                            , userLight_username :: !Text
@@ -72,26 +72,26 @@ data UserPoly id pass llogin suser
            } deriving (Show, Generic)
 
 
-type UserWrite = UserPoly (Maybe (Column PGInt4))        (Column PGText)
-                          (Maybe (Column PGTimestamptz)) (Column PGBool)
-                                 (Column PGText)         (Column PGText)
-                                 (Column PGText)         (Column PGText)
-                                 (Column PGBool)         (Column PGBool)
-                                 (Maybe (Column PGTimestamptz))
+type UserWrite = UserPoly (Maybe (Column SqlInt4))        (Column SqlText)
+                          (Maybe (Column SqlTimestamptz)) (Column SqlBool)
+                                 (Column SqlText)         (Column SqlText)
+                                 (Column SqlText)         (Column SqlText)
+                                 (Column SqlBool)         (Column SqlBool)
+                                 (Maybe (Column SqlTimestamptz))
 
-type UserRead  = UserPoly        (Column PGInt4)         (Column PGText)
-                                 (Column PGTimestamptz)  (Column PGBool)
-                                 (Column PGText)         (Column PGText)
-                                 (Column PGText)         (Column PGText)
-                                 (Column PGBool)         (Column PGBool)
-                                 (Column PGTimestamptz)
+type UserRead  = UserPoly        (Column SqlInt4)         (Column SqlText)
+                                 (Column SqlTimestamptz)  (Column SqlBool)
+                                 (Column SqlText)         (Column SqlText)
+                                 (Column SqlText)         (Column SqlText)
+                                 (Column SqlBool)         (Column SqlBool)
+                                 (Column SqlTimestamptz)
 
-type UserReadNull = UserPoly     (Column (Nullable PGInt4))         (Column (Nullable PGText))
-                                 (Column (Nullable PGTimestamptz))  (Column (Nullable PGBool))
-                                 (Column (Nullable PGText))         (Column (Nullable PGText))
-                                 (Column (Nullable PGText))         (Column (Nullable PGText))
-                                 (Column (Nullable PGBool))         (Column (Nullable PGBool))
-                                 (Column (Nullable PGTimestamptz))
+type UserReadNull = UserPoly     (Column (Nullable SqlInt4))         (Column (Nullable SqlText))
+                                 (Column (Nullable SqlTimestamptz))  (Column (Nullable SqlBool))
+                                 (Column (Nullable SqlText))         (Column (Nullable SqlText))
+                                 (Column (Nullable SqlText))         (Column (Nullable SqlText))
+                                 (Column (Nullable SqlBool))         (Column (Nullable SqlBool))
+                                 (Column (Nullable SqlTimestamptz))
 
 type UserDB = UserPoly Int Text (Maybe UTCTime) Bool Text Text Text Text Bool Bool UTCTime
 

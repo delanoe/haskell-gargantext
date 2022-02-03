@@ -1,3 +1,44 @@
+## Version 0.0.5.5.1
+* [BACK] FIX Graph Explorer search with selected ngrams
+* [FRONT] Clean CSS
+
+## Version 0.0.5.5
+* [FRONT] Visio frame removed, using a new tab instead (which is working)
+* [BACK] Scores on the docs view fixed
+
+## Version 0.0.5.3
+* [FRONT] SSL local option
+
+## Version 0.0.5.2
+* [QUAL] Scores in Ngrams Table fixed during workflow and user can
+  refresh it if needed.
+
+## Version 0.0.5.1
+* [OPTIM] Upgrade fix with indexes and scores counts
+
+## Version 0.0.5
+* [OPTIM][DATABASE] Upgrade Schema, move conTexts in contexts table which requires a version bump.
+
+## Version 0.0.4.9.9.6
+* [BACK] PubMed parser fixed
+* [FRONT] Visio Frame resized
+
+## Version 0.0.4.9.9.5
+* [FIX] Chart Sort
+
+## Version 0.0.4.9.9.4
+* [FEAT] Corpus docs download
+
+## Version 0.0.4.9.9.3
+* [BACK] Graph update with force option
+
+## Version 0.0.4.9.9.2
+* [BACK] Opaleye Upgrade
+
+## Version 0.0.4.9.9.1
+* [FRONT] 350-dev-graph-search-in-forms-not-labels
+* [FRONT] 359-dev-input-with-autocomplete
+
 ## Version 0.0.4.9.9
 * [FIX] Continuous Integration (CI)
 

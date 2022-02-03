@@ -36,12 +36,12 @@ import Gargantext.Core.Text.Terms.WithList (buildPatterns, termsInText)
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Database.Action.Flow (saveDocNgramsWith)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
-import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
+import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Types.Hyperdata.Document
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.NodeNode (selectDocNodes)
+import Gargantext.Database.Query.Table.NodeContext (selectDocNodes)
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.Context
 import Gargantext.Database.Types (Indexed(..))
 import Gargantext.Prelude
 import Network.HTTP.Media ((//), (/:))
@@ -155,12 +155,12 @@ reIndexWith cId lId nt lts = do
      <$> HashMap.toList
      <$> getTermsWith identity [lId] nt lts
   
-  -- printDebug "ts" ts
+  printDebug "ts" ts
 
   -- Taking the ngrams with 0 occurrences only (orphans)
   occs <- getOccByNgramsOnlyFast' cId lId nt ts
 
-  -- printDebug "occs" occs
+  printDebug "occs" occs
 
   let orphans = List.concat 
               $ map (\t -> case HashMap.lookup t occs of
@@ -168,28 +168,28 @@ reIndexWith cId lId nt lts = do
                        Just n  -> if n <= 1 then [t] else [ ]
                        ) ts
 
-  -- printDebug "orphans" orphans
+  printDebug "orphans" orphans
 
   -- Get all documents of the corpus
   docs <- selectDocNodes cId
-  -- printDebug "docs length" (List.length docs)
+  printDebug "docs length" (List.length docs)
 
   -- Checking Text documents where orphans match
   -- TODO Tests here
   let
     ngramsByDoc = map (HashMap.fromList)
                 $ map (map (\(k,v) -> (SimpleNgrams (text2ngrams k), v)))
-                $  map (\doc -> List.zip
+                $ map (\doc -> List.zip
                                 (termsInText (buildPatterns $ map (\k -> (Text.splitOn " " $ unNgramsTerm k, [])) orphans)
                                              $ Text.unlines $ catMaybes
-                                               [ doc ^. node_hyperdata . hd_title
-                                               , doc ^. node_hyperdata . hd_abstract
+                                               [ doc ^. context_hyperdata . hd_title
+                                               , doc ^. context_hyperdata . hd_abstract
                                                ]
                                  )
-                                (List.cycle [Map.fromList $ [(nt, Map.singleton (doc ^. node_id) 1 )]])
+                                (List.cycle [Map.fromList $ [(nt, Map.singleton (doc ^. context_id) 1 )]])
                         ) docs
 
-  -- printDebug "ngramsByDoc" ngramsByDoc
+  printDebug "ngramsByDoc" ngramsByDoc
 
   -- Saving the indexation in database
   _ <- mapM (saveDocNgramsWith lId) ngramsByDoc

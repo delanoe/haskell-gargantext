@@ -28,7 +28,7 @@ import Gargantext.Core
 import Gargantext.Core.Types (TableResult(..))
 import Gargantext.Core.Types.Main
 import Gargantext.Database
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOnlyUser)
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
 import Gargantext.Database.Admin.Types.Node -- (AnnuaireId, CorpusId, ListId, DocId, ContactId, NodeId)
@@ -52,14 +52,14 @@ import qualified Data.Text           as DT
 isPairedWith :: NodeId -> NodeType -> Cmd err [NodeId]
 isPairedWith nId nt = runOpaQuery (selectQuery nt nId)
   where
-    selectQuery :: NodeType -> NodeId -> Query (Column PGInt4)
+    selectQuery :: NodeType -> NodeId -> Select (Column SqlInt4)
     selectQuery nt' nId' = proc () -> do
       (node, node_node) <- queryJoin -< ()
       restrict -< (node^.node_typename)    .== (sqlInt4 $ toDBid nt')
       restrict -< (node_node^.nn_node1_id) .== (toNullable $ pgNodeId nId')
       returnA  -<  node^.node_id
 
-    queryJoin :: Query (NodeRead, NodeNodeReadNull)
+    queryJoin :: Select (NodeRead, NodeNodeReadNull)
     queryJoin = leftJoin2 queryNodeTable queryNodeNodeTable cond
       where
         cond (node, node_node) = node^.node_id .== node_node^. nn_node2_id
@@ -190,4 +190,4 @@ getNgramsDocId cId lId nt = do
   let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
 
   groupNodesByNgrams ngs
-    <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
+    <$> getContextsByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)

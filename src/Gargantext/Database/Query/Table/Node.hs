@@ -43,16 +43,16 @@ import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum, head)
 
 
-queryNodeSearchTable :: Query NodeSearchRead
+queryNodeSearchTable :: Select NodeSearchRead
 queryNodeSearchTable = selectTable nodeTableSearch
 
-selectNode :: Column PGInt4 -> Query NodeRead
+selectNode :: Column SqlInt4 -> Select NodeRead
 selectNode id' = proc () -> do
     row      <- queryNodeTable -< ()
     restrict -< _node_id row .== id'
     returnA  -< row
 
-runGetNodes :: Query NodeRead -> Cmd err [Node HyperdataAny]
+runGetNodes :: Select NodeRead -> Cmd err [Node HyperdataAny]
 runGetNodes = runOpaQuery
 
 ------------------------------------------------------------------------
@@ -61,7 +61,7 @@ runGetNodes = runOpaQuery
 -- Favorites (Bool), node_ngrams
 selectNodesWith :: HasDBid NodeType
                 => ParentId     -> Maybe NodeType
-                -> Maybe Offset -> Maybe Limit   -> Query NodeRead
+                -> Maybe Offset -> Maybe Limit   -> Select NodeRead
 selectNodesWith parentId maybeNodeType maybeOffset maybeLimit =
         --offset' maybeOffset $ limit' maybeLimit $ orderBy (asc (hyperdataDocument_Publication_date . node_hyperdata)) $ selectNodesWith' parentId typeId
   limit' maybeLimit $ offset' maybeOffset
@@ -69,7 +69,7 @@ selectNodesWith parentId maybeNodeType maybeOffset maybeLimit =
                     $ selectNodesWith' parentId maybeNodeType
 
 selectNodesWith' :: HasDBid NodeType
-                 => ParentId -> Maybe NodeType -> Query NodeRead
+                 => ParentId -> Maybe NodeType -> Select NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
     node' <- (proc () -> do
       row@(Node _ _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
@@ -79,7 +79,7 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
 
       restrict -< if typeId' > 0
                      then typeId   .== (sqlInt4 (typeId' :: Int))
-                     else (pgBool True)
+                     else (sqlBool True)
       returnA  -< row ) -< ()
     returnA -< node'
 
@@ -180,7 +180,7 @@ getChildrenByType nId nType = do
     query = [sql|
       SELECT n.id, n.typename
       FROM nodes n
-        WHERE n.parent_id = ? AND 0 = ?;
+      WHERE n.parent_id = ? AND 0 = ?;
     |]
 
 ------------------------------------------------------------------------
@@ -198,7 +198,7 @@ getCorporaWithParentId :: HasDBid NodeType => NodeId -> Cmd err [Node HyperdataC
 getCorporaWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeCorpus)
 
 ------------------------------------------------------------------------
-selectNodesWithParentID :: NodeId -> Query NodeRead
+selectNodesWithParentID :: NodeId -> Select NodeRead
 selectNodesWithParentID n = proc () -> do
     row@(Node _ _ _ _ parent_id _ _ _) <- queryNodeTable -< ()
     restrict -< parent_id .== (pgNodeId n)
@@ -212,7 +212,7 @@ getNodesWithType :: (HasNodeError err, JSONB a, HasDBid NodeType) => NodeType ->
 getNodesWithType nt _ = runOpaQuery $ selectNodesWithType nt
   where
     selectNodesWithType ::  HasDBid NodeType
-                         => NodeType -> Query NodeRead
+                         => NodeType -> Select NodeRead
     selectNodesWithType nt' = proc () -> do
         row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
         restrict -< tn .== (sqlInt4 $ toDBid nt')
@@ -224,7 +224,7 @@ getNodesIdWithType nt = do
   pure (map NodeId ns)
 
 selectNodesIdWithType :: HasDBid NodeType
-                      => NodeType -> Query (Column PGInt4)
+                      => NodeType -> Select (Column SqlInt4)
 selectNodesIdWithType nt = proc () -> do
     row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
     restrict -< tn .== (sqlInt4 $ toDBid nt)
@@ -281,7 +281,7 @@ node nodeType name hyperData parentId userId =
        (pgNodeId <$> parentId)
        (sqlStrictText name)
        Nothing
-       (pgJSONB $ cs $ encode hyperData)
+       (sqlJSONB $ cs $ encode hyperData)
     where
       typeId = toDBid nodeType
 
@@ -322,7 +322,7 @@ insertNodesWithParentR pid ns = insertNodesR (set node_parent_id (pgNodeId <$> p
 
 node2table :: HasDBid NodeType
            => UserId -> Maybe ParentId -> Node' -> NodeWrite
-node2table uid pid (Node' nt txt v []) = Node Nothing Nothing (sqlInt4 $ toDBid nt) (sqlInt4 uid) (fmap pgNodeId pid) (sqlStrictText txt) Nothing (pgStrictJSONB $ cs $ encode v)
+node2table uid pid (Node' nt txt v []) = Node Nothing Nothing (sqlInt4 $ toDBid nt) (sqlInt4 uid) (fmap pgNodeId pid) (sqlStrictText txt) Nothing (sqlStrictJSONB $ cs $ encode v)
 node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"
 
 

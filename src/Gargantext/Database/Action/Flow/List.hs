@@ -21,7 +21,6 @@ import Control.Concurrent
 import Control.Lens ((^.), (+~), (%~), at, (.~), _Just)
 import Control.Monad.Reader
 import Data.Map (Map, toList)
-import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (saveNodeStory)
 import Gargantext.API.Ngrams.Tools (getNodeStoryVar)
@@ -31,8 +30,8 @@ import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Core.NodeStory
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
-import Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
+import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb,{- getCgramsId -})
+-- import Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.List as List
@@ -89,17 +88,20 @@ flowList_DbRepo :: FlowCmdM env err m
          -> m ListId
 flowList_DbRepo lId ngs = do
   -- printDebug "listId flowList" lId
-  mapCgramsId <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
+  _mapCgramsId <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
+{-
   let toInsert = catMaybes [ (,) <$> (getCgramsId mapCgramsId ntype <$> (unNgramsTerm <$> parent))
                                  <*>  getCgramsId mapCgramsId ntype ngram
                            | (ntype, ngs') <- Map.toList ngs
                            , NgramsElement { _ne_ngrams = NgramsTerm ngram
                                            , _ne_parent = parent } <- ngs'
                            ]
+-}
   -- Inserting groups of ngrams
-  _r <- insert_Node_NodeNgrams_NodeNgrams
-     $ map (\(a,b) -> Node_NodeNgrams_NodeNgrams lId a b Nothing) toInsert
+  -- _r <- insert_Node_NodeNgrams_NodeNgrams
+  --   $ map (\(a,b) -> Node_NodeNgrams_NodeNgrams lId a b Nothing) toInsert
 
+  -- printDebug "flowList_Tficf':ngs" ngs
   listInsert lId ngs
 
   --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs
@@ -116,37 +118,40 @@ toNodeNgramsW l ngs = List.concat $ map (toNodeNgramsW'' l) ngs
                   -> (NgramsType, [NgramsElement])
                   -> [NodeNgramsW]
     toNodeNgramsW'' l' (ngrams_type, elms) =
-      [ NodeNgrams { _nng_id = Nothing
-                   , _nng_node_id = l'
-                   , _nng_node_subtype = list_type
-                   , _nng_ngrams_id = ngrams_terms'
-                   , _nng_ngrams_type = ngrams_type
-                   , _nng_ngrams_field = Nothing
-                   , _nng_ngrams_tag = Nothing
-                   , _nng_ngrams_class = Nothing
+      [ NodeNgrams { _nng_id            = Nothing
+                   , _nng_node_id       = l'
+                   , _nng_node_subtype  = list_type
+                   , _nng_ngrams_id     = ngrams_terms'
+                   , _nng_ngrams_type   = ngrams_type
+                   , _nng_ngrams_field  = Nothing
+                   , _nng_ngrams_tag    = Nothing
+                   , _nng_ngrams_class  = Nothing
                    , _nng_ngrams_weight = 0 } |
-       (NgramsElement { _ne_ngrams = NgramsTerm ngrams_terms'
-                      , _ne_size = _size
-                      , _ne_list = list_type
+       (NgramsElement { _ne_ngrams      = NgramsTerm ngrams_terms'
+                      , _ne_size        = _size
+                      , _ne_list        = list_type
                       , _ne_occurrences = _occ
-                      , _ne_root = _root
-                      , _ne_parent = _parent
-                      , _ne_children = _children }) <- elms
+                      , _ne_root        = _root
+                      , _ne_parent      = _parent
+                      , _ne_children    = _children
+                      }
+        ) <- elms
       ]
 
 
 toNodeNgramsW' :: ListId
                -> [(Text, [NgramsType])]
                -> [NodeNgramsW]
-toNodeNgramsW' l'' ngs = [ NodeNgrams { _nng_id = Nothing
-                                      , _nng_node_id = l''
-                                      , _nng_node_subtype = CandidateTerm
-                                      , _nng_ngrams_id = terms
-                                      , _nng_ngrams_type = ngrams_type
-                                      , _nng_ngrams_field = Nothing
-                                      , _nng_ngrams_tag = Nothing
-                                      , _nng_ngrams_class = Nothing
-                                      , _nng_ngrams_weight = 0 }
+toNodeNgramsW' l'' ngs = [ NodeNgrams { _nng_id            = Nothing
+                                      , _nng_node_id       = l''
+                                      , _nng_node_subtype  = CandidateTerm
+                                      , _nng_ngrams_id     = terms
+                                      , _nng_ngrams_type   = ngrams_type
+                                      , _nng_ngrams_field  = Nothing
+                                      , _nng_ngrams_tag    = Nothing
+                                      , _nng_ngrams_class  = Nothing
+                                      , _nng_ngrams_weight = 0
+                                      }
                          | (terms, ngrams_types) <- ngs
                          , ngrams_type <- ngrams_types
                          ]

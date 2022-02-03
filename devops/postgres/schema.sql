@@ -19,8 +19,8 @@ CREATE TABLE public.auth_user (
     date_joined  TIMESTAMP with time zone DEFAULT now() NOT NULL,
     PRIMARY KEY (id)
 );
-
 ALTER TABLE public.auth_user OWNER TO gargantua;
+-----------------------------------------------------------------
 
 -- TODO add publication_date
 -- TODO typename -> type_id
@@ -39,6 +39,25 @@ CREATE TABLE public.nodes (
 );
 ALTER TABLE public.nodes OWNER TO gargantua;
 --------------------------------------------------------------
+
+-- TODO add publication_date
+-- TODO typename -> type_id
+CREATE TABLE public.contexts (
+    id        SERIAL,
+    hash_id   CHARACTER varying(66) DEFAULT ''::character varying NOT NULL,
+    typename  INTEGER NOT NULL,
+    user_id   INTEGER NOT NULL,
+    parent_id INTEGER REFERENCES public.contexts(id) ON DELETE CASCADE ,
+    name      CHARACTER varying(255) DEFAULT ''::character varying NOT NULL,
+    date      TIMESTAMP with time zone DEFAULT now() NOT NULL,
+    hyperdata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    search tsvector,
+    PRIMARY KEY (id),
+    FOREIGN KEY (user_id)  REFERENCES public.auth_user(id) ON DELETE CASCADE
+);
+ALTER TABLE public.contexts OWNER TO gargantua;
+
+--------------------------------------------------------------
 -- | Ngrams
 CREATE TABLE public.ngrams (
     id SERIAL,
@@ -50,50 +69,50 @@ ALTER TABLE public.ngrams OWNER TO gargantua;
 
 -- | Ngrams PosTag
 CREATE TABLE public.ngrams_postag (
-    id SERIAL,
-    lang_id INTEGER,
-    algo_id INTEGER,
-    postag CHARACTER varying(5),
-    ngrams_id INTEGER NOT NULL,
-    lemm_id   INTEGER NOT NULL,
-    score     INTEGER DEFAULT 1 ::integer NOT NULL,
+    id        SERIAL                  ,
+    lang_id   INTEGER                 ,
+    algo_id   INTEGER                 ,
+    postag    CHARACTER varying(5)    ,
+    ngrams_id INTEGER NOT NULL        ,
+    lemm_id   INTEGER NOT NULL        ,
+    score     INTEGER DEFAULT 1 ::integer NOT NULL                        ,
     FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE,
     FOREIGN KEY (lemm_id)   REFERENCES public.ngrams(id) ON DELETE CASCADE
 );
 ALTER TABLE public.ngrams_postag OWNER TO gargantua;
 
 --------------------------------------------------------------
+-- Node here should have type NodeList
 CREATE TABLE public.node_ngrams (
-    id SERIAL,
-    node_id INTEGER NOT NULL,
-    node_subtype INTEGER,
-    ngrams_id INTEGER NOT NULL,
-    ngrams_type INTEGER, -- change to ngrams_field? (no for pedagogic reason)
-    ngrams_field INTEGER,
-    ngrams_tag INTEGER,
-    ngrams_class INTEGER,
-    weight double precision,
-    PRIMARY KEY (id),
-    FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
+    id SERIAL                          ,
+    node_id        INTEGER NOT NULL    ,
+    node_subtype   INTEGER             ,
+    ngrams_id      INTEGER NOT NULL    ,
+    ngrams_type    INTEGER             , -- change to ngrams_field? (no for pedagogic reason)
+    ngrams_field   INTEGER             ,
+    ngrams_tag     INTEGER             ,
+    ngrams_class   INTEGER             ,
+    weight double precision            ,
+    PRIMARY KEY (id)                   ,
+    FOREIGN KEY (node_id)   REFERENCES public.nodes(id)  ON DELETE CASCADE ,
     FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE
 );
 ALTER TABLE public.node_ngrams OWNER TO gargantua;
 
-CREATE TABLE public.node_nodengrams_nodengrams (
-    node_id INTEGER NOT NULL,
-    node_ngrams1_id INTEGER NOT NULL,
-    node_ngrams2_id INTEGER NOT NULL,
-    weight double precision,
-    FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
-    FOREIGN KEY (node_ngrams1_id) REFERENCES public.node_ngrams(id) ON DELETE CASCADE,
-    FOREIGN KEY (node_ngrams2_id) REFERENCES public.node_ngrams(id) ON DELETE CASCADE,
-    PRIMARY KEY (node_id, node_ngrams1_id, node_ngrams2_id)
-);
-ALTER TABLE public.node_nodengrams_nodengrams OWNER TO gargantua;
+--CREATE TABLE public.context_nodengrams_nodengrams (
+--    context_id         INTEGER NOT NULL   ,
+--    node_ngrams1_id INTEGER NOT NULL   ,
+--    node_ngrams2_id INTEGER NOT NULL   ,
+--    weight double   precision          ,
+--    FOREIGN KEY (node_id) REFERENCES public.contexts(id) ON DELETE CASCADE              ,
+--    FOREIGN KEY (node_ngrams1_id) REFERENCES public.node_ngrams(id) ON DELETE CASCADE,
+--    FOREIGN KEY (node_ngrams2_id) REFERENCES public.node_ngrams(id) ON DELETE CASCADE,
+--    PRIMARY KEY (node_id, node_ngrams1_id, node_ngrams2_id)
+--);
+--ALTER TABLE public.context_nodengrams_nodengrams OWNER TO gargantua;
 
 --------------------------------------------------------------
 --------------------------------------------------------------
---
 --
 --CREATE TABLE public.nodes_ngrams_ngrams (
 --    node_id   integer NOT NULL REFERENCES public.nodes(id)  ON DELETE CASCADE,
@@ -109,14 +128,44 @@ ALTER TABLE public.node_nodengrams_nodengrams OWNER TO gargantua;
 CREATE TABLE public.nodes_nodes (
     node1_id INTEGER NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
     node2_id INTEGER NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
-    score REAL,
-    category INTEGER,
+    score    REAL    ,
+    category INTEGER ,
     PRIMARY KEY (node1_id, node2_id)
 );
 ALTER TABLE public.nodes_nodes OWNER TO gargantua;
 
 
+-- To attach contexts to a Corpus
+CREATE TABLE public.nodes_contexts (
+    node_id    INTEGER NOT NULL REFERENCES public.nodes(id)    ON DELETE CASCADE,
+    context_id INTEGER NOT NULL REFERENCES public.contexts(id) ON DELETE CASCADE,
+    score    REAL    ,
+    category INTEGER ,
+    PRIMARY KEY (node_id, context_id)
+);
+ALTER TABLE public.nodes_contexts OWNER TO gargantua;
+
 ---------------------------------------------------------------
+CREATE TABLE public.context_node_ngrams (
+    context_id    INTEGER NOT NULL REFERENCES public.contexts (id) ON DELETE CASCADE,
+    node_id       INTEGER NOT NULL REFERENCES public.nodes    (id) ON DELETE CASCADE,
+    ngrams_id     INTEGER NOT NULL REFERENCES public.ngrams   (id) ON DELETE CASCADE,
+    ngrams_type   INTEGER  ,
+    weight double precision,
+    PRIMARY KEY (context_id, node_id, ngrams_id, ngrams_type)
+  );
+ALTER TABLE public.context_node_ngrams OWNER TO gargantua;
+
+CREATE TABLE public.context_node_ngrams2 (
+    context_id      INTEGER NOT NULL REFERENCES public.contexts  (id)       ON DELETE CASCADE,
+    nodengrams_id   INTEGER NOT NULL REFERENCES public.node_ngrams  (id) ON DELETE CASCADE,
+    weight double   precision,
+    PRIMARY KEY (context_id, nodengrams_id)
+);
+ALTER TABLE public.context_node_ngrams2 OWNER TO gargantua;
+
+
+--------------------------------------------------------------------
 CREATE TABLE public.node_node_ngrams (
 node1_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
 node2_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
@@ -135,6 +184,9 @@ PRIMARY KEY (node_id, nodengrams_id)
 );
 ALTER TABLE public.node_node_ngrams2 OWNER TO gargantua;
 
+
+
+
 --------------------------------------------------------------
 
 --CREATE TABLE public.nodes_ngrams_repo (
@@ -148,7 +200,6 @@ ALTER TABLE public.node_node_ngrams2 OWNER TO gargantua;
 
 -- If needed for rights management at row level
 -- CREATE EXTENSION IF NOT EXISTS acl WITH SCHEMA public;
-
 CREATE TABLE public.rights (
   user_id INTEGER NOT NULL REFERENCES public.auth_user(id) ON DELETE CASCADE,
   node_id INTEGER NOT NULL REFERENCES public.nodes(id)     ON DELETE CASCADE,
@@ -171,6 +222,15 @@ CREATE INDEX        ON public.nodes USING btree (id, typename, date ASC);
 CREATE INDEX        ON public.nodes USING btree (id, typename, date DESC);
 CREATE INDEX        ON public.nodes USING btree (typename, id);
 CREATE UNIQUE INDEX ON public.nodes USING btree (hash_id);
+
+CREATE INDEX        ON public.contexts USING gin (hyperdata);
+CREATE INDEX        ON public.contexts USING btree (user_id, typename, parent_id);
+CREATE INDEX        ON public.contexts USING btree (id, typename, date ASC);
+CREATE INDEX        ON public.contexts USING btree (id, typename, date DESC);
+CREATE INDEX        ON public.contexts USING btree (typename, id);
+CREATE UNIQUE INDEX ON public.contexts USING btree (hash_id);
+
+
 -- CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqId'::text)));
 -- CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqIdBdd'::text)));
 -- CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdata ->> 'uniqId'::text)));
@@ -178,23 +238,46 @@ CREATE UNIQUE INDEX ON public.nodes USING btree (hash_id);
 CREATE UNIQUE INDEX ON public.ngrams (terms); -- TEST GIN
 CREATE        INDEX ON public.ngrams USING btree (id, terms);
 CREATE UNIQUE INDEX ON public.ngrams_postag (lang_id,algo_id,postag,ngrams_id,lemm_id);
+
+-- To save the Node Ngrams Repo
 CREATE        INDEX ON public.node_ngrams USING btree (node_id,node_subtype);
 CREATE UNIQUE INDEX ON public.node_ngrams USING btree (node_id,node_subtype, ngrams_id);
 
+
+
+-- To make the links between Nodes in Tree/Forest
 CREATE UNIQUE INDEX ON public.nodes_nodes  USING btree (node1_id, node2_id);
 CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, category);
+
+-- To make the links between Corpus Node and its contexts
+CREATE UNIQUE INDEX ON public.nodes_contexts  USING btree (node_id, context_id);
+CREATE INDEX        ON public.nodes_contexts  USING btree (node_id, context_id, category);
+
+
+------------------------------------------------------------------------
+CREATE UNIQUE INDEX ON public.context_node_ngrams USING btree (context_id, node_id, ngrams_id, ngrams_type);
+CREATE        INDEX ON public.context_node_ngrams USING btree (context_id,  node_id);
+CREATE        INDEX ON public.context_node_ngrams USING btree (ngrams_id, node_id);
+CREATE        INDEX ON public.context_node_ngrams USING btree (ngrams_type);
+
+CREATE INDEX ON public.context_node_ngrams2 USING btree (context_id);
+CREATE INDEX ON public.context_node_ngrams2 USING btree (nodengrams_id);
+CREATE INDEX ON public.context_node_ngrams2 USING btree (context_id, nodengrams_id);
+
 
 CREATE UNIQUE INDEX ON public.node_node_ngrams USING btree (node1_id, node2_id, ngrams_id, ngrams_type);
 CREATE        INDEX ON public.node_node_ngrams USING btree (node1_id,  node2_id);
 CREATE        INDEX ON public.node_node_ngrams USING btree (ngrams_id, node2_id);
 CREATE        INDEX ON public.node_node_ngrams USING btree (ngrams_type);
-CREATE INDEX ON public.node_nodengrams_nodengrams USING btree (node_id, node_ngrams1_id, node_ngrams2_id);
-CREATE INDEX ON public.node_nodengrams_nodengrams USING btree (node_ngrams1_id);
-CREATE INDEX ON public.node_nodengrams_nodengrams USING btree (node_ngrams2_id);
 CREATE INDEX ON public.node_node_ngrams2 USING btree (node_id);
 CREATE INDEX ON public.node_node_ngrams2 USING btree (nodengrams_id);
 CREATE INDEX ON public.node_node_ngrams2 USING btree (node_id, nodengrams_id);
-------------------------------------------------------------
+
+-- CREATE INDEX ON public.context_nodengrams_nodengrams USING btree (context_id, node_ngrams1_id, node_ngrams2_id);
+-- CREATE INDEX ON public.context_nodengrams_nodengrams USING btree (node_ngrams1_id);
+-- CREATE INDEX ON public.context_nodengrams_nodengrams USING btree (node_ngrams2_id);
+
+
 ------------------------------------------------------------------------
 -- Ngrams Full DB Extraction Optim
 -- TODO remove hard parameter and move elsewhere
