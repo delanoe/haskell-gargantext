@@ -1,6 +1,10 @@
+## Version 0.0.5.5.3
+* [BACK] Adding a Max limit for others lists.
+
 ## Version 0.0.5.5.2
 * [BACK][OPTIM] Index on node_node_ngrams to seed up ngrams table score
-  queries
+  queries. Please execute the upgrade SQL script
+  devops/postgres/0.0.5.5.2.sql
 
 ## Version 0.0.5.5.1
 * [BACK] FIX Graph Explorer search with selected ngrams
