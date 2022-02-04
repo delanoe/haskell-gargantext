@@ -76,15 +76,16 @@ buildNgramsLists :: ( HasNodeStory env err m
 buildNgramsLists user uCid mCid mfslw gp = do
   ngTerms     <- buildNgramsTermsList user uCid mCid mfslw gp (NgramsTerms, MapListSize 350)
   othersTerms <- mapM (buildNgramsOthersList user uCid mfslw GroupIdentity)
-                      [ (Authors   , MapListSize 9)
-                      , (Sources   , MapListSize 9)
-                      , (Institutes, MapListSize 9)
+                      [ (Authors   , MapListSize 9, MaxListSize 1000)
+                      , (Sources   , MapListSize 9, MaxListSize 1000)
+                      , (Institutes, MapListSize 9, MaxListSize 1000)
                       ]
 
   pure $ Map.unions $ [ngTerms] <> othersTerms
 
 
 data MapListSize = MapListSize { unMapListSize :: !Int }
+data MaxListSize = MaxListSize { unMaxListSize :: !Int }
 
 buildNgramsOthersList :: ( HasNodeError err
                          , CmdM     env err m
@@ -95,9 +96,9 @@ buildNgramsOthersList :: ( HasNodeError err
                       -> UserCorpusId
                       -> Maybe FlowSocialListWith
                       -> GroupParams
-                      -> (NgramsType, MapListSize)
+                      -> (NgramsType, MapListSize, MaxListSize)
                       -> m (Map NgramsType [NgramsElement])
-buildNgramsOthersList user uCid mfslw _groupParams (nt, MapListSize mapListSize) = do
+buildNgramsOthersList user uCid mfslw _groupParams (nt, MapListSize mapListSize, MaxListSize maxListSize) = do
   allTerms  :: HashMap NgramsTerm (Set NodeId) <- getContextsByNgramsUser uCid nt
 
   -- PrivateFirst for first developments since Public NodeMode is not implemented yet
@@ -118,6 +119,7 @@ buildNgramsOthersList user uCid mfslw _groupParams (nt, MapListSize mapListSize)
     listSize = mapListSize - (List.length mapTerms)
     (mapTerms', candiTerms) = both HashMap.fromList
                             $ List.splitAt listSize
+                            $ List.take maxListSize
                             $ List.sortOn (Down . viewScore . snd)
                             $ HashMap.toList tailTerms'
 
