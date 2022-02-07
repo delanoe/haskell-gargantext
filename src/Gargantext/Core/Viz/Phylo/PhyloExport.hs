@@ -12,30 +12,27 @@ Portability : POSIX
 
 module Gargantext.Core.Viz.Phylo.PhyloExport where
 
-import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList, member)
-import Data.List ((++), sort, nub, null, concat, sortOn, groupBy, union, (\\), (!!), init, partition, notElem, unwords, nubBy, inits, elemIndex)
-import Data.Vector (Vector)
-
-import Prelude (writeFile)
-import Gargantext.Prelude
-import Gargantext.Core.Viz.AdaptativePhylo
-import Gargantext.Core.Viz.Phylo.PhyloTools
-import Gargantext.Core.Viz.Phylo.TemporalMatching (filterDocs, filterDiago, reduceDiagos, toProximity, getNextPeriods)
-
 import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
 import Data.GraphViz hiding (DotGraph, Order)
-import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.GraphViz.Attributes.Complete hiding (EdgeType, Order) 
+import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.GraphViz.Types.Monadic
+import Data.List ((++), sort, nub, null, concat, sortOn, groupBy, union, (\\), (!!), init, partition, notElem, unwords, nubBy, inits, elemIndex)
+import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList, member)
 import Data.Text.Lazy (fromStrict, pack, unpack)
-import System.FilePath
+import Data.Vector (Vector)
 import Debug.Trace (trace)
-
-import qualified Data.Text as Text
-import qualified Data.Vector as Vector
-import qualified Data.Text.Lazy as Lazy
+import Gargantext.Core.Viz.Phylo
+import Gargantext.Core.Viz.Phylo.PhyloTools
+import Gargantext.Core.Viz.Phylo.TemporalMatching (filterDocs, filterDiago, reduceDiagos, toProximity, getNextPeriods)
+import Gargantext.Prelude
+import Prelude (writeFile)
+import System.FilePath
 import qualified Data.GraphViz.Attributes.HTML as H
+import qualified Data.Text as Text
+import qualified Data.Text.Lazy as Lazy
+import qualified Data.Vector as Vector
 
 --------------------
 -- | Dot export | --

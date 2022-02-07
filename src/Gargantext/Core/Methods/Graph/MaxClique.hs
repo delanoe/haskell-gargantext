@@ -64,7 +64,7 @@ import Gargantext.Core.Viz.Graph.FGL (Graph_Undirected, degree, neighbors, mkGra
 import Gargantext.Core.Viz.Graph.Tools (cooc2graph',cooc2graph'', Threshold)
 import Gargantext.Core.Methods.Distances (Distance)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex)
-import Gargantext.Core.Viz.AdaptativePhylo
+import Gargantext.Core.Viz.Phylo
 -- import Debug.Trace (trace)
 type Graph = Graph_Undirected
 type Neighbor = Node

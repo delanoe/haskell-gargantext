@@ -11,27 +11,23 @@ Portability : POSIX
 
 module Gargantext.Core.Viz.Phylo.SynchronicClustering where
 
-import Gargantext.Prelude
-import Gargantext.Core.Viz.AdaptativePhylo
-import Gargantext.Core.Viz.Phylo.PhyloTools
-import Gargantext.Core.Viz.Phylo.TemporalMatching (weightedLogJaccard', filterDiago, reduceDiagos)
-import Gargantext.Core.Viz.Phylo.PhyloExport (processDynamics)
-
+-- import Debug.Trace (trace)
+import Control.Lens hiding (Level)
+import Control.Monad (sequence)
+import Control.Parallel.Strategies (parList, rdeepseq, using)
 import Data.List ((++), null, intersect, nub, concat, sort, sortOn, groupBy)
 import Data.Map  (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty, restrictKeys, elems, mapWithKey, member)
-
-import Control.Lens hiding (Level)
-import Control.Parallel.Strategies (parList, rdeepseq, using)
-import Control.Monad (sequence)
--- import Debug.Trace (trace)
-
+import Gargantext.Core.Viz.Phylo
+import Gargantext.Core.Viz.Phylo.PhyloExport (processDynamics)
+import Gargantext.Core.Viz.Phylo.PhyloTools
+import Gargantext.Core.Viz.Phylo.TemporalMatching (weightedLogJaccard', filterDiago, reduceDiagos)
+import Gargantext.Prelude
 import qualified Data.Map as Map
 
 
 -------------------------
 -- | New Level Maker | --
 -------------------------
-
 
 mergeGroups :: [Cooc] -> PhyloGroupId -> Map PhyloGroupId PhyloGroupId -> [PhyloGroup] -> PhyloGroup
 mergeGroups coocs id mapIds childs = 

@@ -11,24 +11,19 @@ Portability : POSIX
 
 module Gargantext.Core.Viz.Phylo.TemporalMatching where
 
-import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, groupBy, scanl, nub, nubBy, union, dropWhile, partition, or, sort, (!!))
-import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, findWithDefault, keys, (!), (!?), filterWithKey, singleton, empty, mapKeys, adjust)
-
-import Gargantext.Prelude
-import Gargantext.Core.Viz.AdaptativePhylo
-import Gargantext.Core.Viz.Phylo.PhyloTools
-
-import Prelude (floor,tan,pi)
 import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
+import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, groupBy, scanl, nub, nubBy, union, dropWhile, partition, or, sort, (!!))
+import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, findWithDefault, keys, (!), (!?), filterWithKey, singleton, empty, mapKeys, adjust)
 import Debug.Trace (trace)
-
+import Gargantext.Core.Viz.Phylo
+import Gargantext.Core.Viz.Phylo.PhyloTools
+import Gargantext.Prelude
+import Prelude (floor,tan,pi)
 import Text.Printf
-
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Vector as Vector
-
 
 
 -------------------

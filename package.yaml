@@ -100,7 +100,7 @@ library:
   - Gargantext.Core.Viz.Graph.Tools
   - Gargantext.Core.Viz.Graph.Tools.IGraph
   - Gargantext.Core.Viz.Graph.Index
-  - Gargantext.Core.Viz.AdaptativePhylo
+  - Gargantext.Core.Viz.Phylo
   - Gargantext.Core.Viz.Phylo.PhyloMaker
   - Gargantext.Core.Viz.Phylo.PhyloTools
   - Gargantext.Core.Viz.Phylo.PhyloExport
@@ -322,9 +322,9 @@ executables:
       - unordered-containers
       - full-text-search
 
-  gargantext-adaptative-phylo:
+  gargantext-phylo:
     main: Main.hs
-    source-dirs: bin/gargantext-adaptative-phylo
+    source-dirs: bin/gargantext-phylo
     ghc-options:
     - -threaded
     - -rtsopts

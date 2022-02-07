@@ -12,28 +12,23 @@ Portability : POSIX
 
 module Gargantext.Core.Viz.Phylo.PhyloTools where
 
-import Data.Vector (Vector, elemIndex)
+import Control.Lens hiding (Level)
 import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition, tails, nubBy, group)
-import Data.Set (Set, disjoint)
 import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty, restrictKeys)
+import Data.Set (Set, disjoint)
 import Data.String (String)
 import Data.Text (Text,unpack)
-
-import Prelude (floor,read)
-
-import Gargantext.Prelude
-import Gargantext.Core.Viz.AdaptativePhylo
-import Text.Printf
-
-
+import Data.Vector (Vector, elemIndex)
 import Debug.Trace (trace)
-import Control.Lens hiding (Level)
-
-import qualified Data.Vector as Vector
+import Gargantext.Core.Viz.Phylo
+import Gargantext.Prelude
+import Prelude (floor,read)
+import Text.Printf
 import qualified Data.List as List
-import qualified Data.Set as Set
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Data.Text as Text
+import qualified Data.Vector as Vector
 
 ------------
 -- | Io | --

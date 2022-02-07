@@ -24,47 +24,42 @@ one 8, e54847.
 {-# LANGUAGE DeriveAnyClass   #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
-module Gargantext.Core.Viz.AdaptativePhylo where
+module Gargantext.Core.Viz.Phylo where
 
-import Data.Aeson
-import Data.Aeson.TH (deriveJSON)
-import Data.Text   (Text, pack)
-import Data.Vector (Vector)
-import Data.Map (Map)
-
-import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Prelude
-import Gargantext.Core.Text.Context (TermList)
-
-import GHC.Generics
-import GHC.IO (FilePath)
 import Control.DeepSeq (NFData)
 import Control.Lens (makeLenses)
-
+import Data.Aeson
+import Data.Aeson.TH (deriveJSON)
+import Data.Map (Map)
+import Data.Text   (Text, pack)
+import Data.Vector (Vector)
+import GHC.Generics
+import GHC.IO (FilePath)
+import Gargantext.Core.Text.Context (TermList)
+import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Prelude
 import qualified Data.Text.Lazy as TextLazy
-
 
 ----------------
 -- | Config | --
-----------------  
+----------------
 
-
-data CorpusParser = 
+data CorpusParser =
       Wos  {_wos_limit  :: Int}
     | Csv  {_csv_limit  :: Int}
     | Csv' {_csv'_limit :: Int}
-    deriving (Show,Generic,Eq) 
+    deriving (Show,Generic,Eq)
 
-data SeaElevation = 
-      Constante  
+data SeaElevation =
+      Constante
       { _cons_start :: Double
       , _cons_step  :: Double }
-    | Adaptative 
+    | Adaptative
       { _adap_granularity :: Double }
     deriving (Show,Generic,Eq)
 
-data Proximity = 
-      WeightedLogJaccard 
+data Proximity =
+      WeightedLogJaccard
       { _wlj_sensibility   :: Double
 {-
       -- , _wlj_thresholdInit :: Double
@@ -73,7 +68,7 @@ data Proximity =
       -- , _wlj_elevation     :: Double
 -}
       }
-    | WeightedLogSim 
+    | WeightedLogSim
       { _wlj_sensibility   :: Double
 {-
       -- , _wlj_thresholdInit :: Double
@@ -81,66 +76,66 @@ data Proximity =
       -- | max height for sea level in temporal matching
       -- , _wlj_elevation     :: Double
 -}
-      } 
-    | Hamming 
-    deriving (Show,Generic,Eq) 
+      }
+    | Hamming
+    deriving (Show,Generic,Eq)
 
 
 data SynchronyScope = SingleBranch | SiblingBranches | AllBranches deriving (Show,Generic,Eq)
 
 data SynchronyStrategy = MergeRegularGroups | MergeAllGroups deriving (Show,Generic,Eq)
 
-data Synchrony = 
+data Synchrony =
       ByProximityThreshold
-      { _bpt_threshold :: Double 
+      { _bpt_threshold :: Double
       , _bpt_sensibility :: Double
       , _bpt_scope :: SynchronyScope
       , _bpt_strategy :: SynchronyStrategy }
     | ByProximityDistribution
       { _bpd_sensibility :: Double
-      , _bpd_strategy :: SynchronyStrategy } 
-    deriving (Show,Generic,Eq)     
+      , _bpd_strategy :: SynchronyStrategy }
+    deriving (Show,Generic,Eq)
 
 
-data TimeUnit = 
-      Year 
+data TimeUnit =
+      Year
       { _year_period :: Int
       , _year_step   :: Int
       , _year_matchingFrame :: Int }
-    | Month 
+    | Month
       { _month_period :: Int
       , _month_step   :: Int
-      , _month_matchingFrame :: Int }      
-    | Week 
+      , _month_matchingFrame :: Int }
+    | Week
       { _week_period :: Int
       , _week_step   :: Int
       , _week_matchingFrame :: Int }
-    | Day 
+    | Day
       { _day_period :: Int
       , _day_step   :: Int
-      , _day_matchingFrame :: Int }      
-      deriving (Show,Generic,Eq) 
+      , _day_matchingFrame :: Int }
+      deriving (Show,Generic,Eq)
 
 data CliqueFilter = ByThreshold | ByNeighbours deriving (Show,Generic,Eq)
 
-data Clique = 
-      Fis 
+data Clique =
+      Fis
       { _fis_support :: Int
       , _fis_size    :: Int }
     | MaxClique
       { _mcl_size      :: Int
       , _mcl_threshold :: Double
-      , _mcl_filter    :: CliqueFilter } 
-      deriving (Show,Generic,Eq)      
+      , _mcl_filter    :: CliqueFilter }
+      deriving (Show,Generic,Eq)
 
 
-data Quality = 
+data Quality =
      Quality { _qua_granularity :: Double
              , _qua_minBranch   :: Int }
-      deriving (Show,Generic,Eq)   
+      deriving (Show,Generic,Eq)
 
 
-data Config = 
+data Config =
      Config { corpusPath     :: FilePath
             , listPath       :: FilePath
             , outputPath     :: FilePath
@@ -156,12 +151,12 @@ data Config =
             , clique         :: Clique
             , exportLabel    :: [PhyloLabel]
             , exportSort     :: Sort
-            , exportFilter   :: [Filter]  
+            , exportFilter   :: [Filter]
             } deriving (Show,Generic,Eq)
 
 
 defaultConfig :: Config
-defaultConfig = 
+defaultConfig =
      Config { corpusPath     = ""
             , listPath       = ""
             , outputPath     = ""
@@ -177,39 +172,54 @@ defaultConfig =
             , clique         = MaxClique 0 3 ByNeighbours
             , exportLabel    = [BranchLabel MostEmergentTfIdf 2, GroupLabel MostEmergentInclusive 2]
             , exportSort     = ByHierarchy
-            , exportFilter   = [ByBranchSize 2]  
+            , exportFilter   = [ByBranchSize 2]
             }
 
 instance FromJSON Config
 instance ToJSON Config
+
 instance FromJSON CorpusParser
 instance ToJSON CorpusParser
+
 instance FromJSON Proximity
 instance ToJSON Proximity
+
 instance FromJSON SeaElevation
 instance ToJSON SeaElevation
+
 instance FromJSON TimeUnit
 instance ToJSON TimeUnit
+
 instance FromJSON CliqueFilter
 instance ToJSON CliqueFilter
+
 instance FromJSON Clique
 instance ToJSON Clique
+
 instance FromJSON PhyloLabel
 instance ToJSON PhyloLabel
+
 instance FromJSON Tagger
 instance ToJSON Tagger
+
 instance FromJSON Sort
 instance ToJSON Sort
+
 instance FromJSON Order
 instance ToJSON Order
+
 instance FromJSON Filter
 instance ToJSON Filter
+
 instance FromJSON SynchronyScope
 instance ToJSON SynchronyScope
+
 instance FromJSON SynchronyStrategy
 instance ToJSON SynchronyStrategy
+
 instance FromJSON Synchrony
 instance ToJSON Synchrony
+
 instance FromJSON Quality
 instance ToJSON Quality
 
@@ -221,7 +231,7 @@ data Software =
      } deriving (Generic, Show, Eq)
 
 defaultSoftware :: Software
-defaultSoftware = 
+defaultSoftware =
       Software { _software_name    = pack "Gargantext"
                , _software_version = pack "v4" }
 
@@ -252,13 +262,14 @@ type Ngrams = Text
 
 -- Document : a piece of Text linked to a Date
 -- date = computational date; date' = original string date yyyy-mm-dd
+-- Export Database to Document
 data Document = Document
-      { date    :: Date
-      , date'   :: Text
+      { date    :: Date   -- datatype Date {unDate :: Int}
+      , date'   :: Text   -- show date
       , text    :: [Ngrams]
       , weight  :: Maybe Double
       , sources :: [Text]
-      } deriving (Eq,Show,Generic,NFData)  
+      } deriving (Eq,Show,Generic,NFData)
 
 
 --------------------
@@ -266,7 +277,7 @@ data Document = Document
 --------------------
 
 
--- | The Foundations of a Phylo created from a given TermList 
+-- | The Foundations of a Phylo created from a given TermList
 data PhyloFoundations = PhyloFoundations
       { _foundations_roots   :: !(Vector Ngrams)
       , _foundations_mapList :: TermList
@@ -303,8 +314,8 @@ data Phylo =
            , _phylo_timeCooc     :: !(Map Date Cooc)
            , _phylo_timeDocs     :: !(Map Date Double)
            , _phylo_termFreq     :: !(Map Int Double)
-           , _phylo_lastTermFreq :: !(Map Int Double)           
-           , _phylo_horizon      :: !(Map (PhyloGroupId,PhyloGroupId) Double)           
+           , _phylo_lastTermFreq :: !(Map Int Double)
+           , _phylo_horizon      :: !(Map (PhyloGroupId,PhyloGroupId) Double)
            , _phylo_groupsProxi  :: !(Map (PhyloGroupId,PhyloGroupId) Double)
            , _phylo_param        :: PhyloParam
            , _phylo_periods      :: Map PhyloPeriodId PhyloPeriod
@@ -322,13 +333,13 @@ data PhyloPeriod =
      PhyloPeriod { _phylo_periodPeriod  :: (Date,Date)
                  , _phylo_periodPeriod' :: (Text,Text)
                  , _phylo_periodLevels  :: Map PhyloLevelId PhyloLevel
-                 } deriving (Generic, Show, Eq)   
+                 } deriving (Generic, Show, Eq)
 
 
 -- | Level : a level of clustering
 type Level = Int
 
--- | PhyloLevelId : the id of a level of clustering in a given period 
+-- | PhyloLevelId : the id of a level of clustering in a given period
 type PhyloLevelId  = (PhyloPeriodId,Level)
 
 -- | PhyloLevel : levels of phylomemy on a synchronic axis
@@ -339,10 +350,10 @@ type PhyloLevelId  = (PhyloPeriodId,Level)
 data PhyloLevel =
      PhyloLevel { _phylo_levelPeriod  :: (Date,Date)
                 , _phylo_levelPeriod' :: (Text,Text)
-                , _phylo_levelLevel   :: Level 
+                , _phylo_levelLevel   :: Level
                 , _phylo_levelGroups  :: Map PhyloGroupId PhyloGroup
-                } 
-                deriving (Generic, Show, Eq)   
+                }
+                deriving (Generic, Show, Eq)
 
 
 type PhyloGroupId  = (PhyloLevelId, Int)
@@ -352,15 +363,15 @@ type PhyloGroupId  = (PhyloLevelId, Int)
 type PhyloBranchId = (Level, [Int])
 
 -- | PhyloGroup : group of ngrams at each level and period
-data PhyloGroup = 
+data PhyloGroup =
       PhyloGroup { _phylo_groupPeriod   :: (Date,Date)
                  , _phylo_groupPeriod'  :: (Text,Text)
                  , _phylo_groupLevel    :: Level
-                 , _phylo_groupIndex    :: Int         
+                 , _phylo_groupIndex    :: Int
                  , _phylo_groupLabel    :: Text
                  , _phylo_groupSupport  :: Support
                  , _phylo_groupWeight   :: Maybe Double
-                 , _phylo_groupSources  :: [Int]                 
+                 , _phylo_groupSources  :: [Int]
                  , _phylo_groupNgrams   :: [Int]
                  , _phylo_groupCooc     :: !(Cooc)
                  , _phylo_groupBranchId :: PhyloBranchId
@@ -379,8 +390,8 @@ type Weight = Double
 -- | Pointer : A weighted pointer to a given PhyloGroup
 type Pointer = (PhyloGroupId, Weight)
 
-data Filiation = ToParents | ToChilds deriving (Generic, Show)    
-data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)                
+data Filiation = ToParents | ToChilds deriving (Generic, Show)
+data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)
 
 
 ----------------------
@@ -414,7 +425,7 @@ data Sort = ByBirthDate { _sort_order :: Order } | ByHierarchy deriving (Show,Ge
 
 data Tagger = MostInclusive | MostEmergentInclusive | MostEmergentTfIdf deriving (Show,Generic,Eq)
 
-data PhyloLabel = 
+data PhyloLabel =
       BranchLabel
       { _branch_labelTagger :: Tagger
       , _branch_labelSize   :: Int }
@@ -469,16 +480,22 @@ makeLenses ''PhyloBranch
 
 instance FromJSON Phylo
 instance ToJSON Phylo
+
 instance FromJSON PhyloSources
 instance ToJSON PhyloSources
+
 instance FromJSON PhyloParam
 instance ToJSON PhyloParam
+
 instance FromJSON PhyloPeriod
 instance ToJSON PhyloPeriod
+
 instance FromJSON PhyloLevel
 instance ToJSON PhyloLevel
+
 instance FromJSON Software
 instance ToJSON Software
+
 instance FromJSON PhyloGroup
 instance ToJSON PhyloGroup
 

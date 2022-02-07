@@ -15,23 +15,20 @@ Portability : POSIX
 
 module Gargantext.Core.Viz.Phylo.PhyloExample where
 
+import Control.Lens
+import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.List (sortOn, nub, sort)
 import Data.Map (Map)
 import Data.Text (Text, toLower)
-
-import Gargantext.Prelude
 import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Terms.Mono (monoTexts)
-import Gargantext.Core.Viz.AdaptativePhylo
-import Gargantext.Core.Viz.Phylo.PhyloTools
-import Gargantext.Core.Viz.Phylo.PhyloMaker
+import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.PhyloExport
-import Gargantext.Core.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching)
+import Gargantext.Core.Viz.Phylo.PhyloMaker
+import Gargantext.Core.Viz.Phylo.PhyloTools
 import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
-
-import Control.Lens
-import Data.GraphViz.Types.Generalised (DotGraph)
-
+import Gargantext.Core.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching)
+import Gargantext.Prelude
 import qualified Data.Vector as Vector
 
 ---------------------------------
@@ -158,4 +155,4 @@ corpus = sortOn fst [
   (-44,"La guerre que se livrent les assassins de Cesar, Cassius et Brutus et ses heritiers, Octave et Marc-Antoine, oblige Cleopatre à des contorsions diplomatiques."), 
   (-41,"Nous ignorons depuis quand Cleopatre, agee de 29 ans en -41, et Marc-Antoine, qui a une quarantaine d'annees, se connaissent. Marc-Antoine est l'un des officiers qui ont participe au retablissement de Ptolemee XII.  Il est plus vraisemblable qu'ils se soient frequentes lors du sejour à Rome de Cleopatre."), 
   (-42,"Brutus tient la Grèce tandis que Cassius s'installe en Syrie. Le gouverneur de Cleopatre à Chypre, Serapion, vient en aide à Cassius."), 
-  (-42,"Cassius aurait envisage de s'emparer d'Alexandrie quand le 'debarquement' en Grèce d'Antoine et d'Octave l'oblige à renoncer à ses projets")]          
+  (-42,"Cassius aurait envisage de s'emparer d'Alexandrie quand le 'debarquement' en Grèce d'Antoine et d'Octave l'oblige à renoncer à ses projets")]

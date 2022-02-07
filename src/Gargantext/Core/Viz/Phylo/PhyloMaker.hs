@@ -11,30 +11,29 @@ Portability : POSIX
 
 module Gargantext.Core.Viz.Phylo.PhyloMaker where
 
-import Data.List (concat, nub, partition, sort, (++), group, intersect, null, sortOn, groupBy, tail)
-import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, foldlWithKey, insert)
-import Data.Vector (Vector)
-import Data.Text (Text)
-
-import Gargantext.Prelude
-import Gargantext.Core.Viz.AdaptativePhylo
-import Gargantext.Core.Viz.Phylo.PhyloTools
-import Gargantext.Core.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching, getNextPeriods, filterDocs, filterDiago, reduceDiagos, toProximity)
-import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
-import Gargantext.Core.Text.Context (TermList)
-import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, fisWithSizePolyMap', Size(..))
-import Gargantext.Core.Methods.Graph.MaxClique (getMaxCliques)
-import Gargantext.Core.Methods.Distances (Distance(Conditional))
-import Gargantext.Core.Viz.Phylo.PhyloExport (toHorizon)
-
 
 import Control.DeepSeq (NFData)
-import Control.Parallel.Strategies (parList, rdeepseq, using)
-import Debug.Trace (trace)
 import Control.Lens hiding (Level)
+import Control.Parallel.Strategies (parList, rdeepseq, using)
+import Data.List (concat, nub, partition, sort, (++), group, intersect, null, sortOn, groupBy, tail)
+import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, foldlWithKey, insert)
+import Data.Text (Text)
+import Data.Vector (Vector)
+import Debug.Trace (trace)
 
-import qualified Data.Vector as Vector
+import Gargantext.Core.Methods.Distances (Distance(Conditional))
+import Gargantext.Core.Methods.Graph.MaxClique (getMaxCliques)
+import Gargantext.Core.Text.Context (TermList)
+import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, fisWithSizePolyMap', Size(..))
+import Gargantext.Core.Viz.Phylo
+import Gargantext.Core.Viz.Phylo.PhyloExport (toHorizon)
+import Gargantext.Core.Viz.Phylo.PhyloTools
+import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
+import Gargantext.Core.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching, getNextPeriods, filterDocs, filterDiago, reduceDiagos, toProximity)
+import Gargantext.Prelude
+
 import qualified Data.Set as Set
+import qualified Data.Vector as Vector
 
 ------------------
 -- | To Phylo | --
@@ -162,6 +161,7 @@ indexDates' m = map (\docs ->
 
 
 -- To build the first phylo step from docs and terms
+-- QL: backend entre phyloBase et phyloClique
 toPhyloStep :: [Document] -> TermList -> Config -> Phylo
 toPhyloStep docs lst conf = case (getSeaElevation phyloBase) of 
     Constante  _ _ -> appendGroups cliqueToGroup 1 phyloClique (updatePeriods (indexDates' docs') phyloBase)
@@ -173,6 +173,7 @@ toPhyloStep docs lst conf = case (getSeaElevation phyloBase) of
         phyloClique =  toPhyloClique phyloBase docs'
         --------------------------------------
         docs' :: Map (Date,Date) [Document]
+        -- QL: Time Consuming here
         docs' =  groupDocsByPeriodRec date (getPeriodIds phyloBase) (sortOn date docs) empty
         --------------------------------------
         phyloBase :: Phylo
