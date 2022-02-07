@@ -67,7 +67,7 @@ getCorpus cId lId nt' = do
        <$> selectDocNodes cId
 
   repo <- getRepo' [listId]
-  ngs  <- getContextNgrams cId listId nt repo
+  ngs  <- getContextNgrams cId listId MapTerm nt repo
   let  -- uniqId is hash computed already for each document imported in database
     r = Map.intersectionWith
         (\a b -> DocumentExport.Document { _d_document = context2node a
@@ -85,16 +85,17 @@ getCorpus cId lId nt' = do
 getContextNgrams :: HasNodeError err
         => CorpusId
         -> ListId
+        -> ListType
         -> NgramsType
         -> NodeListStory
         -> Cmd err (Map ContextId (Set NgramsTerm))
-getContextNgrams cId lId nt repo = do
+getContextNgrams cId lId listType nt repo = do
 --  lId <- case lId' of
 --    Nothing -> defaultList cId
 --    Just  l -> pure l
 
   lIds <- selectNodesWithUsername NodeList userMaster
-  let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
+  let ngs = filterListWithRoot listType $ mapTermListRoot [lId] nt repo
   -- TODO HashMap
   r <- getNgramsByContextOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
   pure r

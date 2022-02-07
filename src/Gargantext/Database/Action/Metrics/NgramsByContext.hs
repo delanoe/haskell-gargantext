@@ -60,7 +60,6 @@ countContextsByNgramsWith f m = (total, m')
                            $ HM.toList m''
 
 ------------------------------------------------------------------------
-
 getContextsByNgramsUser ::  HasDBid NodeType
                         => CorpusId
                         -> NgramsType
@@ -191,7 +190,6 @@ queryNgramsOccurrencesOnlyByContextUser_withSample = [sql|
 
 
 ------------------------------------------------------------------------
-
 getContextsByNgramsOnlyUser :: HasDBid NodeType
                          => CorpusId
                          -> [ListId]
@@ -221,7 +219,6 @@ getNgramsByContextOnlyUser cId ls nt ngs =
            (splitEvery 1000 ngs)
 
 ------------------------------------------------------------------------
--- used in G.Core.Text.List
 selectNgramsOnlyByContextUser :: HasDBid NodeType
                            => CorpusId
                            -> [ListId]

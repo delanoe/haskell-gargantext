@@ -49,6 +49,8 @@ import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo, toPhyloStep)
 import Gargantext.Core.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment, setConfig)
 import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
 -- import Gargantext.API.Ngrams.Prelude (toTermList)
+import Gargantext.Core.Viz.Phylo.API (toPhyloDate, toPhyloDate')
+
 
 -- import Debug.Trace (trace)
 
@@ -65,32 +67,6 @@ getFilesFromPath path = do
   if (isSuffixOf "/" path)
     then (listDirectory path)
     else return [path]
-
----------------
--- | Dates | --
----------------
-toMonths :: Integer -> Int -> Int -> Date
-toMonths y m d = fromIntegral $ cdMonths
-               $ diffGregorianDurationClip (fromGregorian y m d) (fromGregorian 0000 0 0)
-
-
-toDays :: Integer -> Int -> Int -> Date
-toDays y m d = fromIntegral
-             $ diffDays (fromGregorian y m d) (fromGregorian 0000 0 0)
-
-
-toPhyloDate :: Int -> Int -> Int -> TimeUnit -> Date
-toPhyloDate y m d tu = case tu of
-  Year  _ _ _ -> y
-  Month _ _ _ -> toMonths (Prelude.toInteger y) m d
-  Week  _ _ _ -> div (toDays (Prelude.toInteger y) m d) 7
-  Day   _ _ _ -> toDays (Prelude.toInteger y) m d
-
-
--- Function to use in Database export
-toPhyloDate' :: Int -> Int -> Int -> Text
-toPhyloDate' y m d = pack $ showGregorian $ fromGregorian (Prelude.toInteger y) m d
-
 
 --------------
 -- | Json | --
