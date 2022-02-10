@@ -1,3 +1,6 @@
+## Version 0.0.5.5.6
+* [BACK][FIX] ./bin/psql gargantext.ini < devops/posgres/upgrade/0.0.5.5.6.sql
+
 ## Version 0.0.5.5.5
 * [FORNT] fix Graph Explorer search ngrams
 * [FRONT] fix NodeType list show
