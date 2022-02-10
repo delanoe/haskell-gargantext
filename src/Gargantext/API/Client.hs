@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -freduction-depth=0 #-}
-{-# OPTIONS_GHC -O0                 #-} 
+{-# OPTIONS_GHC -O0                 #-}
 
 module Gargantext.API.Client where
 
@@ -55,17 +55,18 @@ import Servant.Job.Core
 import Servant.Job.Types
 import System.Metrics.Json (Sample, Value)
 
--- * actual client functions for individual endpoints
-
+-- * version API
 getBackendVersion :: ClientM Text
+
+-- * auth API
 postAuth :: AuthRequest -> ClientM AuthResponse
 
--- admin api
+-- * admin api
 getRoots :: Token -> ClientM [Node HyperdataUser]
 putRoots :: Token -> ClientM Int -- not actually implemented in the backend
 deleteNodes :: Token -> [NodeId] -> ClientM Int
 
--- node api
+-- * node api
 getNode    :: Token -> NodeId -> ClientM (Node HyperdataAny)
 getContext :: Token -> ContextId -> ClientM (Node HyperdataAny)
 renameNode :: Token -> NodeId -> RenameNode -> ClientM [Int]
@@ -155,7 +156,7 @@ killNodeDocumentUploadAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limi
 pollNodeDocumentUploadAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitNodeDocumentUploadAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
--- corpus api
+-- * corpus api
 getCorpus :: Token -> CorpusId -> ClientM (Node HyperdataCorpus)
 renameCorpus :: Token -> CorpusId -> RenameNode -> ClientM [Int]
 postCorpus :: Token -> CorpusId -> PostNode -> ClientM [CorpusId]
@@ -244,13 +245,13 @@ killCorpusDocumentUploadAsyncJob :: Token -> CorpusId -> JobID 'Unsafe -> Maybe 
 pollCorpusDocumentUploadAsyncJob :: Token -> CorpusId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitCorpusDocumentUploadAsyncJob :: Token -> CorpusId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
--- corpus node/node API
+-- * corpus node/node API
 getCorpusNodeNode :: Token -> NodeId -> NodeId -> ClientM (Node HyperdataAny)
 
--- corpus export API
+-- * corpus export API
 getCorpusExport :: Token -> CorpusId -> Maybe ListId -> Maybe NgramsType -> ClientM Corpus
 
--- annuaire api
+-- * annuaire api
 getAnnuaire :: Token -> AnnuaireId -> ClientM (Node HyperdataAnnuaire)
 renameAnnuaire :: Token -> AnnuaireId -> RenameNode -> ClientM [Int]
 postAnnuaire :: Token -> AnnuaireId -> PostNode -> ClientM [AnnuaireId]
@@ -338,17 +339,17 @@ killAnnuaireDocumentUploadAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> Ma
 pollAnnuaireDocumentUploadAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitAnnuaireDocumentUploadAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
--- contact api
+-- * contact api
 postAnnuaireContactAsync :: Token -> AnnuaireId -> ClientM (JobStatus 'Safe JobLog)
 postAnnuaireContactAsyncJob :: Token -> AnnuaireId -> JobInput Maybe AddContactParams -> ClientM (JobStatus 'Safe JobLog)
 killAnnuaireContactAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 pollAnnuaireContactAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitAnnuaireContactAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
--- contact node/node API
+-- * contact node/node API
 getAnnuaireContactNodeNode :: Token -> NodeId -> NodeId -> ClientM (Node HyperdataContact)
 
--- document ngrams api
+-- * document ngrams api
 getDocumentNgramsTable :: Token -> DocId -> TabType -> ListId -> Int -> Maybe Int -> Maybe ListType -> Maybe MinSize -> Maybe MaxSize -> Maybe Ngrams.OrderBy -> Maybe Text -> ClientM (VersionedWithCount NgramsTable)
 putDocumentNgramsTable :: Token -> DocId -> TabType -> ListId -> Versioned NgramsTablePatch -> ClientM (Versioned NgramsTablePatch)
 postRecomputeDocumentNgramsTableScore :: Token -> DocId -> TabType -> ListId -> ClientM Int
@@ -359,15 +360,14 @@ killDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> Maybe Limi
 pollDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
--- document export API
+-- * document export API
 getDocumentExportJSON :: Token -> DocId -> ClientM DocumentExport.DocumentExport
 getDocumentExportCSV :: Token -> DocId -> ClientM Text
---getDocumentExportCSV :: Token -> DocId -> ClientM [DocumentExport.Document]
 
--- count api
+-- * count api
 postCountQuery :: Token -> Query -> ClientM Counts
 
--- graph api
+-- * graph api
 getGraphHyperdata :: Token -> NodeId -> ClientM HyperdataGraphAPI
 postGraphAsync :: Token -> NodeId -> ClientM (JobStatus 'Safe JobLog)
 postGraphAsyncJob :: Token -> NodeId -> JobInput Maybe () -> ClientM (JobStatus 'Safe JobLog)
@@ -382,6 +382,7 @@ postGraphRecomputeVersion :: Token -> NodeId -> ClientM Graph
 getTree :: Token -> NodeId -> [NodeType] -> ClientM (Tree NodeTree)
 getTreeFirstLevel :: Token -> NodeId -> [NodeType] -> ClientM (Tree NodeTree)
 
+-- * new corpus API
 postNewCorpusWithFormAsync :: Token -> NodeId -> ClientM (JobStatus 'Safe JobLog)
 postNewCorpusWithFormAsyncJob :: Token -> NodeId -> JobInput Maybe NewWithForm -> ClientM (JobStatus 'Safe JobLog)
 killNewCorpusWithFormAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
@@ -394,6 +395,7 @@ killNewCorpusWithQueryAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limi
 pollNewCorpusWithQueryAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitNewCorpusWithQueryAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
+-- * list API
 getList :: Token -> NodeId -> ClientM (Headers '[Header "Content-Disposition" Text] (Map NgramsType (Versioned NgramsTableMap)))
 postListJsonUpdateAsync :: Token -> NodeId -> ClientM (JobStatus 'Safe JobLog)
 postListJsonUpdateAsyncJob :: Token -> NodeId -> JobInput Maybe WithFile -> ClientM (JobStatus 'Safe JobLog)
@@ -407,11 +409,14 @@ killListCsvUpdateAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limit  ->
 pollListCsvUpdateAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limit  -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitListCsvUpdateAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
+-- * public API
 getPublicData :: ClientM [PublicData]
 getPublicNodeFile :: NodeId -> ClientM (Headers '[Header "Content-Type" Text] BSResponse)
 
--- ekg api
+-- * ekg api
+-- | get a sample of all metrics
 getMetricsSample :: ClientM Sample
+-- | open @<backend:port\/ekg\/index.html@ to see a list of metrics
 getMetricSample :: [Text] -> ClientM Value
 
 -- * unpacking of client functions to derive all the individual clients
