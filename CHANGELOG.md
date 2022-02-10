@@ -1,9 +1,10 @@
 ## Version 0.0.5.5.6
 * [BACK][FIX] ./bin/psql gargantext.ini < devops/posgres/upgrade/0.0.5.5.6.sql
+* [FRONT] fix NodeType list show (Nodes options)
 
 ## Version 0.0.5.5.5
 * [FORNT] fix Graph Explorer search ngrams
-* [FRONT] fix NodeType list show
+* [FRONT] fix NodeType list show (main Nodes)
 
 ## Version 0.0.5.5.4
 * [BACK][OPTIM] NgramsTable scores
