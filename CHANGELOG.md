@@ -1,3 +1,7 @@
+## Version 0.0.5.5.4
+* [BACK][OPTIM] NgramsTable scores
+* [BACK] bin/client script to analyze backend performance and reproduce bugs
+
 ## Version 0.0.5.5.3
 * [BACK] Adding a Max limit for others lists.
 
