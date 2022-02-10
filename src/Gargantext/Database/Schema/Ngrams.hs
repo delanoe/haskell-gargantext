@@ -11,8 +11,9 @@ Ngrams connection to the Database.
 
 -}
 
-{-# LANGUAGE Arrows                     #-}
-{-# LANGUAGE FunctionalDependencies     #-}
+{-# OPTIONS_GHC -fno-warn-orphans   #-}
+{-# LANGUAGE Arrows                 #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
@@ -172,6 +173,9 @@ instance FromField Ngrams where
   fromField fld mdata = do
     x <- fromField fld mdata
     pure $ text2ngrams x
+
+instance PGS.ToRow Text where
+  toRow t = [toField t]
 
 text2ngrams :: Text -> Ngrams
 text2ngrams txt = UnsafeNgrams txt' $ length $ splitOn " " txt'

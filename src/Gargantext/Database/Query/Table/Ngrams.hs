@@ -18,27 +18,29 @@ module Gargantext.Database.Query.Table.Ngrams
   , queryNgramsTable
   , selectNgramsByDoc
   , insertNgrams
+  , selectNgramsId
   )
     where
 
 import Control.Lens ((^.))
 import Data.ByteString.Internal (ByteString)
 import Data.HashMap.Strict (HashMap)
+import Data.Map (Map)
 import Data.Text (Text)
-import qualified Data.HashMap.Strict        as HashMap
-import qualified Data.List                  as List
-import qualified Database.PostgreSQL.Simple as PGS
-
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude (runOpaQuery, Cmd, formatPGSQuery, runPGSQuery)
 import Gargantext.Database.Query.Join (leftJoin3)
 import Gargantext.Database.Query.Table.ContextNodeNgrams2
+import Gargantext.Database.Query.Table.NodeNgrams (queryNodeNgramsTable)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.NodeNgrams
-import Gargantext.Database.Query.Table.NodeNgrams (queryNodeNgramsTable)
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Types
 import Gargantext.Prelude
+import qualified Data.HashMap.Strict        as HashMap
+import qualified Data.List                  as List
+import qualified Data.Map                   as Map
+import qualified Database.PostgreSQL.Simple as PGS
 
 queryNgramsTable :: Select NgramsRead
 queryNgramsTable = selectTable ngramsTable
@@ -106,3 +108,28 @@ queryInsertNgrams = [sql|
     FROM   input_rows
     JOIN   ngrams c USING (terms);     -- columns of unique index
            |]
+
+
+--------------------------------------------------------------------------
+selectNgramsId :: [Text] -> Cmd err (Map NgramsId Text)
+selectNgramsId ns =
+  if List.null ns
+     then pure Map.empty
+     else Map.fromList <$> map (\(Indexed i t) -> (i, t)) <$> (selectNgramsId' ns)
+
+selectNgramsId' :: [Text] -> Cmd err [Indexed Int Text]
+selectNgramsId' ns = runPGSQuery querySelectNgramsId ( PGS.Only
+                                                     $ Values fields ns
+                                                     )
+  where
+    fields = map (\t -> QualifiedIdentifier Nothing t) ["text"]
+
+    querySelectNgramsId :: PGS.Query
+    querySelectNgramsId = [sql|
+        WITH input_rows(terms) AS (?)
+        SELECT n.id, n.terms
+        FROM   ngrams n
+        JOIN input_rows ir ON ir.terms = n.terms
+        GROUP BY n.terms, n.id
+        |]
+
