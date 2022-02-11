@@ -203,6 +203,7 @@ library:
   - postgresql-simple
   - pretty-simple
   - probability
+  - process
   - product-profunctors
   - profunctors
   - protolude

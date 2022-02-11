@@ -368,7 +368,7 @@ sortByBirthDate order export =
 processSort :: Sort -> SeaElevation -> PhyloExport -> PhyloExport
 processSort sort' elev export = case sort' of
     ByBirthDate o -> sortByBirthDate o export
-    ByHierarchy   -> export & export_branches .~ (branchToIso' (_cons_start elev) (_cons_step elev)
+    ByHierarchy _ -> export & export_branches .~ (branchToIso' (_cons_start elev) (_cons_step elev)
                        $ sortByHierarchy 0 (export ^. export_branches))
 
 
