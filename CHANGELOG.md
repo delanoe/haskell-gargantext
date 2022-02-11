@@ -1,3 +1,6 @@
+## Version 0.0.5.5.7
+* [FRONT][FIX] NgramsTable Cache search.
+
 ## Version 0.0.5.5.6
 * [BACK][FIX] ./bin/psql gargantext.ini < devops/posgres/upgrade/0.0.5.5.6.sql
 * [FRONT] fix NodeType list show (Nodes options)
