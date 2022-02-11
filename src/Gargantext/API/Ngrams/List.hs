@@ -19,15 +19,16 @@ import Control.Lens hiding (elements, Indexed)
 import Data.Aeson
 import Data.Either (Either(..))
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map, toList, fromList)
+import Data.Map (Map, toList)
 import Data.Maybe (catMaybes)
 import Data.Set (Set)
 import Data.Text (Text, concat, pack)
 import Data.Vector (Vector)
 import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Ngrams (getNgramsTableMap, setListNgrams)
+import Gargantext.API.Ngrams (setListNgrams)
 import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.API.Ngrams.Types
+import Gargantext.API.Ngrams.Prelude (getNgramsList)
 import Gargantext.API.Ngrams.List.Types
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.NodeStory
@@ -110,19 +111,13 @@ csvApi = csvPostAsync
 get :: HasNodeStory env err m =>
        ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
 get lId = do
-  lst <- get' lId
+  lst <- getNgramsList lId
   let (NodeId id') = lId
   return $ addHeader (concat [ "attachment; filename=GarganText_NgramsList-"
                              , pack $ show id'
                              , ".json"
                              ]
                      ) lst
-
-get' :: HasNodeStory env err m
-    => ListId -> m NgramsList
-get' lId = fromList
-       <$> zip ngramsTypes
-       <$> mapM (getNgramsTableMap lId) ngramsTypes
 
 ------------------------------------------------------------------------
 -- TODO : purge list

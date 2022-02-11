@@ -16,18 +16,37 @@ module Gargantext.API.Ngrams.Prelude
 
 import Data.Maybe (catMaybes)
 import Control.Lens (view)
+import Data.Map (fromList)
 import Data.Hashable (Hashable)
 import Data.Validity
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListType)
-import Gargantext.Database.Schema.Ngrams (NgramsType)
+import Gargantext.Database.Schema.Ngrams (NgramsType, ngramsTypes)
 import Gargantext.Prelude
 import Gargantext.Core.Text.List.Social.Prelude
+import Gargantext.API.Ngrams (getNgramsTableMap)
 import Gargantext.Core.Text.Context (TermList)
+import Gargantext.Core.NodeStory (HasNodeStory)
+import Gargantext.Database.Admin.Types.Node (ListId)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict as Map
 import qualified Data.List as List
 import qualified Data.Text as Text
+
+
+------------------------------------------------------------------------
+getNgramsList :: HasNodeStory env err m
+    => ListId -> m NgramsList
+getNgramsList lId = fromList
+       <$> zip ngramsTypes
+       <$> mapM (getNgramsTableMap lId) ngramsTypes
+
+getTermList :: HasNodeStory env err m
+            => ListId -> ListType -> NgramsType -> m (Maybe TermList)
+getTermList lId listType ngramsType = do
+  ngramsList <- getNgramsList lId
+  pure $ toTermList listType ngramsType ngramsList
+
 
 ------------------------------------------------------------------------
 -- | Tools

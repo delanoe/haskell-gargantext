@@ -67,9 +67,7 @@ toPhylo phyloStep = trace ("# phylo1 groups " <> show(length $ getGroupsFromLeve
         --------------------------------------
         phylo1 :: Phylo
         phylo1 = toPhylo1 phyloStep
-        -- > AD to db here
         --------------------------------------
-
 
 
 --------------------
