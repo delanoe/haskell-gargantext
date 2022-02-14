@@ -1,3 +1,7 @@
+## Version 0.0.5.6
+* [FEAT] Phylo backend connection
+* [FRONT] Editable Metadata
+
 ## Version 0.0.5.5.7
 * [FRONT][FIX] NgramsTable Cache search.
 
