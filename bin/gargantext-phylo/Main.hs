@@ -36,7 +36,7 @@ import Gargantext.Core.Text.List.Formats.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Viz.Phylo
-import Gargantext.Core.Viz.Phylo.API
+import Gargantext.Core.Viz.Phylo.API.Tools
 import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
 import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo, toPhyloStep)
 import Gargantext.Core.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment, setConfig)
@@ -46,7 +46,6 @@ import Gargantext.Prelude
 import System.Directory (listDirectory,doesFileExist)
 import System.Environment
 import qualified Data.ByteString.Char8                   as C8
-import qualified Data.ByteString.Lazy                    as Lazy
 import qualified Data.Text                               as T
 import qualified Data.Vector                             as Vector
 import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv

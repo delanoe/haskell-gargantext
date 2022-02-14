@@ -104,6 +104,7 @@ library:
   - Gargantext.Core.Viz.Graph.Index
   - Gargantext.Core.Viz.Phylo
   - Gargantext.Core.Viz.Phylo.API
+  - Gargantext.Core.Viz.Phylo.API.Tools
   - Gargantext.Core.Viz.Phylo.PhyloMaker
   - Gargantext.Core.Viz.Phylo.PhyloTools
   - Gargantext.Core.Viz.Phylo.PhyloExport

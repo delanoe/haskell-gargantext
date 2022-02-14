@@ -40,7 +40,6 @@ import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main hiding (Limit, Offset)
 import Gargantext.Core.Viz.Graph hiding (Node, Version)
 import Gargantext.Core.Viz.Graph.API
-import Gargantext.Core.Viz.Phylo.Legacy.LegacyAPI
 import Gargantext.Core.Viz.Types
 import Gargantext.Database.Admin.Types.Metrics
 import Gargantext.Database.Admin.Types.Hyperdata
@@ -54,6 +53,8 @@ import Servant.Client
 import Servant.Job.Core
 import Servant.Job.Types
 import System.Metrics.Json (Sample, Value)
+
+import qualified Data.Aeson as Aeson
 
 -- * version API
 getBackendVersion :: ClientM Text
@@ -131,7 +132,7 @@ getNodePieHash :: Token -> NodeId -> Maybe NodeId -> TabType -> ClientM Text
 getNodeTree :: Token -> NodeId -> Maybe UTCTime -> Maybe UTCTime -> Maybe NodeId -> TabType -> ListType -> ClientM (HashedResponse (ChartMetrics (Vector NgramsTree)))
 postNodeTreeUpdate :: Token -> NodeId -> Maybe NodeId -> TabType -> ListType -> ClientM ()
 getNodeTreeHash :: Token -> NodeId -> Maybe NodeId -> TabType -> ListType -> ClientM Text
-getNodePhylo :: Token -> NodeId -> Maybe NodeId -> Maybe Int -> Maybe Int -> ClientM SVG
+getNodePhylo :: Token -> NodeId -> Maybe NodeId -> Maybe Int -> Maybe Int -> ClientM Aeson.Value
 putNodePhylo :: Token -> NodeId -> Maybe NodeId -> ClientM NodeId
 
 putNodeMove :: Token -> NodeId -> ParentId -> ClientM [Int]
@@ -220,7 +221,7 @@ getCorpusPieHash :: Token -> CorpusId -> Maybe NodeId -> TabType -> ClientM Text
 getCorpusTree :: Token -> CorpusId -> Maybe UTCTime -> Maybe UTCTime -> Maybe NodeId -> TabType -> ListType -> ClientM (HashedResponse (ChartMetrics (Vector NgramsTree)))
 postCorpusTreeUpdate :: Token -> CorpusId -> Maybe NodeId -> TabType -> ListType -> ClientM ()
 getCorpusTreeHash :: Token -> CorpusId -> Maybe NodeId -> TabType -> ListType -> ClientM Text
-getCorpusPhylo :: Token -> CorpusId -> Maybe NodeId -> Maybe Int -> Maybe Int -> ClientM SVG
+getCorpusPhylo :: Token -> CorpusId -> Maybe NodeId -> Maybe Int -> Maybe Int -> ClientM Aeson.Value
 putCorpusPhylo :: Token -> CorpusId -> Maybe NodeId -> ClientM NodeId
 
 putCorpusMove :: Token -> CorpusId -> ParentId -> ClientM [Int]
@@ -314,7 +315,7 @@ getAnnuairePieHash :: Token -> AnnuaireId -> Maybe NodeId -> TabType -> ClientM 
 getAnnuaireTree :: Token -> AnnuaireId -> Maybe UTCTime -> Maybe UTCTime -> Maybe NodeId -> TabType -> ListType -> ClientM (HashedResponse (ChartMetrics (Vector NgramsTree)))
 postAnnuaireTreeUpdate :: Token -> AnnuaireId -> Maybe NodeId -> TabType -> ListType -> ClientM ()
 getAnnuaireTreeHash :: Token -> AnnuaireId -> Maybe NodeId -> TabType -> ListType -> ClientM Text
-getAnnuairePhylo :: Token -> AnnuaireId -> Maybe NodeId -> Maybe Int -> Maybe Int -> ClientM SVG
+getAnnuairePhylo :: Token -> AnnuaireId -> Maybe NodeId -> Maybe Int -> Maybe Int -> ClientM Aeson.Value
 putAnnuairePhylo :: Token -> AnnuaireId -> Maybe NodeId -> ClientM NodeId
 
 putAnnuaireMove :: Token -> AnnuaireId -> ParentId -> ClientM [Int]

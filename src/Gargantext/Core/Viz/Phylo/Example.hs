@@ -13,7 +13,7 @@ Portability : POSIX
 -}
 
 
-module Gargantext.Core.Viz.Phylo.PhyloExample where
+module Gargantext.Core.Viz.Phylo.Example where
 
 import Control.Lens
 import Data.GraphViz.Types.Generalised (DotGraph)
@@ -39,14 +39,14 @@ phyloExport :: IO ()
 phyloExport = dotToFile "/home/qlobbe/data/phylo/output/cesar_cleopatre_V2.dot" phyloDot 
 
 phyloDot :: DotGraph DotId
-phyloDot = toPhyloExport phylo2
+phyloDot = toPhyloExport phyloExample
 
 --------------------------------------------------
 -- | STEP 4 | -- Process the synchronic clustering
 --------------------------------------------------
 
-phylo2 :: Phylo
-phylo2 = synchronicClustering $ toHorizon phylo1
+phyloExample :: Phylo
+phyloExample = synchronicClustering $ toHorizon phylo1
 
 -----------------------------------------------
 -- | STEP 3 | -- Build the Level 1 of the Phylo
