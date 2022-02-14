@@ -76,7 +76,7 @@ phylo2dot2json phylo = do
   _ <- Shell.callProcess "/usr/bin/dot" ["-Txdot_json", "-o", file_to_json, file_dot]
 
   maybeValue <- decodeFileStrict file_to_json
-  
+
   _ <- Shell.callProcess "/bin/rm" ["-rf", file_from, file_to_json, file_dot]
 
   case maybeValue of

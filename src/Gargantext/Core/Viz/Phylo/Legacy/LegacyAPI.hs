@@ -37,6 +37,8 @@ import Gargantext.Database.Query.Table.Node (insertNodes, node)
 import Gargantext.Prelude
 import Gargantext.Core.Viz.LegacyPhylo
 import Gargantext.Core.Viz.Phylo.Legacy.LegacyMain
+import Gargantext.Core.Viz.Phylo.API
+import Gargantext.Core.Viz.Phylo (defaultConfig)
 -- import Gargantext.Core.Viz.Phylo.Example
 import Gargantext.Core.Types (TODO(..))
 import Data.Either
@@ -126,7 +128,7 @@ postPhylo corpusId userId _lId = do
     -- _vrs = Just ("1" :: Text)
     -- _sft = Just (Software "Gargantext" "4")
     -- _prm = initPhyloParam vrs sft (Just q)
-  phy <- flowPhylo corpusId -- params
+  phy <- flowPhyloAPI defaultConfig corpusId -- params
   phyloId <- insertNodes [node NodePhylo "Phylo" (HyperdataPhylo Nothing (Just phy)) (Just corpusId) userId]
   pure $ NodeId (fromIntegral phyloId)
 
