@@ -18,7 +18,7 @@ module Gargantext.API.Node.Update
 
 import Control.Lens (view)
 import Data.Aeson
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Swagger
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
@@ -30,7 +30,9 @@ import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core.Methods.Distances (GraphMetric(..))
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
+import Gargantext.Database.Action.Metrics (updateNgramsOccurrences, updateContextScore)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
+import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getNode)
@@ -165,7 +167,10 @@ updateNode _uId lId (UpdateNodeParamsList _mode) logStatus = do
                    }
 
   _ <- case corpusId of
-    Just cId -> reIndexWith cId lId NgramsTerms (Set.singleton MapTerm)
+    Just cId -> do
+      _ <- reIndexWith cId lId NgramsTerms (Set.singleton MapTerm)
+      _ <- updateNgramsOccurrences cId (Just lId)
+      pure ()
     Nothing  -> pure ()
 
   pure  JobLog { _scst_succeeded = Just 3
@@ -173,6 +178,39 @@ updateNode _uId lId (UpdateNodeParamsList _mode) logStatus = do
                , _scst_remaining = Just 0
                , _scst_events    = Just []
                }
+
+updateNode _uId tId (UpdateNodeParamsTexts _mode) logStatus = do
+  logStatus JobLog { _scst_succeeded = Just 1
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 2
+                   , _scst_events    = Just []
+                   }
+  corpusId <- view node_parent_id <$> getNode tId
+  lId      <- defaultList $ fromMaybe (panic "[G.A.N.Update] updateNode/UpdateNodeParamsTexts: no defaultList") corpusId
+
+  logStatus JobLog { _scst_succeeded = Just 2
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
+
+  _ <- case corpusId of
+    Just cId -> do
+      _ <- reIndexWith cId lId NgramsTerms (Set.singleton MapTerm)
+      _ <- updateNgramsOccurrences cId (Just lId)
+      _ <- updateContextScore      cId (Just lId)
+      -- printDebug "updateContextsScore" (cId, lId, u)
+      pure ()
+    Nothing  -> pure ()
+
+  pure  JobLog { _scst_succeeded = Just 3
+               , _scst_failed    = Just 0
+               , _scst_remaining = Just 0
+               , _scst_events    = Just []
+               }
+
+
+
 
 
 updateNode _uId _nId _p logStatus = do

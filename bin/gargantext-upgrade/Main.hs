@@ -252,6 +252,35 @@ sqlSchema = do
         DROP TRIGGER if EXISTS trigger_insert_count     ON nodes_nodes;
 
 
+        -- Indexes needed to speed up the deletes
+        -- Trigger for constraint node_ngrams_node_id_fkey
+        CREATE INDEX IF NOT EXISTS node_ngrams_node_id_idx       ON public.node_ngrams USING btree (node_id);
+
+        -- Trigger for constraint node_node_ngrams2_node_id_fkey
+        CREATE INDEX IF NOT EXISTS node_node_ngrams2_node_id_idx ON public.node_node_ngrams2 USING btree (node_id);
+
+        -- Trigger for constraint node_node_ngrams_node1_id_fkey
+        CREATE INDEX IF NOT EXISTS node_node_ngrams_node1_id_idx  ON public.node_node_ngrams USING btree (node1_id);
+
+        -- Trigger for constraint node_node_ngrams_node2_id_fkey
+        CREATE INDEX IF NOT EXISTS node_node_ngrams_node2_id_idx  ON public.node_node_ngrams USING btree (node2_id);
+
+        -- Trigger for constraint nodes_nodes_node1_id_fkey
+        CREATE INDEX IF NOT EXISTS nodes_nodes_node1_id_idx ON public.nodes_nodes USING btree (node1_id);
+        -- Trigger for constraint nodes_nodes_node2_id_fkey
+        CREATE INDEX IF NOT EXISTS nodes_nodes_node2_id_idx ON public.nodes_nodes USING btree (node2_id);
+
+        -- Trigger for constraint nodes_parent_id_fkey
+        CREATE INDEX IF NOT EXISTS nodes_parent_id_idx ON public.nodes USING btree (parent_id);
+
+        -- Trigger for constraint rights_node_id_fkey
+        CREATE INDEX IF NOT EXISTS rights_node_id_idx ON public.rights USING btree (node_id);
+
+        -- Trigger for constraint nodes_contexts_node_id_fkey
+        CREATE INDEX IF NOT EXISTS nodes_contexts_node_id_idx ON public.nodes_contexts USING btree (node_id);
+
+        -- Trigger for constraint context_node_ngrams_node_id_fkey
+        CREATE INDEX IF NOT EXISTS context_node_node_id_idx ON public.context_node_ngrams USING btree (node_id);
 
   |]
 

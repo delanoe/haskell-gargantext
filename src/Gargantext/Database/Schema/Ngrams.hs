@@ -11,14 +11,16 @@ Ngrams connection to the Database.
 
 -}
 
-{-# LANGUAGE Arrows                     #-}
-{-# LANGUAGE FunctionalDependencies     #-}
+{-# OPTIONS_GHC -fno-warn-orphans   #-}
+{-# LANGUAGE Arrows                 #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Schema.Ngrams
   where
 
+import Data.Maybe (fromMaybe)
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
 import Codec.Serialise (Serialise())
@@ -32,6 +34,7 @@ import Gargantext.Core.Types (TODO(..), Typed(..))
 import Gargantext.Prelude
 import Servant (FromHttpApiData(..), Proxy(..), ToHttpApiData(..))
 import Text.Read (read)
+import Gargantext.Core (HasDBid(..))
 import Gargantext.Database.Types
 import Gargantext.Database.Schema.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
@@ -81,6 +84,7 @@ data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Read, Ord, Enum, Bounded, Generic)
 
 instance Serialise NgramsType
+
 
 ngramsTypes :: [NgramsType]
 ngramsTypes = [minBound..]
@@ -141,6 +145,16 @@ fromNgramsTypeId id = lookup id
                                | nt <- [minBound .. maxBound] :: [NgramsType]
                                ]
 
+unNgramsTypeId :: NgramsTypeId -> Int
+unNgramsTypeId (NgramsTypeId i) = i
+
+toNgramsTypeId :: Int -> NgramsTypeId
+toNgramsTypeId i = NgramsTypeId i
+
+instance HasDBid NgramsType where
+  toDBid   = unNgramsTypeId . ngramsTypeId
+  fromDBid = fromMaybe (panic "NgramsType id not indexed") . fromNgramsTypeId . toNgramsTypeId
+
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Core.Text.Ngrams
@@ -159,6 +173,9 @@ instance FromField Ngrams where
   fromField fld mdata = do
     x <- fromField fld mdata
     pure $ text2ngrams x
+
+instance PGS.ToRow Text where
+  toRow t = [toField t]
 
 text2ngrams :: Text -> Ngrams
 text2ngrams txt = UnsafeNgrams txt' $ length $ splitOn " " txt'

@@ -1,3 +1,45 @@
+## Version 0.0.5.5.7
+* [FRONT][FIX] NgramsTable Cache search.
+
+## Version 0.0.5.5.6
+* [BACK][FIX] ./bin/psql gargantext.ini < devops/posgres/upgrade/0.0.5.5.6.sql
+* [FRONT] fix NodeType list show (Nodes options)
+
+## Version 0.0.5.5.5
+* [FORNT] fix Graph Explorer search ngrams
+* [FRONT] fix NodeType list show (main Nodes)
+
+## Version 0.0.5.5.4
+* [BACK][OPTIM] NgramsTable scores
+* [BACK] bin/client script to analyze backend performance and reproduce bugs
+* [FRONT] Adding Language selection
+
+## Version 0.0.5.5.3
+* [BACK] Adding a Max limit for others lists.
+
+## Version 0.0.5.5.2
+* [BACK][OPTIM] Index on node_node_ngrams to seed up ngrams table score
+  queries. Please execute the upgrade SQL script
+  devops/postgres/0.0.5.5.2.sql
+
+## Version 0.0.5.5.1
+* [BACK] FIX Graph Explorer search with selected ngrams
+* [FRONT] Clean CSS
+
+## Version 0.0.5.5
+* [FRONT] Visio frame removed, using a new tab instead (which is working)
+* [BACK] Scores on the docs view fixed
+
+## Version 0.0.5.3
+* [FRONT] SSL local option
+
+## Version 0.0.5.2
+* [QUAL] Scores in Ngrams Table fixed during workflow and user can
+  refresh it if needed.
+
+## Version 0.0.5.1
+* [OPTIM] Upgrade fix with indexes and scores counts
+
 ## Version 0.0.5
 * [OPTIM][DATABASE] Upgrade Schema, move conTexts in contexts table which requires a version bump.
 

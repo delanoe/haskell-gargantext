@@ -106,7 +106,7 @@ repoSnapshot repoDir = repoDir <> "/repo.cbor"
 repoSaverAction :: RepoDirFilePath -> Serialise a => a -> IO ()
 repoSaverAction repoDir a = do
   withTempFile repoDir "tmp-repo.cbor" $ \fp h -> do
-    printDebug "repoSaverAction" fp
+    -- printDebug "repoSaverAction" fp
     L.hPut h $ serialise a
     hClose h
     renameFile fp (repoSnapshot repoDir)

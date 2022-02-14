@@ -35,7 +35,7 @@ triggerCountInsert = execPGSQuery query (toDBid NodeDocument, toDBid NodeList)
               RETURN NEW;
             END IF;
             IF TG_OP = 'INSERT' THEN
-                INSERT INTO context_node_ngrams (context_id, node_id, ngrams_id, ngrams_type, weight)
+                INSERT INTO node_node_ngrams (node1_id, node2_id, ngrams_id, ngrams_type, weight)
                 select n.parent_id, n.id, new0.ngrams_id, new0.ngrams_type, count(*) from NEW as new0
                     INNER JOIN contexts n ON n.id  = new0.context_id
                     INNER JOIN nodes n2 ON n2.id = new0.node_id
@@ -43,8 +43,8 @@ triggerCountInsert = execPGSQuery query (toDBid NodeDocument, toDBid NodeList)
                       AND n.typename = ?   -- not mandatory
                       AND n.parent_id <> n2.id -- not mandatory
                     GROUP BY n.parent_id, n.id, new0.ngrams_id, new0.ngrams_type
-                ON CONFLICT (context_id, node_id, ngrams_id, ngrams_type)
-                   DO UPDATE set weight = context_node_ngrams.weight + excluded.weight
+                ON CONFLICT (node1_id, node2_id, ngrams_id, ngrams_type)
+                   DO UPDATE set weight = node_node_ngrams.weight + excluded.weight
                    ;
             END IF;
 

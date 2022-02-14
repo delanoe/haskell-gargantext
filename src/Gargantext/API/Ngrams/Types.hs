@@ -578,7 +578,7 @@ ngramsElementFromRepo
                 , _ne_parent      = p
                 , _ne_children    = c
                 , _ne_ngrams      = ngrams
-                , _ne_occurrences = panic $ "API.Ngrams.Types._ne_occurrences"
+                , _ne_occurrences = 0 -- panic $ "API.Ngrams.Types._ne_occurrences"
                 {-
                 -- Here we could use 0 if we want to avoid any `panic`.
                 -- It will not happen using getTableNgrams if

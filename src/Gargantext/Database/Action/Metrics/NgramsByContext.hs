@@ -16,21 +16,23 @@ Ngrams by node enable contextual metrics.
 module Gargantext.Database.Action.Metrics.NgramsByContext
   where
 
+-- import Debug.Trace (trace)
 --import Data.Map.Strict.Patch (PatchMap, Replace, diff)
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
+import Data.Maybe (catMaybes)
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Tuple.Extra (first, second, swap)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
--- import Debug.Trace (trace)
-import Gargantext.Core
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
+import Gargantext.Core
 import Gargantext.Data.HashMap.Strict.Utils as HM
 import Gargantext.Database.Admin.Types.Node (ListId, CorpusId, NodeId(..), ContextId, MasterCorpusId, NodeType(NodeDocument), UserCorpusId, DocId)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
-import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
+import Gargantext.Database.Query.Table.Ngrams (selectNgramsId)
+import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..), NgramsId)
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map as Map
@@ -111,37 +113,43 @@ getOccByNgramsOnlyFast' :: CorpusId
                        -> NgramsType
                        -> [NgramsTerm]
                        -> Cmd err (HashMap NgramsTerm Int)
-getOccByNgramsOnlyFast' cId lId nt tms = -- trace (show (cId, lId)) $
-  HM.fromListWith (+) <$> map (second round) <$> run cId lId nt tms
-
+getOccByNgramsOnlyFast' cId lId nt tms = do -- trace (show (cId, lId)) $
+  mapNgramsIds <- selectNgramsId $ map unNgramsTerm tms
+  HM.fromListWith (+) <$> catMaybes
+                      <$> map (\(nId, s) -> (,) <$> (NgramsTerm <$> (Map.lookup nId mapNgramsIds)) <*> (Just $ round s) )
+                      <$> run cId lId nt (Map.keys mapNgramsIds)
     where
-      fields = [QualifiedIdentifier Nothing "text"]
 
       run :: CorpusId
            -> ListId
            -> NgramsType
-           -> [NgramsTerm]
-           -> Cmd err [(NgramsTerm, Double)]
-      run cId' lId' nt' tms' = map (first NgramsTerm) <$> runPGSQuery query
-                ( Values fields ((DPS.Only . unNgramsTerm) <$> tms')
+           -> [NgramsId]
+           -> Cmd err [(NgramsId, Double)]
+      run cId' lId' nt' tms' = runPGSQuery query
+                ( Values fields ((DPS.Only) <$> tms')
                 , cId'
                 , lId'
                 , ngramsTypeId nt'
                 )
+      fields = [QualifiedIdentifier Nothing "int4"]
+
 
       query :: DPS.Query
       query = [sql|
-        WITH input_rows(terms) AS (?)
-        SELECT ng.terms, nng.weight FROM nodes_contexts nc
-          JOIN node_node_ngrams   nng  ON nng.node1_id  = nc.node_id
-          JOIN ngrams              ng  ON nng.ngrams_id = ng.id
-          JOIN input_rows          ir  ON ir.terms      = ng.terms
-          WHERE nng.node1_id       = ?  -- CorpusId
-            AND nng.node2_id       = ?  -- ListId
-            AND nng.ngrams_type    = ?  -- NgramsTypeId
-            AND nc.category        > 0  -- Not trash
-            GROUP BY ng.terms, nng.weight
+        WITH input_ngrams(id) AS (?)
+
+        SELECT ngi.id, nng.weight FROM nodes_contexts nc
+        JOIN node_node_ngrams nng ON nng.node1_id = nc.node_id
+        JOIN input_ngrams ngi ON nng.ngrams_id = ngi.id
+          WHERE nng.node1_id = ?
+          AND nng.node2_id = ?
+          AND nng.ngrams_type = ?
+          AND nc.category > 0
+        GROUP BY ngi.id, nng.weight
+
         |]
+  
+
 
 
 selectNgramsOccurrencesOnlyByContextUser_withSample :: HasDBid NodeType

@@ -140,6 +140,22 @@ runPGSQuery q a = mkCmd $ \conn -> catch (PGS.query conn q a) (printError conn)
       hPutStrLn stderr q'
       throw (SomeException e)
 
+{-
+-- TODO
+runPGSQueryFold :: ( CmdM env err m
+               , PGS.FromRow r
+               )
+               => PGS.Query -> a -> (a -> r -> IO a) -> m a
+runPGSQueryFold q initialState consume = mkCmd $ \conn -> catch (PGS.fold_ conn initialState consume) (printError conn)
+  where
+    printError c (SomeException e) = do
+      q' <- PGS.formatQuery c q
+      hPutStrLn stderr q'
+      throw (SomeException e)
+-}
+
+
+
 -- | TODO catch error
 runPGSQuery_ :: ( CmdM env err m
                , PGS.FromRow r

@@ -25,8 +25,11 @@ import Gargantext.Database.Query.Facet
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Context
 import Gargantext.Database.Query.Table.NodeNode
+import Gargantext.Database.Query.Table.NodeContext
 import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.Context
 import Gargantext.Prelude
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 import Opaleye hiding (Order)
@@ -80,27 +83,27 @@ queryInCorpus :: HasDBid NodeType
               -> Text
               -> O.Select FacetDocRead
 queryInCorpus cId t q = proc () -> do
-  (n, nn) <- joinInCorpus -< ()
-  restrict -< (nn^.nn_node1_id) .== (toNullable $ pgNodeId cId)
+  (c, nc) <- joinInCorpus -< ()
+  restrict -< (nc^.nc_node_id) .== (toNullable $ pgNodeId cId)
   restrict -< if t
-                 then (nn^.nn_category) .== (toNullable $ sqlInt4 0)
-                 else (nn^.nn_category) .>= (toNullable $ sqlInt4 1)
-  restrict -< (n ^. ns_search)           @@ (sqlTSQuery (unpack q))
-  restrict -< (n ^. ns_typename )       .== (sqlInt4 $ toDBid NodeDocument)
-  returnA  -< FacetDoc { facetDoc_id = n^.ns_id
-                       , facetDoc_created = n^.ns_date
-                       , facetDoc_title = n^.ns_name
-                       , facetDoc_hyperdata = n^.ns_hyperdata
-                       , facetDoc_category = nn^.nn_category
-                       , facetDoc_ngramCount = nn^.nn_score
-                       , facetDoc_score = nn^.nn_score
+                 then (nc^.nc_category) .== (toNullable $ sqlInt4 0)
+                 else (nc^.nc_category) .>= (toNullable $ sqlInt4 1)
+  restrict -< (c ^. cs_search)           @@ (sqlTSQuery (unpack q))
+  restrict -< (c ^. cs_typename )       .== (sqlInt4 $ toDBid NodeDocument)
+  returnA  -< FacetDoc { facetDoc_id         = c^.cs_id
+                       , facetDoc_created    = c^.cs_date
+                       , facetDoc_title      = c^.cs_name
+                       , facetDoc_hyperdata  = c^.cs_hyperdata
+                       , facetDoc_category   = nc^.nc_category
+                       , facetDoc_ngramCount = nc^.nc_score
+                       , facetDoc_score      = nc^.nc_score
                        }
 
-joinInCorpus :: O.Select (NodeSearchRead, NodeNodeReadNull)
-joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
+joinInCorpus :: O.Select (ContextSearchRead, NodeContextReadNull)
+joinInCorpus = leftJoin queryContextSearchTable queryNodeContextTable cond
   where
-    cond :: (NodeSearchRead, NodeNodeRead) -> Column SqlBool
-    cond (n, nn) = nn^.nn_node2_id .== _ns_id n
+    cond :: (ContextSearchRead, NodeContextRead) -> Column SqlBool
+    cond (c, nc) = nc^.nc_context_id .== _cs_id c
 
 ------------------------------------------------------------------------
 searchInCorpusWithContacts
