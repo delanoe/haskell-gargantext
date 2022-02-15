@@ -29,7 +29,7 @@ import Gargantext.API.Prelude (GargNoServer)
 import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Types (Context)
 import Gargantext.Core.Types.Main (ListType(MapTerm))
-import Gargantext.Core.Viz.Phylo (TimeUnit(..), Date, Document(..), Config(..), Phylo)
+import Gargantext.Core.Viz.Phylo (TimeUnit(..), Date, Document(..), PhyloConfig(..), Phylo)
 import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
 import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo, toPhyloStep)
 import Gargantext.Core.Viz.Phylo.PhyloTools  ({-printIOMsg, printIOComment,-} setConfig)
@@ -85,7 +85,7 @@ phylo2dot2json phylo = do
 
 
 
-flowPhyloAPI :: Config -> CorpusId -> GargNoServer Phylo
+flowPhyloAPI :: PhyloConfig -> CorpusId -> GargNoServer Phylo
 flowPhyloAPI config cId = do
   (mapList, corpus) <- corpusIdtoDocuments (timeUnit config) cId
   phyloWithCliques <- pure $ toPhyloStep corpus mapList config

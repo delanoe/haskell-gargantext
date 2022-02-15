@@ -17,10 +17,6 @@ Portability : POSIX
 module Gargantext.Core.Viz.Phylo.API
   where
 
--- import Control.Lens ((^.))
--- import Gargantext.Core.Viz.Phylo.Example
--- import Gargantext.Database.Schema.Node (node_hyperdata)
---import Control.Monad.Reader (ask)
 import Data.Aeson
 import Data.Either
 import Data.Maybe (fromMaybe)

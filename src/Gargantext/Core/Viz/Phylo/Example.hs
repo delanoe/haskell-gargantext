@@ -96,7 +96,7 @@ nbDocsByYear :: Map Date Double
 nbDocsByYear = docsToTimeScaleNb docs
 
 
-config :: Config
+config :: PhyloConfig
 config = 
     defaultConfig { phyloName  = "Cesar et Cleopatre"
                   , phyloLevel = 2

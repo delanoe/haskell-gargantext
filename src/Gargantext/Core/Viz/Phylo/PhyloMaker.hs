@@ -45,7 +45,7 @@ data Phylo' = PhyloBase { _phylo'_phyloBase :: Phylo}
             | PhyloN    { _phylo'_phylo1    :: Phylo}
 
 
-toPhylo' :: Phylo' -> [Document] -> TermList -> Config -> Phylo
+toPhylo' :: Phylo' -> [Document] -> TermList -> PhyloConfig -> Phylo
 toPhylo' (PhyloN    phylo) = toPhylo' 
 toPhylo' (PhyloBase phylo) = toPhylo 
 -}
@@ -160,7 +160,7 @@ indexDates' m = map (\docs ->
 
 -- To build the first phylo step from docs and terms
 -- QL: backend entre phyloBase et phyloClique
-toPhyloStep :: [Document] -> TermList -> Config -> Phylo
+toPhyloStep :: [Document] -> TermList -> PhyloConfig -> Phylo
 toPhyloStep docs lst conf = case (getSeaElevation phyloBase) of 
     Constante  _ _ -> appendGroups cliqueToGroup 1 phyloClique (updatePeriods (indexDates' docs') phyloBase)
     Adaptative _   -> toGroupsProxi 1 
@@ -362,7 +362,7 @@ initPhyloLevels lvlMax pId =
 
 
 --  To init the basic elements of a Phylo
-toPhyloBase :: [Document] -> TermList -> Config -> Phylo
+toPhyloBase :: [Document] -> TermList -> PhyloConfig -> Phylo
 toPhyloBase docs lst conf = 
     let foundations  = PhyloFoundations (Vector.fromList $ nub $ concat $ map text docs) lst
         docsSources  = PhyloSources     (Vector.fromList $ nub $ concat $ map sources docs)

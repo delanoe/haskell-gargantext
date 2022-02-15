@@ -101,8 +101,9 @@ getGraph _uId nId = do
   -- TODO Distance in Graph params
   case graph of
     Nothing     -> do
-        let defaultMetric = Order1
-        graph' <- computeGraph cId Spinglass (withMetric defaultMetric) NgramsTerms repo
+        let defaultMetric          = Order1
+        let defaultPartitionMethod = Spinglass
+        graph' <- computeGraph cId defaultPartitionMethod (withMetric defaultMetric) NgramsTerms repo
         mt     <- defaultGraphMetadata cId "Title" repo defaultMetric
         let
           graph'' = set graph_metadata (Just mt) graph'
