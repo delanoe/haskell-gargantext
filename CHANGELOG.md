@@ -1,5 +1,8 @@
+## Version 0.0.5.6.1
+* [BACK][FEAT] Confluence Method connection
+
 ## Version 0.0.5.6
-* [FEAT] Phylo backend connection
+* [BACK][FEAT] Phylo backend connection
 * [FRONT] Editable Metadata
 
 ## Version 0.0.5.5.7
