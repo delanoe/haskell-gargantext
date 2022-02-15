@@ -14,10 +14,13 @@ Portability : POSIX
 module Gargantext.Core.Viz.Graph.Tools
   where
 
+import Data.Aeson
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
+import Data.Swagger hiding (items)
 import GHC.Float (sin, cos)
+import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Methods.Distances (Distance(..), measure)
 import Gargantext.Core.Methods.Distances.Conditional (conditional)
@@ -27,17 +30,29 @@ import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
-import Gargantext.Core.Viz.Graph.Types (ClusterNode)
 import Gargantext.Core.Viz.Graph.Utils (edgesFilter)
 import Gargantext.Prelude
+import Graph.Types (ClusterNode)
 import IGraph.Random -- (Gen(..))
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary
 import qualified Data.HashMap.Strict      as HashMap
 import qualified Data.List                as List
 import qualified Data.Map                 as Map
 import qualified Data.Set                 as Set
 import qualified Data.Vector.Storable     as Vec
+import qualified Graph.BAC.ProxemyOptim   as BAC
 import qualified IGraph                   as Igraph
 import qualified IGraph.Algorithms.Layout as Layout
+
+
+data PartitionMethod = Spinglass | Confluence
+    deriving (Generic, Eq, Ord, Enum, Bounded, Show)
+instance FromJSON  PartitionMethod
+instance ToJSON    PartitionMethod
+instance ToSchema  PartitionMethod
+instance Arbitrary PartitionMethod where
+  arbitrary = elements [ minBound .. maxBound ]
 
 
 -------------------------------------------------------------
@@ -68,8 +83,6 @@ cooc2graph' distance threshold myCooc
         myCooc' = toIndex ti myCooc
 
 
-data PartitionMethod = Louvain | Spinglass
--- TODO Bac
 
 -- coocurrences graph computation
 cooc2graphWith :: PartitionMethod
@@ -77,9 +90,8 @@ cooc2graphWith :: PartitionMethod
                -> Threshold
                -> HashMap (NgramsTerm, NgramsTerm) Int
                -> IO Graph
-cooc2graphWith Louvain   = undefined
 cooc2graphWith Spinglass = cooc2graphWith' (spinglass 1)
--- cooc2graphWith Bac       = cooc2graphWith' (\x -> pure $ BAC.defaultClustering x)
+cooc2graphWith Confluence= cooc2graphWith' (\x -> pure $ BAC.defaultClustering x)
 
 
 cooc2graphWith' :: ToComId a
@@ -275,7 +287,7 @@ getCoord ACP labels m n = to2d $ maybe (panic "Graph.Tools no coordinate") ident
         ns = map snd items
 
     toVec :: Int -> [Int] -> Map (Int,Int) Double -> (Int, Vec.Vector Double)
-    toVec n' ns' m' = (n', Vec.fromList $ map (\n'' -> maybe 0 identity $ Map.lookup (n',n'') m') ns')
+    toVec n' ns' m'' = (n', Vec.fromList $ map (\n'' -> maybe 0 identity $ Map.lookup (n',n'') m'') ns')
 ------------------------------------------------------------------------
 
 -- | KamadaKawai Layout

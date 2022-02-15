@@ -23,8 +23,8 @@ import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
 import Data.Maybe (catMaybes)
 import Data.Ord (Down(..))
 import Gargantext.Prelude
+import Graph.Types (ClusterNode(..))
 import qualified Data.Map as DM
-import Gargantext.Core.Viz.Graph.Types (ClusterNode(..))
 
 
 

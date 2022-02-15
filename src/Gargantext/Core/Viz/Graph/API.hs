@@ -90,7 +90,7 @@ getGraph _uId nId = do
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
     camera = nodeGraph ^. node_hyperdata . hyperdataCamera
-    
+
   mcId <- getClosestParentIdByType nId NodeCorpus
   let cId = maybe (panic "[G.V.G.API] Node has no parent") identity mcId
 
@@ -102,7 +102,7 @@ getGraph _uId nId = do
   case graph of
     Nothing     -> do
         let defaultMetric = Order1
-        graph' <- computeGraph cId (withMetric defaultMetric) NgramsTerms repo
+        graph' <- computeGraph cId Spinglass (withMetric defaultMetric) NgramsTerms repo
         mt     <- defaultGraphMetadata cId "Title" repo defaultMetric
         let
           graph'' = set graph_metadata (Just mt) graph'
@@ -119,10 +119,11 @@ getGraph _uId nId = do
 recomputeGraph :: FlowCmdM env err m
                => UserId
                -> NodeId
+               -> PartitionMethod
                -> Maybe GraphMetric
                -> Bool
                -> m Graph
-recomputeGraph _uId nId maybeDistance force = do
+recomputeGraph _uId nId method maybeDistance force = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
@@ -144,7 +145,7 @@ recomputeGraph _uId nId maybeDistance force = do
   let v   = repo ^. unNodeStory . at listId . _Just . a_version
 
   let computeG mt = do
-        g <- computeGraph cId similarity NgramsTerms repo
+        g <- computeGraph cId method similarity NgramsTerms repo
         let g' = set graph_metadata mt g
         _ <- updateHyperdata nId (HyperdataGraph (Just g') camera)
         pure g'
@@ -163,11 +164,12 @@ recomputeGraph _uId nId maybeDistance force = do
 
 computeGraph :: FlowCmdM env err m
              => CorpusId
+             -> PartitionMethod
              -> Distance
              -> NgramsType
              -> NodeListStory
              -> m Graph
-computeGraph cId d nt repo = do
+computeGraph cId method d nt repo = do
   lId  <- defaultList cId
   lIds <- selectNodesWithUsername NodeList userMaster
 
@@ -186,8 +188,9 @@ computeGraph cId d nt repo = do
 
   listNgrams <- getListNgrams [lId] nt
 
-  -- graph <- liftBase $ cooc2graphWith Bac d 0 myCooc
-  graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
+  -- graph <- liftBase $ cooc2graphWith Confluence d 0 myCooc
+  -- graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
+  graph <- liftBase $ cooc2graphWith method d 0 myCooc
   -- saveAsFileDebug "debug/graph" graph
 
   pure $ mergeGraphNgrams graph (Just listNgrams)
@@ -244,7 +247,7 @@ graphRecompute u n logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _g <- trace (show u) $ recomputeGraph u n Nothing False
+  _g <- trace (show u) $ recomputeGraph u n Spinglass Nothing False
   pure  JobLog { _scst_succeeded = Just 1
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
@@ -299,7 +302,7 @@ recomputeVersions :: FlowCmdM env err m
                   => UserId
                   -> NodeId
                   -> m Graph
-recomputeVersions uId nId = recomputeGraph uId nId Nothing False
+recomputeVersions uId nId = recomputeGraph uId nId Spinglass Nothing False
 
 ------------------------------------------------------------
 graphClone :: UserId

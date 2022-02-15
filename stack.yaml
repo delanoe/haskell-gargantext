@@ -31,8 +31,8 @@ allow-newer: true
 extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
   commit: 220f32810f988a5a121f110a7d557fc7d0721712
-#- git: ssh://gitolite3@delanoe.org/gargantext-graph
-#  commit: 294887a220460bd0c114638fff9ea53306cd2f18
+- git: https://gitlab.iscpif.fr/gargantext/gargantext-graph.git
+  commit: f68f9e78ff4302f53d0855190574c2d818a00b4d
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef

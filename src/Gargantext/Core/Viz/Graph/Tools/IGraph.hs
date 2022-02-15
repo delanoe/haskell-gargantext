@@ -17,18 +17,17 @@ module Gargantext.Core.Viz.Graph.Tools.IGraph
 
 import Data.Serialize
 import Data.Singletons (SingI)
+import Gargantext.Core.Viz.Graph.Index
+import Graph.Types (ClusterNode(..))
 import IGraph hiding (mkGraph, neighbors, edges, nodes, Node, Graph)
 import Protolude
-import Gargantext.Core.Viz.Graph.Index
--- import Graph.Types
-import Gargantext.Core.Viz.Graph.Types
 import qualified Data.List                   as List
+import qualified Data.Map                    as Map
 import qualified IGraph                      as IG
 import qualified IGraph.Algorithms.Clique    as IG
 import qualified IGraph.Algorithms.Community as IG
 import qualified IGraph.Algorithms.Structure as IG
 import qualified IGraph.Random               as IG
-import qualified Data.Map                    as Map
 
 ------------------------------------------------------------------
 -- | Main Types

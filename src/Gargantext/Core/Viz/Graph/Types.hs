@@ -31,10 +31,3 @@ type Graph a b = DGIP.Gr a b
 -- type MatrixD          n = Dense.L n n
 -- type MatrixS          n = Sparse.Matrix n n Double
 
-
-data ClusterNode = ClusterNode
-  { cl_node_id      :: Int
-  , cl_community_id :: Int
-  } deriving Show
-
-

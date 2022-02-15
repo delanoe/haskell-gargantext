@@ -23,29 +23,30 @@ import Data.Swagger
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
-import qualified Gargantext.API.Metrics as Metrics
 import Gargantext.API.Ngrams.List (reIndexWith)
-import qualified Gargantext.API.Ngrams.Types as NgramsTypes
 import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core.Methods.Distances (GraphMetric(..))
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
-import Gargantext.Database.Action.Metrics (updateNgramsOccurrences, updateContextScore)
+import Gargantext.Core.Viz.Graph.Tools (PartitionMethod(..))
 import Gargantext.Database.Action.Flow.Pairing (pairing)
-import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
+import Gargantext.Database.Action.Metrics (updateNgramsOccurrences, updateContextScore)
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node (getNode)
-import Gargantext.Database.Schema.Node (node_parent_id)
 import Gargantext.Database.Schema.Ngrams (NgramsType(NgramsTerms))
-import Gargantext.Prelude (Bool(..), Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic)
-import qualified Gargantext.Utils.Aeson as GUA
+import Gargantext.Database.Schema.Node (node_parent_id)
+import Gargantext.Prelude (Bool(..), Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic, (<*>))
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
-import qualified Data.Set as Set
+import qualified Data.Set                    as Set
+import qualified Gargantext.API.Metrics      as Metrics
+import qualified Gargantext.API.Ngrams.Types as NgramsTypes
+import qualified Gargantext.Utils.Aeson      as GUA
 
 ------------------------------------------------------------------------
 type API = Summary " Update node according to NodeType params"
@@ -53,7 +54,9 @@ type API = Summary " Update node according to NodeType params"
 
 ------------------------------------------------------------------------
 data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: !Method      }
-                      | UpdateNodeParamsGraph { methodGraph :: !GraphMetric }
+                      | UpdateNodeParamsGraph { methodGraphMetric     :: !GraphMetric 
+                                              , methodGraphClustering :: !PartitionMethod
+                                              }
                       | UpdateNodeParamsTexts { methodTexts :: !Granularity }
                       | UpdateNodeParamsBoard { methodBoard :: !Charts      }
                       | LinkNodeReq { nodeType :: !NodeType, id :: !NodeId }
@@ -89,7 +92,7 @@ updateNode :: (HasSettings env, FlowCmdM env err m)
     -> UpdateNodeParams
     -> (JobLog -> m ())
     -> m JobLog
-updateNode uId nId (UpdateNodeParamsGraph metric) logStatus = do
+updateNode uId nId (UpdateNodeParamsGraph metric method) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
@@ -97,7 +100,7 @@ updateNode uId nId (UpdateNodeParamsGraph metric) logStatus = do
                    , _scst_events    = Just []
                    }
 
-  _ <- recomputeGraph uId nId (Just metric) True
+  _ <- recomputeGraph uId nId method (Just metric) True
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
@@ -228,7 +231,7 @@ instance ToSchema  UpdateNodeParams
 instance Arbitrary UpdateNodeParams where
   arbitrary = do
     l <- UpdateNodeParamsList  <$> arbitrary
-    g <- UpdateNodeParamsGraph <$> arbitrary
+    g <- UpdateNodeParamsGraph <$> arbitrary <*> arbitrary
     t <- UpdateNodeParamsTexts <$> arbitrary
     b <- UpdateNodeParamsBoard <$> arbitrary
     elements [l,g,t,b]
