@@ -1,3 +1,6 @@
+## Version 0.0.5.6.2
+* [FRONT][FIX] Ngrams Batch change
+
 ## Version 0.0.5.6.1
 * [BACK][FEAT] Confluence Method connection
 
