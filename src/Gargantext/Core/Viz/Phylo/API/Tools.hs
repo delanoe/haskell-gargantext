@@ -149,11 +149,9 @@ toMonths y m d = fromIntegral $ cdMonths
                $ diffGregorianDurationClip (fromGregorian y    m d)
                                            (fromGregorian 0000 0 0)
 
-
 toDays :: Integer -> Int -> Int -> Date
 toDays y m d = fromIntegral
              $ diffDays (fromGregorian y m d) (fromGregorian 0000 0 0)
-
 
 toPhyloDate :: Int -> Int -> Int -> TimeUnit -> Date
 toPhyloDate y m d tu = case tu of
@@ -190,7 +188,5 @@ readPhylo path = do
 -- | To read and decode a Json file
 readJson :: FilePath -> IO Lazy.ByteString
 readJson path = Lazy.readFile path
-
-
 
 
