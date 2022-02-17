@@ -1,3 +1,6 @@
+## Version 0.0.5.6.3
+* [BACK][EXPORT][GEXF] node size
+
 ## Version 0.0.5.6.2
 * [FRONT][FIX] Ngrams Batch change
 
