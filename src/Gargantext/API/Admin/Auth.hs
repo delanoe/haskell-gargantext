@@ -70,7 +70,7 @@ checkAuthRequest u (GargPassword p) = do
   candidate <- head <$> getUsersWith u
   case candidate of
     Nothing -> pure InvalidUser
-    Just (UserLight _id _u _email h) ->
+    Just (UserLight id _u _email h) ->
       case Auth.checkPassword (Auth.mkPassword p) (Auth.PasswordHash h) of
         Auth.PasswordCheckFail    -> pure InvalidPassword
         Auth.PasswordCheckSuccess -> do
@@ -79,7 +79,7 @@ checkAuthRequest u (GargPassword p) = do
             Nothing  -> pure InvalidUser
             Just uid -> do
               token <- makeTokenForUser uid
-              pure $ Valid token uid
+              pure $ Valid token uid id
 
 auth :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
      => AuthRequest -> Cmd' env err AuthResponse
@@ -88,7 +88,7 @@ auth (AuthRequest u p) = do
   case checkAuthRequest' of
     InvalidUser     -> pure $ AuthResponse Nothing (Just $ AuthInvalid "Invalid user")
     InvalidPassword -> pure $ AuthResponse Nothing (Just $ AuthInvalid "Invalid password")
-    Valid to trId   -> pure $ AuthResponse (Just $ AuthValid to trId) Nothing
+    Valid to trId uId   -> pure $ AuthResponse (Just $ AuthValid to trId uId) Nothing
 
 --type instance BasicAuthCfg = BasicAuthData -> IO (AuthResult AuthenticatedUser)
 
