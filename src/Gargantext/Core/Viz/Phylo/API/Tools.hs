@@ -72,8 +72,8 @@ phylo2dot2json phylo = do
     file_to_json = "/tmp/toPhylo.json"
 
   _ <- dotToFile file_from (toPhyloExport phylo)
-  _ <- Shell.callProcess "/usr/bin/dot" ["-Tdot", "-o", file_dot, file_from]
-  _ <- Shell.callProcess "/usr/bin/dot" ["-Txdot_json", "-o", file_to_json, file_dot]
+  _ <- Shell.callProcess "dot" ["-Tdot", "-o", file_dot, file_from]
+  _ <- Shell.callProcess "dot" ["-Txdot_json", "-o", file_to_json, file_dot]
 
   maybeValue <- decodeFileStrict file_to_json
 

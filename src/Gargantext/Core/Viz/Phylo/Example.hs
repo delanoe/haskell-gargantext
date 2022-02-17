@@ -89,7 +89,9 @@ phyloCooc = docsToTimeScaleCooc docs (foundations ^. foundations_roots)
 
 
 periods :: [(Date,Date)]
-periods = toPeriods (sort $ nub $ map date docs) (getTimePeriod $ timeUnit config) (getTimeStep $ timeUnit config)
+periods = toPeriods (sort $ nub $ map date docs)
+                    (getTimePeriod $ timeUnit config)
+                    (getTimeStep $ timeUnit config)
 
 
 nbDocsByYear :: Map Date Double

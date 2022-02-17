@@ -90,11 +90,16 @@ type GetPhylo =  QueryParam "listId"      ListId
 -- Fix Filter parameters
 -- TODO fix parameters to default config that should be in Node
 getPhylo :: PhyloId -> GargServer GetPhylo
-getPhylo phyloId _lId _level _minSizeBranch = do
+getPhylo phyloId _lId _level _minSizeBranch = getPhyloDataJson phyloId
+
+getPhyloDataJson :: PhyloId -> GargNoServer Value
+getPhyloDataJson phyloId = do
   maybePhyloData <- getPhyloData phyloId
   let phyloData = fromMaybe phyloExample maybePhyloData
   phyloJson <- liftBase $ phylo2dot2json phyloData
   pure phyloJson
+
+
 
 -- getPhylo phId _lId l msb  = do
   -- let
