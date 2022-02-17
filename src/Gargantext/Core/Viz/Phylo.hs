@@ -203,23 +203,23 @@ data PhyloConfig =
 
 ------------------------------------------------------------------------
 data PhyloSubConfig =
-  PhyloSubConfig { _sc_phyloProximity :: Proximity
-                 , _sc_phyloSynchrony :: Synchrony
-                 , _sc_phyloQuality   :: Quality
+  PhyloSubConfig { _sc_phyloProximity :: Double
+                 , _sc_phyloSynchrony :: Double
+                 , _sc_phyloQuality   :: Double
                  , _sc_timeUnit       :: TimeUnit
                  , _sc_clique         :: Clique
-                 , _sc_exportFilter   :: [Filter]
+                 , _sc_exportFilter   :: Double
                  }
   deriving (Show,Generic,Eq)
 
 
 subConfig2config :: PhyloSubConfig -> PhyloConfig
-subConfig2config subConfig = defaultConfig { phyloProximity = _sc_phyloProximity subConfig
-                                           , phyloSynchrony = _sc_phyloSynchrony subConfig
-                                           , phyloQuality   = _sc_phyloQuality   subConfig
+subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard $ _sc_phyloProximity subConfig
+                                           , phyloSynchrony = ByProximityThreshold (_sc_phyloSynchrony subConfig) 0 AllBranches MergeAllGroups
+                                           , phyloQuality   = Quality (_sc_phyloQuality   subConfig) 1
                                            , timeUnit       = _sc_timeUnit       subConfig
                                            , clique         = _sc_clique         subConfig
-                                           , exportFilter   = _sc_exportFilter   subConfig
+                                           , exportFilter   = [ByBranchSize $ _sc_exportFilter   subConfig]
                                            }
 
 ------------------------------------------------------------------------
