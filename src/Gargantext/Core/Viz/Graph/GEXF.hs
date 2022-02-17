@@ -52,11 +52,12 @@ instance Xmlbf.ToXml Graph where
       nodes gn = Xmlbf.element "nodes" HashMap.empty $ P.concatMap node' gn
 
       node' :: G.Node -> [Xmlbf.Node]
-      node' (G.Node { node_id = nId, node_label = l }) =
+      node' (G.Node { node_id = nId, node_label = l, node_size = w}) =
         Xmlbf.element "node" params []
         where
           params = HashMap.fromList [ ("id", nId)
-                                    , ("label", l) ]
+                                    , ("label", l) 
+                                    , ("size", (cs . show) w)]
       edges :: [G.Edge] -> [Xmlbf.Node]
       edges gn = Xmlbf.element "edges" HashMap.empty $ P.concatMap edge gn
       edge :: G.Edge -> [Xmlbf.Node]
