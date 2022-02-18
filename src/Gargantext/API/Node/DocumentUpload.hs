@@ -84,7 +84,8 @@ documentUploadAsync _uId nId doc logStatus = do
                   , _scst_remaining = Just 1
                   , _scst_events    = Just [] }
   logStatus jl
-  _ <- documentUpload nId doc
+  docIds <- documentUpload nId doc
+  printDebug "documentUploadAsync" docIds
   pure $ jobLogSuccess jl
 
 
