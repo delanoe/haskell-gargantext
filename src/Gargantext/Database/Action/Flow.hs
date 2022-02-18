@@ -46,8 +46,10 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   )
     where
 
+import Conduit
 import Control.Lens ((^.), view, _Just, makeLenses)
 import Data.Aeson.TH (deriveJSON)
+import Data.Conduit.Internal (zipSources)
 import Data.Either
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
@@ -103,6 +105,7 @@ import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
 import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
+import qualified Prelude as Prelude
 
 ------------------------------------------------------------------------
 -- Imports for upgrade function
@@ -127,7 +130,8 @@ allDataOrigins = map InternalOrigin API.externalAPIs
 
 ---------------
 data DataText = DataOld ![NodeId]
-              | DataNew ![[HyperdataDocument]]
+              | DataNew !(ConduitT () HyperdataDocument IO ())
+              -- | DataNew ![[HyperdataDocument]]
 
 -- TODO use the split parameter in config file
 getDataText :: FlowCmdM env err m
@@ -136,9 +140,9 @@ getDataText :: FlowCmdM env err m
             -> API.Query
             -> Maybe API.Limit
             -> m DataText
-getDataText (ExternalOrigin api) la q li = liftBase $ DataNew
-                                  <$> splitEvery 500
-                                  <$> API.get api (_tt_lang la) q li
+getDataText (ExternalOrigin api) la q li = liftBase $ do
+  docsC <- API.get api (_tt_lang la) q li
+  pure $ DataNew docsC
 
 getDataText (InternalOrigin _) _la q _li = do
   (_masterUserId, _masterRootId, cId) <- getOrMk_RootWithCorpus
@@ -161,7 +165,7 @@ flowDataText :: ( FlowCmdM env err m
 flowDataText u (DataOld ids) tt cid mfslw _ = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids mfslw
   where
     corpusType = (Nothing :: Maybe HyperdataCorpus)
-flowDataText u (DataNew txt) tt cid mfslw logStatus = flowCorpus u (Right [cid]) tt mfslw txt logStatus
+flowDataText u (DataNew txtC) tt cid mfslw logStatus = flowCorpus u (Right [cid]) tt mfslw txtC logStatus
 
 ------------------------------------------------------------------------
 -- TODO use proxy
@@ -173,8 +177,9 @@ flowAnnuaire :: (FlowCmdM env err m)
              -> (JobLog -> m ())
              -> m AnnuaireId
 flowAnnuaire u n l filePath logStatus = do
-  docs <- liftBase $ (( splitEvery 500 <$> readFile_Annuaire filePath) :: IO [[HyperdataContact]])
-  flow (Nothing :: Maybe HyperdataAnnuaire) u n l Nothing docs logStatus
+  -- TODO Conduit for file
+  docs <- liftBase $ ((readFile_Annuaire filePath) :: IO [HyperdataContact])
+  flow (Nothing :: Maybe HyperdataAnnuaire) u n l Nothing (yieldMany docs) logStatus
 
 ------------------------------------------------------------------------
 flowCorpusFile :: (FlowCmdM env err m)
@@ -189,8 +194,9 @@ flowCorpusFile u n l la ff fp mfslw logStatus = do
   eParsed <- liftBase $ parseFile ff fp
   case eParsed of
     Right parsed -> do
-      let docs = splitEvery 500 $ take l parsed
-      flowCorpus u n la mfslw (map (map toHyperdataDocument) docs) logStatus
+      flowCorpus u n la mfslw (yieldMany parsed .| mapC toHyperdataDocument) logStatus
+      --let docs = splitEvery 500 $ take l parsed
+      --flowCorpus u n la mfslw (yieldMany $ map (map toHyperdataDocument) docs) logStatus
     Left e       -> panic $ "Error: " <> (T.pack e)
 
 ------------------------------------------------------------------------
@@ -201,7 +207,7 @@ flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
            -> Either CorpusName [CorpusId]
            -> TermType Lang
            -> Maybe FlowSocialListWith
-           -> [[a]]
+           -> ConduitT () a IO ()
            -> (JobLog -> m ())
            -> m CorpusId
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
@@ -216,23 +222,36 @@ flow :: ( FlowCmdM env err m
         -> Either CorpusName [CorpusId]
         -> TermType Lang
         -> Maybe FlowSocialListWith
-        -> [[a]]
+        -> ConduitT () a IO ()
         -> (JobLog -> m ())
         -> m CorpusId
-flow c u cn la mfslw docs logStatus = do
+flow c u cn la mfslw docsC logStatus = do
   -- TODO if public insertMasterDocs else insertUserDocs
-  ids <- traverse (\(idx, doc) -> do
-                      id <- insertMasterDocs c la doc
-                      logStatus JobLog { _scst_succeeded = Just $ 1 + idx
-                                       , _scst_failed    = Just 0
-                                       , _scst_remaining = Just $ length docs - idx
-                                       , _scst_events    = Just []
-                                       }
-                      pure id
-                  ) (zip [1..] docs)
-  flowCorpusUser (la ^. tt_lang) u cn c (concat ids) mfslw
+  ids <- liftBase $ runConduit $
+      zipSources (yieldMany [1..]) docsC
+      .| mapMC insertDoc
+      .| sinkList
+--  ids <- traverse (\(idx, doc) -> do
+--                      id <- insertMasterDocs c la doc
+--                      logStatus JobLog { _scst_succeeded = Just $ 1 + idx
+--                                       , _scst_failed    = Just 0
+--                                       , _scst_remaining = Just $ length docs - idx
+--                                       , _scst_events    = Just []
+--                                       }
+--                      pure id
+--                  ) (zip [1..] docs)
+  flowCorpusUser (la ^. tt_lang) u cn c ids mfslw
 
-
+  where
+    insertDoc (idx, doc) = do
+      id <- insertMasterDocs c la [doc]
+--      logStatus JobLog { _scst_succeeded = Just $ 1 + idx
+--                       , _scst_failed    = Just 0
+--                       , _scst_remaining = Just $ length docs - idx
+--                       , _scst_events    = Just []
+--                       }
+      pure $ Prelude.head id
+      
 
 
 ------------------------------------------------------------------------

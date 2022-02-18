@@ -215,7 +215,8 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
       --      if cid is corpus -> add to corpus
       --      if cid is root   -> create corpus in Private
       txts <- mapM (\db -> getDataText db (Multi l) q maybeLimit) [database2origin dbs]
-  
+
+      -- TODO Sum lenghts of each txt elements
       logStatus JobLog { _scst_succeeded = Just 2
                        , _scst_failed    = Just 0
                        , _scst_remaining = Just $ 1 + length txts
