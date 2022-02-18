@@ -18,6 +18,7 @@ New corpus means either:
 module Gargantext.API.Node.Corpus.New
       where
 
+
 import Control.Lens hiding (elements, Empty)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)

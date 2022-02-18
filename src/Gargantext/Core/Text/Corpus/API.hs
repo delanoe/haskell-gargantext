@@ -39,7 +39,7 @@ get :: ExternalAPIs
     -> Maybe Limit
     -> IO [HyperdataDocument]
 get PubMed  _la q _l = PUBMED.get   q default_limit -- EN only by default
-get HAL      la q _l = HAL.get   la q default_limit
+get HAL      la q _l = HAL.getC  la q Nothing
 get IsTex    la q _l = ISTEX.get la q default_limit
 get Isidore  la q _l = ISIDORE.get la (fromIntegral <$> default_limit) (Just q) Nothing
 get _        _  _ _ = undefined
