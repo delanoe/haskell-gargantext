@@ -29,12 +29,14 @@ import Gargantext.Core.Methods.Distances (GraphMetric(..))
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
 import Gargantext.Core.Viz.Graph.Tools (PartitionMethod(..))
+import Gargantext.Core.Viz.Phylo (PhyloSubConfig(..), subConfig2config)
+import Gargantext.Core.Viz.Phylo.API.Tools (flowPhyloAPI)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Metrics (updateNgramsOccurrences, updateContextScore)
+import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Node (defaultList)
-import Gargantext.Database.Query.Table.Node (getNode)
+import Gargantext.Database.Query.Table.Node (defaultList, getNode, insertNodes, node)
 import Gargantext.Database.Schema.Ngrams (NgramsType(NgramsTerms))
 import Gargantext.Database.Schema.Node (node_parent_id)
 import Gargantext.Prelude (Bool(..), Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic, (<*>))
@@ -54,12 +56,19 @@ type API = Summary " Update node according to NodeType params"
 
 ------------------------------------------------------------------------
 data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: !Method      }
+
                       | UpdateNodeParamsGraph { methodGraphMetric     :: !GraphMetric 
                                               , methodGraphClustering :: !PartitionMethod
                                               }
+
                       | UpdateNodeParamsTexts { methodTexts :: !Granularity }
+
                       | UpdateNodeParamsBoard { methodBoard :: !Charts      }
-                      | LinkNodeReq { nodeType :: !NodeType, id :: !NodeId }
+
+                      | LinkNodeReq           { nodeType    :: !NodeType
+                                              , id :: !NodeId }
+
+                      | UpdateNodePhylo       { config :: !PhyloSubConfig }
     deriving (Generic)
 
 ----------------------------------------------------------------------
@@ -181,6 +190,34 @@ updateNode _uId lId (UpdateNodeParamsList _mode) logStatus = do
                , _scst_remaining = Just 0
                , _scst_events    = Just []
                }
+
+updateNode userId phyloId (UpdateNodePhylo config) logStatus = do
+  logStatus JobLog { _scst_succeeded = Just 1
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 2
+                   , _scst_events    = Just []
+                   }
+
+  corpusId' <- view node_parent_id <$> getNode phyloId
+
+  let corpusId = fromMaybe (panic "") corpusId'
+
+  phy <- flowPhyloAPI (subConfig2config config) corpusId
+
+  logStatus JobLog { _scst_succeeded = Just 2
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
+
+  _phyloId <- insertNodes [node NodePhylo "Phylo" (HyperdataPhylo Nothing (Just phy)) (Just corpusId) userId]
+
+  pure  JobLog { _scst_succeeded = Just 3
+               , _scst_failed    = Just 0
+               , _scst_remaining = Just 0
+               , _scst_events    = Just []
+               }
+
 
 updateNode _uId tId (UpdateNodeParamsTexts _mode) logStatus = do
   logStatus JobLog { _scst_succeeded = Just 1

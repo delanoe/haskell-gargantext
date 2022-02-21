@@ -26,24 +26,24 @@ one 8, e54847.
 
 module Gargantext.Core.Viz.Phylo where
 
-import Data.Swagger
-import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Control.DeepSeq (NFData)
 import Control.Lens (makeLenses)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Map (Map)
+import Data.Swagger
 import Data.Text   (Text, pack)
 import Data.Vector (Vector)
 import GHC.Generics
 import GHC.IO (FilePath)
 import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Prelude
 import qualified Data.Text.Lazy as TextLazy
 
 ----------------
--- | Config | --
+-- | PhyloConfig | --
 ----------------
 
 data CorpusParser =
@@ -180,9 +180,8 @@ instance ToSchema Quality where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_qua_")
 
 
-
-data Config =
-     Config { corpusPath     :: FilePath
+data PhyloConfig =
+     PhyloConfig { corpusPath     :: FilePath
             , listPath       :: FilePath
             , outputPath     :: FilePath
             , corpusParser   :: CorpusParser
@@ -201,12 +200,32 @@ data Config =
             , exportFilter   :: [Filter]
             } deriving (Show,Generic,Eq)
 
-instance ToSchema Config
+
+------------------------------------------------------------------------
+data PhyloSubConfig =
+  PhyloSubConfig { _sc_phyloProximity :: Double
+                 , _sc_phyloSynchrony :: Double
+                 , _sc_phyloQuality   :: Double
+                 , _sc_timeUnit       :: TimeUnit
+                 , _sc_clique         :: Clique
+                 , _sc_exportFilter   :: Double
+                 }
+  deriving (Show,Generic,Eq)
 
 
-defaultConfig :: Config
+subConfig2config :: PhyloSubConfig -> PhyloConfig
+subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard $ _sc_phyloProximity subConfig
+                                           , phyloSynchrony = ByProximityThreshold (_sc_phyloSynchrony subConfig) 0 AllBranches MergeAllGroups
+                                           , phyloQuality   = Quality (_sc_phyloQuality   subConfig) 1
+                                           , timeUnit       = _sc_timeUnit       subConfig
+                                           , clique         = _sc_clique         subConfig
+                                           , exportFilter   = [ByBranchSize $ _sc_exportFilter   subConfig]
+                                           }
+
+------------------------------------------------------------------------
+defaultConfig :: PhyloConfig
 defaultConfig =
-     Config { corpusPath     = "corpus.csv" -- useful for commandline only
+     PhyloConfig { corpusPath     = "corpus.csv" -- useful for commandline only
             , listPath       = "list.csv"   -- useful for commandline only
             , outputPath     = "data/"
             , corpusParser   = Csv 100000
@@ -225,8 +244,15 @@ defaultConfig =
             , exportFilter   = [ByBranchSize 3]
             }
 
-instance FromJSON Config
-instance ToJSON Config
+-- Main Instances
+instance ToSchema PhyloConfig
+instance ToSchema PhyloSubConfig
+
+instance FromJSON PhyloConfig
+instance ToJSON PhyloConfig
+
+instance FromJSON PhyloSubConfig
+instance ToJSON PhyloSubConfig
 
 instance FromJSON CorpusParser
 instance ToJSON CorpusParser
@@ -298,7 +324,7 @@ defaultSoftware =
 data PhyloParam =
      PhyloParam { _phyloParam_version  :: Text
                 , _phyloParam_software :: Software
-                , _phyloParam_config   :: Config
+                , _phyloParam_config   :: PhyloConfig
      } deriving (Generic, Show, Eq)
 
 instance ToSchema PhyloParam where
@@ -564,7 +590,8 @@ instance ToSchema PhyloExport where
 -- | Lenses | --
 ----------------
 
-makeLenses ''Config
+makeLenses ''PhyloConfig
+makeLenses ''PhyloSubConfig
 makeLenses ''Proximity
 makeLenses ''SeaElevation
 makeLenses ''Quality

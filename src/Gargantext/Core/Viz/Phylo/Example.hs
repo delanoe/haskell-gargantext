@@ -89,14 +89,16 @@ phyloCooc = docsToTimeScaleCooc docs (foundations ^. foundations_roots)
 
 
 periods :: [(Date,Date)]
-periods = toPeriods (sort $ nub $ map date docs) (getTimePeriod $ timeUnit config) (getTimeStep $ timeUnit config)
+periods = toPeriods (sort $ nub $ map date docs)
+                    (getTimePeriod $ timeUnit config)
+                    (getTimeStep $ timeUnit config)
 
 
 nbDocsByYear :: Map Date Double
 nbDocsByYear = docsToTimeScaleNb docs
 
 
-config :: Config
+config :: PhyloConfig
 config = 
     defaultConfig { phyloName  = "Cesar et Cleopatre"
                   , phyloLevel = 2
@@ -106,7 +108,7 @@ config =
 
 docs :: [Document]
 docs = map (\(d,t)
-    -> Document d
+    -> Document (d+102)
                 ""
                 (filter (\n -> isRoots n (foundations ^. foundations_roots)) $ monoTexts t) 
                 Nothing

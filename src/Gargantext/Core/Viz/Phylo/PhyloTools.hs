@@ -400,11 +400,11 @@ getSeaElevation :: Phylo -> SeaElevation
 getSeaElevation phylo = seaElevation (getConfig phylo)
 
 
-getConfig :: Phylo -> Config
+getConfig :: Phylo -> PhyloConfig
 getConfig phylo = (phylo ^. phylo_param) ^. phyloParam_config
 
 
-setConfig :: Config -> Phylo -> Phylo
+setConfig :: PhyloConfig -> Phylo -> Phylo
 setConfig config phylo = phylo
                        & phylo_param .~ (PhyloParam
                                             ((phylo ^. phylo_param) ^. phyloParam_version)

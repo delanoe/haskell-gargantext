@@ -27,7 +27,7 @@ import Gargantext.Database.Query.Tree.Root (getRootId)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 
--- | TODO move in Config of Gargantext
+-- | TODO move in PhyloConfig of Gargantext
 publicNodeTypes :: [NodeType]
 publicNodeTypes = [NodeDashboard, NodeGraph, NodePhylo, NodeFile]
 

@@ -136,7 +136,7 @@ fileToDocs' parser path time lst = do
 
 
 -- Config time parameters to label
-timeToLabel :: Config -> [Char]
+timeToLabel :: PhyloConfig -> [Char]
 timeToLabel config = case (timeUnit config) of
       Epoch p s f -> ("time_epochs" <> "_" <> (show p) <> "_" <> (show s) <> "_" <> (show f))
       Year  p s f -> ("time_years"  <> "_" <> (show p) <> "_" <> (show s) <> "_" <> (show f))
@@ -145,37 +145,37 @@ timeToLabel config = case (timeUnit config) of
       Day   p s f -> ("time_days"   <> "_" <> (show p) <> "_" <> (show s) <> "_" <> (show f))
 
 
-seaToLabel :: Config -> [Char]
+seaToLabel :: PhyloConfig -> [Char]
 seaToLabel config = case (seaElevation config) of
       Constante start step   -> ("sea_cst_"  <> (show start) <> "_" <> (show step))
       Adaptative granularity -> ("sea_adapt" <> (show granularity))
 
 
-sensToLabel :: Config -> [Char]
+sensToLabel :: PhyloConfig -> [Char]
 sensToLabel config = case (phyloProximity config) of
       Hamming _ -> undefined
       WeightedLogJaccard s -> ("WeightedLogJaccard_"  <> show s)
       WeightedLogSim s -> ( "WeightedLogSim-sens_"  <> show s)
 
 
-cliqueToLabel :: Config -> [Char]
+cliqueToLabel :: PhyloConfig -> [Char]
 cliqueToLabel config = case (clique config) of
       Fis s s' -> "fis_" <> (show s) <> "_" <> (show s')
       MaxClique s t f ->  "clique_" <> (show s)<> "_"  <> (show f)<> "_"  <> (show t)
 
 
-syncToLabel :: Config -> [Char]
+syncToLabel :: PhyloConfig -> [Char]
 syncToLabel config = case (phyloSynchrony config) of
       ByProximityThreshold scl sync_sens scope _ -> ("scale_" <> (show scope) <> "_" <> (show sync_sens)  <> "_"  <> (show scl))
       ByProximityDistribution _ _ -> undefined
 
-qualToConfig :: Config -> [Char]
+qualToConfig :: PhyloConfig -> [Char]
 qualToConfig config = case (phyloQuality config) of
       Quality g m -> "quality_" <> (show g) <> "_" <> (show m)
 
 
 -- To set up the export file's label from the configuration
-configToLabel :: Config -> [Char]
+configToLabel :: PhyloConfig -> [Char]
 configToLabel config = outputPath config
                     <> (unpack $ phyloName config)
                     <> "-" <> (timeToLabel config)
@@ -189,7 +189,7 @@ configToLabel config = outputPath config
 
 
 -- To write a sha256 from a set of config's parameters
-configToSha :: PhyloStage -> Config -> [Char]
+configToSha :: PhyloStage -> PhyloConfig -> [Char]
 configToSha stage config = unpack
                          $ replace "/" "-"
                          $ T.pack (show (hash $ C8.pack label))
@@ -242,7 +242,7 @@ main = do
 
     printIOMsg "Read the configuration file"
     [args]   <- getArgs
-    jsonArgs <- (eitherDecode <$> readJson args) :: IO (Either String Config)
+    jsonArgs <- (eitherDecode <$> readJson args) :: IO (Either String PhyloConfig)
 
     case jsonArgs of
         Left err     -> putStrLn err

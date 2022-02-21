@@ -17,10 +17,6 @@ Portability : POSIX
 module Gargantext.Core.Viz.Phylo.API
   where
 
--- import Control.Lens ((^.))
--- import Gargantext.Core.Viz.Phylo.Example
--- import Gargantext.Database.Schema.Node (node_hyperdata)
---import Control.Monad.Reader (ask)
 import Data.Aeson
 import Data.Either
 import Data.Maybe (fromMaybe)
@@ -94,11 +90,16 @@ type GetPhylo =  QueryParam "listId"      ListId
 -- Fix Filter parameters
 -- TODO fix parameters to default config that should be in Node
 getPhylo :: PhyloId -> GargServer GetPhylo
-getPhylo phyloId _lId _level _minSizeBranch = do
+getPhylo phyloId _lId _level _minSizeBranch = getPhyloDataJson phyloId
+
+getPhyloDataJson :: PhyloId -> GargNoServer Value
+getPhyloDataJson phyloId = do
   maybePhyloData <- getPhyloData phyloId
   let phyloData = fromMaybe phyloExample maybePhyloData
   phyloJson <- liftBase $ phylo2dot2json phyloData
   pure phyloJson
+
+
 
 -- getPhylo phId _lId l msb  = do
   -- let
