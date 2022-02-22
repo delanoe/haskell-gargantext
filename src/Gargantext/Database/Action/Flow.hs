@@ -153,7 +153,8 @@ getDataText (InternalOrigin _) _la q _li = do
   pure $ DataOld ids
 
 -------------------------------------------------------------------------------
-flowDataText :: ( FlowCmdM env err m
+flowDataText :: forall env err m.
+                ( FlowCmdM env err m
                 )
                 => User
                 -> DataText
@@ -165,7 +166,7 @@ flowDataText :: ( FlowCmdM env err m
 flowDataText u (DataOld ids) tt cid mfslw _ = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids mfslw
   where
     corpusType = (Nothing :: Maybe HyperdataCorpus)
-flowDataText u (DataNew txtC) tt cid mfslw logStatus = flowCorpus u (Right [cid]) tt mfslw txtC logStatus
+flowDataText u (DataNew txtC) tt cid mfslw logStatus = flowCorpus u (Right [cid]) tt mfslw (transPipe liftBase txtC) logStatus
 
 ------------------------------------------------------------------------
 -- TODO use proxy
@@ -190,7 +191,7 @@ flowCorpusFile :: (FlowCmdM env err m)
            -> Maybe FlowSocialListWith
            -> (JobLog -> m ())
            -> m CorpusId
-flowCorpusFile u n l la ff fp mfslw logStatus = do
+flowCorpusFile u n _l la ff fp mfslw logStatus = do
   eParsed <- liftBase $ parseFile ff fp
   case eParsed of
     Right parsed -> do
@@ -207,13 +208,14 @@ flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
            -> Either CorpusName [CorpusId]
            -> TermType Lang
            -> Maybe FlowSocialListWith
-           -> ConduitT () a IO ()
+           -> ConduitT () a m ()
            -> (JobLog -> m ())
            -> m CorpusId
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
 
 
-flow :: ( FlowCmdM env err m
+flow :: forall env err m a c.
+        ( FlowCmdM env err m
         , FlowCorpus a
         , MkCorpus c
         )
@@ -222,12 +224,12 @@ flow :: ( FlowCmdM env err m
         -> Either CorpusName [CorpusId]
         -> TermType Lang
         -> Maybe FlowSocialListWith
-        -> ConduitT () a IO ()
+        -> ConduitT () a m ()
         -> (JobLog -> m ())
         -> m CorpusId
-flow c u cn la mfslw docsC logStatus = do
+flow c u cn la mfslw docsC _logStatus = do
   -- TODO if public insertMasterDocs else insertUserDocs
-  ids <- liftBase $ runConduit $
+  ids <- runConduit $
       zipSources (yieldMany [1..]) docsC
       .| mapMC insertDoc
       .| sinkList
@@ -243,7 +245,8 @@ flow c u cn la mfslw docsC logStatus = do
   flowCorpusUser (la ^. tt_lang) u cn c ids mfslw
 
   where
-    insertDoc (idx, doc) = do
+    insertDoc :: (Int, a) -> m NodeId
+    insertDoc (_idx, doc) = do
       id <- insertMasterDocs c la [doc]
 --      logStatus JobLog { _scst_succeeded = Just $ 1 + idx
 --                       , _scst_failed    = Just 0
