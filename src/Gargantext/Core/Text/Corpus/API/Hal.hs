@@ -16,6 +16,7 @@ import Conduit
 import Data.Either
 import Data.Maybe
 import Data.Text (Text, pack, intercalate)
+import Servant.Client (ClientError)
 
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
@@ -30,12 +31,13 @@ get la q ml = do
   eDocs <- HAL.getMetadataWith q (Just 0) ml
   either (panic . pack . show) (\d -> mapM (toDoc' la) $ HAL._docs d) eDocs
 
-getC :: Lang -> Text -> Maybe Integer -> IO (ConduitT () HyperdataDocument IO ())
+getC :: Lang -> Text -> Maybe Integer -> IO (Either ClientError (Maybe Integer, ConduitT () HyperdataDocument IO ()))
 getC la q ml = do
-  eDocs <- HAL.getMetadataRecursively q (Just 0) ml
-  case eDocs of
-    Left err -> panic $ pack $ show err
-    Right docsC -> pure $ docsC .| mapMC (toDoc' la)
+  eRes <- HAL.getMetadataWithC q (Just 0) ml
+  pure $ (\(len, docsC) -> (len, docsC .| mapMC (toDoc' la))) <$> eRes
+--  case eRes of
+--    Left err -> panic $ pack $ show err
+--    Right (len, docsC) -> pure (len, docsC .| mapMC (toDoc' la))
 
 toDoc' :: Lang -> HAL.Corpus -> IO HyperdataDocument
 toDoc' la (HAL.Corpus i t ab d s aus affs struct_id) = do

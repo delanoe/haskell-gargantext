@@ -62,6 +62,7 @@ import qualified Data.Text as T
 import Data.Traversable (traverse)
 import Data.Tuple.Extra (first, second)
 import GHC.Generics (Generic)
+import Servant.Client (ClientError)
 import System.FilePath (FilePath)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
@@ -130,7 +131,7 @@ allDataOrigins = map InternalOrigin API.externalAPIs
 
 ---------------
 data DataText = DataOld ![NodeId]
-              | DataNew !(ConduitT () HyperdataDocument IO ())
+              | DataNew !(Maybe Integer, ConduitT () HyperdataDocument IO ())
               -- | DataNew ![[HyperdataDocument]]
 
 -- TODO use the split parameter in config file
@@ -139,10 +140,10 @@ getDataText :: FlowCmdM env err m
             -> TermType Lang
             -> API.Query
             -> Maybe API.Limit
-            -> m DataText
+            -> m (Either ClientError DataText)
 getDataText (ExternalOrigin api) la q li = liftBase $ do
-  docsC <- API.get api (_tt_lang la) q li
-  pure $ DataNew docsC
+  eRes <- API.get api (_tt_lang la) q li
+  pure $ DataNew <$> eRes
 
 getDataText (InternalOrigin _) _la q _li = do
   (_masterUserId, _masterRootId, cId) <- getOrMk_RootWithCorpus
@@ -150,7 +151,7 @@ getDataText (InternalOrigin _) _la q _li = do
                                            (Left "")
                                            (Nothing :: Maybe HyperdataCorpus)
   ids <-  map fst <$> searchDocInDatabase cId (stemIt q)
-  pure $ DataOld ids
+  pure $ Right $ DataOld ids
 
 -------------------------------------------------------------------------------
 flowDataText :: forall env err m.
@@ -166,7 +167,8 @@ flowDataText :: forall env err m.
 flowDataText u (DataOld ids) tt cid mfslw _ = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids mfslw
   where
     corpusType = (Nothing :: Maybe HyperdataCorpus)
-flowDataText u (DataNew txtC) tt cid mfslw logStatus = flowCorpus u (Right [cid]) tt mfslw (transPipe liftBase txtC) logStatus
+flowDataText u (DataNew (mLen, txtC)) tt cid mfslw logStatus =
+  flowCorpus u (Right [cid]) tt mfslw (mLen, transPipe liftBase txtC) logStatus
 
 ------------------------------------------------------------------------
 -- TODO use proxy
@@ -180,7 +182,7 @@ flowAnnuaire :: (FlowCmdM env err m)
 flowAnnuaire u n l filePath logStatus = do
   -- TODO Conduit for file
   docs <- liftBase $ ((readFile_Annuaire filePath) :: IO [HyperdataContact])
-  flow (Nothing :: Maybe HyperdataAnnuaire) u n l Nothing (yieldMany docs) logStatus
+  flow (Nothing :: Maybe HyperdataAnnuaire) u n l Nothing (Just $ fromIntegral $ length docs, yieldMany docs) logStatus
 
 ------------------------------------------------------------------------
 flowCorpusFile :: (FlowCmdM env err m)
@@ -195,7 +197,7 @@ flowCorpusFile u n _l la ff fp mfslw logStatus = do
   eParsed <- liftBase $ parseFile ff fp
   case eParsed of
     Right parsed -> do
-      flowCorpus u n la mfslw (yieldMany parsed .| mapC toHyperdataDocument) logStatus
+      flowCorpus u n la mfslw (Just $ fromIntegral $ length parsed, yieldMany parsed .| mapC toHyperdataDocument) logStatus
       --let docs = splitEvery 500 $ take l parsed
       --flowCorpus u n la mfslw (yieldMany $ map (map toHyperdataDocument) docs) logStatus
     Left e       -> panic $ "Error: " <> (T.pack e)
@@ -208,7 +210,7 @@ flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
            -> Either CorpusName [CorpusId]
            -> TermType Lang
            -> Maybe FlowSocialListWith
-           -> ConduitT () a m ()
+           -> (Maybe Integer, ConduitT () a m ())
            -> (JobLog -> m ())
            -> m CorpusId
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
@@ -224,10 +226,10 @@ flow :: forall env err m a c.
         -> Either CorpusName [CorpusId]
         -> TermType Lang
         -> Maybe FlowSocialListWith
-        -> ConduitT () a m ()
+        -> (Maybe Integer, ConduitT () a m ())
         -> (JobLog -> m ())
         -> m CorpusId
-flow c u cn la mfslw docsC _logStatus = do
+flow c u cn la mfslw (mLength, docsC) logStatus = do
   -- TODO if public insertMasterDocs else insertUserDocs
   ids <- runConduit $
       zipSources (yieldMany [1..]) docsC
@@ -245,14 +247,17 @@ flow c u cn la mfslw docsC _logStatus = do
   flowCorpusUser (la ^. tt_lang) u cn c ids mfslw
 
   where
-    insertDoc :: (Int, a) -> m NodeId
-    insertDoc (_idx, doc) = do
+    insertDoc :: (Integer, a) -> m NodeId
+    insertDoc (idx, doc) = do
       id <- insertMasterDocs c la [doc]
---      logStatus JobLog { _scst_succeeded = Just $ 1 + idx
---                       , _scst_failed    = Just 0
---                       , _scst_remaining = Just $ length docs - idx
---                       , _scst_events    = Just []
---                       }
+      case mLength of
+        Nothing -> pure ()
+        Just len ->
+          logStatus JobLog { _scst_succeeded = Just $ fromIntegral $ 1 + idx
+                           , _scst_failed    = Just 0
+                           , _scst_remaining = Just $ fromIntegral $ len - idx
+                           , _scst_events    = Just []
+                           }
       pure $ Prelude.head id
       
 
@@ -272,7 +277,7 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus user corpusName ctype
   -- NodeTexts is first
-  _tId <- insertDefaultNode NodeTexts userCorpusId userId
+  _tId <- insertDefaultNodeIfNotExists NodeTexts userCorpusId userId
   -- printDebug "NodeTexts: " tId
 
   -- NodeList is second
@@ -298,8 +303,8 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
   -- _ <- insertOccsUpdates userCorpusId mastListId
   -- printDebug "userListId" userListId
   -- User Graph Flow
-  _ <- insertDefaultNode NodeDashboard userCorpusId userId
-  _ <- insertDefaultNode NodeGraph     userCorpusId userId
+  _ <- insertDefaultNodeIfNotExists NodeDashboard userCorpusId userId
+  _ <- insertDefaultNodeIfNotExists NodeGraph     userCorpusId userId
   --_ <- mkPhylo  userCorpusId userId
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId
@@ -344,7 +349,7 @@ saveDocNgramsWith :: ( FlowCmdM env err m)
                   -> m ()
 saveDocNgramsWith lId mapNgramsDocs' = do
   terms2id <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
-  printDebug "terms2id" terms2id
+  --printDebug "terms2id" terms2id
 
   let mapNgramsDocs = HashMap.mapKeys extracted2ngrams mapNgramsDocs'
 
@@ -353,7 +358,7 @@ saveDocNgramsWith lId mapNgramsDocs' = do
                $ map (first _ngramsTerms . second Map.keys)
                $ HashMap.toList mapNgramsDocs
 
-  printDebug "saveDocNgramsWith" mapCgramsId
+  --printDebug "saveDocNgramsWith" mapCgramsId
   -- insertDocNgrams
   _return <- insertContextNodeNgrams2
            $ catMaybes [ ContextNodeNgrams2 <$> Just nId
