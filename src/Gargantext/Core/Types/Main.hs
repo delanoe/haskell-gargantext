@@ -34,7 +34,7 @@ import Gargantext.Prelude
 import Servant.API (FromHttpApiData(..), ToHttpApiData(..))
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import Text.Read (read)
+import Text.Read (readMaybe)
 
 type CorpusName = Text
 ------------------------------------------------------------------------
@@ -74,7 +74,11 @@ instance Semigroup ListType
 
 
 instance FromHttpApiData ListType where
-  parseUrlPiece = Right . read . unpack
+  parseUrlPiece s = Right s'
+    where
+      s' = case (readMaybe $ unpack s) of
+        Nothing -> panic $ "Cannot read url piece: " <> s
+        Just s'' -> s''
 instance ToHttpApiData ListType where
   toUrlPiece = pack . show
 
