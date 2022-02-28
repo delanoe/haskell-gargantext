@@ -1,3 +1,6 @@
+## Version 0.0.5.6.4
+* [FRONT] Forest Tooltip + Async progress bar fix
+
 ## Version 0.0.5.6.3
 * [BACK][EXPORT][GEXF] node size
 
