@@ -1,5 +1,7 @@
 module Auth where
 
+import Prelude
+import Data.Maybe
 import Core
 import Options
 

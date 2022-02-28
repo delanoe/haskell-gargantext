@@ -8,6 +8,7 @@ module Tracking
 
 import Core
 import Options
+import Prelude
 
 import Control.Monad.IO.Class
 import Data.List (intersperse)
