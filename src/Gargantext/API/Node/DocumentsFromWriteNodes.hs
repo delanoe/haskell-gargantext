@@ -16,6 +16,7 @@ Portability : POSIX
 module Gargantext.API.Node.DocumentsFromWriteNodes
       where
 
+import Conduit
 import Control.Lens ((^.))
 import Data.Aeson
 import Data.Either (Either(..), rights)
@@ -100,7 +101,7 @@ documentsFromWriteNodes uId nId _p logStatus = do
   let parsedE = (\(node, contents) -> hyperdataDocumentFromFrameWrite (node ^. node_hyperdata, contents)) <$> frameWritesWithContents
   let parsed = rights parsedE
 
-  _ <- flowDataText (RootId (NodeId uId)) (DataNew [parsed]) (Multi EN) cId Nothing logStatus
+  _ <- flowDataText (RootId (NodeId uId)) (DataNew (Just $ fromIntegral $ length parsed, yieldMany parsed)) (Multi EN) cId Nothing logStatus
 
   pure $ jobLogSuccess jobLog
 ------------------------------------------------------------------------

@@ -18,6 +18,8 @@ module Gargantext.Core.Text.Corpus.API
   )
     where
 
+import Conduit
+import Data.Either (Either(..))
 import Data.Maybe
 import Gargantext.API.Admin.Orchestrator.Types (ExternalAPIs(..), externalAPIs)
 import Gargantext.Core (Lang(..))
@@ -27,6 +29,7 @@ import qualified Gargantext.Core.Text.Corpus.API.Hal     as HAL
 import qualified Gargantext.Core.Text.Corpus.API.Isidore as ISIDORE
 import qualified Gargantext.Core.Text.Corpus.API.Istex   as ISTEX
 import qualified Gargantext.Core.Text.Corpus.API.Pubmed  as PUBMED
+import Servant.Client (ClientError)
 
 -- | TODO put in gargantext.init
 default_limit :: Maybe Integer
@@ -37,11 +40,18 @@ get :: ExternalAPIs
     -> Lang
     -> Query
     -> Maybe Limit
-    -> IO [HyperdataDocument]
-get PubMed  _la q _l = PUBMED.get   q default_limit -- EN only by default
-get HAL      la q _l = HAL.get   la q default_limit
-get IsTex    la q _l = ISTEX.get la q default_limit
-get Isidore  la q _l = ISIDORE.get la (fromIntegral <$> default_limit) (Just q) Nothing
+    -- -> IO [HyperdataDocument]
+    -> IO (Either ClientError (Maybe Integer, ConduitT () HyperdataDocument IO ()))
+get PubMed  _la q _l = PUBMED.get q Nothing
+  --docs <- PUBMED.get   q default_limit -- EN only by default
+  --pure (Just $ fromIntegral $ length docs, yieldMany docs)
+get HAL      la q _l = HAL.getC  la q Nothing
+get IsTex    la q _l = do
+  docs <- ISTEX.get la q default_limit
+  pure $ Right (Just $ fromIntegral $ length docs, yieldMany docs)
+get Isidore  la q _l = do
+  docs <- ISIDORE.get la (fromIntegral <$> default_limit) (Just q) Nothing
+  pure $ Right (Just $ fromIntegral $ length docs, yieldMany docs)
 get _        _  _ _ = undefined
 
 -- | Some Sugar for the documentation

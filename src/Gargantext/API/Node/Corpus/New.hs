@@ -18,6 +18,8 @@ New corpus means either:
 module Gargantext.API.Node.Corpus.New
       where
 
+
+import Conduit
 import Control.Lens hiding (elements, Empty)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
@@ -39,7 +41,7 @@ import Gargantext.Prelude
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs, ScraperEvent(..), scst_events)
 import Gargantext.API.Admin.Types (HasSettings)
-import Gargantext.API.Job (jobLogSuccess, jobLogFailTotal, jobLogFailTotalWithMessage)
+import Gargantext.API.Job (addEvent, jobLogSuccess, jobLogFailTotal, jobLogFailTotalWithMessage)
 import Gargantext.API.Node.Corpus.New.File
 import Gargantext.API.Node.Corpus.Searx
 import Gargantext.API.Node.Corpus.Types
@@ -213,24 +215,37 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
       -- TODO if cid is folder -> create Corpus
       --      if cid is corpus -> add to corpus
       --      if cid is root   -> create corpus in Private
-      txts <- mapM (\db -> getDataText db (Multi l) q maybeLimit) [database2origin dbs]
-  
-      logStatus JobLog { _scst_succeeded = Just 2
-                       , _scst_failed    = Just 0
-                       , _scst_remaining = Just $ 1 + length txts
-                       , _scst_events    = Just []
-                       }
+      eTxts <- mapM (\db -> getDataText db (Multi l) q maybeLimit) [database2origin dbs]
+      let lTxts = lefts eTxts
+      case lTxts of
+        [] -> do
+          let txts = rights eTxts
+          -- TODO Sum lenghts of each txt elements
+          logStatus $ JobLog { _scst_succeeded = Just 2
+                             , _scst_failed    = Just 0
+                             , _scst_remaining = Just $ 1 + length txts
+                             , _scst_events    = Just []
+                             }
 
-      cids <- mapM (\txt -> flowDataText user txt (Multi l) cid Nothing logStatus) txts
-      printDebug "corpus id" cids
-      printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
-      sendMail user
-      -- TODO ...
-      pure JobLog { _scst_succeeded = Just 3
-                  , _scst_failed    = Just 0
-                  , _scst_remaining = Just 0
-                  , _scst_events    = Just []
-                  }
+          cids <- mapM (\txt -> do
+                           flowDataText user txt (Multi l) cid Nothing logStatus) txts
+          printDebug "corpus id" cids
+          printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
+          sendMail user
+          -- TODO ...
+          pure JobLog { _scst_succeeded = Just 3
+                      , _scst_failed    = Just 0
+                      , _scst_remaining = Just 0
+                      , _scst_events    = Just []
+                      }
+        
+        (err:_) -> do
+          pure $ addEvent "ERROR" (T.pack $ show err) $
+            JobLog { _scst_succeeded = Just 2
+                   , _scst_failed    = Just 1
+                   , _scst_remaining = Just 0
+                   , _scst_events    = Just []
+                   }
 
 
 type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
@@ -268,15 +283,16 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
         _   -> cs d
   eDocs <- liftBase $ parse data'
   case eDocs of
-    Right docs' -> do
+    Right docs -> do
       -- TODO Add progress (jobStatus) update for docs - this is a
       -- long action
+
       limit' <- view $ hasConfig . gc_max_docs_parsers
       let limit = fromIntegral limit'
-      if length docs' > limit then do
-        printDebug "[addToCorpusWithForm] number of docs exceeds the limit" (show $ length docs')
+      if length docs > limit then do
+        printDebug "[addToCorpusWithForm] number of docs exceeds the limit" (show $ length docs)
         let panicMsg' = [ "[addToCorpusWithForm] number of docs ("
-                        , show $ length docs'
+                        , show $ length docs
                         , ") exceeds the MAX_DOCS_PARSERS limit ("
                         , show limit
                         , ")" ]
@@ -285,7 +301,6 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
         panic panicMsg
       else
         pure ()
-      let docs = splitEvery 500 $ take limit docs'
 
       printDebug "Parsing corpus finished : " cid
       logStatus jobLog2
@@ -296,7 +311,8 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
                           (Right [cid])
                           (Multi $ fromMaybe EN l)
                           Nothing
-                          (map (map toHyperdataDocument) docs)
+                          (Just $ fromIntegral $ length docs, yieldMany docs .| mapC toHyperdataDocument)
+                          --(map (map toHyperdataDocument) docs)
                           logStatus
 
       printDebug "Extraction finished   : " cid

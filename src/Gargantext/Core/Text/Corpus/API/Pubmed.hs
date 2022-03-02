@@ -13,9 +13,12 @@ Portability : POSIX
 module Gargantext.Core.Text.Corpus.API.Pubmed
     where
 
+import Conduit
+import Data.Either (Either)
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as Text
+import Servant.Client (ClientError)
 
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
@@ -31,17 +34,21 @@ type Limit = PubMed.Limit
 
 -- | TODO put default pubmed query in gargantext.ini
 -- by default: 10K docs
-get :: Query -> Maybe Limit -> IO [HyperdataDocument]
-get q l = either (\e -> panic $ "CRAWL: PubMed" <> e) (map (toDoc EN))
-        <$> PubMed.getMetadataWith q l
+get :: Query -> Maybe Limit -> IO (Either ClientError (Maybe Integer, ConduitT () HyperdataDocument IO ()))
+get q l = do
+  eRes <- PubMed.getMetadataWithC q l
+  pure $ (\(len, docsC) -> (len, docsC .| mapC (toDoc EN))) <$> eRes
+  --either (\e -> panic $ "CRAWL: PubMed" <> e) (map (toDoc EN))
+  --      <$> PubMed.getMetadataWithC q l
 
 toDoc :: Lang -> PubMedDoc.PubMed -> HyperdataDocument
-toDoc l (PubMedDoc.PubMed (PubMedDoc.PubMedArticle t j as aus)
-                    (PubMedDoc.PubMedDate a y m d)
+toDoc l (PubMedDoc.PubMed { pubmed_id
+                          , pubmed_article = PubMedDoc.PubMedArticle t j as aus
+                          , pubmed_date = PubMedDoc.PubMedDate a y m d }
           ) = HyperdataDocument { _hd_bdd = Just "PubMed"
                                 , _hd_doi = Nothing
                                 , _hd_url = Nothing
-                                , _hd_uniqId = Nothing
+                                , _hd_uniqId = Just $ Text.pack $ show pubmed_id
                                 , _hd_uniqIdBdd = Nothing
                                 , _hd_page = Nothing
                                 , _hd_title = t
