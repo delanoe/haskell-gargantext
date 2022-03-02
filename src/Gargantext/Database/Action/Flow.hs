@@ -168,7 +168,7 @@ flowDataText u (DataOld ids) tt cid mfslw _ = flowCorpusUser (_tt_lang tt) u (Ri
   where
     corpusType = (Nothing :: Maybe HyperdataCorpus)
 flowDataText u (DataNew (mLen, txtC)) tt cid mfslw logStatus =
-  flowCorpus u (Right [cid]) tt mfslw (mLen, transPipe liftBase txtC) logStatus
+  flowCorpus u (Right [cid]) tt mfslw (mLen, (transPipe liftBase txtC)) logStatus
 
 ------------------------------------------------------------------------
 -- TODO use proxy
@@ -252,7 +252,7 @@ flow c u cn la mfslw (mLength, docsC) logStatus = do
       id <- insertMasterDocs c la [doc]
       case mLength of
         Nothing -> pure ()
-        Just len ->
+        Just len -> do
           logStatus JobLog { _scst_succeeded = Just $ fromIntegral $ 1 + idx
                            , _scst_failed    = Just 0
                            , _scst_remaining = Just $ fromIntegral $ len - idx
@@ -531,5 +531,3 @@ extractInsert docs = do
                     documentsWithId
   _ <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
   pure ()
-
-

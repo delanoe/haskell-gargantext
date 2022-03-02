@@ -42,12 +42,13 @@ get q l = do
   --      <$> PubMed.getMetadataWithC q l
 
 toDoc :: Lang -> PubMedDoc.PubMed -> HyperdataDocument
-toDoc l (PubMedDoc.PubMed (PubMedDoc.PubMedArticle t j as aus)
-                    (PubMedDoc.PubMedDate a y m d)
+toDoc l (PubMedDoc.PubMed { pubmed_id
+                          , pubmed_article = PubMedDoc.PubMedArticle t j as aus
+                          , pubmed_date = PubMedDoc.PubMedDate a y m d }
           ) = HyperdataDocument { _hd_bdd = Just "PubMed"
                                 , _hd_doi = Nothing
                                 , _hd_url = Nothing
-                                , _hd_uniqId = Nothing
+                                , _hd_uniqId = Just $ Text.pack $ show pubmed_id
                                 , _hd_uniqIdBdd = Nothing
                                 , _hd_page = Nothing
                                 , _hd_title = t

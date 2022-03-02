@@ -52,7 +52,7 @@ import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Action.Flow (flowCorpus, getDataText, flowDataText, DataText(..), TermType(..){-, allDataOrigins-})
+import Gargantext.Database.Action.Flow (flowCorpus, getDataText, flowDataText, TermType(..){-, allDataOrigins-})
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Mail (sendMail)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
@@ -221,18 +221,13 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
         [] -> do
           let txts = rights eTxts
           -- TODO Sum lenghts of each txt elements
-          let jl = JobLog { _scst_succeeded = Just 2
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just $ 1 + length txts
-                          , _scst_events    = Just []
-                          }
-          logStatus jl
+          logStatus $ JobLog { _scst_succeeded = Just 2
+                             , _scst_failed    = Just 0
+                             , _scst_remaining = Just $ 1 + length txts
+                             , _scst_events    = Just []
+                             }
 
           cids <- mapM (\txt -> do
-                           let id = case txt of
-                                 (DataNew (i, _)) -> i
-                                 _ -> (Just 0)
-                           logStatus $ addEvent "INFO: doc id" (T.pack $ show id) jl
                            flowDataText user txt (Multi l) cid Nothing logStatus) txts
           printDebug "corpus id" cids
           printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
