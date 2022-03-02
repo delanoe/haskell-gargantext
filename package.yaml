@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.5.6.4'
+version: '0.0.5.6.5'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -332,13 +332,6 @@ executables:
   gargantext-client:
     main: Main.hs
     source-dirs: bin/gargantext-client
-    exposed-modules:
-    - Auth
-    - Core
-    - Options
-    - Script
-    - Tracking
-    - Paths_gargantext
     ghc-options:
     - -Wall
     - -threaded

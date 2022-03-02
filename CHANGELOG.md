@@ -1,3 +1,6 @@
+## Version 0.0.5.6.5
+* [BACK] HAL parser with Conduit
+
 ## Version 0.0.5.6.4
 * [FRONT] Forest Tooltip + Async progress bar fix
 
