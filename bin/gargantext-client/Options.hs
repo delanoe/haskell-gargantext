@@ -2,7 +2,6 @@
 module Options where
 
 import Prelude
-import Data.Maybe
 import Options.Generic
 
 -- | Some general options to be specified on the command line.

@@ -20,7 +20,7 @@ import Data.Aeson
 import Data.Either (Either(..))
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map, toList)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.Set (Set)
 import Data.Text (Text, concat, pack, splitOn)
 import Data.Vector (Vector)
@@ -40,9 +40,11 @@ import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Types.Hyperdata.Document
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Query.Table.NodeContext (selectDocNodes)
 import Gargantext.Database.Schema.Context
 import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Schema.Node (_node_parent_id)
 import Gargantext.Database.Types (Indexed(..))
 import Gargantext.Prelude
 import Network.HTTP.Media ((//), (/:))
@@ -53,6 +55,7 @@ import qualified Data.Csv as Csv
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List           as List
 import qualified Data.Map            as Map
+import qualified Data.Set            as Set
 import qualified Data.Text           as Text
 import qualified Data.Vector         as Vec
 import qualified Prelude             as Prelude
@@ -138,13 +141,13 @@ reIndexWith cId lId nt lts = do
      <$> map (\(k,vs) -> k:vs)
      <$> HashMap.toList
      <$> getTermsWith identity [lId] nt lts
-  
-  printDebug "ts" ts
+
+  -- printDebug "ts" ts
 
   -- Taking the ngrams with 0 occurrences only (orphans)
   occs <- getOccByNgramsOnlyFast' cId lId nt ts
 
-  printDebug "occs" occs
+  -- printDebug "occs" occs
 
   let orphans = List.concat 
               $ map (\t -> case HashMap.lookup t occs of
@@ -152,11 +155,11 @@ reIndexWith cId lId nt lts = do
                        Just n  -> if n <= 1 then [t] else [ ]
                        ) ts
 
-  printDebug "orphans" orphans
+  -- printDebug "orphans" orphans
 
   -- Get all documents of the corpus
   docs <- selectDocNodes cId
-  printDebug "docs length" (List.length docs)
+  -- printDebug "docs length" (List.length docs)
 
   -- Checking Text documents where orphans match
   -- TODO Tests here
@@ -173,7 +176,7 @@ reIndexWith cId lId nt lts = do
                                 (List.cycle [Map.fromList $ [(nt, Map.singleton (doc ^. context_id) 1 )]])
                         ) docs
 
-  printDebug "ngramsByDoc" ngramsByDoc
+  -- printDebug "ngramsByDoc" ngramsByDoc
 
   -- Saving the indexation in database
   _ <- mapM (saveDocNgramsWith lId) ngramsByDoc
@@ -199,7 +202,7 @@ postAsync lId =
     JobFunction (\f log' ->
       let
         log'' x = do
-          printDebug "postAsync ListId" x
+          -- printDebug "postAsync ListId" x
           liftBase $ log' x
       in postAsync' lId f log'')
 
@@ -212,18 +215,31 @@ postAsync' l (WithFile _ m _) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
-                   , _scst_remaining = Just 1
+                   , _scst_remaining = Just 2
                    , _scst_events    = Just []
                    }
   printDebug "New list as file" l
   _ <- setList l m
   -- printDebug "Done" r
 
-  pure JobLog { _scst_succeeded = Just 1
+  logStatus JobLog { _scst_succeeded = Just 1
+              , _scst_failed    = Just 0
+              , _scst_remaining = Just 1
+              , _scst_events    = Just []
+              }
+
+
+  corpus_node <- getNode l -- (Proxy :: Proxy HyperdataList)
+  let corpus_id = fromMaybe (panic "") (_node_parent_id corpus_node)
+  _ <- reIndexWith corpus_id l NgramsTerms (Set.fromList [MapTerm, CandidateTerm])
+
+  pure JobLog { _scst_succeeded = Just 2
               , _scst_failed    = Just 0
               , _scst_remaining = Just 0
               , _scst_events    = Just []
               }
+
+
 ------------------------------------------------------------------------
 type CSVPostAPI = Summary "Update List (legacy v3 CSV)"
         :> "csv"
@@ -275,6 +291,11 @@ csvPost l m  = do
   --printDebug "[csvPost] lst" lst
   printDebug "[csvPost] p" p
   _ <- setListNgrams l NgramsTerms p
+  printDebug "ReIndexing List" l
+  corpus_node <- getNode l -- (Proxy :: Proxy HyperdataList)
+  let corpus_id = fromMaybe (panic "") (_node_parent_id corpus_node)
+  _ <- reIndexWith corpus_id l NgramsTerms (Set.fromList [MapTerm, CandidateTerm])
+
   pure True
 
 ------------------------------------------------------------------------
