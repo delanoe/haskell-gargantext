@@ -1,3 +1,6 @@
+## Version 0.0.5.6.6
+* [BACK] CSV List post and reindex after (for both CSV and JSON)
+
 ## Version 0.0.5.6.5
 * [BACK] HAL parser with Conduit
 
