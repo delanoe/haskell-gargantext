@@ -31,10 +31,6 @@ import qualified Gargantext.Core.Text.Corpus.API.Istex   as ISTEX
 import qualified Gargantext.Core.Text.Corpus.API.Pubmed  as PUBMED
 import Servant.Client (ClientError)
 
--- | TODO put in gargantext.init
-default_limit :: Maybe Integer
-default_limit = Just 10000
-
 -- | Get External API metadata main function
 get :: ExternalAPIs
     -> Lang
@@ -42,15 +38,15 @@ get :: ExternalAPIs
     -> Maybe Limit
     -- -> IO [HyperdataDocument]
     -> IO (Either ClientError (Maybe Integer, ConduitT () HyperdataDocument IO ()))
-get PubMed  _la q _l = PUBMED.get q Nothing
+get PubMed  _la q limit = PUBMED.get q limit
   --docs <- PUBMED.get   q default_limit -- EN only by default
   --pure (Just $ fromIntegral $ length docs, yieldMany docs)
-get HAL      la q _l = HAL.getC  la q Nothing
-get IsTex    la q _l = do
-  docs <- ISTEX.get la q default_limit
+get HAL      la q limit = HAL.getC  la q limit
+get IsTex    la q limit = do
+  docs <- ISTEX.get la q limit
   pure $ Right (Just $ fromIntegral $ length docs, yieldMany docs)
-get Isidore  la q _l = do
-  docs <- ISIDORE.get la (fromIntegral <$> default_limit) (Just q) Nothing
+get Isidore  la q limit = do
+  docs <- ISIDORE.get la (fromIntegral <$> limit) (Just q) Nothing
   pure $ Right (Just $ fromIntegral $ length docs, yieldMany docs)
 get _        _  _ _ = undefined
 
