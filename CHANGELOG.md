@@ -1,3 +1,6 @@
+## Version 0.0.5.6.7
+* [BACK] fix limit with MAX_DOCS_SCRAPERS
+
 ## Version 0.0.5.6.6
 * [BACK] CSV List post and reindex after (for both CSV and JSON)
 
