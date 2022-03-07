@@ -24,6 +24,7 @@ module Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), clean, parseFile, cl
     where
 
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
+import Conduit
 import Control.Concurrent.Async as CCA (mapConcurrently)
 import Data.Attoparsec.ByteString (parseOnly, Parser)
 import Control.Monad (join)
@@ -48,7 +49,7 @@ import System.IO.Temp (emptySystemTempFile)
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Prelude
-import Gargantext.Core.Text.Corpus.Parsers.CSV (parseHal, parseHal', parseCsv, parseCsv')
+import Gargantext.Core.Text.Corpus.Parsers.CSV (parseHal, parseHal', parseCsv, parseCsv', parseCsvC)
 import Gargantext.Core.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
 -- import Gargantext.Core.Text.Learn (detectLangDefault)
 import qualified Gargantext.Core.Text.Corpus.Parsers.Date as Date
@@ -78,6 +79,28 @@ data FileFormat = WOS | RIS | RisPresse
 --                | PDF        -- Not Implemented / pdftotext and import Pandoc ?
 --                | XML        -- Not Implemented / see :
 
+parseFormatC :: FileFormat -> DB.ByteString -> IO (Either Prelude.String (ConduitT () HyperdataDocument IO ()))
+parseFormatC CsvGargV3 bs = pure $ transPipe (\d -> d) <$> parseCsvC $ DBL.fromStrict bs
+parseFormatC CsvHal    bs = pure $ transPipe pure <$> parseCsvC $ DBL.fromStrict bs
+parseFormatC RisPresse bs = do
+  docs <- snd
+          <$> enrichWith RisPresse
+          $ partitionEithers
+          $ [runParser'  RisPresse bs]
+  pure $ Right $ docs .| mapMC (toDoc RIS)
+parseFormatC WOS bs = do
+  docs <- snd
+          <$> enrichWith WOS
+          $ partitionEithers
+          $ [runParser'  WOS bs]
+  pure $ Right $ docs .| mapMC (toDoc WOS)
+parseFormatC ZIP bs = do
+  path <- emptySystemTempFile "parsed-zip"
+  DB.writeFile path bs
+  parsedZip <- withArchive path $ do
+    DM.keys <$> getEntries
+  pure $ Left $ "Not implemented for ZIP, parsedZip" <> show parsedZip
+parseFormatC _ _ = undefined
 
 parseFormat :: FileFormat -> DB.ByteString -> IO (Either Prelude.String [HyperdataDocument])
 parseFormat CsvGargV3 bs = pure $ parseCsv' $ DBL.fromStrict bs

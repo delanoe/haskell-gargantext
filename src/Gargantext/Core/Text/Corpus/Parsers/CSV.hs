@@ -14,6 +14,7 @@ CSV parser for Gargantext corpus files.
 
 module Gargantext.Core.Text.Corpus.Parsers.CSV where
 
+import Conduit
 import Control.Applicative
 import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BL
@@ -461,6 +462,16 @@ parseCsv' bs = do
       Left  _err -> readCsvLazyBS Tab bs
       Right res -> Right res
   (V.toList . V.map csv2doc . snd) <$> result
+
+parseCsvC :: BL.ByteString -> Either Prelude.String (ConduitT () HyperdataDocument Identity ())
+parseCsvC bs = do
+  let
+    result = case readCsvLazyBS Comma bs of
+      Left  _err -> readCsvLazyBS Tab bs
+      Right res -> Right res
+  case result of
+    Left err -> Left err
+    Right r -> Right $ (yieldMany $ snd r) .| mapC csv2doc
 
 ------------------------------------------------------------------------
 -- Csv v3 weighted for phylo

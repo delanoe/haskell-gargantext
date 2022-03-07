@@ -24,6 +24,7 @@ import Control.Lens hiding (elements, Empty)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import qualified Data.ByteString.Base64 as BSB64
+import Data.Conduit.Internal (zipSources)
 import Data.Either
 import Data.Maybe (fromMaybe)
 import Data.Swagger
@@ -267,13 +268,15 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
   printDebug "[addToCorpusWithForm] Parsing corpus: " cid
   printDebug "[addToCorpusWithForm] fileType" ft
   logStatus jobLog
+  limit' <- view $ hasConfig . gc_max_docs_parsers
+  let limit = fromIntegral limit'
   let
-    parse = case ft of
-      CSV_HAL   -> Parser.parseFormat Parser.CsvHal
-      CSV       -> Parser.parseFormat Parser.CsvGargV3
-      WOS       -> Parser.parseFormat Parser.WOS
-      PresseRIS -> Parser.parseFormat Parser.RisPresse
-      ZIP       -> Parser.parseFormat Parser.ZIP
+    parseC = case ft of
+      CSV_HAL   -> Parser.parseFormatC Parser.CsvHal
+      CSV       -> Parser.parseFormatC Parser.CsvGargV3
+      WOS       -> Parser.parseFormatC Parser.WOS
+      PresseRIS -> Parser.parseFormatC Parser.RisPresse
+      ZIP       -> Parser.parseFormatC Parser.ZIP
   
   -- TODO granularity of the logStatus
   let data' = case ft of
@@ -281,37 +284,36 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
           Left err -> panic $ T.pack "[addToCorpusWithForm] error decoding base64: " <> T.pack err
           Right decoded -> decoded
         _   -> cs d
-  eDocs <- liftBase $ parse data'
-  case eDocs of
-    Right docs -> do
+  eDocsC <- liftBase $ parseC data'
+  case eDocsC of
+    Right docsC -> do
       -- TODO Add progress (jobStatus) update for docs - this is a
       -- long action
 
-      limit' <- view $ hasConfig . gc_max_docs_parsers
-      let limit = fromIntegral limit'
-      if length docs > limit then do
-        printDebug "[addToCorpusWithForm] number of docs exceeds the limit" (show $ length docs)
-        let panicMsg' = [ "[addToCorpusWithForm] number of docs ("
-                        , show $ length docs
-                        , ") exceeds the MAX_DOCS_PARSERS limit ("
-                        , show limit
-                        , ")" ]
-        let panicMsg = T.concat $ T.pack <$> panicMsg'
-        logStatus $ jobLogFailTotalWithMessage panicMsg jobLog
-        panic panicMsg
-      else
-        pure ()
+      let docsC' = zipSources (yieldMany [1..]) docsC
+          .| mapMC \(idx, doc) -> do
+              if idx > limit then do
+               printDebug "[addToCorpusWithForm] number of docs exceeds the limit" (show limit)
+               let panicMsg' = [ "[addToCorpusWithForm] number of docs "
+                               , "exceeds the MAX_DOCS_PARSERS limit ("
+                               , show limit
+                               , ")" ]
+                let panicMsg = T.concat $ T.pack <$> panicMsg'
+                logStatus $ jobLogFailTotalWithMessage panicMsg jobLog
+                panic panicMsg
+              else
+                pure doc
 
-      printDebug "Parsing corpus finished : " cid
-      logStatus jobLog2
+      --printDebug "Parsing corpus finished : " cid
+      --logStatus jobLog2
 
-      printDebug "Starting extraction     : " cid
+      --printDebug "Starting extraction     : " cid
       -- TODO granularity of the logStatus
       _cid' <- flowCorpus user
                           (Right [cid])
                           (Multi $ fromMaybe EN l)
                           Nothing
-                          (Just $ fromIntegral $ length docs, yieldMany docs .| mapC toHyperdataDocument)
+                          (Just $ fromIntegral $ length docs, docsC' .| mapC toHyperdataDocument)
                           --(map (map toHyperdataDocument) docs)
                           logStatus
 
