@@ -26,6 +26,7 @@ module Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), clean, parseFile, cl
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
 import Conduit
 import Control.Concurrent.Async as CCA (mapConcurrently)
+import Control.Monad.Identity (runIdentity)
 import Data.Attoparsec.ByteString (parseOnly, Parser)
 import Control.Monad (join)
 import Data.Either(Either(..))
@@ -80,20 +81,20 @@ data FileFormat = WOS | RIS | RisPresse
 --                | XML        -- Not Implemented / see :
 
 parseFormatC :: FileFormat -> DB.ByteString -> IO (Either Prelude.String (ConduitT () HyperdataDocument IO ()))
-parseFormatC CsvGargV3 bs = pure $ transPipe (\d -> d) <$> parseCsvC $ DBL.fromStrict bs
-parseFormatC CsvHal    bs = pure $ transPipe pure <$> parseCsvC $ DBL.fromStrict bs
+parseFormatC CsvGargV3 bs = pure $ transPipe (pure . runIdentity) <$> (parseCsvC $ DBL.fromStrict bs)
+parseFormatC CsvHal    bs = pure $ transPipe (pure . runIdentity) <$> (parseCsvC $ DBL.fromStrict bs)
 parseFormatC RisPresse bs = do
   docs <- snd
           <$> enrichWith RisPresse
           $ partitionEithers
           $ [runParser'  RisPresse bs]
-  pure $ Right $ docs .| mapMC (toDoc RIS)
+  pure $ (\docs' -> yieldMany docs' .| mapMC (toDoc RIS)) <$> docs
 parseFormatC WOS bs = do
   docs <- snd
           <$> enrichWith WOS
           $ partitionEithers
           $ [runParser'  WOS bs]
-  pure $ Right $ docs .| mapMC (toDoc WOS)
+  pure $ (\docs' -> yieldMany docs' .| mapMC (toDoc WOS)) <$> docs
 parseFormatC ZIP bs = do
   path <- emptySystemTempFile "parsed-zip"
   DB.writeFile path bs
