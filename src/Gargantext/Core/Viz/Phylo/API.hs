@@ -98,14 +98,12 @@ getPhylo phyloId _lId _level _minSizeBranch = do
 
 getPhyloDataJson :: PhyloId -> GargNoServer Value
 getPhyloDataJson phyloId = do
-  maybePhyloData <- getPhyloData phyloId
-  let phyloData = fromMaybe phyloExample maybePhyloData
+  phyloData <- fromMaybe phyloExample <$> getPhyloData phyloId
   phyloJson <- liftBase $ phylo2dot2json phyloData
   pure phyloJson
 
 
-
--- getPhylo phId _lId l msb  = do
+-- getPhyloDataSVG phId _lId l msb  = do
   -- let
   --   level = fromMaybe 2 l
   --   branc = fromMaybe 2 msb
