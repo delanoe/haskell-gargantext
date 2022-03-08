@@ -1,3 +1,6 @@
+## Version 0.0.5.7
+* [FEAT] Phylo Backend/Frontend connected for tests
+
 ## Version 0.0.5.6.7
 * [BACK] fix limit with MAX_DOCS_SCRAPERS
 * [FEAT] Users Password Sugar function : in repl, runCmdReplEasy $ updateUsersPassword  ["user@mail.com"]
