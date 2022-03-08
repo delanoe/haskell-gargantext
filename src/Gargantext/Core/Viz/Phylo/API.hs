@@ -30,7 +30,8 @@ import Gargantext.Core.Viz.Phylo.Example (phyloExample)
 import Gargantext.Core.Viz.Phylo.Legacy.LegacyMain
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
-import Gargantext.Database.Query.Table.Node (insertNodes, node)
+import Gargantext.Database.Query.Table.Node (getClosestParentIdByType)
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Prelude
 import Network.HTTP.Media ((//), (/:))
 import Servant
@@ -90,7 +91,10 @@ type GetPhylo =  QueryParam "listId"      ListId
 -- Fix Filter parameters
 -- TODO fix parameters to default config that should be in Node
 getPhylo :: PhyloId -> GargServer GetPhylo
-getPhylo phyloId _lId _level _minSizeBranch = getPhyloDataJson phyloId
+getPhylo phyloId _lId _level _minSizeBranch = do
+  theData <- getPhyloDataJson phyloId
+  -- printDebug "getPhylo" theData
+  pure theData
 
 getPhyloDataJson :: PhyloId -> GargNoServer Value
 getPhyloDataJson phyloId = do
@@ -118,17 +122,19 @@ type PostPhylo =  QueryParam "listId" ListId
                -- :> ReqBody '[JSON] PhyloQueryBuild
                :> (Post '[JSON] NodeId)
 
-postPhylo :: CorpusId -> UserId -> GargServer PostPhylo
-postPhylo corpusId userId _lId = do
+postPhylo :: PhyloId -> UserId -> GargServer PostPhylo
+postPhylo phyloId _userId _lId = do
   -- TODO get Reader settings
   -- s <- ask
   -- let
     -- _vrs = Just ("1" :: Text)
     -- _sft = Just (Software "Gargantext" "4")
     -- _prm = initPhyloParam vrs sft (Just q)
-  phy <- flowPhyloAPI defaultConfig corpusId -- params
-  phyloId <- insertNodes [node NodePhylo "Phylo" (HyperdataPhylo Nothing (Just phy)) (Just corpusId) userId]
-  pure $ NodeId (fromIntegral phyloId)
+  corpusId <- getClosestParentIdByType phyloId NodeCorpus
+  phy <- flowPhyloAPI defaultConfig (fromMaybe (panic "[G.C.V.P.API] no corpus ID found") corpusId) -- params
+  -- phyloId <- insertNodes [node NodePhylo "Phylo" (HyperdataPhylo Nothing (Just phy)) (Just corpusId) userId]
+  _ <- updateHyperdata phyloId (HyperdataPhylo Nothing (Just phy))
+  pure phyloId
 
 ------------------------------------------------------------------------
 -- | DELETE Phylo == delete a node

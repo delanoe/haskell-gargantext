@@ -9,7 +9,6 @@ Portability : POSIX
 
 -}
 
-
 module Gargantext.Core.Viz.Phylo.API.Tools
   where
 

@@ -208,8 +208,8 @@ exportToDot phylo export =
         {- 1) init the dot graph -}
         graphAttrs ( [ Label (toDotLabel $ (phyloName $ getConfig phylo))]
                   <> [ FontSize 30, LabelLoc VTop, NodeSep 1, RankSep [1], Rank SameRank, Splines SplineEdges, Overlap ScaleOverlaps
-                     -- , Ratio FillRatio
-                     , Ratio AutoRatio
+                     , Ratio FillRatio
+                     -- , Ratio AutoRatio
                      , Style [SItem Filled []],Color [toWColor White]]
                   {-- home made attributes -}
                   <> [(toAttr (fromStrict "phyloFoundations") $ pack $ show (length $ Vector.toList $ getRoots phylo))
