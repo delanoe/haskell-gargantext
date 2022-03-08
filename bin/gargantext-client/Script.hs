@@ -1,12 +1,12 @@
 module Script (script) where
 
-import Control.Monad.IO.Class
-import Gargantext.API.Client
-import Servant.Client
-
 import Auth
+import Control.Monad.IO.Class
 import Core
+import Gargantext.API.Client
 import Options
+import Prelude
+import Servant.Client
 import Tracking
 
 -- | An example script. Tweak, rebuild and re-run the executable to see the

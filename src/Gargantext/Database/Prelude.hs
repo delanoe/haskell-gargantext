@@ -24,7 +24,7 @@ import Data.ByteString.Char8 (hPutStrLn)
 import Data.Either.Extra (Either)
 import Data.Pool (Pool, withResource)
 import Data.Profunctor.Product.Default (Default)
-import Data.Text (unpack, Text)
+import Data.Text (pack, unpack, Text)
 import Data.Word (Word16)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
@@ -36,7 +36,7 @@ import Opaleye (Unpackspec, showSql, FromFields, Select, runSelect, SqlJsonb, De
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
 import System.IO (stderr)
-import Text.Read (read)
+import Text.Read (readMaybe)
 import qualified Data.ByteString      as DB
 import qualified Data.List as DL
 import qualified Database.PostgreSQL.Simple as PGS
@@ -176,9 +176,13 @@ databaseParameters :: FilePath -> IO PGS.ConnectInfo
 databaseParameters fp = do
   ini <- readIniFile' fp
   let val' key = unpack $ val ini "database" key
+  let dbPortRaw = val' "DB_PORT"
+  let dbPort = case (readMaybe dbPortRaw :: Maybe Word16) of
+        Nothing -> panic $ "DB_PORT incorrect: " <> (pack dbPortRaw)
+        Just d  -> d
 
   pure $ PGS.ConnectInfo { PGS.connectHost     = val' "DB_HOST"
-                         , PGS.connectPort     = read (val' "DB_PORT") :: Word16
+                         , PGS.connectPort     = dbPort
                          , PGS.connectUser     = val' "DB_USER"
                          , PGS.connectPassword = val' "DB_PASS"
                          , PGS.connectDatabase = val' "DB_NAME"

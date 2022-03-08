@@ -69,21 +69,32 @@ api :: UserId -> NodeId -> GargServer API
 api uId nId =
   serveJobsAPI $
     JobFunction (\q log' -> do
-      documentUpload uId nId q (liftBase . log')
+      documentUploadAsync uId nId q (liftBase . log')
     )
 
-documentUpload :: (FlowCmdM env err m)
+documentUploadAsync :: (FlowCmdM env err m)
                => UserId
                -> NodeId
                -> DocumentUpload
                -> (JobLog -> m ())
                -> m JobLog
-documentUpload _uId nId doc logStatus = do
+documentUploadAsync _uId nId doc logStatus = do
   let jl = JobLog { _scst_succeeded = Just 0
                   , _scst_failed    = Just 0
                   , _scst_remaining = Just 1
                   , _scst_events    = Just [] }
   logStatus jl
+  docIds <- documentUpload nId doc
+  printDebug "documentUploadAsync" docIds
+  pure $ jobLogSuccess jl
+
+
+
+documentUpload :: (FlowCmdM env err m)
+               => NodeId
+               -> DocumentUpload
+               -> m [DocId]
+documentUpload nId doc = do
   mcId <- getClosestParentIdByType' nId NodeCorpus
   let cId = case mcId of
         Just c  -> c
@@ -116,5 +127,6 @@ documentUpload _uId nId doc logStatus = do
   
   docIds <- insertMasterDocs (Nothing :: Maybe HyperdataCorpus) (Multi EN) [hd]
   _ <- Doc.add cId docIds
+  pure docIds
 
-  pure $ jobLogSuccess jl
+

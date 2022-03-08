@@ -1,5 +1,7 @@
 module Core (problem, whenVerbose) where
 
+import Prelude
+
 import Options
 import Options.Generic
 

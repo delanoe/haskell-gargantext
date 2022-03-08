@@ -1,3 +1,16 @@
+## Version 0.0.5.6.7
+* [BACK] fix limit with MAX_DOCS_SCRAPERS
+* [FEAT] Users Password Sugar function : in repl, runCmdReplEasy $ updateUsersPassword  ["user@mail.com"]
+
+## Version 0.0.5.6.6
+* [BACK] CSV List post and reindex after (for both CSV and JSON)
+
+## Version 0.0.5.6.5
+* [BACK] HAL parser with Conduit
+
+## Version 0.0.5.6.4
+* [FRONT] Forest Tooltip + Async progress bar fix
+
 ## Version 0.0.5.6.3
 * [BACK][EXPORT][GEXF] node size
 

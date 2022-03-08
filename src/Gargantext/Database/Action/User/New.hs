@@ -27,7 +27,7 @@ import Gargantext.Database.Query.Table.User
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
 import Gargantext.Prelude.Mail.Types (MailConfig)
-------------------------------------------------------------------------
+
 ------------------------------------------------------------------------
 newUsers :: (CmdM env err m, MonadRandom m, HasNodeError err, HasMail env)
          => [EmailAddress] -> m Int64
@@ -35,6 +35,18 @@ newUsers us = do
   us' <- mapM newUserQuick us
   config <- view $ mailSettings
   newUsers' config us'
+
+------------------------------------------------------------------------
+
+updateUsersPassword :: (CmdM env err m, MonadRandom m, HasNodeError err, HasMail env)
+         => [EmailAddress] -> m Int64
+updateUsersPassword us = do
+  us' <- mapM newUserQuick us
+  config <- view $ mailSettings
+  _ <- mapM (\u -> updateUser (SendEmail True) config u) us'
+  pure 1
+
+------------------------------------------------------------------------
 ------------------------------------------------------------------------
 newUserQuick :: (MonadRandom m)
              => Text -> m (NewUser GargPassword)
@@ -44,6 +56,7 @@ newUserQuick n = do
         Just  (u', _m) -> u'
         Nothing        -> panic "[G.D.A.U.N.newUserQuick]: Email invalid"
   pure (NewUser u n (GargPassword pass))
+------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 -- | guessUserName
@@ -68,7 +81,6 @@ newUsers' cfg us = do
   printDebug "newUsers'" us
   pure r
 ------------------------------------------------------------------------
-
 updateUser :: HasNodeError err
            => SendEmail -> MailConfig -> NewUser GargPassword -> Cmd err Int64
 updateUser (SendEmail send) cfg u = do
