@@ -17,7 +17,7 @@ import GHC.Generics (Generic)
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 
-import qualified Prelude as Prelude
+import qualified Prelude
 import Protolude (catMaybes, encodeUtf8, rightToMaybe, Text)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config

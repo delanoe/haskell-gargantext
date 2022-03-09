@@ -43,14 +43,14 @@ import Gargantext.Prelude
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs, ScraperEvent(..), scst_events)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Job (addEvent, jobLogSuccess, jobLogFailTotal, jobLogFailTotalWithMessage)
-import Gargantext.API.Node.Corpus.New.File
+import Gargantext.API.Node.Corpus.New.Types
 import Gargantext.API.Node.Corpus.Searx
 import Gargantext.API.Node.Corpus.Types
 import Gargantext.API.Node.Types
 import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Text.List.Social (FlowSocialListWith(..))
 import qualified Gargantext.Core.Text.Corpus.API as API
-import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
+import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileFormat(..), FileType(..), parseFormatC)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow (flowCorpus, getDataText, flowDataText, TermType(..){-, allDataOrigins-})
@@ -264,9 +264,10 @@ addToCorpusWithForm :: (FlowCmdM env err m)
                     -> (JobLog -> m ())
                     -> JobLog
                     -> m JobLog
-addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
+addToCorpusWithForm user cid (NewWithForm ft ff d l _n) logStatus jobLog = do
   printDebug "[addToCorpusWithForm] Parsing corpus: " cid
   printDebug "[addToCorpusWithForm] fileType" ft
+  printDebug "[addToCorpusWithForm] fileFormat" ff
   logStatus jobLog
   limit' <- view $ hasConfig . gc_max_docs_parsers
   let limit = fromIntegral limit'
@@ -276,33 +277,33 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
       CSV       -> Parser.parseFormatC Parser.CsvGargV3
       WOS       -> Parser.parseFormatC Parser.WOS
       PresseRIS -> Parser.parseFormatC Parser.RisPresse
-      ZIP       -> Parser.parseFormatC Parser.ZIP
   
   -- TODO granularity of the logStatus
-  let data' = case ft of
-        ZIP -> case BSB64.decode $ TE.encodeUtf8 d of
+  let data' = case ff of
+        Plain -> cs d
+        ZIP   -> case BSB64.decode $ TE.encodeUtf8 d of
           Left err -> panic $ T.pack "[addToCorpusWithForm] error decoding base64: " <> T.pack err
           Right decoded -> decoded
-        _   -> cs d
-  eDocsC <- liftBase $ parseC data'
+  eDocsC <- liftBase $ parseC ff data'
   case eDocsC of
     Right docsC -> do
       -- TODO Add progress (jobStatus) update for docs - this is a
       -- long action
 
       let docsC' = zipSources (yieldMany [1..]) docsC
-          .| mapMC \(idx, doc) -> do
-              if idx > limit then do
-               printDebug "[addToCorpusWithForm] number of docs exceeds the limit" (show limit)
-               let panicMsg' = [ "[addToCorpusWithForm] number of docs "
-                               , "exceeds the MAX_DOCS_PARSERS limit ("
-                               , show limit
-                               , ")" ]
-                let panicMsg = T.concat $ T.pack <$> panicMsg'
-                logStatus $ jobLogFailTotalWithMessage panicMsg jobLog
-                panic panicMsg
-              else
-                pure doc
+                  .| mapMC (\(idx, doc) ->
+                        if idx > limit then do
+                          --printDebug "[addToCorpusWithForm] number of docs exceeds the limit" (show limit)
+                          let panicMsg' = [ "[addToCorpusWithForm] number of docs "
+                                          , "exceeds the MAX_DOCS_PARSERS limit ("
+                                          , show limit
+                                          , ")" ]
+                          let panicMsg = T.concat $ T.pack <$> panicMsg'
+                          --logStatus $ jobLogFailTotalWithMessage panicMsg jobLog
+                          panic panicMsg
+                        else
+                          pure doc)
+                  .| mapC toHyperdataDocument
 
       --printDebug "Parsing corpus finished : " cid
       --logStatus jobLog2
@@ -313,16 +314,18 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus jobLog = do
                           (Right [cid])
                           (Multi $ fromMaybe EN l)
                           Nothing
-                          (Just $ fromIntegral $ length docs, docsC' .| mapC toHyperdataDocument)
+                          --(Just $ fromIntegral $ length docs, docsC')
+                          (Just 0, docsC') -- TODO fix number of docs
                           --(map (map toHyperdataDocument) docs)
-                          logStatus
+                          (logStatus)
 
       printDebug "Extraction finished   : " cid
       printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
-      sendMail user
+      -- TODO uncomment this
+      --sendMail user
 
       logStatus jobLog3
-      pure $ jobLog3
+      pure jobLog3
     Left e -> do
       printDebug "[addToCorpusWithForm] parse error" e
 

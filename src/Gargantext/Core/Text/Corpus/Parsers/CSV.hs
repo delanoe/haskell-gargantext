@@ -29,7 +29,7 @@ import Data.Vector (Vector)
 import GHC.IO (FilePath)
 import GHC.Word (Word8)
 
-import qualified Prelude as Prelude
+import qualified Prelude
 
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Prelude hiding (length)
