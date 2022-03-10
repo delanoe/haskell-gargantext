@@ -1,3 +1,6 @@
+## Version 0.0.5.7.2
+* [FIX] Phylo default parameters on frontend side
+
 ## Version 0.0.5.7.1
 * [FIX] Phylo error findBounds fixed
 
