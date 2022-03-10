@@ -121,14 +121,14 @@ context2phyloDocument :: TimeUnit
 context2phyloDocument timeUnit context (ngs_terms, ngs_sources) = do
   let contextId = _context_id context
   (date, date') <- context2date context timeUnit
-  text          <- Map.lookup contextId ngs_terms
-  sources       <- Map.lookup contextId ngs_sources
-  pure $ Document date date'
-                  (toText text)
-                   Nothing
-                  (toText sources)
-    where
-      toText x = Set.toList $ Set.map unNgramsTerm x
+
+  let
+    toText x = Set.toList $ Set.map unNgramsTerm x
+
+    text'    = maybe [] toText $ Map.lookup contextId ngs_terms
+    sources' = maybe [] toText $ Map.lookup contextId ngs_sources
+
+  pure $ Document date date' text' Nothing sources'
 
 
 context2date :: Context HyperdataDocument -> TimeUnit -> Maybe (Date, Text)
