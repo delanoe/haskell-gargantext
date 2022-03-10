@@ -42,7 +42,7 @@ import Gargantext.Prelude
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs, ScraperEvent(..), scst_events)
 import Gargantext.API.Admin.Types (HasSettings)
-import Gargantext.API.Job (addEvent, jobLogSuccess, jobLogFailTotal, jobLogFailTotalWithMessage)
+import Gargantext.API.Job (addEvent, jobLogSuccess, jobLogFailTotal)
 import Gargantext.API.Node.Corpus.New.Types
 import Gargantext.API.Node.Corpus.Searx
 import Gargantext.API.Node.Corpus.Types
@@ -50,7 +50,7 @@ import Gargantext.API.Node.Types
 import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Text.List.Social (FlowSocialListWith(..))
 import qualified Gargantext.Core.Text.Corpus.API as API
-import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileFormat(..), FileType(..), parseFormatC)
+import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileType(..), parseFormatC)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow (flowCorpus, getDataText, flowDataText, TermType(..){-, allDataOrigins-})
@@ -270,7 +270,7 @@ addToCorpusWithForm user cid (NewWithForm ft ff d l _n) logStatus jobLog = do
   printDebug "[addToCorpusWithForm] fileFormat" ff
   logStatus jobLog
   limit' <- view $ hasConfig . gc_max_docs_parsers
-  let limit = fromIntegral limit'
+  let limit = fromIntegral limit' :: Integer
   let
     parseC = case ft of
       CSV_HAL   -> Parser.parseFormatC Parser.CsvHal
@@ -315,7 +315,7 @@ addToCorpusWithForm user cid (NewWithForm ft ff d l _n) logStatus jobLog = do
                           (Multi $ fromMaybe EN l)
                           Nothing
                           --(Just $ fromIntegral $ length docs, docsC')
-                          (Just 0, docsC') -- TODO fix number of docs
+                          (Just 0, transPipe liftBase docsC') -- TODO fix number of docs
                           --(map (map toHyperdataDocument) docs)
                           (logStatus)
 

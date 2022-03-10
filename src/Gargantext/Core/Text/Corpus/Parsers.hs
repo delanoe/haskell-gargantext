@@ -35,7 +35,7 @@ import Data.List (concat, lookup)
 import Data.Ord()
 import Data.String (String())
 import Data.String()
-import Data.Text (Text)
+import Data.Text (Text, intercalate, pack, unpack)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Tuple.Extra (both, first, second)
 import System.FilePath (FilePath(), takeExtension)
@@ -70,8 +70,7 @@ type ParseError = String
 
 -- | According to the format of Input file,
 -- different parser are available.
-data FileType = WOS | RIS | RisPresse
-                | CsvGargV3 | CsvHal
+data FileType = WOS | RIS | RisPresse | CsvGargV3 | CsvHal
   deriving (Show)
 
 -- Implemented (ISI Format)
@@ -96,12 +95,24 @@ parseFormatC WOS Plain bs = do
                   .| mapC (map $ first WOS.keys)
                   .| mapC (map $ both decodeUtf8)
                   .| mapMC (toDoc WOS)) <$> eDocs
-parseFormatC _ft ZIP bs = do
+parseFormatC ft ZIP bs = do
   path <- liftBase $ emptySystemTempFile "parsed-zip"
   liftBase $ DB.writeFile path bs
-  parsedZip <- liftBase $ withArchive path $ do
-    DM.keys <$> getEntries
-  pure $ Left $ "Not implemented for ZIP, parsedZip" <> show parsedZip
+  fileContents <- liftBase $ withArchive path $ do
+    files <- DM.keys <$> getEntries
+    mapM getEntry files
+  --printDebug "[parseFormatC] fileContents" fileContents
+  eContents <- mapM (parseFormatC ft Plain) fileContents
+  --printDebug "[parseFormatC] contents" contents
+  --pure $ Left $ "Not implemented for ZIP"
+  let (errs, contents) = partitionEithers eContents
+  case errs of
+    [] ->
+      case contents of
+        [] -> pure $ Left "No files in zip"
+        _  -> pure $ Right $ ( sequenceConduits contents >> pure () ) -- .| mapM_C (printDebug "[parseFormatC] doc")
+    _ -> pure $ Left $ unpack $ intercalate "\n" $ pack <$> errs
+  
 parseFormatC _ _ _ = undefined
 
 -- parseFormat :: FileType -> DB.ByteString -> IO (Either Prelude.String [HyperdataDocument])

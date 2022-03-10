@@ -30,7 +30,7 @@ import GHC.IO (FilePath)
 import Gargantext.API.Ngrams.Prelude (toTermList)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Text.Context (TermList)
-import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)
+import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), FileType(..), parseFile)
 import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year, csv_publication_month, csv_publication_day, csv'_source, csv'_title, csv'_abstract, csv'_publication_year, csv'_publication_month, csv'_publication_day, csv'_weight)
 import Gargantext.Core.Text.List.Formats.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
@@ -94,7 +94,7 @@ wosToDocs limit patterns time path = do
         <$> mapConcurrently (\file ->
               filter (\d -> (isJust $ _hd_publication_year d)
                          && (isJust $ _hd_title d))
-                <$> fromRight [] <$> parseFile WOS (path <> file) ) files
+                <$> fromRight [] <$> parseFile WOS Plain (path <> file) ) files
 
 
 -- To transform a Csv file into a list of Document
