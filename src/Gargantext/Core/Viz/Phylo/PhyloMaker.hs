@@ -8,9 +8,7 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-
 module Gargantext.Core.Viz.Phylo.PhyloMaker where
-
 
 import Control.DeepSeq (NFData)
 import Control.Lens hiding (Level)

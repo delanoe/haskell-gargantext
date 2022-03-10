@@ -140,6 +140,7 @@ periodsToYears periods = (Set.fromList . sort . concat)
 
 
 findBounds :: [Date] -> (Date,Date)
+findBounds [] = panic "[G.C.V.P.PhyloTools] nod Dates for find bounds"
 findBounds dates =
     let dates' = sort dates
     in  (head' "findBounds" dates', last' "findBounds" dates')

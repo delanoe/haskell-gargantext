@@ -95,7 +95,6 @@ flowPhyloAPI config cId = do
 corpusIdtoDocuments :: TimeUnit -> CorpusId -> GargNoServer (TermList, [Document])
 corpusIdtoDocuments timeUnit corpusId = do
   docs <- selectDocNodes corpusId
-
   lId  <- defaultList corpusId
   repo <- getRepo' [lId]
 
@@ -104,15 +103,16 @@ corpusIdtoDocuments timeUnit corpusId = do
 
   termList <- getTermList lId MapTerm NgramsTerms
 
-  case termList of
-    Nothing        -> panic "[G.C.V.Phylo.API] no termList found"
-    Just termList' -> pure (termList', docs')
-      where
-        docs' = catMaybes
+  let docs'= catMaybes
            $ List.map (\doc
                         -> context2phyloDocument timeUnit doc (ngs_terms, ngs_sources)
                       ) docs
 
+  printDebug "corpusIdtoDocuments" (Prelude.map date docs')
+
+  case termList of
+    Nothing        -> panic "[G.C.V.Phylo.API] no termList found"
+    Just termList' -> pure (termList', docs')
 
 context2phyloDocument :: TimeUnit
                       -> Context HyperdataDocument
