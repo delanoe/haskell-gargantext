@@ -1,3 +1,6 @@
+## Version 0.0.5.7.1
+* [FIX] Phylo error findBounds fixed
+
 ## Version 0.0.5.7
 * [FEAT] Phylo Backend/Frontend connected for tests
 
