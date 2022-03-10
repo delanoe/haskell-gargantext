@@ -19,7 +19,7 @@ import qualified Data.Set    as S
 import qualified Data.List   as DL
 import qualified Data.Vector as DV
 import qualified Data.Map    as M
-import qualified Prelude     as Prelude
+import qualified Prelude
 
 import Gargantext.Prelude
 

@@ -38,7 +38,7 @@ import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Query.Tree
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Prelude
-import qualified Prelude as Prelude
+import qualified Prelude
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

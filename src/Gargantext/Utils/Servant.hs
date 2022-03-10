@@ -3,7 +3,7 @@ module Gargantext.Utils.Servant where
 import qualified Data.ByteString.Lazy.Char8 as BSC
 import Data.Csv (encodeDefaultOrderedByName, DefaultOrdered, ToNamedRecord)
 import Network.HTTP.Media ((//), (/:))
-import qualified Prelude as Prelude
+import qualified Prelude
 import Protolude
 import Protolude.Partial (read)
 import Servant

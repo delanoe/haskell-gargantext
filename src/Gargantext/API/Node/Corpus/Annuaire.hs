@@ -25,7 +25,7 @@ import Servant.Job.Types
 import Servant.Job.Utils (jsonOptions)
 import Web.FormUrlEncoded (FromForm)
 
-import qualified Gargantext.API.Node.Corpus.New.File as NewFile
+import qualified Gargantext.API.Node.Corpus.New.Types as NewTypes
 import Gargantext.API.Admin.Orchestrator.Types hiding (AsyncJobs)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
@@ -40,7 +40,7 @@ type Api = Summary "New Annuaire endpoint"
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 data AnnuaireWithForm = AnnuaireWithForm
-  { _wf_filetype :: !NewFile.FileType
+  { _wf_filetype :: !NewTypes.FileType
   , _wf_data     :: !Text
   , _wf_lang     :: !(Maybe Lang)
   } deriving (Eq, Show, Generic)

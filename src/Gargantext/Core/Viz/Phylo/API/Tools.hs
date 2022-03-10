@@ -41,7 +41,7 @@ import Gargantext.Database.Schema.Context
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
-import Prelude             as Prelude
+import Prelude
 import System.Process      as Shell
 import qualified Data.ByteString.Lazy                    as Lazy
 import qualified Data.List as List

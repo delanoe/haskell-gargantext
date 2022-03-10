@@ -14,7 +14,7 @@ import Web.FormUrlEncoded (FromForm, ToForm)
 import Protolude
 
 import Gargantext.API.Ngrams.Types (NgramsList)
-import Gargantext.API.Node.Corpus.New.File (FileType(..))
+import Gargantext.API.Node.Corpus.New.Types (FileType(..))
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 
 ------------------------------------------------------------------------

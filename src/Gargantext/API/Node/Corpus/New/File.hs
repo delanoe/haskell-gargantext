@@ -20,19 +20,16 @@ module Gargantext.API.Node.Corpus.New.File
 
 import Control.Lens ((.~), (?~))
 import Control.Monad (forM)
-import Data.Aeson
 import Data.Maybe
 import Data.Monoid (mempty)
 import Data.Swagger
 import Data.Text (Text())
-import GHC.Generics (Generic)
 
 import Servant
 import Servant.Multipart
 import Servant.Swagger.Internal
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
+import Gargantext.API.Node.Corpus.New.Types
 import Gargantext.Core.Types (TODO)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
@@ -41,37 +38,8 @@ import Gargantext.Prelude.Crypto.Hash (hash)
 
 -------------------------------------------------------------
 type Hash = Text
-data FileType = CSV
-              | CSV_HAL
-              | PresseRIS
-              | WOS
-              | ZIP
-  deriving (Eq, Show, Generic)
-
-instance ToSchema FileType
-instance Arbitrary FileType where arbitrary = elements [CSV, PresseRIS]
-instance ToParamSchema FileType
-
-instance FromJSON FileType
-instance ToJSON FileType
 
 instance ToParamSchema (MultipartData Mem) where toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
-
-instance FromHttpApiData FileType
-  where
-    parseUrlPiece "CSV"       = pure CSV
-    parseUrlPiece "CSV_HAL"   = pure CSV_HAL
-    parseUrlPiece "PresseRis" = pure PresseRIS
-    parseUrlPiece "ZIP"       = pure ZIP
-    parseUrlPiece "WOS"       = pure WOS
-    parseUrlPiece _           = pure CSV -- TODO error here
-instance ToHttpApiData FileType where
-  toUrlPiece t = case t of
-    CSV -> "CSV"
-    CSV_HAL -> "CSV_HAL"
-    PresseRIS -> "PresseRis"
-    ZIP -> "ZIP"
-    WOS -> "WOS"
 
 instance (ToParamSchema a, HasSwagger sub) =>
          HasSwagger (MultipartForm tag a :> sub) where
@@ -89,6 +57,7 @@ instance (ToParamSchema a, HasSwagger sub) =>
 
 type WithUpload' = Summary "Upload file(s) to a corpus"
                 :> QueryParam "fileType"  FileType
+                :> QueryParam "fileFormat" FileFormat
                 :> MultipartForm Mem (MultipartData Mem)
                 :> Post '[JSON] [Hash]
 
@@ -96,11 +65,14 @@ type WithUpload' = Summary "Upload file(s) to a corpus"
 --postUpload :: NodeId -> GargServer UploadAPI
 postUpload :: NodeId
            -> Maybe FileType
+           -> Maybe FileFormat
            -> MultipartData Mem
            -> Cmd err [Hash]
-postUpload _ Nothing _ = panic "fileType is a required parameter"
-postUpload _ (Just fileType) multipartData = do
+postUpload _ Nothing _ _ = panic "fileType is a required parameter"
+postUpload _ _ Nothing _ = panic "fileFormat is a required parameter"
+postUpload _ (Just fileType) (Just fileFormat) multipartData = do
   printDebug "File Type: " fileType
+  printDebug "File format: " fileFormat
   is <- liftBase $ do
     printDebug "Inputs:" ()
     forM (inputs multipartData) $ \input -> do

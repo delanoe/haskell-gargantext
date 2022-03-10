@@ -74,7 +74,7 @@ import Gargantext.Core.Ext.IMT (toSchoolName)
 import Gargantext.Core.Ext.IMTUser (readFile_Annuaire)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
-import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
+import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat, FileType)
 import Gargantext.Core.Text.List (buildNgramsLists)
 import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
 import Gargantext.Core.Text.List.Social (FlowSocialListWith)
@@ -106,7 +106,7 @@ import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
 import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
-import qualified Prelude as Prelude
+import qualified Prelude
 
 ------------------------------------------------------------------------
 -- Imports for upgrade function
@@ -189,18 +189,21 @@ flowCorpusFile :: (FlowCmdM env err m)
            => User
            -> Either CorpusName [CorpusId]
            -> Limit -- Limit the number of docs (for dev purpose)
-           -> TermType Lang -> FileFormat -> FilePath
+           -> TermType Lang
+           -> FileType
+           -> FileFormat
+           -> FilePath
            -> Maybe FlowSocialListWith
            -> (JobLog -> m ())
            -> m CorpusId
-flowCorpusFile u n _l la ff fp mfslw logStatus = do
-  eParsed <- liftBase $ parseFile ff fp
+flowCorpusFile u n _l la ft ff fp mfslw logStatus = do
+  eParsed <- liftBase $ parseFile ft ff fp
   case eParsed of
     Right parsed -> do
       flowCorpus u n la mfslw (Just $ fromIntegral $ length parsed, yieldMany parsed .| mapC toHyperdataDocument) logStatus
       --let docs = splitEvery 500 $ take l parsed
       --flowCorpus u n la mfslw (yieldMany $ map (map toHyperdataDocument) docs) logStatus
-    Left e       -> panic $ "Error: " <> (T.pack e)
+    Left e       -> panic $ "Error: " <> T.pack e
 
 ------------------------------------------------------------------------
 -- | TODO improve the needed type to create/update a corpus

@@ -35,7 +35,7 @@ import Gargantext.Database.Admin.Types.Hyperdata (toHyperdataDocument)
 import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Prelude
-import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..))
+import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), FileType(..))
 
 main :: IO ()
 main = do
@@ -51,10 +51,10 @@ main = do
       Nothing -> panic $ "Cannot read limit: " <> (Text.pack limit)
       Just l  -> l
     corpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    corpus = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) limit' tt  format corpusPath Nothing (\_ -> pure ())
+    corpus = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) limit' tt  format Plain corpusPath Nothing (\_ -> pure ())
 
     corpusCsvHal :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    corpusCsvHal = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) limit' tt CsvHal corpusPath Nothing (\_ -> pure ())
+    corpusCsvHal = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) limit' tt CsvHal Plain corpusPath Nothing (\_ -> pure ())
 
     annuaire :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
     annuaire = flowAnnuaire (UserName $ cs user) (Left "Annuaire") (Multi EN) corpusPath (\_ -> pure ())

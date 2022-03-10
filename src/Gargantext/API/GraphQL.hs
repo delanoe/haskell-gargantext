@@ -42,7 +42,7 @@ import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Prelude
 import GHC.Generics (Generic)
 import Network.HTTP.Media ((//), (/:))
-import qualified Prelude as Prelude
+import qualified Prelude
 import Servant
   ( (:<|>) (..)
   , (:>)

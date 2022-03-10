@@ -20,20 +20,22 @@ please follow the types.
 
 {-# LANGUAGE PackageImports    #-}
 
-module Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), clean, parseFile, cleanText, parseFormat)
+module Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), FileType(..), clean, parseFile, cleanText, parseFormatC)
     where
 
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
+import Conduit
 import Control.Concurrent.Async as CCA (mapConcurrently)
-import Data.Attoparsec.ByteString (parseOnly, Parser)
+import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad (join)
+import Data.Attoparsec.ByteString (parseOnly, Parser)
 import Data.Either(Either(..))
 import Data.Either.Extra (partitionEithers)
 import Data.List (concat, lookup)
 import Data.Ord()
 import Data.String (String())
 import Data.String()
-import Data.Text (Text)
+import Data.Text (Text, intercalate, pack, unpack)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Tuple.Extra (both, first, second)
 import System.FilePath (FilePath(), takeExtension)
@@ -42,13 +44,14 @@ import qualified Data.ByteString.Char8 as DBC
 import qualified Data.ByteString.Lazy  as DBL
 import qualified Data.Map              as DM
 import qualified Data.Text             as DT
-import qualified Prelude as Prelude
+import qualified Prelude
 import System.IO.Temp (emptySystemTempFile)
 
+import Gargantext.API.Node.Corpus.New.Types (FileFormat(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Prelude
-import Gargantext.Core.Text.Corpus.Parsers.CSV (parseHal, parseHal', parseCsv, parseCsv')
+import Gargantext.Core.Text.Corpus.Parsers.CSV (parseHal, parseCsv, parseCsvC)
 import Gargantext.Core.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
 -- import Gargantext.Core.Text.Learn (detectLangDefault)
 import qualified Gargantext.Core.Text.Corpus.Parsers.Date as Date
@@ -67,9 +70,7 @@ type ParseError = String
 
 -- | According to the format of Input file,
 -- different parser are available.
-data FileFormat = WOS | RIS | RisPresse
-                | CsvGargV3 | CsvHal
-                | ZIP
+data FileType = WOS | RIS | RisPresse | CsvGargV3 | CsvHal
   deriving (Show)
 
 -- Implemented (ISI Format)
@@ -78,49 +79,84 @@ data FileFormat = WOS | RIS | RisPresse
 --                | PDF        -- Not Implemented / pdftotext and import Pandoc ?
 --                | XML        -- Not Implemented / see :
 
+parseFormatC :: MonadBaseControl IO m => FileType -> FileFormat -> DB.ByteString -> m (Either Prelude.String (ConduitT () HyperdataDocument IO ()))
+parseFormatC CsvGargV3 Plain bs = pure $ transPipe (pure . runIdentity) <$> (parseCsvC $ DBL.fromStrict bs)
+parseFormatC CsvHal    Plain bs = pure $ transPipe (pure . runIdentity) <$> (parseCsvC $ DBL.fromStrict bs)
+parseFormatC RisPresse Plain bs = do
+  --docs <- enrichWith RisPresse
+  let eDocs = runParser' RisPresse bs
+  pure $ (\docs -> yieldMany docs
+                  .| mapC presseEnrich
+                  .| mapC (map $ both decodeUtf8)
+                  .| mapMC (toDoc RIS)) <$> eDocs
+parseFormatC WOS Plain bs = do
+  let eDocs = runParser' WOS bs
+  pure $ (\docs -> yieldMany docs
+                  .| mapC (map $ first WOS.keys)
+                  .| mapC (map $ both decodeUtf8)
+                  .| mapMC (toDoc WOS)) <$> eDocs
+parseFormatC ft ZIP bs = do
+  path <- liftBase $ emptySystemTempFile "parsed-zip"
+  liftBase $ DB.writeFile path bs
+  fileContents <- liftBase $ withArchive path $ do
+    files <- DM.keys <$> getEntries
+    mapM getEntry files
+  --printDebug "[parseFormatC] fileContents" fileContents
+  eContents <- mapM (parseFormatC ft Plain) fileContents
+  --printDebug "[parseFormatC] contents" contents
+  --pure $ Left $ "Not implemented for ZIP"
+  let (errs, contents) = partitionEithers eContents
+  case errs of
+    [] ->
+      case contents of
+        [] -> pure $ Left "No files in zip"
+        _  -> pure $ Right $ ( sequenceConduits contents >> pure () ) -- .| mapM_C (printDebug "[parseFormatC] doc")
+    _ -> pure $ Left $ unpack $ intercalate "\n" $ pack <$> errs
+  
+parseFormatC _ _ _ = undefined
 
-parseFormat :: FileFormat -> DB.ByteString -> IO (Either Prelude.String [HyperdataDocument])
-parseFormat CsvGargV3 bs = pure $ parseCsv' $ DBL.fromStrict bs
-parseFormat CsvHal    bs = pure $ parseHal' $ DBL.fromStrict bs
-parseFormat RisPresse bs = do
-  docs <- mapM (toDoc RIS)
-          <$> snd
-          <$> enrichWith RisPresse
-          $ partitionEithers
-          $ [runParser'  RisPresse bs]
-  pure $ Right docs
-parseFormat WOS bs = do
-  docs <- mapM (toDoc WOS)
-          <$> snd
-          <$> enrichWith WOS
-          $ partitionEithers
-          $ [runParser'  WOS bs]
-  pure $ Right docs
-parseFormat ZIP bs = do
-  path <- emptySystemTempFile "parsed-zip"
-  DB.writeFile path bs
-  parsedZip <- withArchive path $ do
-    DM.keys <$> getEntries
-  pure $ Left $ "Not implemented for ZIP, parsedZip" <> show parsedZip
-parseFormat _ _ = undefined
+-- parseFormat :: FileType -> DB.ByteString -> IO (Either Prelude.String [HyperdataDocument])
+-- parseFormat CsvGargV3 bs = pure $ parseCsv' $ DBL.fromStrict bs
+-- parseFormat CsvHal    bs = pure $ parseHal' $ DBL.fromStrict bs
+-- parseFormat RisPresse bs = do
+--   docs <- mapM (toDoc RIS)
+--           <$> snd
+--           <$> enrichWith RisPresse
+--           $ partitionEithers
+--           $ [runParser'  RisPresse bs]
+--   pure $ Right docs
+-- parseFormat WOS bs = do
+--   docs <- mapM (toDoc WOS)
+--           <$> snd
+--           <$> enrichWith WOS
+--           $ partitionEithers
+--           $ [runParser'  WOS bs]
+--   pure $ Right docs
+-- parseFormat ZIP bs = do
+--   path <- emptySystemTempFile "parsed-zip"
+--   DB.writeFile path bs
+--   parsedZip <- withArchive path $ do
+--     DM.keys <$> getEntries
+--   pure $ Left $ "Not implemented for ZIP, parsedZip" <> show parsedZip
+-- parseFormat _ _ = undefined
 
 -- | Parse file into documents
 -- TODO manage errors here
 -- TODO: to debug maybe add the filepath in error message
-parseFile :: FileFormat -> FilePath -> IO (Either Prelude.String [HyperdataDocument])
-parseFile CsvHal    p = parseHal p
-parseFile CsvGargV3 p = parseCsv p
-parseFile RisPresse p = do
+parseFile :: FileType -> FileFormat -> FilePath -> IO (Either Prelude.String [HyperdataDocument])
+parseFile CsvHal    Plain p = parseHal p
+parseFile CsvGargV3 Plain p = parseCsv p
+parseFile RisPresse Plain p = do
   docs <- join $ mapM (toDoc RIS) <$> snd <$> enrichWith RisPresse <$> readFileWith RIS p
   pure $ Right docs
-parseFile WOS       p = do
+parseFile WOS       Plain p = do
   docs <- join $ mapM (toDoc WOS) <$> snd <$> enrichWith WOS       <$> readFileWith WOS p
   pure $ Right docs
-parseFile ff        p = do
+parseFile ff        _ p = do
   docs <- join $ mapM (toDoc ff)  <$> snd <$> enrichWith ff        <$> readFileWith ff  p
   pure $ Right docs
 
-toDoc :: FileFormat -> [(Text, Text)] -> IO HyperdataDocument
+toDoc :: FileType -> [(Text, Text)] -> IO HyperdataDocument
 -- TODO use language for RIS
 toDoc ff d = do
       -- let abstract = lookup "abstract" d
@@ -150,7 +186,7 @@ toDoc ff d = do
                                , _hd_publication_second = Nothing
                                , _hd_language_iso2 = Just $ (DT.pack . show) lang }
 
-enrichWith :: FileFormat
+enrichWith :: FileType
            ->  (a, [[[(DB.ByteString, DB.ByteString)]]]) -> (a, [[(Text, Text)]])
 enrichWith RisPresse = enrichWith' presseEnrich
 enrichWith WOS       = enrichWith' (map (first WOS.keys))
@@ -165,7 +201,7 @@ enrichWith' f = second (map both' . map f . concat)
 
 
 
-readFileWith :: FileFormat -> FilePath
+readFileWith :: FileType -> FilePath
        -> IO ([ParseError], [[[(DB.ByteString, DB.ByteString)]]])
 readFileWith format path = do
     files <- case takeExtension path of
@@ -176,19 +212,19 @@ readFileWith format path = do
 
 -- | withParser:
 -- According to the format of the text, choose the right parser.
--- TODO  withParser :: FileFormat -> Parser [Document]
-withParser :: FileFormat -> Parser [[(DB.ByteString, DB.ByteString)]]
+-- TODO  withParser :: FileType -> Parser [Document]
+withParser :: FileType -> Parser [[(DB.ByteString, DB.ByteString)]]
 withParser WOS = WOS.parser
 withParser RIS = RIS.parser
 --withParser ODT = odtParser
 --withParser XML = xmlParser
 withParser _   = panic "[ERROR] Parser not implemented yet"
 
-runParser :: FileFormat -> DB.ByteString
+runParser :: FileType -> DB.ByteString
           -> IO (Either String [[(DB.ByteString, DB.ByteString)]])
 runParser format text = pure $ runParser' format text
 
-runParser' :: FileFormat -> DB.ByteString
+runParser' :: FileType -> DB.ByteString
           -> (Either String [[(DB.ByteString, DB.ByteString)]])
 runParser' format text = parseOnly (withParser format) text
 

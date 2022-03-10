@@ -58,7 +58,7 @@ import qualified Data.Map            as Map
 import qualified Data.Set            as Set
 import qualified Data.Text           as Text
 import qualified Data.Vector         as Vec
-import qualified Prelude             as Prelude
+import qualified Prelude
 import qualified Protolude           as P
 ------------------------------------------------------------------------
 type GETAPI = Summary "Get List"
