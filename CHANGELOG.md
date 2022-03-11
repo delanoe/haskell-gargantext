@@ -1,3 +1,7 @@
+## Version 0.0.5.7.3
+* [OPTIM] HAL and PubMed parsers with Conduit
+* [BACK] Zip files added
+
 ## Version 0.0.5.7.2
 * [FIX] Phylo default parameters on frontend side
 
