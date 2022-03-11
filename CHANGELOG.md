@@ -1,3 +1,6 @@
+## Version 0.0.5.7.4
+* [FIX] User Page info get/update/security
+
 ## Version 0.0.5.7.3
 * [OPTIM] HAL and PubMed parsers with Conduit
 * [BACK] Zip files added
