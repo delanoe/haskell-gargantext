@@ -26,7 +26,7 @@ import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.User
 import Gargantext.Database.Query.Table.User
 
-selectNodesWithUsername :: HasDBid NodeType => NodeType -> Username -> Cmd err [NodeId]
+selectNodesWithUsername :: NodeType -> Username -> Cmd err [NodeId]
 selectNodesWithUsername nt u = runOpaQuery (q u)
   where
     q u' = proc () -> do

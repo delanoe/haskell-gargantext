@@ -35,7 +35,7 @@ withAuthToken opts act
           maybe "" (show . Auth._authInv_message)
                    (Auth._authRes_inval authRes)
         -- authentication went through, we can run the action
-        Just (Auth.AuthValid tok tree_id) -> do
+        Just (Auth.AuthValid tok tree_id _uid) -> do
           let tok' = SA.Token (encodeUtf8 tok)
           whenVerbose opts $ do
             liftIO . putStrLn $ "[Debug] Authenticated: token=" ++ show tok ++

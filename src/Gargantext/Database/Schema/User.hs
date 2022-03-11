@@ -25,6 +25,7 @@ import Data.Text (Text)
 import Data.Time (UTCTime)
 import qualified Gargantext.API.GraphQL.Utils as GAGU
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Types.Individu (GargPassword, toGargPassword)
 import Gargantext.Database.Prelude (fromField')
 import Gargantext.Prelude
 import GHC.Generics (Generic)
@@ -43,14 +44,14 @@ import Opaleye.Internal.Table (Table(..))
 data UserLight = UserLight { userLight_id       :: !Int
                            , userLight_username :: !Text
                            , userLight_email    :: !Text
-                           , userLight_password :: !Text
+                           , userLight_password :: !GargPassword
                            } deriving (Show, Generic)
 
 instance GQLType UserLight where
   typeOptions _ = GAGU.unPrefix "userLight_"
 
 toUserLight :: UserDB -> UserLight
-toUserLight (UserDB id p _ _ u _ _ e _ _ _ ) = UserLight id u e p
+toUserLight (UserDB id p _ _ u _ _ e _ _ _ ) = UserLight id u e (toGargPassword p)
 
 
 data UserPoly id pass llogin suser

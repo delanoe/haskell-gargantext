@@ -25,6 +25,7 @@ module Gargantext.Database.Query.Table.User
   , queryUserTable
   , getUserHyperdata
   , getUsersWithHyperdata
+  , getUsersWithNodeHyperdata
   , getUser
   , insertNewUsers
   , selectUsersLightWith
@@ -44,9 +45,11 @@ import Data.Text (Text)
 import Data.Time (UTCTime)
 import Gargantext.Core.Types.Individu
 import qualified Gargantext.Prelude.Crypto.Auth as Auth
+import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataUser)
+import Gargantext.Database.Admin.Types.Node (NodeType(NodeUser), Node)
 import Gargantext.Database.Prelude
-import Gargantext.Database.Schema.Node (node_hyperdata, node_id, queryNodeTable)
+import Gargantext.Database.Schema.Node (NodeRead, node_hyperdata, queryNodeTable, node_user_id, node_typename)
 import Gargantext.Database.Schema.User
 import Gargantext.Prelude
 import Opaleye
@@ -123,14 +126,39 @@ getUserHyperdata i = do
     selectUserHyperdataWithId :: Int -> Select (Column SqlJsonb)
     selectUserHyperdataWithId i' = proc () -> do
       row      <- queryNodeTable -< ()
-      restrict -< row^.node_id .== (sqlInt4 i')
+      restrict -< row^.node_user_id .== (sqlInt4 i')
+      restrict -< row^.node_typename .== (sqlInt4 $ nodeTypeId NodeUser)
       returnA  -< row^.node_hyperdata
+
+getUserNodeHyperdata :: Int -> Cmd err [Node HyperdataUser]
+getUserNodeHyperdata i = do
+  runOpaQuery (selectUserHyperdataWithId i)
+  where
+    selectUserHyperdataWithId :: Int -> Select NodeRead
+    selectUserHyperdataWithId i' = proc () -> do
+      row      <- queryNodeTable -< ()
+      restrict -< row^.node_user_id .== (sqlInt4 i')
+      restrict -< row^.node_typename .== (sqlInt4 $ nodeTypeId NodeUser)
+      returnA  -< row
+
+
 
 getUsersWithHyperdata :: Int -> Cmd err [(UserLight, HyperdataUser)]
 getUsersWithHyperdata i = do
   u <- getUsersWithId i
   h <- getUserHyperdata i
+  -- printDebug "[getUsersWithHyperdata]" (u,h)
   pure $ zip u h
+
+getUsersWithNodeHyperdata :: Int -> Cmd err [(UserLight, Node HyperdataUser)]
+getUsersWithNodeHyperdata i = do
+  u <- getUsersWithId i
+  h <- getUserNodeHyperdata i
+  -- printDebug "[getUsersWithHyperdata]" (u,h)
+  pure $ zip u h
+
+
+
 ------------------------------------------------------------------
 -- | Select User with some parameters
 -- Not optimized version

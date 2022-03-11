@@ -70,7 +70,7 @@ checkAuthRequest u (GargPassword p) = do
   candidate <- head <$> getUsersWith u
   case candidate of
     Nothing -> pure InvalidUser
-    Just (UserLight id _u _email h) ->
+    Just (UserLight id _u _email (GargPassword h)) ->
       case Auth.checkPassword (Auth.mkPassword p) (Auth.PasswordHash h) of
         Auth.PasswordCheckFail    -> pure InvalidPassword
         Auth.PasswordCheckSuccess -> do
