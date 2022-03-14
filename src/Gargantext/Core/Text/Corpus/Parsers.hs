@@ -79,22 +79,38 @@ data FileType = WOS | RIS | RisPresse | CsvGargV3 | CsvHal
 --                | PDF        -- Not Implemented / pdftotext and import Pandoc ?
 --                | XML        -- Not Implemented / see :
 
-parseFormatC :: MonadBaseControl IO m => FileType -> FileFormat -> DB.ByteString -> m (Either Prelude.String (ConduitT () HyperdataDocument IO ()))
-parseFormatC CsvGargV3 Plain bs = pure $ transPipe (pure . runIdentity) <$> (parseCsvC $ DBL.fromStrict bs)
-parseFormatC CsvHal    Plain bs = pure $ transPipe (pure . runIdentity) <$> (parseCsvC $ DBL.fromStrict bs)
+parseFormatC :: MonadBaseControl IO m
+             => FileType
+             -> FileFormat
+             -> DB.ByteString
+             -> m (Either Prelude.String (Maybe Integer, ConduitT () HyperdataDocument IO ()))
+parseFormatC CsvGargV3 Plain bs = do
+  eParsedC <- parseCsvC $ DBL.fromStrict bs
+  case eParsedC of
+    Left err -> pure $ Left err
+    Right (mLen, parsedC) -> pure $ (mLen, transPipe (pure . runIdentity) parsedC)
+parseFormatC CsvHal    Plain bs = do
+  eParsedC <- parseCsvC $ DBL.fromStrict bs
+  case eParsedC of
+    Left err -> pure $ Left err
+    Right (mLen, parsedC) -> pure $ (mLen, transPipe (pure . runIdentity) parsedC)
 parseFormatC RisPresse Plain bs = do
   --docs <- enrichWith RisPresse
   let eDocs = runParser' RisPresse bs
-  pure $ (\docs -> yieldMany docs
-                  .| mapC presseEnrich
-                  .| mapC (map $ both decodeUtf8)
-                  .| mapMC (toDoc RIS)) <$> eDocs
+  pure $ (\docs ->
+            ( Just $ length docs
+            , yieldMany docs
+              .| mapC presseEnrich
+              .| mapC (map $ both decodeUtf8)
+              .| mapMC (toDoc RIS)) ) <$> eDocs
 parseFormatC WOS Plain bs = do
   let eDocs = runParser' WOS bs
-  pure $ (\docs -> yieldMany docs
-                  .| mapC (map $ first WOS.keys)
-                  .| mapC (map $ both decodeUtf8)
-                  .| mapMC (toDoc WOS)) <$> eDocs
+  pure $ (\docs ->
+            ( Just $ length docs
+            , yieldMany docs
+              .| mapC (map $ first WOS.keys)
+              .| mapC (map $ both decodeUtf8)
+              .| mapMC (toDoc WOS)) ) <$> eDocs
 parseFormatC ft ZIP bs = do
   path <- liftBase $ emptySystemTempFile "parsed-zip"
   liftBase $ DB.writeFile path bs
@@ -110,7 +126,12 @@ parseFormatC ft ZIP bs = do
     [] ->
       case contents of
         [] -> pure $ Left "No files in zip"
-        _  -> pure $ Right $ ( sequenceConduits contents >> pure () ) -- .| mapM_C (printDebug "[parseFormatC] doc")
+        _  -> do
+          let lenghts = fst <$> contents
+          let contents' = snd <$> contents
+          let totalLength = sum $ sum <$> lenghts  -- Trick: sum (Just 1) = 1, sum Nothing = 0
+          pure $ Right $ ( Just totalLength
+                         , sequenceConduits contents' >> pure () ) -- .| mapM_C (printDebug "[parseFormatC] doc")
     _ -> pure $ Left $ unpack $ intercalate "\n" $ pack <$> errs
   
 parseFormatC _ _ _ = undefined
