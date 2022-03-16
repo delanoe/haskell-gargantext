@@ -286,7 +286,7 @@ addToCorpusWithForm user cid (NewWithForm ft ff d l _n) logStatus jobLog = do
           Right decoded -> decoded
   eDocsC <- liftBase $ parseC ff data'
   case eDocsC of
-    Right docsC -> do
+    Right (mCount, docsC) -> do
       -- TODO Add progress (jobStatus) update for docs - this is a
       -- long action
 
@@ -315,9 +315,9 @@ addToCorpusWithForm user cid (NewWithForm ft ff d l _n) logStatus jobLog = do
                           (Multi $ fromMaybe EN l)
                           Nothing
                           --(Just $ fromIntegral $ length docs, docsC')
-                          (Just 0, transPipe liftBase docsC') -- TODO fix number of docs
+                          (mCount, transPipe liftBase docsC') -- TODO fix number of docs
                           --(map (map toHyperdataDocument) docs)
-                          (logStatus)
+                          logStatus
 
       printDebug "Extraction finished   : " cid
       printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)

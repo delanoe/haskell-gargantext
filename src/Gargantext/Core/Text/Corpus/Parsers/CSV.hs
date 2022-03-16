@@ -472,7 +472,7 @@ parseCsvC bs = do
       Right res -> Right res
   case result of
     Left err -> Left err
-    Right r -> Right $ (Just $ length snd r, (yieldMany $ snd r) .| mapC csv2doc)
+    Right r -> Right $ (Just $ Prelude.fromIntegral $ Prelude.length $ snd r, (yieldMany $ snd r) .| mapC csv2doc)
 
 ------------------------------------------------------------------------
 -- Csv v3 weighted for phylo

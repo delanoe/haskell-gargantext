@@ -85,20 +85,20 @@ parseFormatC :: MonadBaseControl IO m
              -> DB.ByteString
              -> m (Either Prelude.String (Maybe Integer, ConduitT () HyperdataDocument IO ()))
 parseFormatC CsvGargV3 Plain bs = do
-  eParsedC <- parseCsvC $ DBL.fromStrict bs
+  let eParsedC = parseCsvC $ DBL.fromStrict bs
   case eParsedC of
     Left err -> pure $ Left err
-    Right (mLen, parsedC) -> pure $ (mLen, transPipe (pure . runIdentity) parsedC)
+    Right (mLen, parsedC) -> pure $ Right (mLen, transPipe (pure . runIdentity) parsedC)
 parseFormatC CsvHal    Plain bs = do
-  eParsedC <- parseCsvC $ DBL.fromStrict bs
+  let eParsedC = parseCsvC $ DBL.fromStrict bs
   case eParsedC of
     Left err -> pure $ Left err
-    Right (mLen, parsedC) -> pure $ (mLen, transPipe (pure . runIdentity) parsedC)
+    Right (mLen, parsedC) -> pure $ Right (mLen, transPipe (pure . runIdentity) parsedC)
 parseFormatC RisPresse Plain bs = do
   --docs <- enrichWith RisPresse
   let eDocs = runParser' RisPresse bs
   pure $ (\docs ->
-            ( Just $ length docs
+            ( Just $ fromIntegral $ length docs
             , yieldMany docs
               .| mapC presseEnrich
               .| mapC (map $ both decodeUtf8)
@@ -106,7 +106,7 @@ parseFormatC RisPresse Plain bs = do
 parseFormatC WOS Plain bs = do
   let eDocs = runParser' WOS bs
   pure $ (\docs ->
-            ( Just $ length docs
+            ( Just $ fromIntegral $ length docs
             , yieldMany docs
               .| mapC (map $ first WOS.keys)
               .| mapC (map $ both decodeUtf8)
@@ -130,8 +130,8 @@ parseFormatC ft ZIP bs = do
           let lenghts = fst <$> contents
           let contents' = snd <$> contents
           let totalLength = sum $ sum <$> lenghts  -- Trick: sum (Just 1) = 1, sum Nothing = 0
-          pure $ Right $ ( Just totalLength
-                         , sequenceConduits contents' >> pure () ) -- .| mapM_C (printDebug "[parseFormatC] doc")
+          pure $ Right ( Just totalLength
+                       , sequenceConduits contents' >> pure () ) -- .| mapM_C (printDebug "[parseFormatC] doc")
     _ -> pure $ Left $ unpack $ intercalate "\n" $ pack <$> errs
   
 parseFormatC _ _ _ = undefined
