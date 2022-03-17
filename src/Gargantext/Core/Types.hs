@@ -59,7 +59,7 @@ type Label = [Text]
 
 data Terms = Terms { _terms_label :: Label
                    , _terms_stem  :: Stems
-                   } deriving (Ord)
+                   } deriving (Ord, Show)
 
 instance Eq Terms where
   (==) (Terms _ s1) (Terms _ s2) = s1 == s2
