@@ -1,3 +1,6 @@
+## Version 0.0.5.7.6
+* [FIX] Default behavior of Ngrams Table: Cache off and Desc order by score
+
 ## Version 0.0.5.7.5
 * [FIX] Progress length
 
