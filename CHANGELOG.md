@@ -1,3 +1,6 @@
+## Version 0.0.5.7.5
+* [FIX] Progress length
+
 ## Version 0.0.5.7.4
 * [FIX] User Page info get/update/security
 
