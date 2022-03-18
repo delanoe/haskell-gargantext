@@ -1,5 +1,4 @@
 {-|
-import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 Module      : Gargantext.Database.Query.Table.Node
 Description : Main Tools of Node to the database
 Copyright   : (c) CNRS, 2017-Present
@@ -8,7 +7,6 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 -}
-
 
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
@@ -31,8 +29,8 @@ import Gargantext.Database.Query.Filter (limit', offset')
 import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Schema.Context
 import Gargantext.Prelude hiding (sum, head)
-import Opaleye hiding (FromField)
-import Prelude hiding (null, id, map, sum)
+import Opaleye            hiding (FromField)
+import Prelude            hiding (null, id, map, sum)
 
 
 getContextWith :: (HasNodeError err, JSONB a)

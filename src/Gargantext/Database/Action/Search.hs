@@ -26,8 +26,8 @@ import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Context
-import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Table.NodeContext
+import Gargantext.Database.Query.Table.NodeContext_NodeContext
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Context
 import Gargantext.Prelude
@@ -41,11 +41,11 @@ searchDocInDatabase :: HasDBid NodeType
                     => ParentId
                     -> Text
                     -> Cmd err [(NodeId, HyperdataDocument)]
-searchDocInDatabase _p t = runOpaQuery (queryDocInDatabase t)
+searchDocInDatabase p t = runOpaQuery (queryDocInDatabase p t)
   where
     -- | Global search query where ParentId is Master Node Corpus Id 
-    queryDocInDatabase :: Text -> O.Select (Column SqlInt4, Column SqlJsonb)
-    queryDocInDatabase q = proc () -> do
+    queryDocInDatabase :: ParentId -> Text -> O.Select (Column SqlInt4, Column SqlJsonb)
+    queryDocInDatabase _p q = proc () -> do
         row <- queryNodeSearchTable -< ()
         restrict -< (_ns_search row)    @@ (sqlTSQuery (unpack q))
         restrict -< (_ns_typename row) .== (sqlInt4 $ toDBid NodeDocument)
@@ -118,10 +118,21 @@ searchInCorpusWithContacts
 searchInCorpusWithContacts cId aId q o l _order =
   runOpaQuery $ limit'   l
               $ offset'  o
-              $ orderBy ( desc _fp_score)
+              $ orderBy (desc _fp_score)
               $ selectGroup cId aId
               $ intercalate " | "
               $ map stemIt q
+
+selectGroup :: HasDBid NodeType
+            => CorpusId
+            -> AnnuaireId
+            -> Text
+            -> Select FacetPairedReadNull
+selectGroup cId aId q = proc () -> do
+  (a, b, c, d) <- aggregate (p4 (groupBy, groupBy, groupBy, O.sum))
+                            (selectContactViaDoc cId aId q) -< ()
+  returnA -< FacetPaired a b c d
+
 
 selectContactViaDoc
   :: HasDBid NodeType
@@ -134,81 +145,68 @@ selectContactViaDoc
                , Column (Nullable SqlJsonb)
                , Column (Nullable SqlInt4)
                )
-selectContactViaDoc cId aId q = proc () -> do
-  (doc, (corpus_doc, (_contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
-  restrict -< (doc^.ns_search)           @@ (sqlTSQuery  $ unpack q  )
-  restrict -< (doc^.ns_typename)        .== (sqlInt4 $ toDBid NodeDocument)
-  restrict -< (corpus_doc^.nn_node1_id)  .== (toNullable $ pgNodeId cId)
-  restrict -< (annuaire_contact^.nn_node1_id) .== (toNullable $ pgNodeId aId)
-  restrict -< (contact^.node_typename)        .== (toNullable $ sqlInt4 $ toDBid NodeContact)
-  returnA  -< ( contact^.node_id
-              , contact^.node_date
-              , contact^.node_hyperdata
+selectContactViaDoc cId aId query = proc () -> do
+  (doc, (corpus, (_nodeContext_nodeContext, (annuaire, contact)))) <- queryContactViaDoc -< ()
+  restrict -< (doc^.cs_search)             @@ (sqlTSQuery $ unpack query                )
+  restrict -< (doc^.cs_typename)          .== (sqlInt4    $ toDBid NodeDocument         )
+  restrict -< (corpus^.nc_node_id)        .== (toNullable $ pgNodeId cId                )
+  restrict -< (annuaire^.nc_node_id)      .== (toNullable $ pgNodeId aId                )
+  restrict -< (contact^.context_typename) .== (toNullable $ sqlInt4 $ toDBid NodeContact)
+  returnA  -< ( contact^.context_id
+              , contact^.context_date
+              , contact^.context_hyperdata
               , toNullable $ sqlInt4 1
               )
 
-selectGroup :: HasDBid NodeType
-            => NodeId
-            -> NodeId
-            -> Text
-            -> Select FacetPairedReadNull
-selectGroup cId aId q = proc () -> do
-  (a, b, c, d) <- aggregate (p4 (groupBy, groupBy, groupBy, O.sum))
-                            (selectContactViaDoc cId aId q) -< ()
-  returnA -< FacetPaired a b c d
-
-
-queryContactViaDoc :: O.Select ( NodeSearchRead
-                               , ( NodeNodeReadNull
-                                 , ( NodeNodeReadNull
-                                   , ( NodeNodeReadNull
-                                     , NodeReadNull
+queryContactViaDoc :: O.Select ( ContextSearchRead
+                               , ( NodeContextReadNull
+                                 , ( NodeContext_NodeContextReadNull
+                                   , ( NodeContextReadNull
+                                     , ContextReadNull
                                      )
                                    )
                                  )
                                )
 queryContactViaDoc =
   leftJoin5
-  queryNodeTable
-  queryNodeNodeTable
-  queryNodeNodeTable
-  queryNodeNodeTable
-  queryNodeSearchTable
+  queryContextTable
+  queryNodeContextTable
+  queryNodeContext_NodeContextTable
+  queryNodeContextTable
+  queryContextSearchTable
   cond12
   cond23
   cond34
   cond45
     where
-      cond12 :: (NodeNodeRead, NodeRead) -> Column SqlBool
-      cond12 (annuaire_contact, contact) = contact^.node_id .== annuaire_contact^.nn_node2_id
+      cond12 :: (NodeContextRead, ContextRead) -> Column SqlBool
+      cond12 (annuaire, contact) = contact^.context_id .== annuaire^.nc_context_id
 
-      cond23 :: ( NodeNodeRead
-                , ( NodeNodeRead
-                  , NodeReadNull
+      cond23 :: ( NodeContext_NodeContextRead
+                , ( NodeContextRead
+                  , ContextReadNull
                   )
                 ) -> Column SqlBool
-      cond23 (contact_doc, (annuaire_contact, _)) = contact_doc^.nn_node1_id .== annuaire_contact^.nn_node2_id
+      cond23 (nodeContext_nodeContext, (annuaire, _)) = nodeContext_nodeContext^.ncnc_nodecontext2 .== annuaire^.nc_id
 
-      cond34 :: ( NodeNodeRead
-                , ( NodeNodeRead
-                  , ( NodeNodeReadNull
-                    , NodeReadNull
+      cond34 :: ( NodeContextRead
+                , ( NodeContext_NodeContextRead
+                  , ( NodeContextReadNull
+                    , ContextReadNull
                     )
                   )
                 ) -> Column SqlBool
-      cond34 (corpus_doc, (contact_doc, (_,_))) =  corpus_doc^.nn_node2_id .== contact_doc^.nn_node2_id
+      cond34 (corpus, (nodeContext_nodeContext, (_,_))) =  nodeContext_nodeContext^.ncnc_nodecontext1 .== corpus^.nc_id
 
 
-      cond45 :: ( NodeSearchRead
-                , ( NodeNodeRead
-                  , ( NodeNodeReadNull
-                    , ( NodeNodeReadNull
-                      , NodeReadNull
+      cond45 :: ( ContextSearchRead
+                , ( NodeContextRead
+                  , ( NodeContext_NodeContextReadNull
+                    , ( NodeContextReadNull
+                      , ContextReadNull
                       )
                     )
                   )
                 ) -> Column SqlBool
-      cond45 (doc, (corpus_doc, (_,(_,_)))) = doc^.ns_id .== corpus_doc^.nn_node2_id
+      cond45 (doc, (corpus, (_,(_,_)))) = doc^.cs_id .== corpus^.nc_context_id
 
-
-------------------------------------------------------------------------

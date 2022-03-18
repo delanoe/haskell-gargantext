@@ -174,7 +174,7 @@ computeGraph cId method d nt repo = do
   lId  <- defaultList cId
   lIds <- selectNodesWithUsername NodeList userMaster
 
-  let ngs = filterListWithRoot MapTerm
+  let ngs = filterListWithRoot [MapTerm]
           $ mapTermListRoot [lId] nt repo
 
   myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)

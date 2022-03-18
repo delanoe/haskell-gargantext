@@ -61,7 +61,7 @@ chartData cId nt lt = do
   ls <- map (_node_id) <$> getListsWithParentId cId
   ts <- mapTermListRoot ls nt <$> getRepo' ls
   let
-    dico = filterListWithRoot lt ts
+    dico = filterListWithRoot [lt] ts
     terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ HashMap.toList dico
     group dico' x = case HashMap.lookup x dico' of
         Nothing -> x
@@ -86,7 +86,7 @@ treeData cId nt lt = do
   ts <- mapTermListRoot ls nt <$> getRepo' ls
 
   let
-    dico = filterListWithRoot lt ts
+    dico = filterListWithRoot [lt] ts
     terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ HashMap.toList dico
 
   cs' <- getContextsByNgramsOnlyUser cId (ls' <> ls) nt terms
