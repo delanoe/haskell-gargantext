@@ -1,3 +1,6 @@
+## Version 0.0.5.7.7
+* [FEAT FIX] Link Annuaire Corpus (WIP)
+
 ## Version 0.0.5.7.6
 * [FIX] Default behavior of Ngrams Table: Cache off and Desc order by score
 
