@@ -95,7 +95,7 @@ getContextNgrams cId lId listType nt repo = do
 --    Just  l -> pure l
 
   lIds <- selectNodesWithUsername NodeList userMaster
-  let ngs = filterListWithRoot listType $ mapTermListRoot [lId] nt repo
+  let ngs = filterListWithRoot [listType] $ mapTermListRoot [lId] nt repo
   -- TODO HashMap
   r <- getNgramsByContextOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
   pure r

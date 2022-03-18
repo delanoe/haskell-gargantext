@@ -234,8 +234,9 @@ getNgrams :: (HasMail env, HasNodeStory env err m)
 getNgrams lId tabType = do
 
   lists <- mapTermListRoot [lId] (ngramsTypeFromTabType tabType) <$> getRepo' [lId]
+  -- TODO filterListWithRoot [MapTerm, StopTerm, CandidateTerm] lists
   let maybeSyn = HM.unions $ map (\t -> filterListWithRoot t lists)
-                                 [MapTerm, StopTerm, CandidateTerm]
+                                 [[MapTerm], [StopTerm], [CandidateTerm]]
   pure (lists, maybeSyn)
 
 -- Some useful Tools

@@ -77,8 +77,9 @@ insertNodeContext ns = mkCmd $ \conn -> fromIntegral <$> (runInsert_ conn
                           $ Insert nodeContextTable ns' rCount (Just DoNothing))
   where
     ns' :: [NodeContextWrite]
-    ns' = map (\(NodeContext n c x y)
-                -> NodeContext (pgNodeId n)
+    ns' = map (\(NodeContext i n c x y)
+                -> NodeContext (sqlInt4 <$> i)
+                               (pgNodeId n)
                                (pgNodeId c)
                                (sqlDouble <$> x)
                                (sqlInt4  <$> y)
@@ -93,7 +94,7 @@ deleteNodeContext :: Node_Id -> Context_Id -> Cmd err Int
 deleteNodeContext n c = mkCmd $ \conn ->
   fromIntegral <$> runDelete_ conn
                               (Delete nodeContextTable
-                                      (\(NodeContext n_id c_id _ _) -> n_id .== pgNodeId n
+                                      (\(NodeContext _ n_id c_id _ _) -> n_id .== pgNodeId n
                                                                    .&& c_id .== pgNodeId c
                                       )
                                       rCount

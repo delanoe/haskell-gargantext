@@ -172,7 +172,7 @@ selectNgramsOccurrencesOnlyByContextUser_withSample cId int nt tms =
 
 queryNgramsOccurrencesOnlyByContextUser_withSample :: DPS.Query
 queryNgramsOccurrencesOnlyByContextUser_withSample = [sql|
-  WITH nodes_sample AS (SELECT id FROM contexts n TABLESAMPLE SYSTEM_ROWS (?)
+  WITH nodes_sample AS (SELECT n.id FROM contexts n TABLESAMPLE SYSTEM_ROWS (?)
                           JOIN nodes_contexts nn ON n.id = nn.context_id
                             WHERE n.typename  = ?
                             AND nn.node_id = ?),

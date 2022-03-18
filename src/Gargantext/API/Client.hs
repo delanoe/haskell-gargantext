@@ -116,7 +116,7 @@ postNodeSearch :: Token -> NodeId -> SearchQuery -> Maybe Int -> Maybe Int -> Ma
 
 postNodeShare :: Token -> NodeId -> ShareNodeParams -> ClientM Int
 
-postNodePairCorpusAnnuaire :: Token -> NodeId -> AnnuaireId -> Maybe ListId -> ClientM Int
+postNodePairCorpusAnnuaire :: Token -> NodeId -> AnnuaireId -> Maybe ListId -> ClientM [Int]
 getNodePairs :: Token -> NodeId -> ClientM [AnnuaireId]
 getNodePairings :: Token -> NodeId -> Maybe TabType -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> ClientM [FacetDoc]
 
@@ -205,7 +205,7 @@ postCorpusSearch :: Token -> CorpusId -> SearchQuery -> Maybe Int -> Maybe Int -
 
 postCorpusShare :: Token -> CorpusId -> ShareNodeParams -> ClientM Int
 
-postCorpusPairCorpusAnnuaire :: Token -> CorpusId -> AnnuaireId -> Maybe ListId -> ClientM Int
+postCorpusPairCorpusAnnuaire :: Token -> CorpusId -> AnnuaireId -> Maybe ListId -> ClientM [Int]
 getCorpusPairs :: Token -> CorpusId -> ClientM [AnnuaireId]
 getCorpusPairings :: Token -> CorpusId -> Maybe TabType -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> ClientM [FacetDoc]
 
@@ -299,7 +299,7 @@ putAnnuaireScore :: Token -> AnnuaireId -> NodesToScore -> ClientM [Int]
 postAnnuaireSearch :: Token -> AnnuaireId -> SearchQuery -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> ClientM SearchResult
 postAnnuaireShare :: Token -> AnnuaireId -> ShareNodeParams -> ClientM Int
 
-postAnnuairePairCorpusAnnuaire :: Token -> AnnuaireId -> AnnuaireId -> Maybe ListId -> ClientM Int
+postAnnuairePairCorpusAnnuaire :: Token -> AnnuaireId -> AnnuaireId -> Maybe ListId -> ClientM [Int]
 getAnnuairePairs :: Token -> AnnuaireId -> ClientM [AnnuaireId]
 getAnnuairePairings :: Token -> AnnuaireId -> Maybe TabType -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> ClientM [FacetDoc]
 

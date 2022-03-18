@@ -84,9 +84,9 @@ getChildrenNode pId _ maybeNodeType maybeOffset maybeLimit = do
 
 
 selectChildrenNode :: HasDBid NodeType
-               => ParentId
-               -> Maybe NodeType
-               -> Select NodeRead
+                   => ParentId
+                   -> Maybe NodeType
+                   -> Select NodeRead
 selectChildrenNode parentId maybeNodeType = proc () -> do
     row@(Node _ _ typeName _ parent_id _ _ _) <- queryNodeTable -< ()
     let nodeType = maybe 0 toDBid maybeNodeType
@@ -122,7 +122,7 @@ selectChildren' :: HasDBid NodeType
                -> Select ContextRead
 selectChildren' parentId maybeNodeType = proc () -> do
     row@(Context cid _ typeName _ _ _ _ _) <- queryContextTable     -< ()
-    (NodeContext nid cid' _ _)                    <- queryNodeContextTable -< ()
+    (NodeContext _ nid cid' _ _)           <- queryNodeContextTable -< ()
 
     let nodeType = maybe 0 toDBid maybeNodeType
     restrict -< typeName  .== sqlInt4 nodeType

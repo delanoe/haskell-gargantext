@@ -187,13 +187,13 @@ instance (Arbitrary hyperdata
                         ) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
     arbitrary = ContextSearch <$> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
 
 
 
@@ -212,9 +212,12 @@ pgContextId = pgNodeId
 newtype NodeId = NodeId Int
   deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
 
-
--- TODO make another type?
+-- TODO make another type
 type ContextId = NodeId
+
+newtype NodeContextId = NodeContextId Int
+  deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
+
 
 instance GQLType NodeId
 instance Show NodeId where

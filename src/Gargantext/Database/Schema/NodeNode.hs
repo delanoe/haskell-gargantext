@@ -11,8 +11,6 @@ Here is a longer description of this module, containing some
 commentary with @some markup@.
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 {-# LANGUAGE Arrows                 #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE QuasiQuotes            #-}
@@ -62,19 +60,4 @@ nodeNodeTable  =
                     , _nn_category = optionalTableField "category"
                     }
                 )
-
-instance DefaultFromField (Nullable SqlInt4)   Int            where
-    defaultFromField = fromPGSFromField
-
-instance DefaultFromField (Nullable SqlFloat8) Int            where
-    defaultFromField = fromPGSFromField
-
-instance DefaultFromField (Nullable SqlFloat8) Double         where
-    defaultFromField = fromPGSFromField
-
-instance DefaultFromField SqlFloat8            (Maybe Double) where
-    defaultFromField = fromPGSFromField
-
-instance DefaultFromField SqlInt4              (Maybe Int)    where
-    defaultFromField = fromPGSFromField
 

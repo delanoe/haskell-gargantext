@@ -135,15 +135,26 @@ CREATE TABLE public.nodes_nodes (
 ALTER TABLE public.nodes_nodes OWNER TO gargantua;
 
 
+
 -- To attach contexts to a Corpus
 CREATE TABLE public.nodes_contexts (
+    id SERIAL                          ,
     node_id    INTEGER NOT NULL REFERENCES public.nodes(id)    ON DELETE CASCADE,
     context_id INTEGER NOT NULL REFERENCES public.contexts(id) ON DELETE CASCADE,
     score    REAL    ,
     category INTEGER ,
-    PRIMARY KEY (node_id, context_id)
+    PRIMARY KEY (id)
 );
 ALTER TABLE public.nodes_contexts OWNER TO gargantua;
+
+CREATE TABLE public.nodescontexts_nodescontexts (
+    nodescontexts1 INTEGER NOT NULL REFERENCES public.nodes_contexts(id) ON DELETE CASCADE,
+    nodescontexts2 INTEGER NOT NULL REFERENCES public.nodes_contexts(id) ON DELETE CASCADE,
+
+    PRIMARY KEY (nodescontexts1, nodescontexts2)
+);
+ALTER TABLE public.nodescontexts_nodescontexts OWNER TO gargantua;
+
 
 ---------------------------------------------------------------
 CREATE TABLE public.context_node_ngrams (
@@ -157,7 +168,7 @@ CREATE TABLE public.context_node_ngrams (
 ALTER TABLE public.context_node_ngrams OWNER TO gargantua;
 
 CREATE TABLE public.context_node_ngrams2 (
-    context_id      INTEGER NOT NULL REFERENCES public.contexts  (id)       ON DELETE CASCADE,
+    context_id      INTEGER NOT NULL REFERENCES public.contexts     (id) ON DELETE CASCADE,
     nodengrams_id   INTEGER NOT NULL REFERENCES public.node_ngrams  (id) ON DELETE CASCADE,
     weight double   precision,
     PRIMARY KEY (context_id, nodengrams_id)
@@ -183,8 +194,6 @@ weight double precision,
 PRIMARY KEY (node_id, nodengrams_id)
 );
 ALTER TABLE public.node_node_ngrams2 OWNER TO gargantua;
-
-
 
 
 --------------------------------------------------------------
@@ -230,7 +239,7 @@ CREATE INDEX        ON public.contexts USING btree (id, typename, date DESC);
 CREATE INDEX        ON public.contexts USING btree (typename, id);
 CREATE UNIQUE INDEX ON public.contexts USING btree (hash_id);
 
-
+CREATE INDEX ON public.nodescontexts_nodescontexts USING btree (nodescontexts1, nodescontexts2);
 -- CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqId'::text)));
 -- CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqIdBdd'::text)));
 -- CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdata ->> 'uniqId'::text)));
@@ -248,6 +257,7 @@ CREATE UNIQUE INDEX ON public.node_ngrams USING btree (node_id,node_subtype, ngr
 -- To make the links between Nodes in Tree/Forest
 CREATE UNIQUE INDEX ON public.nodes_nodes  USING btree (node1_id, node2_id);
 CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, category);
+
 
 -- To make the links between Corpus Node and its contexts
 CREATE UNIQUE INDEX ON public.nodes_contexts  USING btree (node_id, context_id);
