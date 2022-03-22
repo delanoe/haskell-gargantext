@@ -183,6 +183,7 @@ library:
   - jose
   - json-stream
   - lens
+  - listsafe
   - located-base
   - logging-effect
   - matrix

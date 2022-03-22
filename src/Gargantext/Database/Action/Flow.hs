@@ -295,7 +295,8 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
   (masterUserId, _masterRootId, masterCorpusId)
     <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
 
-  --let gp = (GroupParams l 2 3 (StopSize 3)) 
+  --let gp = (GroupParams l 2 3 (StopSize 3))
+  -- Here the PosTagAlgo should be chosen according the Lang
   let gp = GroupWithPosTag l CoreNLP HashMap.empty 
   ngs         <- buildNgramsLists user userCorpusId masterCorpusId mfslw gp
 

@@ -71,26 +71,38 @@ data Tag = POS | NER
 data POS = NP
          | JJ  | VB
          | CC  | IN | DT
+         | ADV
          | NoPos
   deriving (Show, Generic, Eq, Ord)
 ------------------------------------------------------------------------
+-- https://pythonprogramming.net/part-of-speech-tagging-nltk-tutorial/
 instance FromJSON POS where
   parseJSON = withText "String" (\x -> pure (pos $ unpack x))
     where
       pos :: [Char] -> POS
-      pos "NP"  = NP
-      pos "NN"  = NP
+      pos "ADJ" = JJ
+      pos "CC"  = CC
+      pos "DT"  = DT
+      pos "IN"  = IN
+      pos "JJ"  = JJ
+      pos "JJR" = JJ
+      pos "JJS" = JJ
       pos "NC"  = NP
+      pos "NN"  = NP
       pos "NNS" = NP
       pos "NNP" = NP
-      pos "JJ"  = JJ
-      pos "ADJ" = JJ
+      pos "NNPS" = NP
+      pos "NP"  = NP
       pos "VB"  = VB
-      pos "VBN" = VB
+      pos "VBD" = VB
       pos "VBG" = VB
-      pos "CC"  = CC
-      pos "IN"  = IN
-      pos "DT"  = DT
+      pos "VBN" = VB
+      pos "VBP" = VB
+      pos "VBZ" = VB
+      pos "RB" = ADV
+      pos "RBR" = ADV
+      pos "RBS" = ADV
+      pos "WRB" = ADV
       -- French specific
       pos "P"   = IN
       pos  _    = NoPos
