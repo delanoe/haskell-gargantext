@@ -374,20 +374,20 @@ defaultName NodeList       = "List"
 defaultName NodeListCooc   = "List"
 defaultName NodeModel      = "Model"
 
-defaultName NodeFolder     = "Folder"
-defaultName NodeFolderPrivate = "Private Folder"
-defaultName NodeFolderShared  = "Shared Folder"
-defaultName NodeTeam          = "Folder"
-defaultName NodeFolderPublic  = "Public Folder"
+defaultName NodeFolder        = "Folder"
+defaultName NodeFolderPrivate = defaultName NodeFolder
+defaultName NodeFolderShared  = defaultName NodeFolder
+defaultName NodeTeam          = defaultName NodeFolder
+defaultName NodeFolderPublic  = defaultName NodeFolder
 
 defaultName NodeDashboard     = "Board"
 defaultName NodeGraph         = "Graph"
 defaultName NodePhylo         = "Phylo"
 
-defaultName NodeFrameWrite    = "Frame Write"
-defaultName NodeFrameCalc     = "Frame Calc"
-defaultName NodeFrameVisio    = "Frame Visio"
-defaultName NodeFrameNotebook     = "Frame Code"
+defaultName NodeFrameWrite    = "Write"
+defaultName NodeFrameCalc     = "Calc"
+defaultName NodeFrameVisio    = "Visio"
+defaultName NodeFrameNotebook = "Code"
 
 defaultName NodeFile          = "File"
 
