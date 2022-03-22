@@ -1,6 +1,6 @@
 {-|
-Module      : Gargantext.Utils.JohnSnowNLP
-Description : PosTagging module using Stanford java REST API
+Module      : Gargantext.Utils.JohnSnow
+Description : John Snow NLP API connexion
 Copyright   : (c) CNRS, 2017
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -181,14 +181,14 @@ waitForJsTask jsTask = wait' 0
 
 getPosTagAndLems :: Lang -> Text -> IO PosSentences
 getPosTagAndLems l t = do
-  jsPosTask <- jsRequest t (JSPOS l)
+  jsPosTask   <- jsRequest t (JSPOS   l)
   jsLemmaTask <- jsRequest t (JSLemma l)
 
   -- wait for both tasks
   jsPos <- waitForJsTask jsPosTask
   jsLemma <- waitForJsTask jsLemmaTask
 
-  printDebug "[getPosTagAndLems] sentences" $ jsAsyncTaskResponseToSentences jsPos jsLemma
+  pure $ jsAsyncTaskResponseToSentences jsPos jsLemma
 
-  pure $ PosSentences []
-
+nlp :: Lang -> Text -> IO PosSentences
+nlp = getPosTagAndLems

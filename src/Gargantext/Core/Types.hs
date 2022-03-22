@@ -72,7 +72,7 @@ data POS = NP
          | JJ  | VB
          | CC  | IN | DT
          | ADV
-         | NoPos
+         | NotFound { not_found :: [Char] }
   deriving (Show, Generic, Eq, Ord)
 ------------------------------------------------------------------------
 -- https://pythonprogramming.net/part-of-speech-tagging-nltk-tutorial/
@@ -80,32 +80,38 @@ instance FromJSON POS where
   parseJSON = withText "String" (\x -> pure (pos $ unpack x))
     where
       pos :: [Char] -> POS
-      pos "ADJ" = JJ
-      pos "CC"  = CC
-      pos "DT"  = DT
-      pos "IN"  = IN
-      pos "JJ"  = JJ
-      pos "JJR" = JJ
-      pos "JJS" = JJ
-      pos "NC"  = NP
-      pos "NN"  = NP
-      pos "NNS" = NP
-      pos "NNP" = NP
+      pos "ADJ"  = JJ
+      pos "CC"   = CC
+      pos "CCONJ"= CC
+      pos "DT"   = DT
+      pos "DET"  = DT
+      pos "IN"   = IN
+      pos "JJ"   = JJ
+      pos "JJR"  = JJ
+      pos "JJS"  = JJ
+      pos "NC"   = NP
+      pos "NN"   = NP
+      pos "NOUN" = NP
+      pos "NNS"  = NP
+      pos "NNP"  = NP
       pos "NNPS" = NP
-      pos "NP"  = NP
-      pos "VB"  = VB
-      pos "VBD" = VB
-      pos "VBG" = VB
-      pos "VBN" = VB
-      pos "VBP" = VB
-      pos "VBZ" = VB
-      pos "RB" = ADV
-      pos "RBR" = ADV
-      pos "RBS" = ADV
-      pos "WRB" = ADV
+      pos "NP"   = NP
+      pos "VB"   = VB
+      pos "VERB" = VB
+      pos "VBD"  = VB
+      pos "VBG"  = VB
+      pos "VBN"  = VB
+      pos "VBP"  = VB
+      pos "VBZ"  = VB
+      pos "RB"   = ADV
+      pos "ADV"  = ADV
+      pos "RBR"  = ADV
+      pos "RBS"  = ADV
+      pos "WRB"  = ADV
       -- French specific
-      pos "P"   = IN
-      pos  _    = NoPos
+      pos "P"     = IN
+      pos "PUNCT" = IN
+      pos  x      = NotFound x
 
 instance ToJSON POS
 instance Hashable POS
