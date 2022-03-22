@@ -1,3 +1,6 @@
+## Version 0.0.5.7.9.1
+* [FIX] Group revert + NLP French API implemented (WIP)
+
 ## Version 0.0.5.7.9
 * [FEAT] New NLP server for postagging
 * [FIX] Spinglass unconnected componnent of graph
