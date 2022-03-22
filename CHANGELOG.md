@@ -1,3 +1,6 @@
+## Version 0.0.5.7.8
+* [FIX] PubMed limit parser
+
 ## Version 0.0.5.7.7
 * [FEAT FIX] Link Annuaire Corpus (WIP)
 * [UPGRADE METHOD] ./bin/psql gargantext.ini < devops/postgres/upgrade/0.0.5.7.7.sql
