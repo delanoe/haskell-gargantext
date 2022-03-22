@@ -1,5 +1,6 @@
 ## Version 0.0.5.7.9.1
 * [FIX] Group revert + NLP French API implemented (WIP)
+* Default Names of Folder and Frames simplified
 
 ## Version 0.0.5.7.9
 * [FEAT] New NLP server for postagging
