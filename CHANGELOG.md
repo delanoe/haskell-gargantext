@@ -1,3 +1,7 @@
+## Version 0.0.5.7.9
+* [FEAT] New NLP server for postagging
+* [FIX] Spinglass unconnected componnent of graph
+
 ## Version 0.0.5.7.8
 * [FIX] PubMed limit parser
 
