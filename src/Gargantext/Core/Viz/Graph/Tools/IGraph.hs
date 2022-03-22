@@ -63,17 +63,16 @@ spinglass :: Seed -> Map (Int, Int) Double -> IO [ClusterNode]
 spinglass s g = toClusterNode
              <$> map catMaybes
              <$> map (map (\n -> Map.lookup n fromI))
-             <$> partitions_spinglass' s g'''
+             <$> List.concat
+             <$> mapM (partitions_spinglass' s) g'
   where
-    g'   = toIndex toI g
-    g''  = mkGraphUfromEdges (Map.keys g')
-    g''' = case IG.isConnected g'' of
-      True -> g''
-      False -> case head (IG.decompose g'') of
-        Nothing    -> panic "[G.C.V.G.T.Igraph: not connected graph]"
-        Just g'''' -> g''''
+    -- Not connected components of the graph make crash spinglass
+    g' = IG.decompose $ mkGraphUfromEdges
+                      $ Map.keys
+                      $ toIndex toI g
 
     (toI, fromI) = createIndices g
+
 
 -- | Tools to analyze graphs
 partitions_spinglass' :: (Serialize v, Serialize e)
