@@ -310,6 +310,8 @@ addToCorpusWithForm user cid (NewWithForm ft ff d l _n) logStatus jobLog = do
 
       --printDebug "Starting extraction     : " cid
       -- TODO granularity of the logStatus
+      printDebug "flowCorpus with lang" l
+
       _cid' <- flowCorpus user
                           (Right [cid])
                           (Multi $ fromMaybe EN l)

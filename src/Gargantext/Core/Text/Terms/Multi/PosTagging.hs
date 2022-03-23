@@ -41,7 +41,7 @@ tokens2tokensTags :: [Token] -> [TokenTag]
 tokens2tokensTags ts = filter' $ map tokenTag ts
 ------------------------------------------------------------------------
 tokenTag :: Token -> TokenTag
-tokenTag (Token _ _ w l _ _ p n _ _) = TokenTag w' l' p n
+tokenTag (Token _ w _ l _ _ p n _ _) = TokenTag w' l' p n
   where
     w' = split w
     l' = fromList (split l)
@@ -53,7 +53,6 @@ filter' xs = filter isNgrams xs
       isNgrams (TokenTag _ _ p n) = isJust p || isJust n
 
 ------------------------------------------------------------------------
-
 -- request = 
 -- "fr" : {
 --                 "tokenize.language" : "fr",
