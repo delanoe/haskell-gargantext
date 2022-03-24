@@ -1,3 +1,6 @@
+## Version 0.0.5.8
+* [FIX] reindex ngrams-contexts function
+
 ## Version 0.0.5.7.9.1
 * [FIX] Group revert + NLP French API implemented (WIP)
 * Default Names of Folder and Frames simplified
