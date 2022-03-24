@@ -48,7 +48,10 @@ mail mailCfg model = do
     (m,u)   = email_to         model
     subject = email_subject    model
     body    = emailWith (view gc_url cfg)    model
-  liftBase $ gargMail mailCfg (GargMail m (Just u) subject body)
+  liftBase $ gargMail mailCfg (GargMail { gm_to = m
+                                        , gm_name = Just u
+                                        , gm_subject = subject
+                                        , gm_body = body })
 
 ------------------------------------------------------------------------
 emailWith :: ServerAddress -> MailModel -> Text
