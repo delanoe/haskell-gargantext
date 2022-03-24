@@ -1,5 +1,6 @@
 ## Version 0.0.5.8
 * [FIX] reindex ngrams-contexts function
+* [PARAM] decreasing the Candidate list
 
 ## Version 0.0.5.7.9.1
 * [FIX] Group revert + NLP French API implemented (WIP)

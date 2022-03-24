@@ -272,7 +272,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
   let
     -- use % of list if to big, or Int if to small
     mapSize = 1000 :: Double
-    canSize = mapSize * 5 :: Double
+    canSize = mapSize * 2 :: Double
  
     inclSize = 0.4  :: Double
     exclSize = 1 - inclSize
