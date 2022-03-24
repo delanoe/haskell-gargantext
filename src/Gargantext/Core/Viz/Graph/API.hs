@@ -94,7 +94,7 @@ getGraph _uId nId = do
   mcId <- getClosestParentIdByType nId NodeCorpus
   let cId = maybe (panic "[G.V.G.API] Node has no parent") identity mcId
 
-  printDebug "[getGraph] getting list for cId" cId
+  -- printDebug "[getGraph] getting list for cId" cId
   listId <- defaultList cId
   repo <- getRepo' [listId]
 
@@ -178,23 +178,18 @@ computeGraph cId method d nt repo = do
           $ mapTermListRoot [lId] nt repo
 
   myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)
-         -- <$> HashMap.filterWithKey (\(x,y) _ -> x /= y)
-         -- <$> getCoocByNgrams (if d == Conditional then Diagonal True else Diagonal False)
          <$> getCoocByNgrams (Diagonal True)
          <$> groupNodesByNgrams ngs
          <$> getContextsByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
 
-  -- printDebug "myCooc" myCooc
-  -- saveAsFileDebug "debug/my-cooc" myCooc
-
   listNgrams <- getListNgrams [lId] nt
 
-  -- graph <- liftBase $ cooc2graphWith Confluence d 0 myCooc
-  -- graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
   graph <- liftBase $ cooc2graphWith method d 0 myCooc
-  -- saveAsFileDebug "debug/graph" graph
 
-  pure $ mergeGraphNgrams graph (Just listNgrams)
+  let graph' = mergeGraphNgrams graph (Just listNgrams)
+  -- saveAsFileDebug "/tmp/graphWithNodes" graph'
+
+  pure graph'
 
 
 defaultGraphMetadata :: HasNodeError err
@@ -293,7 +288,7 @@ graphVersions n nId = do
     Just listId -> do
       repo <- getRepo' [listId]
       let v = repo ^. unNodeStory . at listId . _Just . a_version
-      printDebug "graphVersions" v
+      -- printDebug "graphVersions" v
 
       pure $ GraphVersions { gv_graph = listVersion
                            , gv_repo = v }

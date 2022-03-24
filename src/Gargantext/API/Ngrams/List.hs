@@ -37,7 +37,6 @@ import Gargantext.Core.Text.Terms.WithList (buildPatterns, termsInText)
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Database.Action.Flow (saveDocNgramsWith)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
-import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Types.Hyperdata.Document
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getNode)
@@ -145,16 +144,16 @@ reIndexWith cId lId nt lts = do
   -- printDebug "ts" ts
 
   -- Taking the ngrams with 0 occurrences only (orphans)
-  occs <- getOccByNgramsOnlyFast' cId lId nt ts
+  -- occs <- getOccByNgramsOnlyFast' cId lId nt ts
 
   -- printDebug "occs" occs
 
-  let orphans = List.concat 
+  let orphans = ts {- List.concat
               $ map (\t -> case HashMap.lookup t occs of
                        Nothing -> [t]
                        Just n  -> if n <= 1 then [t] else [ ]
                        ) ts
-
+        -}
   -- printDebug "orphans" orphans
 
   -- Get all documents of the corpus

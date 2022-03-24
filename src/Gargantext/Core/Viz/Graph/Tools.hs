@@ -104,10 +104,11 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
   let
     (distanceMap, diag, ti) = doDistanceMap distance threshold myCooc
 
-{- -- Debug
-  saveAsFileDebug "debug/distanceMap" distanceMap
-  printDebug "similarities" similarities
--}
+--{- -- Debug
+  saveAsFileDebug "/tmp/distanceMap" distanceMap
+  saveAsFileDebug "/tmp/distanceMap.keys" (List.length $ Map.keys distanceMap)
+  -- printDebug "similarities" similarities
+--}
 
   partitions <- if (Map.size distanceMap > 0)
       then doPartitions distanceMap
@@ -169,13 +170,13 @@ doDistanceMap Conditional threshold myCooc = (distanceMap, toIndex ti myCooc', t
   where
     myCooc' = Map.fromList $ HashMap.toList myCooc
     (ti, _it) = createIndices myCooc'
-    tiSize  = Map.size ti
+    -- tiSize  = Map.size ti
 
-    links = round (let n :: Double = fromIntegral tiSize in n * log n)
+    -- links = round (let n :: Double = fromIntegral tiSize in n * log n)
 
     distanceMap = toIndex ti
                 $ Map.fromList
-                $ List.take links
+                -- $ List.take links
                 $ List.sortOn snd
                 $ HashMap.toList
                 $ HashMap.filter (> threshold)
@@ -209,17 +210,18 @@ data2graph labels' occurences bridge conf partitions = Graph { _graph_nodes = no
                      , node_attributes = Attributes { clust_default = fromMaybe 0
                                                        (Map.lookup n community_id_by_node_id)
                                                     }
-                     , node_children = [] }
+                     , node_children = []
+                     }
                )
             | (l, n) <- labels
             , Set.member n nodesWithScores
             ]
 
     edges = [ Edge { edge_source = cs (show s)
-                       , edge_target = cs (show t)
-                       , edge_weight = weight
-                       , edge_confluence = maybe 0 identity $ Map.lookup (s,t) conf
-                       , edge_id     = cs (show i)
+                   , edge_target = cs (show t)
+                   , edge_weight = weight
+                   , edge_confluence = maybe 0 identity $ Map.lookup (s,t) conf
+                   , edge_id     = cs (show i)
                    }
             | (i, ((s,t), weight)) <- zip ([0..]::[Integer] ) $ Map.toList bridge
             , s /= t

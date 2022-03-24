@@ -67,7 +67,7 @@ data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: !Method      }
                       | UpdateNodeParamsBoard { methodBoard :: !Charts      }
 
                       | LinkNodeReq           { nodeType    :: !NodeType
-                                              , id :: !NodeId }
+                                              , id          :: !NodeId }
 
                       | UpdateNodePhylo       { config :: !PhyloSubConfig }
     deriving (Generic)
@@ -128,7 +128,7 @@ updateNode _uId nid1 (LinkNodeReq nt nid2) logStatus = do
     NodeAnnuaire -> pairing nid2 nid1 Nothing -- defaultList
     NodeCorpus   -> pairing nid1 nid2 Nothing -- defaultList
     _            -> panic $ "[G.API.N.Update.updateNode] NodeType not implemented"
-                           <> cs (show nt)
+                          <> cs (show nt <> " nid1: " <> show nid1 <> " nid2: " <> show nid2)
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
