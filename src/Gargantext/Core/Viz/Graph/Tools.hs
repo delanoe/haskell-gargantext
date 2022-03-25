@@ -143,14 +143,6 @@ doDistanceMap Distributional threshold myCooc = (distanceMap, toIndex ti diag, t
     (ti, _it) = createIndices theMatrix
     tiSize  = Map.size ti
 
-{-
-    matCooc = case distance of  -- Shape of the Matrix
-                Conditional    -> map2mat Triangle 0 tiSize
-                Distributional -> map2mat Square   0 tiSize
-            $ toIndex ti theMatrix
-    similarities = measure distance matCooc
--}
-
     similarities = measure Distributional
                  $ map2mat Square 0 tiSize
                  $ toIndex ti theMatrix
@@ -170,13 +162,12 @@ doDistanceMap Conditional threshold myCooc = (distanceMap, toIndex ti myCooc', t
   where
     myCooc' = Map.fromList $ HashMap.toList myCooc
     (ti, _it) = createIndices myCooc'
-    -- tiSize  = Map.size ti
 
-    -- links = round (let n :: Double = fromIntegral tiSize in n * log n)
+    links = round (let n :: Double = fromIntegral (Map.size ti) in n * log n)
 
     distanceMap = toIndex ti
                 $ Map.fromList
-                -- $ List.take links
+                $ List.take links
                 $ List.sortOn snd
                 $ HashMap.toList
                 $ HashMap.filter (> threshold)

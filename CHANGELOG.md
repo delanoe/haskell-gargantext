@@ -1,6 +1,7 @@
 ## Version 0.0.5.8
 * [FIX] reindex ngrams-contexts function
 * [PARAM] decreasing the Candidate list
+* [FEAT] enabling Notebooks for Teams
 
 ## Version 0.0.5.7.9.1
 * [FIX] Group revert + NLP French API implemented (WIP)
