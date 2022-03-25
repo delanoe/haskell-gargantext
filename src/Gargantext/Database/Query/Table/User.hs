@@ -26,6 +26,7 @@ module Gargantext.Database.Query.Table.User
   , getUserHyperdata
   , getUsersWithHyperdata
   , getUsersWithNodeHyperdata
+  , updateUserEmail
   , getUser
   , insertNewUsers
   , selectUsersLightWith
@@ -157,6 +158,17 @@ getUsersWithNodeHyperdata i = do
   -- printDebug "[getUsersWithHyperdata]" (u,h)
   pure $ zip u h
 
+
+updateUserEmail :: UserLight -> Cmd err Int64
+updateUserEmail (UserLight { .. }) = mkCmd $ \c -> runUpdate_ c updateUserQuery
+  where
+    updateUserQuery :: Update Int64
+    updateUserQuery = Update
+      { uTable      = userTable
+      , uUpdateWith = updateEasy (\ (UserDB _id _p _ll _su _un _fn _ln _em _is _ia _dj)
+                                  -> UserDB _id _p _ll _su _un _fn _ln (sqlStrictText userLight_email) _is _ia _dj)
+      , uWhere      = (\row -> user_id row .== (sqlInt4 userLight_id))
+      , uReturning  = rCount }
 
 
 ------------------------------------------------------------------
