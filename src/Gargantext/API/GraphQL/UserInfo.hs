@@ -4,6 +4,7 @@
 module Gargantext.API.GraphQL.UserInfo where
 
 import Control.Lens
+import Data.Maybe (fromMaybe)
 import Data.Morpheus.Types
   ( GQLType
   , Resolver
@@ -39,7 +40,7 @@ import Gargantext.Database.Admin.Types.Hyperdata.Contact
   , hc_where)
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Query.Table.User (getUsersWithHyperdata, getUsersWithNodeHyperdata)
+import Gargantext.Database.Query.Table.User (getUsersWithHyperdata, getUsersWithNodeHyperdata, updateUserEmail)
 import Gargantext.Database.Schema.User (UserLight(..))
 import Gargantext.Database.Schema.Node (node_id, node_hyperdata)
 import Gargantext.Prelude
@@ -60,7 +61,8 @@ data UserInfo = UserInfo
   , ui_cwOffice       :: Maybe Text
   , ui_cwRole         :: Maybe Text
   , ui_cwTouchPhone   :: Maybe Text
-  , ui_cwTouchMail    :: Maybe Text }
+  , ui_cwTouchMail    :: Maybe Text  -- TODO: Remove. userLight_email should be used instead
+  }
   deriving (Generic, GQLType, Show)
 
 -- | Arguments to the "user info" query.
@@ -106,7 +108,7 @@ updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
   users <- lift (getUsersWithNodeHyperdata ui_id)
   case users of
     [] -> panic $ "[updateUserInfo] User with id " <> (T.pack $ show ui_id) <> " doesn't exist."
-    ((_u, node_u):_) -> do
+    ((UserLight { .. }, node_u):_) -> do
       let u_hyperdata = node_u ^. node_hyperdata
       -- lift $ printDebug "[updateUserInfo] u" u
       let u_hyperdata' = uh ui_titleL ui_title $
@@ -122,8 +124,17 @@ updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
                          uh ui_cwTouchMailL ui_cwTouchMail $
                          uh ui_cwTouchPhoneL ui_cwTouchPhone $
                          u_hyperdata
+      -- NOTE: We have 1 username and 2 emails: userLight_email and ui_cwTouchMail
+      -- The userLight_email is more important: it is used for login and sending mail.
+      -- Therefore we update ui_cwTouchMail and userLight_email.
+      -- ui_cwTouchMail is to be removed in the future.
+      let u' = UserLight { userLight_id
+                         , userLight_username
+                         , userLight_email = fromMaybe userLight_email $ view ui_cwTouchMailL u_hyperdata
+                         , userLight_password }
       -- lift $ printDebug "[updateUserInfo] with firstName" u_hyperdata'
       _ <- lift $ updateHyperdata (node_u ^. node_id) u_hyperdata'
+      _ <- lift $ updateUserEmail u'
       --let _newUser = toUser (u, u_hyperdata')
       pure 1
   where
@@ -158,7 +169,8 @@ toUser (UserLight { .. }, u_hyperdata) =
            , ui_cwOrganization = u_hyperdata ^. ui_cwOrganizationL
            , ui_cwOffice       = u_hyperdata ^. ui_cwOfficeL
            , ui_cwRole         = u_hyperdata ^. ui_cwRoleL
-           , ui_cwTouchMail    = u_hyperdata ^. ui_cwTouchMailL
+           --, ui_cwTouchMail    = u_hyperdata ^. ui_cwTouchMailL
+           , ui_cwTouchMail    = Just userLight_email
            , ui_cwTouchPhone   = u_hyperdata ^. ui_cwTouchPhoneL }
 
 sharedL :: Traversal' HyperdataUser HyperdataContact
