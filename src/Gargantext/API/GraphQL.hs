@@ -36,6 +36,7 @@ import qualified Gargantext.API.GraphQL.AsyncTask as GQLAT
 import qualified Gargantext.API.GraphQL.Node as GQLNode
 import qualified Gargantext.API.GraphQL.User as GQLUser
 import qualified Gargantext.API.GraphQL.UserInfo as GQLUserInfo
+import qualified Gargantext.API.GraphQL.TreeFirstLevel as GQLTree
 import Gargantext.API.Prelude (GargM, GargError)
 import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
@@ -65,6 +66,7 @@ data Query m
     , node_parent :: GQLNode.NodeParentArgs -> m [GQLNode.Node]
     , user_infos  :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
     , users       :: GQLUser.UserArgs -> m [GQLUser.User m]
+    , tree        :: GQLTree.TreeArgs -> m GQLTree.TreeFirstLevel 
     } deriving (Generic, GQLType)
 
 data Mutation m
@@ -98,7 +100,8 @@ rootResolver =
                             , nodes       = GQLNode.resolveNodes
                             , node_parent = GQLNode.resolveNodeParent
                             , user_infos  = GQLUserInfo.resolveUserInfos
-                            , users       = GQLUser.resolveUsers }
+                            , users       = GQLUser.resolveUsers
+                            , tree        = GQLTree.resolveTree }
     , mutationResolver = Mutation { update_user_info = GQLUserInfo.updateUserInfo }
     , subscriptionResolver = Undefined }
 
