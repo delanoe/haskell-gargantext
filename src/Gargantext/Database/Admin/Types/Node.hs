@@ -356,6 +356,8 @@ data NodeType = NodeUser
 
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
+instance GQLType NodeType
+
 
 allNodeTypes :: [NodeType]
 allNodeTypes = [minBound ..]

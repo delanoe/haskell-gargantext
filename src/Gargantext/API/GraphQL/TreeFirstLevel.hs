@@ -6,13 +6,13 @@ module Gargantext.API.GraphQL.TreeFirstLevel where
 import Gargantext.Prelude
 import Data.Morpheus.Types (GQLType, lift, Resolver, QUERY)
 import GHC.Generics (Generic)
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import Gargantext.API.Prelude (GargM, GargError)
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Core.Mail.Types (HasMail)
 import qualified Gargantext.Database.Query.Tree as T
 import Gargantext.Database.Admin.Types.Node (allNodeTypes, NodeId (NodeId))
-import Gargantext.Core.Types (Tree, NodeTree)
+import Gargantext.Core.Types (Tree, NodeTree, NodeType)
 import Gargantext.Core.Types.Main
     ( Tree(TreeN), _tn_node, _tn_children, NodeTree(NodeTree, _nt_id, _nt_type), _nt_name )
 
@@ -25,7 +25,7 @@ data TreeNode = TreeNode
   {
     name      :: Text
   , id        :: Int
-  , node_type :: Text
+  , node_type :: NodeType
   } deriving (Generic, GQLType)
 
 data TreeFirstLevel  = TreeFirstLevel
@@ -53,7 +53,7 @@ toTree TreeN {_tn_node, _tn_children} = TreeFirstLevel
   }
 
 toTreeNode :: NodeTree -> TreeNode
-toTreeNode NodeTree {_nt_name, _nt_id, _nt_type} = TreeNode { name = _nt_name, id = id2int _nt_id, node_type = pack $ show _nt_type}
+toTreeNode NodeTree {_nt_name, _nt_id, _nt_type} = TreeNode { name = _nt_name, id = id2int _nt_id, node_type = _nt_type}
   where
     id2int :: NodeId -> Int
     id2int (NodeId n) = n
