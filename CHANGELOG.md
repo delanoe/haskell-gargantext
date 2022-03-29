@@ -1,3 +1,6 @@
+## Version 0.0.5.8.1
+* [FIX] Folder Up button working well now, using GraphQL
+
 ## Version 0.0.5.8
 * [FIX] reindex ngrams-contexts function
 * [PARAM] decreasing the Candidate list
