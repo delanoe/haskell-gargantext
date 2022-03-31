@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 
@@ -9,24 +8,18 @@ import Control.Concurrent.MVar (readMVar)
 import Control.Lens
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Control.Monad.Base (liftBase)
 import Control.Monad.Reader (ask, liftIO)
 import Data.Either (Either(..))
 import qualified Data.IntMap.Strict as IntMap
-import Data.Maybe (Maybe(..), catMaybes)
+import Data.Maybe (catMaybes)
 import Data.Morpheus.Types
   ( GQLType
   , Resolver
-  , ResolverM
   , QUERY
   , lift
   )
-import Data.Text (Text)
-import qualified Data.Text as T
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import Gargantext.API.Prelude (GargM, GargError, HasJobEnv')
-import Gargantext.Core.Mail.Types (HasMail)
-import Gargantext.Database.Admin.Types.Node (NodeId(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Prelude
 import GHC.Generics (Generic)
