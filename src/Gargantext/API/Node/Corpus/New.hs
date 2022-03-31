@@ -18,7 +18,6 @@ New corpus means either:
 module Gargantext.API.Node.Corpus.New
       where
 
-
 import Conduit
 import Control.Lens hiding (elements, Empty)
 import Data.Aeson
@@ -38,8 +37,6 @@ import qualified Data.Text.Encoding as TE
 -- import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
-import Gargantext.Prelude
-
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs, ScraperEvent(..), scst_events)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Job (addEvent, jobLogSuccess, jobLogFailTotal)
@@ -49,8 +46,6 @@ import Gargantext.API.Node.Corpus.Types
 import Gargantext.API.Node.Types
 import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Text.List.Social (FlowSocialListWith(..))
-import qualified Gargantext.Core.Text.Corpus.API as API
-import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileType(..), parseFormatC)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow (flowCorpus, getDataText, flowDataText, TermType(..){-, allDataOrigins-})
@@ -64,8 +59,11 @@ import Gargantext.Database.Prelude (hasConfig)
 import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
-import qualified Gargantext.Database.GargDB as GargDB
+import Gargantext.Prelude
 import Gargantext.Prelude.Config (gc_max_docs_parsers)
+import qualified Gargantext.Core.Text.Corpus.API as API
+import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileType(..), parseFormatC)
+import qualified Gargantext.Database.GargDB as GargDB
 ------------------------------------------------------------------------
 {-
 data Query = Query { query_query      :: Text
@@ -177,6 +175,8 @@ type AddWithFile = Summary "Add with MultipartData to corpus endpoint"
 
 ------------------------------------------------------------------------
 -- TODO WithQuery also has a corpus id
+
+
 addToCorpusWithQuery :: FlowCmdM env err m
                        => User
                        -> CorpusId
@@ -216,8 +216,11 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
       -- TODO if cid is folder -> create Corpus
       --      if cid is corpus -> add to corpus
       --      if cid is root   -> create corpus in Private
+      printDebug "[G.A.N.C.New] getDataText with query" q
       eTxts <- mapM (\db -> getDataText db (Multi l) q maybeLimit) [database2origin dbs]
+
       let lTxts = lefts eTxts
+      printDebug "[G.A.N.C.New] eTxts" lTxts
       case lTxts of
         [] -> do
           let txts = rights eTxts
@@ -241,6 +244,7 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
                       }
         
         (err:_) -> do
+          printDebug "Error: " err
           pure $ addEvent "ERROR" (T.pack $ show err) $
             JobLog { _scst_succeeded = Just 2
                    , _scst_failed    = Just 1

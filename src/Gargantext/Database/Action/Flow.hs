@@ -26,6 +26,7 @@ Portability : POSIX
 module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   ( DataText(..)
   , getDataText
+  , getDataText_Debug
   , flowDataText
   , flow
 
@@ -67,6 +68,8 @@ import System.FilePath (FilePath)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
 import qualified Data.Map as Map
+import qualified Data.Conduit.List as CL
+import qualified Data.Conduit      as C
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import Gargantext.Core (Lang(..), PosTagAlgo(..))
@@ -134,6 +137,13 @@ data DataText = DataOld ![NodeId]
               | DataNew !(Maybe Integer, ConduitT () HyperdataDocument IO ())
               -- | DataNew ![[HyperdataDocument]]
 
+-- Show instance is not possible because of IO
+printDataText :: DataText -> IO ()
+printDataText (DataOld xs) = putStrLn $ show xs
+printDataText (DataNew (maybeInt, conduitData)) = do
+  res <- C.runConduit (conduitData .| CL.consume)
+  putStrLn $ show (maybeInt, res)
+
 -- TODO use the split parameter in config file
 getDataText :: FlowCmdM env err m
             => DataOrigin
@@ -152,6 +162,20 @@ getDataText (InternalOrigin _) _la q _li = do
                                            (Nothing :: Maybe HyperdataCorpus)
   ids <-  map fst <$> searchDocInDatabase cId (stemIt q)
   pure $ Right $ DataOld ids
+
+getDataText_Debug :: FlowCmdM env err m
+            => DataOrigin
+            -> TermType Lang
+            -> API.Query
+            -> Maybe API.Limit
+            -> m ()
+getDataText_Debug a l q li = do
+  result <- getDataText a l q li
+  case result of
+    Left  err -> liftBase $ putStrLn $ show err
+    Right res -> liftBase $ printDataText res
+
+
 
 -------------------------------------------------------------------------------
 flowDataText :: forall env err m.

@@ -20,10 +20,12 @@ module Gargantext.Core.Text.Corpus.Parsers.Date
 {-(parse, parseRaw, dateSplit, Year, Month, Day)-}
   where
 
+import System.Environment (getEnv)
 import Data.Aeson (toJSON, Value)
+import Data.Either (Either(..))
 import Data.HashMap.Strict as HM hiding (map)
-import Data.Text (Text, unpack, splitOn)
-import Data.Time (parseTimeOrError, defaultTimeLocale, toGregorian)
+import Data.Text (Text, unpack, splitOn, replace)
+import Data.Time (defaultTimeLocale, toGregorian, iso8601DateFormat, parseTimeM)
 import Data.Time.Clock (UTCTime(..), getCurrentTime)
 import Data.Time.LocalTime (utc)
 import Data.Time.LocalTime.TimeZone.Series (zonedTimeToZoneSeriesTime)
@@ -33,10 +35,12 @@ import Duckling.Types (Seal(..))
 import Duckling.Resolve (fromUTC, Context(Context, referenceTime, locale), DucklingTime(DucklingTime), Options(..))
 import Duckling.Types (ResolvedToken(..), ResolvedVal(..))
 import Gargantext.Core (Lang(FR,EN))
+import Gargantext.Core.Types (DebugMode(..), withDebugMode)
 import Gargantext.Prelude
-import qualified Data.Aeson   as Json
-import qualified Data.HashSet as HashSet
-import qualified Duckling.Core as DC
+import qualified Control.Exception as CE
+import qualified Data.Aeson        as Json
+import qualified Data.HashSet      as HashSet
+import qualified Duckling.Core     as DC
 
 ------------------------------------------------------------------------
 -- | Parse date to Ints
@@ -61,31 +65,55 @@ type Day   = Int
 
 -- | Date Parser
 -- Parses dates mentions in full text given the language.
--- >>> parseDate FR (pack "10 avril 1979 à 19H")
--- 1979-04-10 19:00:00 UTC
--- >>> parseDate EN (pack "April 10 1979")
--- 1979-04-10 00:00:00 UTC
+-- >>> parse FR (pack "10 avril 1900 à 19H")
+-- 1900-04-10 19:00:00 UTC
+-- >>> parse EN (pack "April 10 1900")
+-- 1900-04-10 00:00:00 UTC
 parse :: Lang -> Text -> IO UTCTime
-parse lang s = parseDate' "%Y-%m-%dT%T" "0-0-0T0:0:0" lang s
+parse lang s = do
+  dateStr' <- parseRawSafe lang s
+  case dateFlow dateStr' of
+    DateFlowSuccess ok -> pure ok
+    _                  -> withDebugMode (DebugMode True)
+                                        "[G.C.T.P.T.Date parse]" (lang,s)
+                                        $ getCurrentTime
+
+
+defaultDate :: Text
+defaultDate = "0-0-0T0:0:0"
 
 type DateFormat  = Text
 type DateDefault = Text
 
-parseDate' :: DateFormat
-           -> DateDefault
-           -> Lang
-           -> Text
-           -> IO UTCTime
-parseDate' format def lang s = do
-  dateStr' <- parseRaw lang s
-  if dateStr' == ""
-    then getCurrentTime
-    else do
-      let dateStr = unpack
-                  $ maybe def identity
-                  $ head
-                  $ splitOn "." dateStr'
-      pure $ parseTimeOrError True defaultTimeLocale (unpack format) dateStr
+
+data DateFlow = DucklingSuccess { ds_result  :: Text }
+              | DucklingFailure { df_result  :: Text }
+              | ReadFailure1    { rf1_result :: Text }
+              | ReadFailure2    { rf2_result :: Text }
+              | DateFlowSuccess  { success :: UTCTime }
+              | DateFlowFailure
+  deriving Show
+
+--{-
+dateFlow :: DateFlow -> DateFlow
+dateFlow (DucklingSuccess res) = case (head $ splitOn "." res)  of
+                             Nothing -> dateFlow (ReadFailure1 res)
+                             Just re -> case readDate res of
+                                Nothing -> dateFlow (ReadFailure1 re)
+                                Just ok -> DateFlowSuccess ok
+dateFlow (DucklingFailure txt) = case readDate $ replace " " "T" txt of
+                             Nothing -> dateFlow (ReadFailure1 txt)
+                             Just ok -> DateFlowSuccess ok
+dateFlow (ReadFailure1 txt) = case readDate txt of
+                          Nothing -> DateFlowFailure
+                          Just ok -> DateFlowSuccess ok
+dateFlow _ = DateFlowFailure
+--}
+
+readDate :: Text -> Maybe UTCTime
+readDate txt = do
+  let format = cs $ iso8601DateFormat (Just "%H:%M:%S")
+  parseTimeM True defaultTimeLocale (unpack format) (cs txt)
 
 
 -- TODO add Paris at Duckling.Locale Region datatype
@@ -93,14 +121,29 @@ parseDate' format def lang s = do
 --   TODO : put this in a more generic place in the source code
 parserLang :: Lang -> DC.Lang
 parserLang FR = DC.FR
-parserLang EN = DC.EN
-parserLang _  = panic "not implemented"
+parserLang EN    = DC.EN
+parserLang lang  = panic $ "[G.C.T.C.P.Date] Lang not implemented" <> (cs $ show lang)
 
 -- | Final Date parser API
 -- IO can be avoided here:
 -- currentContext :: Lang -> IO Context
 -- currentContext lang = localContext lang <$> utcToDucklingTime <$> getCurrentTime
 -- parseRaw :: Context -> Text -> SomeErrorHandling Text
+
+
+parseRawSafe :: Lang -> Text -> IO DateFlow
+parseRawSafe lang text = do
+  triedParseRaw <- tryParseRaw lang text
+  dateStr' <- case triedParseRaw of
+      Left (CE.SomeException err) -> do
+        envLang <- getEnv "LANG"
+        printDebug "[G.C.T.C.P.Date] Exception: " (err, envLang, lang, text)
+        pure $ DucklingFailure text
+      Right res -> pure $ DucklingSuccess res
+  pure dateStr'
+
+tryParseRaw :: CE.Exception e => Lang -> Text -> IO (Either e Text)
+tryParseRaw lang text = CE.try (parseRaw lang text)
 
 parseRaw :: Lang -> Text -> IO Text
 parseRaw lang text = do -- case result
@@ -145,6 +188,4 @@ parseDateWithDuckling lang input options = do
     --pure $ parseAndResolve (rulesFor (locale ctx) (HashSet.fromList [(This Time)])) input ctx
     -- TODO check/test Options False or True
     pure $ analyze input contxt options $ HashSet.fromList [(Seal Time)]
-
-
 

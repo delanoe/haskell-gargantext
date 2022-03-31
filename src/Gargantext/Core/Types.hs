@@ -16,6 +16,7 @@ commentary with @some markup@.
 
 module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , module Gargantext.Database.Admin.Types.Node
+                             , DebugMode(..), withDebugMode
                              , Term, Terms(..)
                              , TokenTag(..), POS(..), NER(..)
                              , Label, Stems
@@ -29,6 +30,7 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
 
 import Control.Lens (Prism', (#), makeLenses, over)
 import Control.Monad.Except (MonadError(throwError))
+import Debug.Trace (trace)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Hashable (Hashable)
@@ -46,6 +48,14 @@ import Gargantext.Core.Utils.Prefix (unPrefix, wellNamedSchema)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
+------------------------------------------------------------------------
+
+data DebugMode = DebugMode { activated :: Bool }
+
+withDebugMode :: (Show a) => DebugMode -> Text -> a -> b -> b
+withDebugMode (DebugMode True ) msg var a = trace (cs $ "DEBUG" <> msg <> (cs $ show var)) a
+withDebugMode (DebugMode False) _   _ a = a
 
 ------------------------------------------------------------------------
 data Ordering = Down | Up
