@@ -1,3 +1,6 @@
+## Version 0.0.5.8.2
+* [FIX] Regex Error on HAL Date parsing with Duckling
+
 ## Version 0.0.5.8.1
 * [FIX] Folder Up button working well now, using GraphQL
 
