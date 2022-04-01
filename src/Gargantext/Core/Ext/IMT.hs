@@ -61,7 +61,7 @@ schools =
   , School
     { school_shortName = "IP Paris - Institut Polytechnique de Paris"
     , school_longName = "IP Paris - Institut Polytechnique de Paris"
-    , schoold_id = "563936" }
+    , school_id = "563936" }
   , School
     { school_shortName = "Mines Albi-Carmaux"
     , school_longName = "Mines Albi-Carmaux - École nationale supérieure des Mines d'Albi‐Carmaux"
