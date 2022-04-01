@@ -1,3 +1,6 @@
+## Version 0.0.5.8.3
+* [CRAWLERS] HAL for organizations, example done for IMT
+
 ## Version 0.0.5.8.2
 * [FIX] Regex Error on HAL Date parsing with Duckling
 
