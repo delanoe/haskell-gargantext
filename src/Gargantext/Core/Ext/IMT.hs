@@ -59,6 +59,10 @@ schools =
     , school_longName = "IMT Lille Douai"
     , school_id = "497330" }
   , School
+    { school_shortName = "IP Paris - Institut Polytechnique de Paris"
+    , school_longName = "IP Paris - Institut Polytechnique de Paris"
+    , schoold_id = "563936" }
+  , School
     { school_shortName = "Mines Albi-Carmaux"
     , school_longName = "Mines Albi-Carmaux - École nationale supérieure des Mines d'Albi‐Carmaux"
     , school_id = "469216" }
