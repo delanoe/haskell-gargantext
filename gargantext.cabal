@@ -184,7 +184,6 @@ library
       Gargantext.Core.Text.List.Group.WithScores
       Gargantext.Core.Text.List.Group.WithStem
       Gargantext.Core.Text.List.Learn
-      Gargantext.Core.Text.List.Management
       Gargantext.Core.Text.List.Merge
       Gargantext.Core.Text.List.Social
       Gargantext.Core.Text.List.Social.Find
