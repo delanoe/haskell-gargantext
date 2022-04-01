@@ -33,6 +33,7 @@ import Gargantext.API.Admin.Auth.Types (AuthenticatedUser)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog)
 import Gargantext.API.Prelude (HasJobEnv')
 import qualified Gargantext.API.GraphQL.AsyncTask as GQLAT
+import qualified Gargantext.API.GraphQL.IMT as GQLIMT
 import qualified Gargantext.API.GraphQL.Node as GQLNode
 import qualified Gargantext.API.GraphQL.User as GQLUser
 import qualified Gargantext.API.GraphQL.UserInfo as GQLUserInfo
@@ -61,7 +62,8 @@ import qualified Servant.Auth.Server as SAS
 -- | Represents possible GraphQL queries.
 data Query m
   = Query
-    { job_logs    :: GQLAT.JobLogArgs -> m (Map Int JobLog)
+    { imt_schools :: GQLIMT.SchoolsArgs -> m [GQLIMT.School]
+    , job_logs    :: GQLAT.JobLogArgs -> m (Map Int JobLog)
     , nodes       :: GQLNode.NodeArgs -> m [GQLNode.Node]
     , node_parent :: GQLNode.NodeParentArgs -> m [GQLNode.Node]
     , user_infos  :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
@@ -96,7 +98,8 @@ rootResolver
   => RootResolver (GargM env GargError) e Query Mutation Undefined
 rootResolver =
   RootResolver
-    { queryResolver = Query { job_logs    = GQLAT.resolveJobLogs
+    { queryResolver = Query { imt_schools = GQLIMT.resolveSchools
+                            , job_logs    = GQLAT.resolveJobLogs
                             , nodes       = GQLNode.resolveNodes
                             , node_parent = GQLNode.resolveNodeParent
                             , user_infos  = GQLUserInfo.resolveUserInfos
