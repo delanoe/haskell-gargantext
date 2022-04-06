@@ -29,6 +29,7 @@ import Data.Morpheus.Types
   , RootResolver(..)
   , Undefined(..)
   )
+import Data.Proxy
 import Gargantext.API.Admin.Auth.Types (AuthenticatedUser)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog)
 import Gargantext.API.Prelude (HasJobEnv')
@@ -135,6 +136,9 @@ type Playground = Get '[HTML] ByteString
 -- | Our API consists of `GQAPI` and `Playground`.
 type API = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser
             :> "gql" :> (GQAPI :<|> Playground)
+
+gqapi :: Proxy API
+gqapi = Proxy
 
 -- serveEndpoint ::
 --   ( SubApp ServerApp e

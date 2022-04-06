@@ -1,11 +1,13 @@
 {-# OPTIONS_GHC -freduction-depth=0 #-}
 {-# OPTIONS_GHC -O0                 #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Gargantext.API.Client where
 
 import Data.Int
 import Data.Maybe
 import Data.Map (Map)
+import Data.Morpheus.Types.IO (GQLRequest, GQLResponse)
 import Data.Proxy
 import Data.Text (Text)
 import Data.Time.Clock
@@ -15,6 +17,7 @@ import Gargantext.API.Admin.Auth.Types hiding (Token)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Count
 import Gargantext.API.EKG
+import qualified Gargantext.API.GraphQL                    as GraphQL
 import Gargantext.API.HashedResponse
 import Gargantext.API.Ngrams as Ngrams
 import Gargantext.API.Ngrams.NgramsTree
@@ -419,6 +422,13 @@ getPublicNodeFile :: NodeId -> ClientM (Headers '[Header "Content-Type" Text] BS
 getMetricsSample :: ClientM Sample
 -- | open @<backend:port\/ekg\/index.html@ to see a list of metrics
 getMetricSample :: [Text] -> ClientM Value
+
+-- * graphql api
+
+postGraphQL :: Token -> GQLRequest -> ClientM GQLResponse
+postGraphQL = client (fstEndpoint (flatten GraphQL.gqapi))
+  where fstEndpoint :: Proxy (a :<|> b) -> Proxy a
+        fstEndpoint _ = Proxy
 
 -- * unpacking of client functions to derive all the individual clients
 
