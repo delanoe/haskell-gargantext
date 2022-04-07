@@ -104,14 +104,16 @@ resolveUserInfos UserInfoArgs { user_id } = dbUsers user_id
 -- | Mutation for user info
 updateUserInfo
   :: (HasConnectionPool env, HasConfig env, HasMail env)
-  => UserInfoMArgs -> ResolverM e (GargM env GargError) Int
+  -- => UserInfoMArgs -> ResolverM e (GargM env err) Int
+  => UserInfoMArgs -> GqlM e env Int
 updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
   -- lift $ printDebug "[updateUserInfo] ui_id" ui_id
   users <- lift (getUsersWithNodeHyperdata ui_id)
   case users of
     [] -> panic $ "[updateUserInfo] User with id " <> (T.pack $ show ui_id) <> " doesn't exist."
-    ((UserLight { .. }, node_u):_) -> 
-      case authUser ui_id token of
+    ((UserLight { .. }, node_u):_) -> do
+      testAuthUser <- authUser ui_id token
+      case testAuthUser of
         Invalid -> panic "[updateUserInfo] failed to validate user"
         Valid -> do
           let u_hyperdata = node_u ^. node_hyperdata

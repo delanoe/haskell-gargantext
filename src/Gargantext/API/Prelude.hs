@@ -24,7 +24,6 @@ import Control.Concurrent (threadDelay)
 import Control.Exception (Exception)
 import Control.Lens (Prism', (#))
 import Control.Lens.TH (makePrisms)
-import Control.Monad.Error.Class (MonadError(..))
 import Control.Monad.Except (ExceptT)
 import Control.Monad.Reader (ReaderT)
 import Crypto.JOSE.Error as Jose
@@ -72,11 +71,11 @@ type ErrC err =
   )
 
 type GargServerC env err m =
-  ( CmdRandom env err m
+  ( CmdRandom    env err m
   , HasNodeStory env err m
-  , EnvC  env
-  , ErrC      err
-  , ToJSON err
+  , EnvC         env
+  , ErrC             err
+  , ToJSON           err
   )
 
 type GargServerT env err m api = GargServerC env err m => ServerT api m
@@ -102,7 +101,6 @@ type GargNoServer' env err m =
   )
 
 -------------------------------------------------------------------
-
 data GargError
   = GargNodeError    NodeError
   | GargTreeError    TreeError
@@ -132,7 +130,6 @@ instance HasServerError GargError where
 
 instance HasJoseError GargError where
   _JoseError = _GargJoseError
-
 
 ------------------------------------------------------------------------
 -- | Utils

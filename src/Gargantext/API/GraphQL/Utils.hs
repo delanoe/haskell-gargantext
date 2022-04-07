@@ -1,3 +1,13 @@
+{-|
+Module      : Gargantext.API.GraphQL.Utils
+Description : Utils for GraphQL API
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+-}
+
 module Gargantext.API.GraphQL.Utils where
 
 import Data.Morpheus.Types (GQLTypeOptions, fieldLabelModifier)
@@ -5,6 +15,7 @@ import qualified Data.Text as T
 import Gargantext.Core.Utils.Prefix (unCapitalize, dropPrefix)
 import Gargantext.Prelude
 import Data.Text (Text)
+import Control.Monad.Error.Class (MonadError(..))
 import Data.Text.Encoding (encodeUtf8)
 import Gargantext.API.Admin.Types (jwtSettings, HasSettings (settings))
 import Servant.Auth.Server (verifyJWT, JWTSettings)
@@ -25,7 +36,7 @@ authUser :: (HasSettings env) => Int -> Text -> Cmd' env err AuthStatus
 authUser ui_id token = do
   let token' = encodeUtf8 token
   jwtS <- view $ settings . jwtSettings
-  u <- getUserFromToken jwtS token'
+  u <- liftBase $ getUserFromToken jwtS token'
   case u of
     Nothing -> pure Invalid
     Just au -> 
