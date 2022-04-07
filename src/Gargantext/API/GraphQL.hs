@@ -158,5 +158,4 @@ api
   :: (Typeable env, HasConnectionPool env, HasConfig env, HasMail env, HasJobEnv' env)
   => ServerT API (GargM env GargError)
 api (SAS.Authenticated _auser) = httpPubApp [] app :<|> pure httpPlayground
---api _                          = panic "401 in graphql" --SAS.throwAll (_ServerError # err401)
-api _ = httpPubApp [] app :<|> pure httpPlayground
+api _                          = SAS.throwAll (_ServerError # err401)
