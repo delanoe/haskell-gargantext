@@ -150,6 +150,7 @@ library:
   - conduit-extra
   - containers
   - contravariant
+  - crawlerArxiv
   - crawlerHAL
   - crawlerISTEX
   - crawlerIsidore
