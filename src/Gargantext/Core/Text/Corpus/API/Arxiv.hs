@@ -42,19 +42,20 @@ get la q l = do
 toDoc :: Lang -> Arxiv.Result -> HyperdataDocument
 toDoc l (Arxiv.Result { abstract
                       , authors = aus
-                      , categories
+                      --, categories
                       , doi
+                      , id
                       , journal
-                      , primaryCategory
+                      --, primaryCategory
                       , publication_date
                       , title
-                      , total
+                      --, total
                       , url
                       , year }
           ) = HyperdataDocument { _hd_bdd = Just "Arxiv"
-                                , _hd_doi = Nothing
-                                , _hd_url = Nothing
-                                , _hd_uniqId = Just $ Text.pack doi
+                                , _hd_doi = Just $ Text.pack doi
+                                , _hd_url = Just $ Text.pack url
+                                , _hd_uniqId = Just $ Text.pack id
                                 , _hd_uniqIdBdd = Nothing
                                 , _hd_page = Nothing
                                 , _hd_title = Just $ Text.pack title
@@ -73,13 +74,13 @@ toDoc l (Arxiv.Result { abstract
       where
         authors :: [Ax.Author] -> Maybe Text
         authors [] = Nothing
-        authors aus = Just $ (Text.intercalate ", ")
-                           $ map Text.pack
-                           $ map Ax.auName aus
+        authors aus' = Just $ (Text.intercalate ", ")
+                            $ map Text.pack
+                            $ map Ax.auName aus'
 
         institutes :: [Ax.Author] -> Maybe Text
         institutes [] = Nothing
-        institutes aus = Just $ (Text.intercalate ", ")
-                              $ (map (Text.replace ", " " - "))
-                              $ map Text.pack
-                              $ map Ax.auFil aus
+        institutes aus' = Just $ (Text.intercalate ", ")
+                               $ (map (Text.replace ", " " - "))
+                               $ map Text.pack
+                               $ map Ax.auFil aus'
