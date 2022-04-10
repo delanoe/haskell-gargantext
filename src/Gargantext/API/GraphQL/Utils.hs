@@ -15,7 +15,6 @@ import qualified Data.Text as T
 import Gargantext.Core.Utils.Prefix (unCapitalize, dropPrefix)
 import Gargantext.Prelude
 import Data.Text (Text)
-import Control.Monad.Error.Class (MonadError(..))
 import Data.Text.Encoding (encodeUtf8)
 import Gargantext.API.Admin.Types (jwtSettings, HasSettings (settings))
 import Servant.Auth.Server (verifyJWT, JWTSettings)
@@ -48,4 +47,3 @@ authUser ui_id token = do
 
 getUserFromToken :: JWTSettings -> ByteString -> IO (Maybe AuthenticatedUser)
 getUserFromToken = verifyJWT
-

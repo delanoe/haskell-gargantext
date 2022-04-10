@@ -26,6 +26,7 @@ import Control.Lens (Prism', (#))
 import Control.Lens.TH (makePrisms)
 import Control.Monad.Except (ExceptT)
 import Control.Monad.Reader (ReaderT)
+import Control.Monad.Error.Class (MonadError(..))
 import Crypto.JOSE.Error as Jose
 import Data.Aeson.Types
 import Data.Typeable

@@ -42,10 +42,12 @@ import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.User (getUsersWithHyperdata, getUsersWithNodeHyperdata, updateUserEmail)
 import Gargantext.Database.Schema.User (UserLight(..))
-import Gargantext.Database.Schema.Node (node_id, node_hyperdata)
+import Gargantext.Database.Schema.Node (node_id, node_hyperdata, NodePoly (Node, _node_id))
 import Gargantext.Prelude
 import GHC.Generics (Generic)
 import Gargantext.API.GraphQL.Utils (AuthStatus(Invalid, Valid), authUser)
+import Gargantext.API.Admin.Types (HasSettings)
+import Gargantext.Database.Admin.Types.Node (unNodeId)
 
 data UserInfo = UserInfo
   { ui_id             :: Int
@@ -94,6 +96,7 @@ data UserInfoMArgs
     } deriving (Generic, GQLType)
 
 type GqlM e env = Resolver QUERY e (GargM env GargError)
+type GqlM' e env err = ResolverM e (GargM env err) Int
 
 -- | Function to resolve user from a query.
 resolveUserInfos
@@ -103,16 +106,16 @@ resolveUserInfos UserInfoArgs { user_id } = dbUsers user_id
 
 -- | Mutation for user info
 updateUserInfo
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (HasConnectionPool env, HasConfig env, HasMail env, HasSettings env)
   -- => UserInfoMArgs -> ResolverM e (GargM env err) Int
-  => UserInfoMArgs -> GqlM e env Int
+  => UserInfoMArgs -> GqlM' e env err
 updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
   -- lift $ printDebug "[updateUserInfo] ui_id" ui_id
   users <- lift (getUsersWithNodeHyperdata ui_id)
   case users of
     [] -> panic $ "[updateUserInfo] User with id " <> (T.pack $ show ui_id) <> " doesn't exist."
     ((UserLight { .. }, node_u):_) -> do
-      testAuthUser <- authUser ui_id token
+      testAuthUser <- lift $ authUser (nId node_u) token
       case testAuthUser of
         Invalid -> panic "[updateUserInfo] failed to validate user"
         Valid -> do
@@ -149,6 +152,7 @@ updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
     uh lens' (Just val) u_hyperdata = u_hyperdata & lens' .~ Just val
     uh' _ Nothing u_hyperdata = u_hyperdata
     uh' lens' (Just val) u_hyperdata = u_hyperdata & lens' .~ val
+    nId Node {_node_id} = unNodeId _node_id
 
 -- | Inner function to fetch the user from DB.
 dbUsers

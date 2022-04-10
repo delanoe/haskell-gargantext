@@ -59,6 +59,7 @@ import Servant
   )
 import qualified Servant.Auth as SA
 import qualified Servant.Auth.Server as SAS
+import Gargantext.API.Admin.Types (HasSettings)
 
 -- | Represents possible GraphQL queries.
 data Query m
@@ -95,7 +96,7 @@ data Contet m
 -- | The main GraphQL resolver: how queries, mutations and
 -- subscriptions are handled.
 rootResolver
-  :: (HasConnectionPool env, HasConfig env, HasMail env, HasJobEnv' env)
+  :: (HasConnectionPool env, HasConfig env, HasMail env, HasJobEnv' env, HasSettings env)
   => RootResolver (GargM env GargError) e Query Mutation Undefined
 rootResolver =
   RootResolver
@@ -111,7 +112,7 @@ rootResolver =
 
 -- | Main GraphQL "app".
 app
-  :: (Typeable env, HasConnectionPool env, HasConfig env, HasMail env, HasJobEnv' env)
+  :: (Typeable env, HasConnectionPool env, HasConfig env, HasMail env, HasJobEnv' env, HasSettings env)
   => App (EVENT (GargM env GargError)) (GargM env GargError)
 app = deriveApp rootResolver
 
@@ -155,7 +156,7 @@ gqapi = Proxy
 -- | Implementation of our API.
 --api :: Server API
 api
-  :: (Typeable env, HasConnectionPool env, HasConfig env, HasMail env, HasJobEnv' env)
+  :: (Typeable env, HasConnectionPool env, HasConfig env, HasMail env, HasJobEnv' env, HasSettings env)
   => ServerT API (GargM env GargError)
 api (SAS.Authenticated _auser) = httpPubApp [] app :<|> pure httpPlayground
-api _                          = SAS.throwAll (_ServerError # err401)
+api _                          = panic "401 in graphql" -- SAS.throwAll (_ServerError # err401)
