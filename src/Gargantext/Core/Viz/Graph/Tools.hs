@@ -40,6 +40,7 @@ import qualified Data.HashMap.Strict      as HashMap
 import qualified Data.List                as List
 import qualified Data.Map                 as Map
 import qualified Data.Set                 as Set
+import qualified Data.Text                as Text
 import qualified Data.Vector.Storable     as Vec
 import qualified Graph.BAC.ProxemyOptim   as BAC
 import qualified IGraph                   as Igraph
@@ -105,14 +106,17 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
     (distanceMap, diag, ti) = doDistanceMap distance threshold myCooc
 
 --{- -- Debug
-  saveAsFileDebug "/tmp/distanceMap" distanceMap
-  saveAsFileDebug "/tmp/distanceMap.keys" (List.length $ Map.keys distanceMap)
+  -- saveAsFileDebug "/tmp/distanceMap" distanceMap
+  -- saveAsFileDebug "/tmp/distanceMap.keys" (List.length $ Map.keys distanceMap)
   -- printDebug "similarities" similarities
 --}
 
   partitions <- if (Map.size distanceMap > 0)
       then doPartitions distanceMap
-      else panic "Text.Flow: DistanceMap is empty"
+      else panic $ Text.unlines [ "[Gargantext.C.V.Graph.Tools] Similarity Matrix is empty"
+                                , "Maybe you should add more Map Terms in your list"
+                                , "Tutorial: link todo"
+                                ]
 
   let
     nodesApprox :: Int
