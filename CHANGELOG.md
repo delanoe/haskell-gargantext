@@ -1,3 +1,8 @@
+## Version 0.0.5.8.5
+* [FRONT] CSS + Design, Graph Toolbar and many things
+* [BACK] Security FIX GQL route
+* [BACK] Arxiv API connexion
+
 ## Version 0.0.5.8.4
 * [BACK] GraphQL routes
 * [FRONT] CSS, Forest Sidebar

@@ -76,8 +76,8 @@ extra-deps:
   commit: 3bf77f28d3dc71d2e8349cbf422a34cf4c23cd11
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
   commit: 3db385e767d2100d8abe900833c6e7de3ac55e1b
-#- git: https://gitlab.iscpif.fr/gargantext/crawlers/arxiv-api.git
-- git: https://gitlab.iscpif.fr/cgenie/arxiv-api.git
+- git: https://gitlab.iscpif.fr/gargantext/crawlers/arxiv-api.git
+#- git: https://gitlab.iscpif.fr/cgenie/arxiv-api.git
   commit: f3e517cc40d92e282c5245b23d253d2ca3f802e5
 - arxiv-0.0.3@sha256:02de1114091d11f1f3ab401d104d125ad4301260806feb7f63b3dcefc7db88cf,1588
 
