@@ -25,6 +25,7 @@ import Gargantext.API.Admin.Orchestrator.Types (ExternalAPIs(..), externalAPIs)
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Prelude
+import qualified Gargantext.Core.Text.Corpus.API.Arxiv   as Arxiv
 import qualified Gargantext.Core.Text.Corpus.API.Hal     as HAL
 import qualified Gargantext.Core.Text.Corpus.API.Isidore as ISIDORE
 import qualified Gargantext.Core.Text.Corpus.API.Istex   as ISTEX
@@ -41,6 +42,7 @@ get :: ExternalAPIs
 get PubMed  _la q limit = PUBMED.get q limit
   --docs <- PUBMED.get   q default_limit -- EN only by default
   --pure (Just $ fromIntegral $ length docs, yieldMany docs)
+get Arxiv    la q limit = Arxiv.get la q (fromIntegral <$> limit)
 get HAL      la q limit = HAL.getC  la q limit
 get IsTex    la q limit = do
   docs <- ISTEX.get la q limit

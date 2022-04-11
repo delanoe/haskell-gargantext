@@ -132,6 +132,7 @@ library:
   - aeson-lens
   - aeson-pretty
   - array
+  - arxiv
   - async
   - attoparsec
   - auto-update
@@ -150,6 +151,7 @@ library:
   - conduit-extra
   - containers
   - contravariant
+  - crawlerArxiv
   - crawlerHAL
   - crawlerISTEX
   - crawlerIsidore
