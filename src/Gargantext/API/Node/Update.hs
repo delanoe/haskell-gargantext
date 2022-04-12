@@ -18,32 +18,38 @@ module Gargantext.API.Node.Update
 
 import Control.Lens (view)
 import Data.Aeson
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Swagger
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
-import qualified Gargantext.API.Metrics as Metrics
 import Gargantext.API.Ngrams.List (reIndexWith)
-import qualified Gargantext.API.Ngrams.Types as NgramsTypes
 import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core.Methods.Distances (GraphMetric(..))
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
+import Gargantext.Core.Viz.Graph.Tools (PartitionMethod(..))
+import Gargantext.Core.Viz.Phylo (PhyloSubConfig(..), subConfig2config)
+import Gargantext.Core.Viz.Phylo.API.Tools (flowPhyloAPI)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
+import Gargantext.Database.Action.Metrics (updateNgramsOccurrences, updateContextScore)
+import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Node (getNode)
-import Gargantext.Database.Schema.Node (node_parent_id)
+import Gargantext.Database.Query.Table.Node (defaultList, getNode)
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Ngrams (NgramsType(NgramsTerms))
-import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic)
-import qualified Gargantext.Utils.Aeson as GUA
+import Gargantext.Database.Schema.Node (node_parent_id)
+import Gargantext.Prelude (Bool(..), Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic, (<*>))
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
-import qualified Data.Set as Set
+import qualified Data.Set                    as Set
+import qualified Gargantext.API.Metrics      as Metrics
+import qualified Gargantext.API.Ngrams.Types as NgramsTypes
+import qualified Gargantext.Utils.Aeson      as GUA
 
 ------------------------------------------------------------------------
 type API = Summary " Update node according to NodeType params"
@@ -51,10 +57,19 @@ type API = Summary " Update node according to NodeType params"
 
 ------------------------------------------------------------------------
 data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: !Method      }
-                      | UpdateNodeParamsGraph { methodGraph :: !GraphMetric }
+
+                      | UpdateNodeParamsGraph { methodGraphMetric     :: !GraphMetric 
+                                              , methodGraphClustering :: !PartitionMethod
+                                              }
+
                       | UpdateNodeParamsTexts { methodTexts :: !Granularity }
+
                       | UpdateNodeParamsBoard { methodBoard :: !Charts      }
-                      | LinkNodeReq { nodeType :: !NodeType, id :: !NodeId }
+
+                      | LinkNodeReq           { nodeType    :: !NodeType
+                                              , id          :: !NodeId }
+
+                      | UpdateNodePhylo       { config :: !PhyloSubConfig }
     deriving (Generic)
 
 ----------------------------------------------------------------------
@@ -87,7 +102,7 @@ updateNode :: (HasSettings env, FlowCmdM env err m)
     -> UpdateNodeParams
     -> (JobLog -> m ())
     -> m JobLog
-updateNode uId nId (UpdateNodeParamsGraph metric) logStatus = do
+updateNode uId nId (UpdateNodeParamsGraph metric method) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
@@ -95,7 +110,7 @@ updateNode uId nId (UpdateNodeParamsGraph metric) logStatus = do
                    , _scst_events    = Just []
                    }
 
-  _ <- recomputeGraph uId nId (Just metric)
+  _ <- recomputeGraph uId nId method (Just metric) True
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
@@ -113,7 +128,7 @@ updateNode _uId nid1 (LinkNodeReq nt nid2) logStatus = do
     NodeAnnuaire -> pairing nid2 nid1 Nothing -- defaultList
     NodeCorpus   -> pairing nid1 nid2 Nothing -- defaultList
     _            -> panic $ "[G.API.N.Update.updateNode] NodeType not implemented"
-                           <> cs (show nt)
+                          <> cs (show nt <> " nid1: " <> show nid1 <> " nid2: " <> show nid2)
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
@@ -165,7 +180,10 @@ updateNode _uId lId (UpdateNodeParamsList _mode) logStatus = do
                    }
 
   _ <- case corpusId of
-    Just cId -> reIndexWith cId lId NgramsTerms (Set.singleton MapTerm)
+    Just cId -> do
+      _ <- reIndexWith cId lId NgramsTerms (Set.singleton MapTerm)
+      _ <- updateNgramsOccurrences cId (Just lId)
+      pure ()
     Nothing  -> pure ()
 
   pure  JobLog { _scst_succeeded = Just 3
@@ -173,6 +191,67 @@ updateNode _uId lId (UpdateNodeParamsList _mode) logStatus = do
                , _scst_remaining = Just 0
                , _scst_events    = Just []
                }
+
+updateNode _userId phyloId (UpdateNodePhylo config) logStatus = do
+  logStatus JobLog { _scst_succeeded = Just 1
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 2
+                   , _scst_events    = Just []
+                   }
+
+  corpusId' <- view node_parent_id <$> getNode phyloId
+
+  let corpusId = fromMaybe (panic "") corpusId'
+
+  phy <- flowPhyloAPI (subConfig2config config) corpusId
+
+  logStatus JobLog { _scst_succeeded = Just 2
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
+
+  _ <- updateHyperdata phyloId (HyperdataPhylo Nothing (Just phy))
+
+  pure  JobLog { _scst_succeeded = Just 3
+               , _scst_failed    = Just 0
+               , _scst_remaining = Just 0
+               , _scst_events    = Just []
+               }
+
+
+updateNode _uId tId (UpdateNodeParamsTexts _mode) logStatus = do
+  logStatus JobLog { _scst_succeeded = Just 1
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 2
+                   , _scst_events    = Just []
+                   }
+  corpusId <- view node_parent_id <$> getNode tId
+  lId      <- defaultList $ fromMaybe (panic "[G.A.N.Update] updateNode/UpdateNodeParamsTexts: no defaultList") corpusId
+
+  logStatus JobLog { _scst_succeeded = Just 2
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
+
+  _ <- case corpusId of
+    Just cId -> do
+      _ <- reIndexWith cId lId NgramsTerms (Set.singleton MapTerm)
+      _ <- updateNgramsOccurrences cId (Just lId)
+      _ <- updateContextScore      cId (Just lId)
+      -- printDebug "updateContextsScore" (cId, lId, u)
+      pure ()
+    Nothing  -> pure ()
+
+  pure  JobLog { _scst_succeeded = Just 3
+               , _scst_failed    = Just 0
+               , _scst_remaining = Just 0
+               , _scst_events    = Just []
+               }
+
+
+
 
 
 updateNode _uId _nId _p logStatus = do
@@ -190,7 +269,7 @@ instance ToSchema  UpdateNodeParams
 instance Arbitrary UpdateNodeParams where
   arbitrary = do
     l <- UpdateNodeParamsList  <$> arbitrary
-    g <- UpdateNodeParamsGraph <$> arbitrary
+    g <- UpdateNodeParamsGraph <$> arbitrary <*> arbitrary
     t <- UpdateNodeParamsTexts <$> arbitrary
     b <- UpdateNodeParamsBoard <$> arbitrary
     elements [l,g,t,b]

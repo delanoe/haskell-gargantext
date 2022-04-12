@@ -1,15 +1,6 @@
 packages: .
-          -- ../servant-job
-          -- ../ekg-json
-          -- ../../../code/servant/servant
-          -- ../../../code/servant/servant-server
-          -- ../../../code/servant/servant-client-core
-          -- ../../../code/servant/servant-client
-          -- ../../../code/servant/servant-auth/servant-auth
-          -- ../../../code/servant/servant-auth/servant-auth-client
-          -- ../../../code/servant/servant-auth/servant-auth-server
 
-allow-newer: base, accelerate, servant, time
+allow-newer: base, accelerate, servant, time, classy-prelude
 
 -- Patches
 source-repository-package
@@ -20,7 +11,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/alpmestan/ekg-json.git
-  tag: c7bde4851a7cd41b3f3debf0c57f11bbcb11d698
+  tag: fd7e5d7325939103cd87d0dc592faf644160341c
 
 source-repository-package
   type: git
@@ -53,7 +44,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed.git
-  tag: a9d8e08a7ef82f90e29dfaced4071704a3163394
+  tag: 9cdba6423decad5acfacb0f274212fd8723ce734
 
 source-repository-package
   type: git
@@ -112,7 +103,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/delanoe/haskell-opaleye.git
-  tag: d3ab7acd5ede737478763630035aa880f7e34444
+  tag: 756cb90f4ce725463d957bc899d764e0ed73738c
 
 source-repository-package
   type: git
@@ -146,4 +137,5 @@ source-repository-package
 
 constraints: unordered-containers==0.2.14.*,
              servant-ekg==0.3.1,
-             time==1.9.3
+             time==1.9.3,
+             stm==2.5.0.1

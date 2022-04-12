@@ -59,9 +59,9 @@ replaceTerms pats terms = go 0
 buildPatterns :: TermList -> Patterns
 buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern
   where
-    buildPattern (label, alts) = map f (label : alts)
+    buildPattern (label, alts) = map f $ map (\alt -> filter (/= "") alt) (label : alts)
       where
-        f alt | "" `elem` alt = error "buildPatterns: ERR1"
+        f alt | "" `elem` alt = error ("buildPatterns: ERR1" <> show(label))
               | null alt      = error "buildPatterns: ERR2"
               | otherwise     =
                 Pattern (KMP.build alt) (length alt) label

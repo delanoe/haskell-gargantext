@@ -1,11 +1,13 @@
 {-# OPTIONS_GHC -freduction-depth=0 #-}
-{-# OPTIONS_GHC -O0                 #-} 
+{-# OPTIONS_GHC -O0                 #-}
+{-# LANGUAGE TypeOperators #-}
 
-module Gargantext.Client where
+module Gargantext.API.Client where
 
 import Data.Int
 import Data.Maybe
 import Data.Map (Map)
+import Data.Morpheus.Types.IO (GQLRequest, GQLResponse)
 import Data.Proxy
 import Data.Text (Text)
 import Data.Time.Clock
@@ -15,6 +17,7 @@ import Gargantext.API.Admin.Auth.Types hiding (Token)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Count
 import Gargantext.API.EKG
+import qualified Gargantext.API.GraphQL                    as GraphQL
 import Gargantext.API.HashedResponse
 import Gargantext.API.Ngrams as Ngrams
 import Gargantext.API.Ngrams.NgramsTree
@@ -23,6 +26,7 @@ import Gargantext.API.Node
 import Gargantext.API.Node.Contact
 import Gargantext.API.Node.Corpus.Export.Types
 import Gargantext.API.Node.Corpus.New
+import qualified Gargantext.API.Node.Document.Export.Types as DocumentExport
 import Gargantext.API.Node.DocumentsFromWriteNodes
 import Gargantext.API.Node.DocumentUpload
 import Gargantext.API.Node.File
@@ -39,7 +43,6 @@ import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main hiding (Limit, Offset)
 import Gargantext.Core.Viz.Graph hiding (Node, Version)
 import Gargantext.Core.Viz.Graph.API
-import Gargantext.Core.Viz.Phylo.Legacy.LegacyAPI
 import Gargantext.Core.Viz.Types
 import Gargantext.Database.Admin.Types.Metrics
 import Gargantext.Database.Admin.Types.Hyperdata
@@ -54,18 +57,22 @@ import Servant.Job.Core
 import Servant.Job.Types
 import System.Metrics.Json (Sample, Value)
 
--- * actual client functions for individual endpoints
+import qualified Data.Aeson as Aeson
 
+-- * version API
 getBackendVersion :: ClientM Text
+
+-- * auth API
 postAuth :: AuthRequest -> ClientM AuthResponse
 
--- admin api
+-- * admin api
 getRoots :: Token -> ClientM [Node HyperdataUser]
 putRoots :: Token -> ClientM Int -- not actually implemented in the backend
 deleteNodes :: Token -> [NodeId] -> ClientM Int
 
--- node api
-getNode :: Token -> NodeId -> ClientM (Node HyperdataAny)
+-- * node api
+getNode    :: Token -> NodeId -> ClientM (Node HyperdataAny)
+getContext :: Token -> ContextId -> ClientM (Node HyperdataAny)
 renameNode :: Token -> NodeId -> RenameNode -> ClientM [Int]
 postNode :: Token -> NodeId -> PostNode -> ClientM [NodeId]
 postNodeAsync :: Token -> NodeId -> ClientM (JobStatus 'Safe JobLog)
@@ -112,7 +119,7 @@ postNodeSearch :: Token -> NodeId -> SearchQuery -> Maybe Int -> Maybe Int -> Ma
 
 postNodeShare :: Token -> NodeId -> ShareNodeParams -> ClientM Int
 
-postNodePairCorpusAnnuaire :: Token -> NodeId -> AnnuaireId -> Maybe ListId -> ClientM Int
+postNodePairCorpusAnnuaire :: Token -> NodeId -> AnnuaireId -> Maybe ListId -> ClientM [Int]
 getNodePairs :: Token -> NodeId -> ClientM [AnnuaireId]
 getNodePairings :: Token -> NodeId -> Maybe TabType -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> ClientM [FacetDoc]
 
@@ -128,7 +135,7 @@ getNodePieHash :: Token -> NodeId -> Maybe NodeId -> TabType -> ClientM Text
 getNodeTree :: Token -> NodeId -> Maybe UTCTime -> Maybe UTCTime -> Maybe NodeId -> TabType -> ListType -> ClientM (HashedResponse (ChartMetrics (Vector NgramsTree)))
 postNodeTreeUpdate :: Token -> NodeId -> Maybe NodeId -> TabType -> ListType -> ClientM ()
 getNodeTreeHash :: Token -> NodeId -> Maybe NodeId -> TabType -> ListType -> ClientM Text
-getNodePhylo :: Token -> NodeId -> Maybe NodeId -> Maybe Int -> Maybe Int -> ClientM SVG
+getNodePhylo :: Token -> NodeId -> Maybe NodeId -> Maybe Int -> Maybe Int -> ClientM Aeson.Value
 putNodePhylo :: Token -> NodeId -> Maybe NodeId -> ClientM NodeId
 
 putNodeMove :: Token -> NodeId -> ParentId -> ClientM [Int]
@@ -153,7 +160,7 @@ killNodeDocumentUploadAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limi
 pollNodeDocumentUploadAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitNodeDocumentUploadAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
--- corpus api
+-- * corpus api
 getCorpus :: Token -> CorpusId -> ClientM (Node HyperdataCorpus)
 renameCorpus :: Token -> CorpusId -> RenameNode -> ClientM [Int]
 postCorpus :: Token -> CorpusId -> PostNode -> ClientM [CorpusId]
@@ -201,7 +208,7 @@ postCorpusSearch :: Token -> CorpusId -> SearchQuery -> Maybe Int -> Maybe Int -
 
 postCorpusShare :: Token -> CorpusId -> ShareNodeParams -> ClientM Int
 
-postCorpusPairCorpusAnnuaire :: Token -> CorpusId -> AnnuaireId -> Maybe ListId -> ClientM Int
+postCorpusPairCorpusAnnuaire :: Token -> CorpusId -> AnnuaireId -> Maybe ListId -> ClientM [Int]
 getCorpusPairs :: Token -> CorpusId -> ClientM [AnnuaireId]
 getCorpusPairings :: Token -> CorpusId -> Maybe TabType -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> ClientM [FacetDoc]
 
@@ -217,7 +224,7 @@ getCorpusPieHash :: Token -> CorpusId -> Maybe NodeId -> TabType -> ClientM Text
 getCorpusTree :: Token -> CorpusId -> Maybe UTCTime -> Maybe UTCTime -> Maybe NodeId -> TabType -> ListType -> ClientM (HashedResponse (ChartMetrics (Vector NgramsTree)))
 postCorpusTreeUpdate :: Token -> CorpusId -> Maybe NodeId -> TabType -> ListType -> ClientM ()
 getCorpusTreeHash :: Token -> CorpusId -> Maybe NodeId -> TabType -> ListType -> ClientM Text
-getCorpusPhylo :: Token -> CorpusId -> Maybe NodeId -> Maybe Int -> Maybe Int -> ClientM SVG
+getCorpusPhylo :: Token -> CorpusId -> Maybe NodeId -> Maybe Int -> Maybe Int -> ClientM Aeson.Value
 putCorpusPhylo :: Token -> CorpusId -> Maybe NodeId -> ClientM NodeId
 
 putCorpusMove :: Token -> CorpusId -> ParentId -> ClientM [Int]
@@ -242,13 +249,13 @@ killCorpusDocumentUploadAsyncJob :: Token -> CorpusId -> JobID 'Unsafe -> Maybe 
 pollCorpusDocumentUploadAsyncJob :: Token -> CorpusId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitCorpusDocumentUploadAsyncJob :: Token -> CorpusId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
--- corpus node/node API
+-- * corpus node/node API
 getCorpusNodeNode :: Token -> NodeId -> NodeId -> ClientM (Node HyperdataAny)
 
--- corpus export API
+-- * corpus export API
 getCorpusExport :: Token -> CorpusId -> Maybe ListId -> Maybe NgramsType -> ClientM Corpus
 
--- annuaire api
+-- * annuaire api
 getAnnuaire :: Token -> AnnuaireId -> ClientM (Node HyperdataAnnuaire)
 renameAnnuaire :: Token -> AnnuaireId -> RenameNode -> ClientM [Int]
 postAnnuaire :: Token -> AnnuaireId -> PostNode -> ClientM [AnnuaireId]
@@ -295,7 +302,7 @@ putAnnuaireScore :: Token -> AnnuaireId -> NodesToScore -> ClientM [Int]
 postAnnuaireSearch :: Token -> AnnuaireId -> SearchQuery -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> ClientM SearchResult
 postAnnuaireShare :: Token -> AnnuaireId -> ShareNodeParams -> ClientM Int
 
-postAnnuairePairCorpusAnnuaire :: Token -> AnnuaireId -> AnnuaireId -> Maybe ListId -> ClientM Int
+postAnnuairePairCorpusAnnuaire :: Token -> AnnuaireId -> AnnuaireId -> Maybe ListId -> ClientM [Int]
 getAnnuairePairs :: Token -> AnnuaireId -> ClientM [AnnuaireId]
 getAnnuairePairings :: Token -> AnnuaireId -> Maybe TabType -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> ClientM [FacetDoc]
 
@@ -311,7 +318,7 @@ getAnnuairePieHash :: Token -> AnnuaireId -> Maybe NodeId -> TabType -> ClientM 
 getAnnuaireTree :: Token -> AnnuaireId -> Maybe UTCTime -> Maybe UTCTime -> Maybe NodeId -> TabType -> ListType -> ClientM (HashedResponse (ChartMetrics (Vector NgramsTree)))
 postAnnuaireTreeUpdate :: Token -> AnnuaireId -> Maybe NodeId -> TabType -> ListType -> ClientM ()
 getAnnuaireTreeHash :: Token -> AnnuaireId -> Maybe NodeId -> TabType -> ListType -> ClientM Text
-getAnnuairePhylo :: Token -> AnnuaireId -> Maybe NodeId -> Maybe Int -> Maybe Int -> ClientM SVG
+getAnnuairePhylo :: Token -> AnnuaireId -> Maybe NodeId -> Maybe Int -> Maybe Int -> ClientM Aeson.Value
 putAnnuairePhylo :: Token -> AnnuaireId -> Maybe NodeId -> ClientM NodeId
 
 putAnnuaireMove :: Token -> AnnuaireId -> ParentId -> ClientM [Int]
@@ -336,17 +343,17 @@ killAnnuaireDocumentUploadAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> Ma
 pollAnnuaireDocumentUploadAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitAnnuaireDocumentUploadAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
--- contact api
+-- * contact api
 postAnnuaireContactAsync :: Token -> AnnuaireId -> ClientM (JobStatus 'Safe JobLog)
 postAnnuaireContactAsyncJob :: Token -> AnnuaireId -> JobInput Maybe AddContactParams -> ClientM (JobStatus 'Safe JobLog)
 killAnnuaireContactAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 pollAnnuaireContactAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitAnnuaireContactAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
--- contact node/node API
+-- * contact node/node API
 getAnnuaireContactNodeNode :: Token -> NodeId -> NodeId -> ClientM (Node HyperdataContact)
 
--- document ngrams api
+-- * document ngrams api
 getDocumentNgramsTable :: Token -> DocId -> TabType -> ListId -> Int -> Maybe Int -> Maybe ListType -> Maybe MinSize -> Maybe MaxSize -> Maybe Ngrams.OrderBy -> Maybe Text -> ClientM (VersionedWithCount NgramsTable)
 putDocumentNgramsTable :: Token -> DocId -> TabType -> ListId -> Versioned NgramsTablePatch -> ClientM (Versioned NgramsTablePatch)
 postRecomputeDocumentNgramsTableScore :: Token -> DocId -> TabType -> ListId -> ClientM Int
@@ -357,10 +364,14 @@ killDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> Maybe Limi
 pollDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitDocumentNgramsTableAsyncJob :: Token -> DocId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
--- count api
+-- * document export API
+getDocumentExportJSON :: Token -> DocId -> ClientM DocumentExport.DocumentExport
+getDocumentExportCSV :: Token -> DocId -> ClientM Text
+
+-- * count api
 postCountQuery :: Token -> Query -> ClientM Counts
 
--- graph api
+-- * graph api
 getGraphHyperdata :: Token -> NodeId -> ClientM HyperdataGraphAPI
 postGraphAsync :: Token -> NodeId -> ClientM (JobStatus 'Safe JobLog)
 postGraphAsyncJob :: Token -> NodeId -> JobInput Maybe () -> ClientM (JobStatus 'Safe JobLog)
@@ -375,6 +386,7 @@ postGraphRecomputeVersion :: Token -> NodeId -> ClientM Graph
 getTree :: Token -> NodeId -> [NodeType] -> ClientM (Tree NodeTree)
 getTreeFirstLevel :: Token -> NodeId -> [NodeType] -> ClientM (Tree NodeTree)
 
+-- * new corpus API
 postNewCorpusWithFormAsync :: Token -> NodeId -> ClientM (JobStatus 'Safe JobLog)
 postNewCorpusWithFormAsyncJob :: Token -> NodeId -> JobInput Maybe NewWithForm -> ClientM (JobStatus 'Safe JobLog)
 killNewCorpusWithFormAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
@@ -387,6 +399,7 @@ killNewCorpusWithQueryAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limi
 pollNewCorpusWithQueryAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitNewCorpusWithQueryAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
+-- * list API
 getList :: Token -> NodeId -> ClientM (Headers '[Header "Content-Disposition" Text] (Map NgramsType (Versioned NgramsTableMap)))
 postListJsonUpdateAsync :: Token -> NodeId -> ClientM (JobStatus 'Safe JobLog)
 postListJsonUpdateAsyncJob :: Token -> NodeId -> JobInput Maybe WithFile -> ClientM (JobStatus 'Safe JobLog)
@@ -400,12 +413,22 @@ killListCsvUpdateAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limit  ->
 pollListCsvUpdateAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> Maybe Limit  -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
 waitListCsvUpdateAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
+-- * public API
 getPublicData :: ClientM [PublicData]
 getPublicNodeFile :: NodeId -> ClientM (Headers '[Header "Content-Type" Text] BSResponse)
 
--- ekg api
+-- * ekg api
+-- | get a sample of all metrics
 getMetricsSample :: ClientM Sample
+-- | open @<backend:port\/ekg\/index.html@ to see a list of metrics
 getMetricSample :: [Text] -> ClientM Value
+
+-- * graphql api
+
+postGraphQL :: Token -> GQLRequest -> ClientM GQLResponse
+postGraphQL = client (fstEndpoint (flatten GraphQL.gqapi))
+  where fstEndpoint :: Proxy (a :<|> b) -> Proxy a
+        fstEndpoint _ = Proxy
 
 -- * unpacking of client functions to derive all the individual clients
 
@@ -491,6 +514,7 @@ postAuth
   :<|> killNodeDocumentUploadAsyncJob
   :<|> pollNodeDocumentUploadAsyncJob
   :<|> waitNodeDocumentUploadAsyncJob
+  :<|> getContext
   :<|> getCorpus
   :<|> renameCorpus
   :<|> postCorpus
@@ -652,6 +676,8 @@ postAuth
   :<|> killDocumentNgramsTableAsyncJob
   :<|> pollDocumentNgramsTableAsyncJob
   :<|> waitDocumentNgramsTableAsyncJob
+  :<|> getDocumentExportJSON
+  :<|> getDocumentExportCSV
   :<|> postCountQuery
   :<|> getGraphHyperdata
   :<|> postGraphAsync

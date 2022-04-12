@@ -24,7 +24,7 @@ import Data.ByteString.Char8 (hPutStrLn)
 import Data.Either.Extra (Either)
 import Data.Pool (Pool, withResource)
 import Data.Profunctor.Product.Default (Default)
-import Data.Text (unpack, Text)
+import Data.Text (pack, unpack, Text)
 import Data.Word (Word16)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
@@ -32,11 +32,11 @@ import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (readIniFile', val)
-import Opaleye (Query, Unpackspec, showSql, FromFields, Select, runSelect, PGJsonb, DefaultFromField)
+import Opaleye (Unpackspec, showSql, FromFields, Select, runSelect, SqlJsonb, DefaultFromField)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
 import System.IO (stderr)
-import Text.Read (read)
+import Text.Read (readMaybe)
 import qualified Data.ByteString      as DB
 import qualified Data.List as DL
 import qualified Database.PostgreSQL.Simple as PGS
@@ -57,7 +57,7 @@ instance HasConfig GargConfig where
   hasConfig = identity
 
 -------------------------------------------------------
-type JSONB = DefaultFromField PGJsonb
+type JSONB = DefaultFromField SqlJsonb
 -------------------------------------------------------
 
 type CmdM'' env err m =
@@ -140,6 +140,22 @@ runPGSQuery q a = mkCmd $ \conn -> catch (PGS.query conn q a) (printError conn)
       hPutStrLn stderr q'
       throw (SomeException e)
 
+{-
+-- TODO
+runPGSQueryFold :: ( CmdM env err m
+               , PGS.FromRow r
+               )
+               => PGS.Query -> a -> (a -> r -> IO a) -> m a
+runPGSQueryFold q initialState consume = mkCmd $ \conn -> catch (PGS.fold_ conn initialState consume) (printError conn)
+  where
+    printError c (SomeException e) = do
+      q' <- PGS.formatQuery c q
+      hPutStrLn stderr q'
+      throw (SomeException e)
+-}
+
+
+
 -- | TODO catch error
 runPGSQuery_ :: ( CmdM env err m
                , PGS.FromRow r
@@ -148,23 +164,25 @@ runPGSQuery_ :: ( CmdM env err m
 runPGSQuery_ q = mkCmd $ \conn -> catch (PGS.query_ conn q) printError
   where
     printError (SomeException e) = do
-      printDebug "[G.D.P.runPGSQuery_]" ("TODO: format query error query" :: Text)
+      printDebug "[G.D.P.runPGSQuery_]" ("TODO: format query error" :: Text)
       throw (SomeException e)
-
 
 
 execPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err Int64
 execPGSQuery q a = mkCmd $ \conn -> PGS.execute conn q a
 
 ------------------------------------------------------------------------
-
 databaseParameters :: FilePath -> IO PGS.ConnectInfo
 databaseParameters fp = do
   ini <- readIniFile' fp
   let val' key = unpack $ val ini "database" key
+  let dbPortRaw = val' "DB_PORT"
+  let dbPort = case (readMaybe dbPortRaw :: Maybe Word16) of
+        Nothing -> panic $ "DB_PORT incorrect: " <> (pack dbPortRaw)
+        Just d  -> d
 
   pure $ PGS.ConnectInfo { PGS.connectHost     = val' "DB_HOST"
-                         , PGS.connectPort     = read (val' "DB_PORT") :: Word16
+                         , PGS.connectPort     = dbPort
                          , PGS.connectUser     = val' "DB_USER"
                          , PGS.connectPassword = val' "DB_PASS"
                          , PGS.connectDatabase = val' "DB_NAME"
@@ -185,6 +203,6 @@ fromField' field mb = do
                                               , show v
                                               ]
 
-printSqlOpa :: Default Unpackspec a a => Query a -> IO ()
+printSqlOpa :: Default Unpackspec a a => Select a -> IO ()
 printSqlOpa = putStrLn . maybe "Empty query" identity . showSql
 

@@ -26,38 +26,22 @@ module Gargantext.Core.Text.Terms.Multi.PosTagging
   where
 
 import Data.Aeson
-import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy.Internal (ByteString)
 import Data.Set (fromList)
 import Data.Text (Text, splitOn, pack, toLower)
-import GHC.Generics
 import Gargantext.Core (Lang(..))
+import Gargantext.Core.Text.Terms.Multi.PosTagging.Types
 import Gargantext.Core.Types
-import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 import Network.HTTP.Simple
 
-------------------------------------------------------------------------
-------------------------------------------------------------------------
-data Token = Token { _tokenIndex                :: Int
-                   , _tokenWord                 :: Text
-                   , _tokenOriginalText         :: Text
-                   , _tokenLemma                :: Text
-                   , _tokenCharacterOffsetBegin :: Int
-                   , _tokenCharacterOffsetEnd   :: Int
-                   , _tokenPos                  :: Maybe POS
-                   , _tokenNer                  :: Maybe NER
-                   , _tokenBefore               :: Maybe Text
-                   , _tokenAfter                :: Maybe Text
-                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "_token") ''Token)
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 tokens2tokensTags :: [Token] -> [TokenTag]
 tokens2tokensTags ts = filter' $ map tokenTag ts
 ------------------------------------------------------------------------
 tokenTag :: Token -> TokenTag
-tokenTag (Token _ _ w l _ _ p n _ _) = TokenTag w' l' p n
+tokenTag (Token _ w _ l _ _ p n _ _) = TokenTag w' l' p n
   where
     w' = split w
     l' = fromList (split l)
@@ -69,24 +53,6 @@ filter' xs = filter isNgrams xs
       isNgrams (TokenTag _ _ p n) = isJust p || isJust n
 
 ------------------------------------------------------------------------
-data Sentence  = Sentence { _sentenceIndex  :: Int
-                          , _sentenceTokens :: [Token]
-                          } deriving (Show, Generic)
-
-$(deriveJSON (unPrefix "_sentence") ''Sentence)
-
-data Properties = Properties { _propertiesAnnotators  :: Text
-                             , _propertiesOutputFormat :: Text
-                             } deriving (Show, Generic)
-
-$(deriveJSON (unPrefix "_properties") ''Properties)
-
-data PosSentences = PosSentences { _sentences :: [Sentence]}
-  deriving (Show, Generic)
-
-$(deriveJSON (unPrefix "_") ''PosSentences)
-
-
 -- request = 
 -- "fr" : {
 --                 "tokenize.language" : "fr",
@@ -139,4 +105,8 @@ tokenWith f lang s = map (map (\t -> (_tokenWord t, f t)))
                   <$> _sentences
                   <$> corenlp lang s
 
-
+----------------------------------------------------------------------------------
+-- Here connect to the JohnSnow Server as it has been done above with the corenlp'
+-- We need the PosTagging according to the language and the lems
+serverNLP :: Lang -> Text -> IO PosSentences
+serverNLP = undefined

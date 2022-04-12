@@ -28,6 +28,7 @@ rec {
     #    gfortran7.cc.lib
     expat
     icu
+    graphviz
   ];
   libPaths = pkgs.lib.makeLibraryPath nonhsBuildInputs;
   shellHook = ''

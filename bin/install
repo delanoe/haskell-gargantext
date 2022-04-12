@@ -1,4 +1,5 @@
 #!/bin/bash
 
 #stack install --nix --profile --test --fast --no-install-ghc --skip-ghc-check
-stack install --nix --test --no-install-ghc --skip-ghc-check
+
+env LANG=C.UTF-8 stack install --nix --test --no-install-ghc --skip-ghc-check

@@ -23,6 +23,7 @@ import Codec.Serialise (Serialise())
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
+import qualified Data.Csv as Csv
 import Data.Either
 import Data.Hashable (Hashable)
 import Data.Morpheus.Types (GQLType)
@@ -32,26 +33,37 @@ import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Database.PostgreSQL.Simple.ToField (ToField, toField)
 import GHC.Generics (Generic)
-import Servant
-import qualified Opaleye as O
-import Opaleye (DefaultFromField, defaultFromField, PGInt4, PGText, PGTSVector, Nullable, fieldQueryRunnerColumn)
-import Test.QuickCheck (elements)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
+import Gargantext.Database.Schema.Context
+import Gargantext.Database.Schema.Node
+import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
+import Opaleye (DefaultFromField, defaultFromField, SqlInt4, SqlText, SqlTSVector, Nullable, fromPGSFromField)
+import Servant hiding (Context)
+import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Instances.Text ()
 import Test.QuickCheck.Instances.Time ()
 import Text.Read (read)
+import qualified Opaleye as O
 
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
--- import Gargantext.Database.Prelude (fromField')
-import Gargantext.Database.Schema.Node
-import Gargantext.Prelude
+
 
 type UserId = Int
 type MasterUserId = UserId
+
+type NodeTypeId   = Int
+type NodeName     = Text
+type ContextName  = Text
+
+type TSVector     = Text
+type ContextTitle  = Text
+
+
 ------------------------------------------------------------------------
 -- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId (Maybe Hash) NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
+type Node    json = NodePoly    NodeId (Maybe Hash) NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
+type Context json = ContextPoly NodeId (Maybe Hash) NodeTypeId UserId (Maybe ParentId) ContextTitle UTCTime json
 
 -- | NodeSearch (queries)
 -- type NodeSearch json   = NodePolySearch NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json (Maybe TSVector)
@@ -119,6 +131,8 @@ instance (Arbitrary nodeId
                      <*> arbitrary <*> arbitrary <*> arbitrary
                      <*> arbitrary <*> arbitrary
 
+
+
 instance (Arbitrary hyperdata
          ,Arbitrary nodeId
          ,Arbitrary toDBid
@@ -143,16 +157,68 @@ instance (Arbitrary hyperdata
                            <*> arbitrary
                            <*> arbitrary
 
+
+instance (Arbitrary contextId
+         ,Arbitrary hashId
+         ,Arbitrary toDBid
+         ,Arbitrary userId
+         ,Arbitrary contextParentId
+         , Arbitrary hyperdata
+         ) => Arbitrary (ContextPoly contextId hashId toDBid userId contextParentId
+                                  ContextName UTCTime hyperdata) where
+    --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
+    arbitrary = Context <$> arbitrary <*> arbitrary <*> arbitrary
+                        <*> arbitrary <*> arbitrary <*> arbitrary
+                        <*> arbitrary <*> arbitrary
+
+instance (Arbitrary hyperdata
+         ,Arbitrary contextId
+         ,Arbitrary toDBid
+         ,Arbitrary userId
+         ,Arbitrary contextParentId
+         ) => Arbitrary (ContextPolySearch contextId
+                                        toDBid
+                                        userId
+                                        contextParentId
+                                        ContextName
+                                        UTCTime
+                                        hyperdata
+                                        (Maybe TSVector)
+                        ) where
+    --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
+    arbitrary = ContextSearch <$> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+
+
+
+
 ------------------------------------------------------------------------
-pgNodeId :: NodeId -> O.Column O.PGInt4
+pgNodeId :: NodeId -> O.Column O.SqlInt4
 pgNodeId = O.sqlInt4 . id2int
   where
     id2int :: NodeId -> Int
     id2int (NodeId n) = n
 
+pgContextId :: ContextId -> O.Column O.SqlInt4
+pgContextId = pgNodeId
+
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
-  deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable)
+  deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
+
+-- TODO make another type
+type ContextId = NodeId
+
+newtype NodeContextId = NodeContextId Int
+  deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
+
+
 instance GQLType NodeId
 instance Show NodeId where
   show (NodeId n) = "nodeId-" <> show n
@@ -166,13 +232,11 @@ instance FromField NodeId where
        then return $ NodeId n
        else mzero
 instance ToSchema NodeId
+--instance Csv.ToField NodeId where
+--  toField (NodeId nodeId) = Csv.toField nodeId
 
 unNodeId :: NodeId -> Int
 unNodeId (NodeId n) = n
-
-type NodeTypeId   = Int
-type NodeName     = Text
-type TSVector     = Text
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -184,13 +248,13 @@ instance ToParamSchema NodeId
 instance Arbitrary NodeId where
   arbitrary = NodeId <$> arbitrary
 
-type ParentId = NodeId
+type ParentId    = NodeId
 type CorpusId    = NodeId
 type CommunityId = NodeId
-type ListId   = NodeId
-type DocumentId = NodeId
-type DocId      = NodeId
-type RootId     = NodeId
+type ListId      = NodeId
+type DocumentId  = NodeId
+type DocId       = NodeId
+type RootId      = NodeId
 type MasterCorpusId = CorpusId
 type UserCorpusId   = CorpusId
 
@@ -292,6 +356,8 @@ data NodeType = NodeUser
 
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
+instance GQLType NodeType
+
 
 allNodeTypes :: [NodeType]
 allNodeTypes = [minBound ..]
@@ -310,20 +376,20 @@ defaultName NodeList       = "List"
 defaultName NodeListCooc   = "List"
 defaultName NodeModel      = "Model"
 
-defaultName NodeFolder     = "Folder"
-defaultName NodeFolderPrivate = "Private Folder"
-defaultName NodeFolderShared  = "Shared Folder"
-defaultName NodeTeam          = "Folder"
-defaultName NodeFolderPublic  = "Public Folder"
+defaultName NodeFolder        = "Folder"
+defaultName NodeFolderPrivate = defaultName NodeFolder
+defaultName NodeFolderShared  = defaultName NodeFolder
+defaultName NodeTeam          = defaultName NodeFolder
+defaultName NodeFolderPublic  = defaultName NodeFolder
 
 defaultName NodeDashboard     = "Board"
 defaultName NodeGraph         = "Graph"
 defaultName NodePhylo         = "Phylo"
 
-defaultName NodeFrameWrite    = "Frame Write"
-defaultName NodeFrameCalc     = "Frame Calc"
-defaultName NodeFrameVisio    = "Frame Visio"
-defaultName NodeFrameNotebook     = "Frame Code"
+defaultName NodeFrameWrite    = "Write"
+defaultName NodeFrameCalc     = "Calc"
+defaultName NodeFrameVisio    = "Visio"
+defaultName NodeFrameNotebook = "Code"
 
 defaultName NodeFile          = "File"
 
@@ -357,28 +423,32 @@ instance FromField (NodeId, Text)
     fromField = fromField'
 -}
 ------------------------------------------------------------------------
-instance DefaultFromField PGTSVector (Maybe TSVector)
+instance DefaultFromField SqlTSVector (Maybe TSVector)
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGInt4 (Maybe NodeId)
+instance DefaultFromField SqlInt4 (Maybe NodeId)
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGInt4 NodeId
+instance DefaultFromField SqlInt4 NodeId
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField (Nullable PGInt4) NodeId
+instance DefaultFromField (Nullable SqlInt4) NodeId
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance (DefaultFromField (Nullable O.PGTimestamptz) UTCTime)
+instance (DefaultFromField (Nullable O.SqlTimestamptz) UTCTime)
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
-instance DefaultFromField PGText (Maybe Hash)
+instance DefaultFromField SqlText (Maybe Hash)
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
+---------------------------------------------------------------------
+
+context2node :: Context a -> Node a
+context2node (Context ci ch ct cu cp cn cd chy) = Node ci ch ct cu cp cn cd chy
 

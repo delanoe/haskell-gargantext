@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ln -s $(nix-shell --run "which dot") ~/.local/bin/dot
+

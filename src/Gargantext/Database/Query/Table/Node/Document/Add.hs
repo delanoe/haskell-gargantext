@@ -33,13 +33,13 @@ import Gargantext.Prelude
 
 ---------------------------------------------------------------------------
 
-add :: ParentId -> [NodeId] -> Cmd err [Only Int]
+add :: CorpusId -> [ContextId] -> Cmd err [Only Int]
 add pId ns = runPGSQuery queryAdd (Only $ Values fields inputData)
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
     inputData = prepare pId ns
 
-add_debug :: ParentId -> [NodeId] -> Cmd err ByteString
+add_debug :: CorpusId -> [ContextId] -> Cmd err ByteString
 add_debug pId ns = formatPGSQuery queryAdd (Only $ Values fields inputData)
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
@@ -48,33 +48,34 @@ add_debug pId ns = formatPGSQuery queryAdd (Only $ Values fields inputData)
 
 -- | Input Tables: types of the tables
 inputSqlTypes :: [Text]
-inputSqlTypes = ["int4","int4","int4"]
+inputSqlTypes = ["int4","int4","int4","int4"]
 
 -- | SQL query to add documents
 -- TODO return id of added documents only
 queryAdd :: Query
 queryAdd = [sql|
-       WITH input_rows(node1_id,node2_id,category) AS (?)
-       INSERT INTO nodes_nodes (node1_id, node2_id,category)
+       WITH input_rows(node_id,context_id,score,category) AS (?)
+       INSERT INTO nodes_contexts (node_id, context_id,score,category)
        SELECT * FROM input_rows
-       ON CONFLICT (node1_id, node2_id) DO NOTHING -- on unique index
+       ON CONFLICT (node_id, context_id) DO NOTHING -- on unique index
        RETURNING 1
        ;
            |]
 
-prepare :: ParentId -> [NodeId] -> [InputData]
-prepare pId ns = map (\nId -> InputData pId nId) ns
+prepare :: ParentId -> [ContextId] -> [InputData]
+prepare pId ns = map (\cId -> InputData pId cId) ns
 
 ------------------------------------------------------------------------
 -- * Main Types used
 
-data InputData = InputData { inNode1_id :: NodeId
-                           , inNode2_id :: NodeId
+data InputData = InputData { inNode_id    :: NodeId
+                           , inContext_id :: ContextId
                            } deriving (Show, Generic, Typeable)
 
 instance ToRow InputData where
-  toRow inputData = [ toField (inNode1_id inputData)
-                    , toField (inNode2_id inputData)
+  toRow inputData = [ toField (inNode_id    inputData)
+                    , toField (inContext_id inputData)
+                    , toField (0 :: Int)
                     , toField (1 :: Int)
                     ]
 

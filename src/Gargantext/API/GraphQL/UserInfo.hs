@@ -4,6 +4,7 @@
 module Gargantext.API.GraphQL.UserInfo where
 
 import Control.Lens
+import Data.Maybe (fromMaybe)
 import Data.Morpheus.Types
   ( GQLType
   , Resolver
@@ -37,13 +38,16 @@ import Gargantext.Database.Admin.Types.Hyperdata.Contact
   , ct_phone
   , hc_who
   , hc_where)
-import Gargantext.Database.Admin.Types.Node (NodeId(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Query.Table.User (getUsersWithHyperdata)
+import Gargantext.Database.Query.Table.User (getUsersWithHyperdata, getUsersWithNodeHyperdata, updateUserEmail)
 import Gargantext.Database.Schema.User (UserLight(..))
+import Gargantext.Database.Schema.Node (node_id, node_hyperdata, NodePoly (Node, _node_id))
 import Gargantext.Prelude
 import GHC.Generics (Generic)
+import Gargantext.API.GraphQL.Utils (AuthStatus(Invalid, Valid), authUser)
+import Gargantext.API.Admin.Types (HasSettings)
+import Gargantext.Database.Admin.Types.Node (unNodeId)
 
 data UserInfo = UserInfo
   { ui_id             :: Int
@@ -60,7 +64,8 @@ data UserInfo = UserInfo
   , ui_cwOffice       :: Maybe Text
   , ui_cwRole         :: Maybe Text
   , ui_cwTouchPhone   :: Maybe Text
-  , ui_cwTouchMail    :: Maybe Text }
+  , ui_cwTouchMail    :: Maybe Text  -- TODO: Remove. userLight_email should be used instead
+  }
   deriving (Generic, GQLType, Show)
 
 -- | Arguments to the "user info" query.
@@ -72,7 +77,8 @@ data UserInfoArgs
 -- | Arguments to the "user info" mutation,
 data UserInfoMArgs
   = UserInfoMArgs
-    { ui_id :: Int
+    { ui_id             :: Int
+    , token             :: Text
     , ui_username       :: Maybe Text
     , ui_email          :: Maybe Text
     , ui_title          :: Maybe Text
@@ -90,6 +96,7 @@ data UserInfoMArgs
     } deriving (Generic, GQLType)
 
 type GqlM e env = Resolver QUERY e (GargM env GargError)
+type GqlM' e env err = ResolverM e (GargM env err) Int
 
 -- | Function to resolve user from a query.
 resolveUserInfos
@@ -99,43 +106,60 @@ resolveUserInfos UserInfoArgs { user_id } = dbUsers user_id
 
 -- | Mutation for user info
 updateUserInfo
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
-  => UserInfoMArgs -> ResolverM e (GargM env GargError) Int
+  :: (HasConnectionPool env, HasConfig env, HasMail env, HasSettings env)
+  -- => UserInfoMArgs -> ResolverM e (GargM env err) Int
+  => UserInfoMArgs -> GqlM' e env err
 updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
-  lift $ printDebug "[updateUserInfo] ui_id" ui_id
-  users <- lift (getUsersWithHyperdata ui_id)
+  -- lift $ printDebug "[updateUserInfo] ui_id" ui_id
+  users <- lift (getUsersWithNodeHyperdata ui_id)
   case users of
     [] -> panic $ "[updateUserInfo] User with id " <> (T.pack $ show ui_id) <> " doesn't exist."
-    ((u, u_hyperdata):_) -> do
-      lift $ printDebug "[updateUserInfo] u" u
-      let u_hyperdata' = uh ui_titleL ui_title $
-                         uh ui_sourceL ui_source $
-                         uh ui_cwFirstNameL ui_cwFirstName $
-                         uh ui_cwLastNameL ui_cwLastName $
-                         uh ui_cwCityL ui_cwCity $
-                         uh ui_cwCountryL ui_cwCountry $
-                         uh' ui_cwLabTeamDeptsL ui_cwLabTeamDepts $
-                         uh' ui_cwOrganizationL ui_cwOrganization $
-                         uh ui_cwOfficeL ui_cwOffice $
-                         uh ui_cwRoleL ui_cwRole $
-                         uh ui_cwTouchMailL ui_cwTouchMail $
-                         uh ui_cwTouchPhoneL ui_cwTouchPhone $
-                         u_hyperdata
-      lift $ printDebug "[updateUserInfo] with firstName" u_hyperdata'
-      _ <- lift $ updateHyperdata (NodeId ui_id) u_hyperdata'
-      --let _newUser = toUser (u, u_hyperdata')
-      pure 1
+    ((UserLight { .. }, node_u):_) -> do
+      testAuthUser <- lift $ authUser (nId node_u) token
+      case testAuthUser of
+        Invalid -> panic "[updateUserInfo] failed to validate user"
+        Valid -> do
+          let u_hyperdata = node_u ^. node_hyperdata
+          -- lift $ printDebug "[updateUserInfo] u" u
+          let u_hyperdata' = uh ui_titleL ui_title $
+                            uh ui_sourceL ui_source $
+                            uh ui_cwFirstNameL ui_cwFirstName $
+                            uh ui_cwLastNameL ui_cwLastName $
+                            uh ui_cwCityL ui_cwCity $
+                            uh ui_cwCountryL ui_cwCountry $
+                            uh' ui_cwLabTeamDeptsL ui_cwLabTeamDepts $
+                            uh' ui_cwOrganizationL ui_cwOrganization $
+                            uh ui_cwOfficeL ui_cwOffice $
+                            uh ui_cwRoleL ui_cwRole $
+                            uh ui_cwTouchMailL ui_cwTouchMail $
+                            uh ui_cwTouchPhoneL ui_cwTouchPhone $
+                            u_hyperdata
+          -- NOTE: We have 1 username and 2 emails: userLight_email and ui_cwTouchMail
+          -- The userLight_email is more important: it is used for login and sending mail.
+          -- Therefore we update ui_cwTouchMail and userLight_email.
+          -- ui_cwTouchMail is to be removed in the future.
+          let u' = UserLight { userLight_id
+                            , userLight_username
+                            , userLight_email = fromMaybe userLight_email $ view ui_cwTouchMailL u_hyperdata
+                            , userLight_password }
+          -- lift $ printDebug "[updateUserInfo] with firstName" u_hyperdata'
+          _ <- lift $ updateHyperdata (node_u ^. node_id) u_hyperdata'
+          _ <- lift $ updateUserEmail u'
+          --let _newUser = toUser (u, u_hyperdata')
+          pure 1
   where
     uh _ Nothing u_hyperdata = u_hyperdata
     uh lens' (Just val) u_hyperdata = u_hyperdata & lens' .~ Just val
     uh' _ Nothing u_hyperdata = u_hyperdata
     uh' lens' (Just val) u_hyperdata = u_hyperdata & lens' .~ val
+    nId Node {_node_id} = unNodeId _node_id
 
 -- | Inner function to fetch the user from DB.
 dbUsers
   :: (HasConnectionPool env, HasConfig env, HasMail env)
   => Int -> GqlM e env [UserInfo]
 dbUsers user_id = do
+  -- lift $ printDebug "[dbUsers]" user_id
 --  user <- getUsersWithId user_id
 --  hyperdata <- getUserHyperdata user_id
 --  lift (map toUser <$> zip user hyperdata)
@@ -156,7 +180,8 @@ toUser (UserLight { .. }, u_hyperdata) =
            , ui_cwOrganization = u_hyperdata ^. ui_cwOrganizationL
            , ui_cwOffice       = u_hyperdata ^. ui_cwOfficeL
            , ui_cwRole         = u_hyperdata ^. ui_cwRoleL
-           , ui_cwTouchMail    = u_hyperdata ^. ui_cwTouchMailL
+           --, ui_cwTouchMail    = u_hyperdata ^. ui_cwTouchMailL
+           , ui_cwTouchMail    = Just userLight_email
            , ui_cwTouchPhone   = u_hyperdata ^. ui_cwTouchPhoneL }
 
 sharedL :: Traversal' HyperdataUser HyperdataContact

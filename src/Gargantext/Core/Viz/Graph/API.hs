@@ -31,7 +31,7 @@ import Gargantext.Core.Types.Main
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.GEXF ()
 import Gargantext.Core.Viz.Graph.Tools -- (cooc2graph)
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOnlyUser)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Admin.Config
@@ -90,19 +90,20 @@ getGraph _uId nId = do
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
     camera = nodeGraph ^. node_hyperdata . hyperdataCamera
-    
+
   mcId <- getClosestParentIdByType nId NodeCorpus
   let cId = maybe (panic "[G.V.G.API] Node has no parent") identity mcId
 
-  printDebug "[getGraph] getting list for cId" cId
+  -- printDebug "[getGraph] getting list for cId" cId
   listId <- defaultList cId
   repo <- getRepo' [listId]
 
   -- TODO Distance in Graph params
   case graph of
     Nothing     -> do
-        let defaultMetric = Order1
-        graph' <- computeGraph cId (withMetric defaultMetric) NgramsTerms repo
+        let defaultMetric          = Order1
+        let defaultPartitionMethod = Spinglass
+        graph' <- computeGraph cId defaultPartitionMethod (withMetric defaultMetric) NgramsTerms repo
         mt     <- defaultGraphMetadata cId "Title" repo defaultMetric
         let
           graph'' = set graph_metadata (Just mt) graph'
@@ -119,9 +120,11 @@ getGraph _uId nId = do
 recomputeGraph :: FlowCmdM env err m
                => UserId
                -> NodeId
+               -> PartitionMethod
                -> Maybe GraphMetric
+               -> Bool
                -> m Graph
-recomputeGraph _uId nId maybeDistance = do
+recomputeGraph _uId nId method maybeDistance force = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
@@ -142,53 +145,51 @@ recomputeGraph _uId nId maybeDistance = do
   repo <- getRepo' [listId]
   let v   = repo ^. unNodeStory . at listId . _Just . a_version
 
+  let computeG mt = do
+        g <- computeGraph cId method similarity NgramsTerms repo
+        let g' = set graph_metadata mt g
+        _ <- updateHyperdata nId (HyperdataGraph (Just g') camera)
+        pure g'
+
   case graph of
     Nothing     -> do
-      graph' <- computeGraph cId similarity NgramsTerms repo
       mt     <- defaultGraphMetadata cId "Title" repo (fromMaybe Order1 maybeDistance)
-      let graph'' = set graph_metadata (Just mt) graph'
-      _ <- updateHyperdata nId (HyperdataGraph (Just graph'') camera)
-      pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" graph''
-
-    Just graph' -> if listVersion == Just v
+      g <- computeG $ Just mt
+      pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" g
+    Just graph' -> if (listVersion == Just v) && (not force)
                      then pure graph'
                      else do
-                       graph'' <- computeGraph cId similarity NgramsTerms repo
-                       let graph''' = set graph_metadata graphMetadata graph''
-                       _ <- updateHyperdata nId (HyperdataGraph (Just graph''') camera)
-                       pure $ trace "[G.V.G.API] Graph exists, recomputing" graph'''
+                       g <- computeG graphMetadata
+                       pure $ trace "[G.V.G.API] Graph exists, recomputing" g
 
 
 computeGraph :: FlowCmdM env err m
              => CorpusId
+             -> PartitionMethod
              -> Distance
              -> NgramsType
              -> NodeListStory
              -> m Graph
-computeGraph cId d nt repo = do
+computeGraph cId method d nt repo = do
   lId  <- defaultList cId
   lIds <- selectNodesWithUsername NodeList userMaster
 
-  let ngs = filterListWithRoot MapTerm
+  let ngs = filterListWithRoot [MapTerm]
           $ mapTermListRoot [lId] nt repo
 
   myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)
-         -- <$> HashMap.filterWithKey (\(x,y) _ -> x /= y)
-         -- <$> getCoocByNgrams (if d == Conditional then Diagonal True else Diagonal False)
          <$> getCoocByNgrams (Diagonal True)
          <$> groupNodesByNgrams ngs
-         <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
-
-  -- printDebug "myCooc" myCooc
-  -- saveAsFileDebug "debug/my-cooc" myCooc
+         <$> getContextsByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
 
   listNgrams <- getListNgrams [lId] nt
 
-  -- graph <- liftBase $ cooc2graphWith Bac d 0 myCooc
-  graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
-  -- saveAsFileDebug "debug/graph" graph
+  graph <- liftBase $ cooc2graphWith method d 0 myCooc
 
-  pure $ mergeGraphNgrams graph (Just listNgrams)
+  let graph' = mergeGraphNgrams graph (Just listNgrams)
+  -- saveAsFileDebug "/tmp/graphWithNodes" graph'
+
+  pure graph'
 
 
 defaultGraphMetadata :: HasNodeError err
@@ -242,7 +243,7 @@ graphRecompute u n logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _g <- trace (show u) $ recomputeGraph u n Nothing
+  _g <- trace (show u) $ recomputeGraph u n Spinglass Nothing False
   pure  JobLog { _scst_succeeded = Just 1
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
@@ -287,7 +288,7 @@ graphVersions n nId = do
     Just listId -> do
       repo <- getRepo' [listId]
       let v = repo ^. unNodeStory . at listId . _Just . a_version
-      printDebug "graphVersions" v
+      -- printDebug "graphVersions" v
 
       pure $ GraphVersions { gv_graph = listVersion
                            , gv_repo = v }
@@ -297,7 +298,7 @@ recomputeVersions :: FlowCmdM env err m
                   => UserId
                   -> NodeId
                   -> m Graph
-recomputeVersions uId nId = recomputeGraph uId nId Nothing
+recomputeVersions uId nId = recomputeGraph uId nId Spinglass Nothing False
 
 ------------------------------------------------------------
 graphClone :: UserId

@@ -1,5 +1,12 @@
 name: gargantext
-version: '0.0.4.9.9'
+
+#         +------------ Layer 3
+#         | +--+------- Layer 2
+#         | | +-------- Layer 1  : New versions with API changes
+#         | | | +-----  Layers * : New versions with API additions
+#         | | | | +---  Layers * : New versions without API breaking changes
+#         | | | | |
+version: '0.0.5.8.5'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -54,11 +61,13 @@ library:
   - Gargantext.API.Ngrams
   - Gargantext.API.Ngrams.Tools
   - Gargantext.API.Ngrams.Types
+  - Gargantext.API.Ngrams.Prelude
   - Gargantext.API.Admin.Settings
   - Gargantext.API.Admin.EnvTypes
+  - Gargantext.API.Admin.Auth.Types
   - Gargantext.API.Admin.Types
   - Gargantext.API.Prelude
-  - Gargantext.Client
+  - Gargantext.API.Client
   - Gargantext.Core
   - Gargantext.Core.NodeStory
   - Gargantext.Core.Methods.Distances
@@ -73,6 +82,7 @@ library:
   - Gargantext.Database.Query.Table.Node
   - Gargantext.Database.Query.Table.Node.UpdateOpaleye
   - Gargantext.Database.Query.Table.NgramsPostag
+  - Gargantext.Database.Schema.Ngrams
   - Gargantext.Database.Prelude
   - Gargantext.Database.Admin.Trigger.Init
   - Gargantext.Database.Admin.Config
@@ -101,7 +111,9 @@ library:
   - Gargantext.Core.Viz.Graph.Tools
   - Gargantext.Core.Viz.Graph.Tools.IGraph
   - Gargantext.Core.Viz.Graph.Index
-  - Gargantext.Core.Viz.AdaptativePhylo
+  - Gargantext.Core.Viz.Phylo
+  - Gargantext.Core.Viz.Phylo.API
+  - Gargantext.Core.Viz.Phylo.API.Tools
   - Gargantext.Core.Viz.Phylo.PhyloMaker
   - Gargantext.Core.Viz.Phylo.PhyloTools
   - Gargantext.Core.Viz.Phylo.PhyloExport
@@ -121,6 +133,7 @@ library:
   - aeson-lens
   - aeson-pretty
   - array
+  - arxiv
   - async
   - attoparsec
   - auto-update
@@ -139,6 +152,7 @@ library:
   - conduit-extra
   - containers
   - contravariant
+  - crawlerArxiv
   - crawlerHAL
   - crawlerISTEX
   - crawlerIsidore
@@ -160,7 +174,7 @@ library:
   - full-text-search
   - fullstop
   - gargantext-prelude
-    #  - gargantext-graph >= 0.1.0.0
+  - gargantext-graph >= 0.1.0.0
   - graphviz
   - hashable
   - haskell-igraph
@@ -179,6 +193,7 @@ library:
   - jose
   - json-stream
   - lens
+  - listsafe
   - located-base
   - logging-effect
   - matrix
@@ -201,6 +216,7 @@ library:
   - postgresql-simple
   - pretty-simple
   - probability
+  - process
   - product-profunctors
   - profunctors
   - protolude
@@ -244,6 +260,7 @@ library:
   - tagsoup
   - template-haskell
   - temporary
+  - text-conversions
   - text-metrics
   - time
   - time-locale-compat
@@ -322,9 +339,45 @@ executables:
       - unordered-containers
       - full-text-search
 
-  gargantext-adaptative-phylo:
+
+  gargantext-client:
     main: Main.hs
-    source-dirs: bin/gargantext-adaptative-phylo
+    source-dirs: bin/gargantext-client
+    ghc-options:
+    - -Wall
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    default-extensions:
+    - DataKinds
+    - DeriveGeneric
+    - FlexibleContexts
+    - FlexibleInstances
+    - GeneralizedNewtypeDeriving
+    - MultiParamTypeClasses
+    - NamedFieldPuns
+    - NoImplicitPrelude
+    - OverloadedStrings
+    - RankNTypes
+    - RecordWildCards
+    dependencies:
+    - base
+    - extra
+    - servant
+    - text
+    - optparse-generic
+    - exceptions
+    - servant-client
+    - servant-auth-client
+    - gargantext
+    - ekg-json
+    - http-client
+
+  gargantext-phylo:
+    main: Main.hs
+    source-dirs: bin/gargantext-phylo
     ghc-options:
     - -threaded
     - -rtsopts
@@ -379,19 +432,20 @@ executables:
       - gargantext-prelude
       - base
 
-#  gargantext-upgrade:
-#    main: Main.hs
-#    source-dirs: bin/gargantext-upgrade
-#    ghc-options:
-#    - -threaded
-#    - -rtsopts
-#    - -with-rtsopts=-N
-#    - -O2
-#    - -Wmissing-signatures
-#    dependencies:
-#      - gargantext
-#      - gargantext-prelude
-#      - base
+  gargantext-upgrade:
+    main: Main.hs
+    source-dirs: bin/gargantext-upgrade
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    dependencies:
+      - gargantext
+      - gargantext-prelude
+      - base
+      - postgresql-simple
 
   gargantext-admin:
     main: Main.hs

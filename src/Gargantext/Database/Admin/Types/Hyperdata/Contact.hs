@@ -194,12 +194,12 @@ instance FromField HyperdataContact where
   fromField = fromField'
 
 -- | Database (Opaleye instance)
-instance DefaultFromField PGJsonb HyperdataContact   where
-  defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField SqlJsonb HyperdataContact   where
+  defaultFromField = fromPGSFromField
 
 
-instance DefaultFromField (Nullable PGJsonb) HyperdataContact where
-  defaultFromField = fieldQueryRunnerColumn
+instance DefaultFromField (Nullable SqlJsonb) HyperdataContact where
+  defaultFromField = fromPGSFromField
 
 
 

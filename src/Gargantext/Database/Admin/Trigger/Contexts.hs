@@ -13,7 +13,7 @@ Triggers on Nodes table.
 
 {-# LANGUAGE QuasiQuotes       #-}
 
-module Gargantext.Database.Admin.Trigger.Nodes
+module Gargantext.Database.Admin.Trigger.Contexts
   where
 
 import Data.Text (Text)
@@ -33,7 +33,6 @@ triggerSearchUpdate = execPGSQuery query ( toDBid NodeDocument
   where
     query :: DPS.Query
     query = [sql|
-        -- DROP TRIGGER search_update_trigger on nodes;
         CREATE OR REPLACE FUNCTION public.search_update()
         RETURNS trigger AS $$
         begin
@@ -57,13 +56,14 @@ triggerSearchUpdate = execPGSQuery query ( toDBid NodeDocument
 
         ALTER FUNCTION public.search_update() OWNER TO gargantua;
 
+        DROP TRIGGER IF EXISTS search_update_trigger on contexts;
         CREATE TRIGGER search_update_trigger
           BEFORE INSERT OR UPDATE
-          ON nodes FOR EACH ROW
+          ON contexts FOR EACH ROW
           EXECUTE PROCEDURE search_update();
 
       -- Initialize index with already existing data
-      UPDATE nodes SET hyperdata = hyperdata;
+      UPDATE contexts SET hyperdata = hyperdata;
 
   |]
 
@@ -109,10 +109,13 @@ triggerUpdateHash secret = execPGSQuery query ( toDBid NodeDocument
       END
       $$ LANGUAGE plpgsql;
 
-
+      DROP TRIGGER IF EXISTS nodes_hash_insert ON nodes;
+      DROP TRIGGER IF EXISTS nodes_hash_update ON nodes;
       CREATE TRIGGER nodes_hash_insert BEFORE INSERT ON nodes FOR EACH ROW EXECUTE PROCEDURE hash_insert_nodes();
       CREATE TRIGGER nodes_hash_update BEFORE UPDATE ON nodes FOR EACH ROW EXECUTE PROCEDURE hash_update_nodes();
 
+      DROP TRIGGER IF EXISTS contexts_hash_insert ON contexts;
+      DROP TRIGGER IF EXISTS contexts_hash_update ON contexts;
+      CREATE TRIGGER contexts_hash_insert BEFORE INSERT ON contexts FOR EACH ROW EXECUTE PROCEDURE hash_insert_nodes();
+      CREATE TRIGGER contexts_hash_update BEFORE UPDATE ON contexts FOR EACH ROW EXECUTE PROCEDURE hash_update_nodes();
   |]
-
-

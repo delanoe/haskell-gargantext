@@ -22,6 +22,7 @@ import Gargantext.Database.Action.Flow (DataOrigin(..))
 
 data Database = Empty
               | PubMed
+              | Arxiv
               | HAL
               | IsTex
               | Isidore
@@ -33,6 +34,7 @@ instance ToSchema Database
 database2origin :: Database -> DataOrigin
 database2origin Empty   = InternalOrigin T.IsTex
 database2origin PubMed  = ExternalOrigin T.PubMed
+database2origin Arxiv   = ExternalOrigin T.Arxiv
 database2origin HAL     = ExternalOrigin T.HAL
 database2origin IsTex   = ExternalOrigin T.IsTex
 database2origin Isidore = ExternalOrigin T.Isidore

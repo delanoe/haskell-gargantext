@@ -1,23 +1,33 @@
 #!/bin/bash
 
 # sudo su postgres
-
 # postgresql://$USER:$PW@localhost/$DB
 
-PW="C8kdcUrAQy66U"
-DB="gargandbV5"
-USER="gargantua"
+INIFILE=$1
+
+getter () {
+  grep $1 $INIFILE | sed "s/^.*= //"
+}
+
+USER=$(getter "DB_USER")
+NAME=$(getter "DB_NAME")
+PASS=$(getter "DB_PASS")
+HOST=$(getter "DB_HOST")
+PORT=$(getter "DB_PORT")
+
 
 psql -c "CREATE USER \"${USER}\""
 psql -c "ALTER USER \"${USER}\" with PASSWORD '${PW}'"
+psql -c "DROP DATABASE IF EXISTS \"${NAME}\""
 
-psql -c "DROP DATABASE IF EXISTS \"${DB}\""
-createdb "${DB}"
-psql "${DB}" < schema.sql
+createdb "${NAME}"
+psql "${NAME}" <  extensions.sql
 
-psql -c "ALTER DATABASE \"${DB}\" OWNER to \"${USER}\""
+# if new
+#psql "${NAME}" < schema.sql
 
+psql ${NAME} < $2
 
-
+psql -c "ALTER DATABASE \"${NAME}\" OWNER to \"${USER}\""
 
 

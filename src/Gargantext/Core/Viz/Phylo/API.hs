@@ -14,32 +14,32 @@ Portability : POSIX
 {-# LANGUAGE OverloadedLists    #-}   -- allows to write Map and HashMap as lists
 {-# LANGUAGE TypeOperators      #-}
 
-module Gargantext.Core.Viz.Phylo.Legacy.LegacyAPI
+module Gargantext.Core.Viz.Phylo.API
   where
 
--- import Data.Maybe (fromMaybe)
--- import Control.Lens ((^.))
---import Control.Monad.Reader (ask)
-import qualified Data.ByteString as DB
-import qualified Data.ByteString.Lazy as DBL
+import Data.Aeson
+import Data.Either
+import Data.Maybe (fromMaybe)
 import Data.Swagger
+import Gargantext.API.Prelude
+import Gargantext.Core.Types (TODO(..))
+import Gargantext.Core.Viz.LegacyPhylo
+import Gargantext.Core.Viz.Phylo (defaultConfig)
+import Gargantext.Core.Viz.Phylo.API.Tools
+import Gargantext.Core.Viz.Phylo.Example (phyloExample)
+import Gargantext.Core.Viz.Phylo.Legacy.LegacyMain
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
+import Gargantext.Database.Query.Table.Node (getClosestParentIdByType)
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
+import Gargantext.Prelude
 import Network.HTTP.Media ((//), (/:))
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Web.HttpApiData (readTextData)
-
-import Gargantext.API.Prelude
-import Gargantext.Database.Admin.Types.Hyperdata
-import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
-import Gargantext.Database.Query.Table.Node (insertNodes, node)
--- import Gargantext.Database.Schema.Node (node_hyperdata)
-import Gargantext.Prelude
-import Gargantext.Core.Viz.LegacyPhylo
-import Gargantext.Core.Viz.Phylo.Legacy.LegacyMain
--- import Gargantext.Core.Viz.Phylo.Example
-import Gargantext.Core.Types (TODO(..))
-import Data.Either
+import qualified Data.ByteString as DB
+import qualified Data.ByteString.Lazy as DBL
 
 ------------------------------------------------------------------------
 type PhyloAPI = Summary "Phylo API"
@@ -55,25 +55,15 @@ phyloAPI n u = getPhylo  n
         -- :<|> deletePhylo  n
 
 newtype SVG = SVG DB.ByteString
+--instance Show a => MimeRender PlainText a where mimeRender _ val = cs ("" <> show val)
+instance Accept SVG where contentType _ = "SVG" // "image/svg+xml" /: ("charset", "utf-8")
+instance MimeRender SVG SVG where mimeRender _ (SVG s) = DBL.fromStrict s
+instance MimeUnrender SVG SVG where mimeUnrender _ lbs = Right $ SVG (DBL.toStrict lbs)
+instance Show SVG where show (SVG a) = show a
+instance ToSchema SVG where declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
-instance ToSchema SVG
-  where
-    declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
-
-instance Show SVG where
-  show (SVG a) = show a
-
-instance Accept SVG where
-   contentType _ = "SVG" // "image/svg+xml" /: ("charset", "utf-8")
-
-instance Show a => MimeRender PlainText a where
-   mimeRender _ val = cs ("" <> show val)
-
-instance MimeRender SVG SVG where
-   mimeRender _ (SVG s) = DBL.fromStrict s
-
-instance MimeUnrender SVG SVG where
-   mimeUnrender _ lbs = Right $ SVG (DBL.toStrict lbs)
+------------------------------------------------------------------------
+instance ToSchema Value where declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 ------------------------------------------------------------------------
 type GetPhylo =  QueryParam "listId"      ListId
@@ -93,15 +83,27 @@ type GetPhylo =  QueryParam "listId"      ListId
               :> QueryParam "display"    DisplayMode
               :> QueryParam "verbose"     Bool
     -}
-              :> Get '[SVG] SVG
+              -- :> Get '[SVG] SVG
+              :> Get '[JSON] Value
 
 -- | TODO
 -- Add real text processing
 -- Fix Filter parameters
+-- TODO fix parameters to default config that should be in Node
 getPhylo :: PhyloId -> GargServer GetPhylo
-getPhylo _ _lId _ _  = undefined 
--- getPhylo phId _lId l msb  = do 
-  -- phNode     <- getNodeWith phId (Proxy :: Proxy HyperdataPhylo)
+getPhylo phyloId _lId _level _minSizeBranch = do
+  theData <- getPhyloDataJson phyloId
+  -- printDebug "getPhylo" theData
+  pure theData
+
+getPhyloDataJson :: PhyloId -> GargNoServer Value
+getPhyloDataJson phyloId = do
+  phyloData <- fromMaybe phyloExample <$> getPhyloData phyloId
+  phyloJson <- liftBase $ phylo2dot2json phyloData
+  pure phyloJson
+
+
+-- getPhyloDataSVG phId _lId l msb  = do
   -- let
   --   level = fromMaybe 2 l
   --   branc = fromMaybe 2 msb
@@ -118,17 +120,19 @@ type PostPhylo =  QueryParam "listId" ListId
                -- :> ReqBody '[JSON] PhyloQueryBuild
                :> (Post '[JSON] NodeId)
 
-postPhylo :: CorpusId -> UserId -> GargServer PostPhylo
-postPhylo corpusId userId _lId = do
+postPhylo :: PhyloId -> UserId -> GargServer PostPhylo
+postPhylo phyloId _userId _lId = do
   -- TODO get Reader settings
   -- s <- ask
   -- let
     -- _vrs = Just ("1" :: Text)
     -- _sft = Just (Software "Gargantext" "4")
     -- _prm = initPhyloParam vrs sft (Just q)
-  phy <- flowPhylo corpusId -- params
-  phyloId <- insertNodes [node NodePhylo "Phylo" (HyperdataPhylo Nothing (Just phy)) (Just corpusId) userId]
-  pure $ NodeId (fromIntegral phyloId)
+  corpusId <- getClosestParentIdByType phyloId NodeCorpus
+  phy <- flowPhyloAPI defaultConfig (fromMaybe (panic "[G.C.V.P.API] no corpus ID found") corpusId) -- params
+  -- phyloId <- insertNodes [node NodePhylo "Phylo" (HyperdataPhylo Nothing (Just phy)) (Just corpusId) userId]
+  _ <- updateHyperdata phyloId (HyperdataPhylo Nothing (Just phy))
+  pure phyloId
 
 ------------------------------------------------------------------------
 -- | DELETE Phylo == delete a node
@@ -163,5 +167,4 @@ instance ToParamSchema Metric
 instance ToParamSchema Order
 instance ToParamSchema Sort
 instance ToSchema Order
-
 

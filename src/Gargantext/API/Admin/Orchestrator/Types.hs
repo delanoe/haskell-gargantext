@@ -36,6 +36,7 @@ instance Arbitrary a => Arbitrary (JobOutput a) where
 -- TODO IsidoreAuth
 data ExternalAPIs = All
                   | PubMed
+                  | Arxiv
                   | HAL
                   | IsTex
                   | Isidore

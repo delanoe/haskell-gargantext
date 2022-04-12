@@ -13,25 +13,22 @@ Portability : POSIX
 -}
 
 
-module Gargantext.Core.Viz.Phylo.PhyloExample where
-
-import Data.List (sortOn, nub, sort)
-import Data.Map (Map)
-import Data.Text (Text, toLower)
-
-import Gargantext.Prelude
-import Gargantext.Core.Text.Context (TermList)
-import Gargantext.Core.Text.Terms.Mono (monoTexts)
-import Gargantext.Core.Viz.AdaptativePhylo
-import Gargantext.Core.Viz.Phylo.PhyloTools
-import Gargantext.Core.Viz.Phylo.PhyloMaker
-import Gargantext.Core.Viz.Phylo.PhyloExport
-import Gargantext.Core.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching)
-import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
+module Gargantext.Core.Viz.Phylo.Example where
 
 import Control.Lens
 import Data.GraphViz.Types.Generalised (DotGraph)
-
+import Data.List (sortOn, nub, sort)
+import Data.Map (Map)
+import Data.Text (Text, toLower)
+import Gargantext.Core.Text.Context (TermList)
+import Gargantext.Core.Text.Terms.Mono (monoTexts)
+import Gargantext.Core.Viz.Phylo
+import Gargantext.Core.Viz.Phylo.PhyloExport
+import Gargantext.Core.Viz.Phylo.PhyloMaker
+import Gargantext.Core.Viz.Phylo.PhyloTools
+import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
+import Gargantext.Core.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching)
+import Gargantext.Prelude
 import qualified Data.Vector as Vector
 
 ---------------------------------
@@ -42,14 +39,14 @@ phyloExport :: IO ()
 phyloExport = dotToFile "/home/qlobbe/data/phylo/output/cesar_cleopatre_V2.dot" phyloDot 
 
 phyloDot :: DotGraph DotId
-phyloDot = toPhyloExport phylo2
+phyloDot = toPhyloExport phyloExample
 
 --------------------------------------------------
 -- | STEP 4 | -- Process the synchronic clustering
 --------------------------------------------------
 
-phylo2 :: Phylo
-phylo2 = synchronicClustering $ toHorizon phylo1
+phyloExample :: Phylo
+phyloExample = synchronicClustering $ toHorizon phylo1
 
 -----------------------------------------------
 -- | STEP 3 | -- Build the Level 1 of the Phylo
@@ -92,14 +89,16 @@ phyloCooc = docsToTimeScaleCooc docs (foundations ^. foundations_roots)
 
 
 periods :: [(Date,Date)]
-periods = toPeriods (sort $ nub $ map date docs) (getTimePeriod $ timeUnit config) (getTimeStep $ timeUnit config)
+periods = toPeriods (sort $ nub $ map date docs)
+                    (getTimePeriod $ timeUnit config)
+                    (getTimeStep $ timeUnit config)
 
 
 nbDocsByYear :: Map Date Double
 nbDocsByYear = docsToTimeScaleNb docs
 
 
-config :: Config
+config :: PhyloConfig
 config = 
     defaultConfig { phyloName  = "Cesar et Cleopatre"
                   , phyloLevel = 2
@@ -109,7 +108,7 @@ config =
 
 docs :: [Document]
 docs = map (\(d,t)
-    -> Document d
+    -> Document (d+102)
                 ""
                 (filter (\n -> isRoots n (foundations ^. foundations_roots)) $ monoTexts t) 
                 Nothing
@@ -158,4 +157,4 @@ corpus = sortOn fst [
   (-44,"La guerre que se livrent les assassins de Cesar, Cassius et Brutus et ses heritiers, Octave et Marc-Antoine, oblige Cleopatre à des contorsions diplomatiques."), 
   (-41,"Nous ignorons depuis quand Cleopatre, agee de 29 ans en -41, et Marc-Antoine, qui a une quarantaine d'annees, se connaissent. Marc-Antoine est l'un des officiers qui ont participe au retablissement de Ptolemee XII.  Il est plus vraisemblable qu'ils se soient frequentes lors du sejour à Rome de Cleopatre."), 
   (-42,"Brutus tient la Grèce tandis que Cassius s'installe en Syrie. Le gouverneur de Cleopatre à Chypre, Serapion, vient en aide à Cassius."), 
-  (-42,"Cassius aurait envisage de s'emparer d'Alexandrie quand le 'debarquement' en Grèce d'Antoine et d'Octave l'oblige à renoncer à ses projets")]          
+  (-42,"Cassius aurait envisage de s'emparer d'Alexandrie quand le 'debarquement' en Grèce d'Antoine et d'Octave l'oblige à renoncer à ses projets")]

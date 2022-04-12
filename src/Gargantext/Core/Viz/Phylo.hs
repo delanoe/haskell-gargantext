@@ -1,4 +1,4 @@
-{-|
+{-
 Module      : Gargantext.Core.Viz.AdaptativePhylo
 Description : Phylomemy definitions and types.
 Copyright   : (c) CNRS, 2017-Present
@@ -24,47 +24,54 @@ one 8, e54847.
 {-# LANGUAGE DeriveAnyClass   #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
-module Gargantext.Core.Viz.AdaptativePhylo where
+module Gargantext.Core.Viz.Phylo where
 
-import Data.Aeson
-import Data.Aeson.TH (deriveJSON)
-import Data.Text   (Text, pack)
-import Data.Vector (Vector)
-import Data.Map (Map)
-
-import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Prelude
-import Gargantext.Core.Text.Context (TermList)
-
-import GHC.Generics
-import GHC.IO (FilePath)
 import Control.DeepSeq (NFData)
 import Control.Lens (makeLenses)
-
+import Data.Aeson
+import Data.Aeson.TH (deriveJSON)
+import Data.Map (Map)
+import Data.Swagger
+import Data.Text   (Text, pack)
+import Data.Vector (Vector)
+import GHC.Generics
+import GHC.IO (FilePath)
+import Gargantext.Core.Text.Context (TermList)
+import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
+import Gargantext.Prelude
 import qualified Data.Text.Lazy as TextLazy
 
-
 ----------------
--- | Config | --
-----------------  
+-- | PhyloConfig | --
+----------------
 
-
-data CorpusParser = 
+data CorpusParser =
       Wos  {_wos_limit  :: Int}
     | Csv  {_csv_limit  :: Int}
     | Csv' {_csv'_limit :: Int}
-    deriving (Show,Generic,Eq) 
+    deriving (Show,Generic,Eq)
 
-data SeaElevation = 
-      Constante  
+instance ToSchema CorpusParser where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
+
+
+data ListParser = V3 | V4 deriving (Show,Generic,Eq)
+instance ToSchema ListParser
+
+
+data SeaElevation =
+      Constante
       { _cons_start :: Double
       , _cons_step  :: Double }
-    | Adaptative 
+    | Adaptative
       { _adap_granularity :: Double }
     deriving (Show,Generic,Eq)
 
-data Proximity = 
-      WeightedLogJaccard 
+instance ToSchema SeaElevation
+
+data Proximity =
+      WeightedLogJaccard
       { _wlj_sensibility   :: Double
 {-
       -- , _wlj_thresholdInit :: Double
@@ -73,7 +80,7 @@ data Proximity =
       -- , _wlj_elevation     :: Double
 -}
       }
-    | WeightedLogSim 
+    | WeightedLogSim
       { _wlj_sensibility   :: Double
 {-
       -- , _wlj_thresholdInit :: Double
@@ -81,70 +88,104 @@ data Proximity =
       -- | max height for sea level in temporal matching
       -- , _wlj_elevation     :: Double
 -}
-      } 
-    | Hamming 
-    deriving (Show,Generic,Eq) 
+      }
+    | Hamming { _wlj_sensibility :: Double }
+
+    deriving (Show,Generic,Eq)
+
+instance ToSchema Proximity where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
 
-data SynchronyScope = SingleBranch | SiblingBranches | AllBranches deriving (Show,Generic,Eq)
+data SynchronyScope = SingleBranch | SiblingBranches | AllBranches
+  deriving (Show,Generic,Eq, ToSchema)
 
-data SynchronyStrategy = MergeRegularGroups | MergeAllGroups deriving (Show,Generic,Eq)
+data SynchronyStrategy = MergeRegularGroups | MergeAllGroups
+  deriving (Show,Generic,Eq)
 
-data Synchrony = 
+instance ToSchema SynchronyStrategy where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
+
+
+data Synchrony =
       ByProximityThreshold
-      { _bpt_threshold :: Double 
+      { _bpt_threshold :: Double
       , _bpt_sensibility :: Double
       , _bpt_scope :: SynchronyScope
       , _bpt_strategy :: SynchronyStrategy }
     | ByProximityDistribution
       { _bpd_sensibility :: Double
-      , _bpd_strategy :: SynchronyStrategy } 
-    deriving (Show,Generic,Eq)     
+      , _bpd_strategy :: SynchronyStrategy }
+    deriving (Show,Generic,Eq)
+
+instance ToSchema Synchrony where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
 
 
-data TimeUnit = 
-      Year 
+
+data TimeUnit =
+      Epoch
+      { _epoch_period :: Int
+      , _epoch_step   :: Int
+      , _epoch_matchingFrame :: Int }
+    | Year
       { _year_period :: Int
       , _year_step   :: Int
       , _year_matchingFrame :: Int }
-    | Month 
+    | Month
       { _month_period :: Int
       , _month_step   :: Int
-      , _month_matchingFrame :: Int }      
-    | Week 
+      , _month_matchingFrame :: Int }
+    | Week
       { _week_period :: Int
       , _week_step   :: Int
       , _week_matchingFrame :: Int }
-    | Day 
+    | Day
       { _day_period :: Int
       , _day_step   :: Int
-      , _day_matchingFrame :: Int }      
-      deriving (Show,Generic,Eq) 
+      , _day_matchingFrame :: Int }
+      deriving (Show,Generic,Eq)
+
+instance ToSchema TimeUnit where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
+
 
 data CliqueFilter = ByThreshold | ByNeighbours deriving (Show,Generic,Eq)
 
-data Clique = 
-      Fis 
+instance ToSchema CliqueFilter where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
+
+
+
+data Clique =
+      Fis
       { _fis_support :: Int
       , _fis_size    :: Int }
     | MaxClique
       { _mcl_size      :: Int
       , _mcl_threshold :: Double
-      , _mcl_filter    :: CliqueFilter } 
-      deriving (Show,Generic,Eq)      
+      , _mcl_filter    :: CliqueFilter }
+      deriving (Show,Generic,Eq)
+
+instance ToSchema Clique where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
 
-data Quality = 
+data Quality =
      Quality { _qua_granularity :: Double
              , _qua_minBranch   :: Int }
-      deriving (Show,Generic,Eq)   
+      deriving (Show,Generic,Eq)
+
+instance ToSchema Quality where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_qua_")
 
 
-data Config = 
-     Config { corpusPath     :: FilePath
+data PhyloConfig =
+     PhyloConfig { corpusPath     :: FilePath
             , listPath       :: FilePath
             , outputPath     :: FilePath
             , corpusParser   :: CorpusParser
+            , listParser     :: ListParser
             , phyloName      :: Text
             , phyloLevel     :: Int
             , phyloProximity :: Proximity
@@ -156,60 +197,108 @@ data Config =
             , clique         :: Clique
             , exportLabel    :: [PhyloLabel]
             , exportSort     :: Sort
-            , exportFilter   :: [Filter]  
+            , exportFilter   :: [Filter]
             } deriving (Show,Generic,Eq)
 
 
-defaultConfig :: Config
-defaultConfig = 
-     Config { corpusPath     = ""
-            , listPath       = ""
-            , outputPath     = ""
-            , corpusParser   = Csv 1000
-            , phyloName      = pack "Default Phylo"
+------------------------------------------------------------------------
+data PhyloSubConfig =
+  PhyloSubConfig { _sc_phyloProximity :: Double
+                 , _sc_phyloSynchrony :: Double
+                 , _sc_phyloQuality   :: Double
+                 , _sc_timeUnit       :: TimeUnit
+                 , _sc_clique         :: Clique
+                 , _sc_exportFilter   :: Double
+                 }
+  deriving (Show,Generic,Eq)
+
+
+subConfig2config :: PhyloSubConfig -> PhyloConfig
+subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard $ _sc_phyloProximity subConfig
+                                           , phyloSynchrony = ByProximityThreshold (_sc_phyloSynchrony subConfig) 0 AllBranches MergeAllGroups
+                                           , phyloQuality   = Quality (_sc_phyloQuality   subConfig) 1
+                                           , timeUnit       = _sc_timeUnit       subConfig
+                                           , clique         = _sc_clique         subConfig
+                                           , exportFilter   = [ByBranchSize $ _sc_exportFilter   subConfig]
+                                           }
+
+------------------------------------------------------------------------
+defaultConfig :: PhyloConfig
+defaultConfig =
+     PhyloConfig { corpusPath     = "corpus.csv" -- useful for commandline only
+            , listPath       = "list.csv"   -- useful for commandline only
+            , outputPath     = "data/"
+            , corpusParser   = Csv 100000
+            , listParser     = V4
+            , phyloName      = pack "Phylo Name"
             , phyloLevel     = 2
-            , phyloProximity = WeightedLogJaccard 10
+            , phyloProximity = WeightedLogJaccard 0.5
             , seaElevation   = Constante 0.1 0.1
-            , findAncestors  = True
-            , phyloSynchrony = ByProximityThreshold 0.1 10 SiblingBranches MergeAllGroups
-            , phyloQuality   = Quality 0 1
+            , findAncestors  = False
+            , phyloSynchrony = ByProximityThreshold 0.5 0 AllBranches MergeAllGroups
+            , phyloQuality   = Quality 0.5 1
             , timeUnit       = Year 3 1 5
-            , clique         = MaxClique 0 3 ByNeighbours
+            , clique         = MaxClique 5 0.0001 ByThreshold
             , exportLabel    = [BranchLabel MostEmergentTfIdf 2, GroupLabel MostEmergentInclusive 2]
-            , exportSort     = ByHierarchy
-            , exportFilter   = [ByBranchSize 2]  
+            , exportSort     = ByHierarchy Desc
+            , exportFilter   = [ByBranchSize 3]
             }
 
-instance FromJSON Config
-instance ToJSON Config
+-- Main Instances
+instance ToSchema PhyloConfig
+instance ToSchema PhyloSubConfig
+
+instance FromJSON PhyloConfig
+instance ToJSON PhyloConfig
+
+instance FromJSON PhyloSubConfig
+instance ToJSON PhyloSubConfig
+
 instance FromJSON CorpusParser
 instance ToJSON CorpusParser
+
+instance FromJSON ListParser
+instance ToJSON ListParser
+
 instance FromJSON Proximity
 instance ToJSON Proximity
+
 instance FromJSON SeaElevation
 instance ToJSON SeaElevation
+
 instance FromJSON TimeUnit
 instance ToJSON TimeUnit
+
 instance FromJSON CliqueFilter
 instance ToJSON CliqueFilter
+
 instance FromJSON Clique
 instance ToJSON Clique
+
 instance FromJSON PhyloLabel
 instance ToJSON PhyloLabel
+
 instance FromJSON Tagger
 instance ToJSON Tagger
+
 instance FromJSON Sort
 instance ToJSON Sort
+
 instance FromJSON Order
 instance ToJSON Order
+
 instance FromJSON Filter
 instance ToJSON Filter
+
 instance FromJSON SynchronyScope
 instance ToJSON SynchronyScope
+
 instance FromJSON SynchronyStrategy
 instance ToJSON SynchronyStrategy
+
 instance FromJSON Synchrony
 instance ToJSON Synchrony
+
 instance FromJSON Quality
 instance ToJSON Quality
 
@@ -220,8 +309,13 @@ data Software =
               , _software_version :: Text
      } deriving (Generic, Show, Eq)
 
+instance ToSchema Software where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_software_")
+
+
+
 defaultSoftware :: Software
-defaultSoftware = 
+defaultSoftware =
       Software { _software_name    = pack "Gargantext"
                , _software_version = pack "v4" }
 
@@ -230,8 +324,13 @@ defaultSoftware =
 data PhyloParam =
      PhyloParam { _phyloParam_version  :: Text
                 , _phyloParam_software :: Software
-                , _phyloParam_config   :: Config
+                , _phyloParam_config   :: PhyloConfig
      } deriving (Generic, Show, Eq)
+
+instance ToSchema PhyloParam where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phyloParam_")
+
+
 
 defaultPhyloParam :: PhyloParam
 defaultPhyloParam =
@@ -252,13 +351,14 @@ type Ngrams = Text
 
 -- Document : a piece of Text linked to a Date
 -- date = computational date; date' = original string date yyyy-mm-dd
+-- Export Database to Document
 data Document = Document
-      { date    :: Date
-      , date'   :: Text
+      { date    :: Date   -- datatype Date {unDate :: Int}
+      , date'   :: Text   -- show date
       , text    :: [Ngrams]
       , weight  :: Maybe Double
       , sources :: [Text]
-      } deriving (Eq,Show,Generic,NFData)  
+      } deriving (Eq,Show,Generic,NFData)
 
 
 --------------------
@@ -266,16 +366,22 @@ data Document = Document
 --------------------
 
 
--- | The Foundations of a Phylo created from a given TermList 
+-- | The Foundations of a Phylo created from a given TermList
 data PhyloFoundations = PhyloFoundations
       { _foundations_roots   :: !(Vector Ngrams)
       , _foundations_mapList :: TermList
       } deriving (Generic, Show, Eq)
 
+instance ToSchema PhyloFoundations where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_foundations_")
+
+
 
 data PhyloSources = PhyloSources
       { _sources :: !(Vector Text) } deriving (Generic, Show, Eq)
 
+instance ToSchema PhyloSources where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
 
 ---------------------------
 -- | Coocurency Matrix | --
@@ -303,13 +409,16 @@ data Phylo =
            , _phylo_timeCooc     :: !(Map Date Cooc)
            , _phylo_timeDocs     :: !(Map Date Double)
            , _phylo_termFreq     :: !(Map Int Double)
-           , _phylo_lastTermFreq :: !(Map Int Double)           
-           , _phylo_horizon      :: !(Map (PhyloGroupId,PhyloGroupId) Double)           
+           , _phylo_lastTermFreq :: !(Map Int Double)
+           , _phylo_horizon      :: !(Map (PhyloGroupId,PhyloGroupId) Double)
            , _phylo_groupsProxi  :: !(Map (PhyloGroupId,PhyloGroupId) Double)
            , _phylo_param        :: PhyloParam
            , _phylo_periods      :: Map PhyloPeriodId PhyloPeriod
            }
            deriving (Generic, Show, Eq)
+
+instance ToSchema Phylo where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_")
 
 
 -- | PhyloPeriodId : the id of a given period
@@ -322,13 +431,17 @@ data PhyloPeriod =
      PhyloPeriod { _phylo_periodPeriod  :: (Date,Date)
                  , _phylo_periodPeriod' :: (Text,Text)
                  , _phylo_periodLevels  :: Map PhyloLevelId PhyloLevel
-                 } deriving (Generic, Show, Eq)   
+                 } deriving (Generic, Show, Eq)
+
+instance ToSchema PhyloPeriod where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_")
+
 
 
 -- | Level : a level of clustering
 type Level = Int
 
--- | PhyloLevelId : the id of a level of clustering in a given period 
+-- | PhyloLevelId : the id of a level of clustering in a given period
 type PhyloLevelId  = (PhyloPeriodId,Level)
 
 -- | PhyloLevel : levels of phylomemy on a synchronic axis
@@ -339,10 +452,13 @@ type PhyloLevelId  = (PhyloPeriodId,Level)
 data PhyloLevel =
      PhyloLevel { _phylo_levelPeriod  :: (Date,Date)
                 , _phylo_levelPeriod' :: (Text,Text)
-                , _phylo_levelLevel   :: Level 
+                , _phylo_levelLevel   :: Level
                 , _phylo_levelGroups  :: Map PhyloGroupId PhyloGroup
-                } 
-                deriving (Generic, Show, Eq)   
+                }
+                deriving (Generic, Show, Eq)
+
+instance ToSchema PhyloLevel where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_")
 
 
 type PhyloGroupId  = (PhyloLevelId, Int)
@@ -352,15 +468,15 @@ type PhyloGroupId  = (PhyloLevelId, Int)
 type PhyloBranchId = (Level, [Int])
 
 -- | PhyloGroup : group of ngrams at each level and period
-data PhyloGroup = 
+data PhyloGroup =
       PhyloGroup { _phylo_groupPeriod   :: (Date,Date)
                  , _phylo_groupPeriod'  :: (Text,Text)
                  , _phylo_groupLevel    :: Level
-                 , _phylo_groupIndex    :: Int         
+                 , _phylo_groupIndex    :: Int
                  , _phylo_groupLabel    :: Text
                  , _phylo_groupSupport  :: Support
                  , _phylo_groupWeight   :: Maybe Double
-                 , _phylo_groupSources  :: [Int]                 
+                 , _phylo_groupSources  :: [Int]
                  , _phylo_groupNgrams   :: [Int]
                  , _phylo_groupCooc     :: !(Cooc)
                  , _phylo_groupBranchId :: PhyloBranchId
@@ -370,17 +486,26 @@ data PhyloGroup =
                  , _phylo_groupPeriodParents :: [Pointer]
                  , _phylo_groupPeriodChilds  :: [Pointer]
                  , _phylo_groupAncestors     :: [Pointer]
+                 , _phylo_groupPeriodMemoryParents :: [Pointer']
+                 , _phylo_groupPeriodMemoryChilds  :: [Pointer']
                  }
                  deriving (Generic, Show, Eq, NFData)
 
+instance ToSchema PhyloGroup where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_")
+
+
 -- | Weight : A generic mesure that can be associated with an Id
 type Weight = Double
+type Thr = Double
 
 -- | Pointer : A weighted pointer to a given PhyloGroup
 type Pointer = (PhyloGroupId, Weight)
+-- | Pointer' : A weighted pointer to a given PhyloGroup with a lower bounded threshold
+type Pointer' = (PhyloGroupId, (Thr,Weight))
 
-data Filiation = ToParents | ToChilds deriving (Generic, Show)    
-data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)                
+data Filiation = ToParents | ToChilds | ToParentsMemory | ToChildsMemory deriving (Generic, Show)
+data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)
 
 
 ----------------------
@@ -404,17 +529,26 @@ data PhyloClique = PhyloClique
 
 type DotId = TextLazy.Text
 
-data EdgeType = GroupToGroup | BranchToGroup | BranchToBranch | GroupToAncestor | PeriodToPeriod deriving (Show,Generic,Eq)
+data EdgeType = GroupToGroup | GroupToGroupMemory | BranchToGroup | BranchToBranch | GroupToAncestor | PeriodToPeriod deriving (Show,Generic,Eq)
 
 data Filter = ByBranchSize { _branch_size :: Double } deriving (Show,Generic,Eq)
+instance ToSchema Filter where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
-data Order = Asc | Desc deriving (Show,Generic,Eq)
 
-data Sort = ByBirthDate { _sort_order :: Order } | ByHierarchy deriving (Show,Generic,Eq)
+data Order = Asc | Desc deriving (Show,Generic,Eq, ToSchema)
+
+data Sort = ByBirthDate { _sort_order :: Order } | ByHierarchy {_sort_order :: Order } deriving (Show,Generic,Eq)
+instance ToSchema Sort where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_sort_")
+
 
 data Tagger = MostInclusive | MostEmergentInclusive | MostEmergentTfIdf deriving (Show,Generic,Eq)
+instance ToSchema Tagger where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
-data PhyloLabel = 
+
+data PhyloLabel =
       BranchLabel
       { _branch_labelTagger :: Tagger
       , _branch_labelSize   :: Int }
@@ -422,6 +556,10 @@ data PhyloLabel =
       { _group_labelTagger  :: Tagger
       , _group_labelSize    :: Int }
     deriving (Show,Generic,Eq)
+
+instance ToSchema PhyloLabel where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
+
 
 data PhyloBranch =
       PhyloBranch
@@ -436,17 +574,24 @@ data PhyloBranch =
       , _branch_meta     :: Map Text [Double]
       } deriving (Generic, Show, Eq)
 
+instance ToSchema PhyloBranch where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_branch_")
+
 data PhyloExport =
       PhyloExport
       { _export_groups    :: [PhyloGroup]
       , _export_branches  :: [PhyloBranch]
       } deriving (Generic, Show)
+instance ToSchema PhyloExport where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_export_")
+
 
 ----------------
 -- | Lenses | --
 ----------------
 
-makeLenses ''Config
+makeLenses ''PhyloConfig
+makeLenses ''PhyloSubConfig
 makeLenses ''Proximity
 makeLenses ''SeaElevation
 makeLenses ''Quality
@@ -469,16 +614,22 @@ makeLenses ''PhyloBranch
 
 instance FromJSON Phylo
 instance ToJSON Phylo
+
 instance FromJSON PhyloSources
 instance ToJSON PhyloSources
+
 instance FromJSON PhyloParam
 instance ToJSON PhyloParam
+
 instance FromJSON PhyloPeriod
 instance ToJSON PhyloPeriod
+
 instance FromJSON PhyloLevel
 instance ToJSON PhyloLevel
+
 instance FromJSON Software
 instance ToJSON Software
+
 instance FromJSON PhyloGroup
 instance ToJSON PhyloGroup
 

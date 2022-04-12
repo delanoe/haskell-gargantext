@@ -37,21 +37,21 @@ data RepoDbPoly version patches
                   } deriving (Show)
 
 type RepoDbWrite
-  = RepoDbPoly (Column PGInt4)
-             (Column PGJsonb)
+  = RepoDbPoly (Column SqlInt4)
+             (Column SqlJsonb)
 type RepoDbRead
-  = RepoDbPoly (Column PGInt4)
-             (Column PGJsonb)
+  = RepoDbPoly (Column SqlInt4)
+             (Column SqlJsonb)
 
 type RepoDbNgrams = RepoDbPoly Int NgramsStatePatch
 $(makeAdaptorAndInstance "pRepoDbNgrams" ''RepoDbPoly)
 makeLenses ''RepoDbPoly
 
-instance DefaultFromField PGJsonb
+instance DefaultFromField SqlJsonb
                           (PatchMap NgramsType
                           (PatchMap NodeId NgramsTablePatch))
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField
 
 repoTable :: Table RepoDbWrite RepoDbRead
 repoTable = Table "nodes_ngrams_repo"

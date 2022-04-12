@@ -48,7 +48,10 @@ mail mailCfg model = do
     (m,u)   = email_to         model
     subject = email_subject    model
     body    = emailWith (view gc_url cfg)    model
-  liftBase $ gargMail mailCfg (GargMail m (Just u) subject body)
+  liftBase $ gargMail mailCfg (GargMail { gm_to = m
+                                        , gm_name = Just u
+                                        , gm_subject = subject
+                                        , gm_body = body })
 
 ------------------------------------------------------------------------
 emailWith :: ServerAddress -> MailModel -> Text
@@ -62,7 +65,7 @@ emailWith server model =
 email_to :: MailModel -> (EmailAddress, Name)
 email_to (Invitation user) = email_to' user
 email_to (PassUpdate user) = email_to' user
-email_to (MailInfo u m)    = (m, u)
+email_to (MailInfo { .. })    = (mailInfo_address, mailInfo_username)
 
 email_to' :: NewUser GargPassword -> (EmailAddress, Name)
 email_to' (NewUser u m _) = (m,u)

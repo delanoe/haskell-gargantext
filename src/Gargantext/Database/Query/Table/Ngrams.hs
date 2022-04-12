@@ -18,43 +18,50 @@ module Gargantext.Database.Query.Table.Ngrams
   , queryNgramsTable
   , selectNgramsByDoc
   , insertNgrams
+  , selectNgramsId
   )
     where
 
 import Control.Lens ((^.))
-import Data.HashMap.Strict (HashMap)
 import Data.ByteString.Internal (ByteString)
+import Data.HashMap.Strict (HashMap)
+import Data.Map (Map)
 import Data.Text (Text)
-import qualified Database.PostgreSQL.Simple as PGS
-import qualified Data.List                  as List
-import qualified Data.HashMap.Strict        as HashMap
-
 import Gargantext.Core.Types
-import Gargantext.Database.Prelude (runOpaQuery, Cmd)
-import Gargantext.Database.Prelude (runPGSQuery, formatPGSQuery)
-import Gargantext.Database.Query.Table.NodeNodeNgrams
+import Gargantext.Database.Prelude (runOpaQuery, Cmd, formatPGSQuery, runPGSQuery)
+import Gargantext.Database.Query.Join (leftJoin3)
+import Gargantext.Database.Query.Table.ContextNodeNgrams2
+import Gargantext.Database.Query.Table.NodeNgrams (queryNodeNgramsTable)
 import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Schema.NodeNgrams
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Types
 import Gargantext.Prelude
+import qualified Data.HashMap.Strict        as HashMap
+import qualified Data.List                  as List
+import qualified Data.Map                   as Map
+import qualified Database.PostgreSQL.Simple as PGS
 
-queryNgramsTable :: Query NgramsRead
+queryNgramsTable :: Select NgramsRead
 queryNgramsTable = selectTable ngramsTable
 
 selectNgramsByDoc :: [ListId] -> DocId -> NgramsType -> Cmd err [Text]
 selectNgramsByDoc lIds dId nt = runOpaQuery (query lIds dId nt)
   where
 
-    join :: Query (NgramsRead, NodeNodeNgramsReadNull)
-    join = leftJoin queryNgramsTable queryNodeNodeNgramsTable on1
+    join :: Select (NgramsRead, NodeNgramsRead, ContextNodeNgrams2Read)
+    join = leftJoin3 queryNgramsTable queryNodeNgramsTable queryContextNodeNgrams2Table on1 -- on2
       where
-        on1 (ng,nnng) = ng^.ngrams_id .== nnng^.nnng_ngrams_id
+        on1 :: (NgramsRead, NodeNgramsRead, ContextNodeNgrams2Read) -> Column SqlBool
+        on1 (ng, nng, cnng) =  (.&&)
+                                 (ng^.ngrams_id .== nng^.nng_ngrams_id)
+                                 (nng^.nng_id   .== cnng^.cnng2_nodengrams_id)
 
-    query cIds' dId' nt' = proc () -> do
-      (ng,nnng) <- join -< ()
-      restrict -< foldl (\b cId -> ((toNullable $ pgNodeId cId) .== nnng^.nnng_node1_id) .|| b) (pgBool True) cIds'
-      restrict -< (toNullable $ pgNodeId dId')    .== nnng^.nnng_node2_id
-      restrict -< (toNullable $ pgNgramsType nt') .== nnng^.nnng_ngramsType
+    query lIds' dId' nt' = proc () -> do
+      (ng,nng,cnng) <- join -< ()
+      restrict -< foldl (\b lId -> ((pgNodeId lId) .== nng^.nng_node_id) .|| b) (sqlBool True) lIds'
+      restrict -< (pgNodeId dId')    .== cnng^.cnng2_context_id
+      restrict -< (pgNgramsType nt') .== nng^.nng_ngrams_type
       returnA  -< ng^.ngrams_terms
 
 
@@ -101,3 +108,28 @@ queryInsertNgrams = [sql|
     FROM   input_rows
     JOIN   ngrams c USING (terms);     -- columns of unique index
            |]
+
+
+--------------------------------------------------------------------------
+selectNgramsId :: [Text] -> Cmd err (Map NgramsId Text)
+selectNgramsId ns =
+  if List.null ns
+     then pure Map.empty
+     else Map.fromList <$> map (\(Indexed i t) -> (i, t)) <$> (selectNgramsId' ns)
+
+selectNgramsId' :: [Text] -> Cmd err [Indexed Int Text]
+selectNgramsId' ns = runPGSQuery querySelectNgramsId ( PGS.Only
+                                                     $ Values fields ns
+                                                     )
+  where
+    fields = map (\t -> QualifiedIdentifier Nothing t) ["text"]
+
+    querySelectNgramsId :: PGS.Query
+    querySelectNgramsId = [sql|
+        WITH input_rows(terms) AS (?)
+        SELECT n.id, n.terms
+        FROM   ngrams n
+        JOIN input_rows ir ON ir.terms = n.terms
+        GROUP BY n.terms, n.id
+        |]
+

@@ -91,7 +91,7 @@ import Database.PostgreSQL.Simple (formatQuery)
 -- UserId : user who is inserting the documents
 -- ParentId : folder ID which is parent of the inserted documents
 -- Administrator of the database has to create a uniq index as following SQL command:
--- `create unique index on nodes (typename, parent_id, (hyperdata ->> 'uniqId'));`
+-- `create unique index on contexts table (typename, parent_id, (hyperdata ->> 'uniqId'));`
 insertDb :: (InsertDb a, HasDBid NodeType) => UserId -> ParentId -> [a] -> Cmd err [ReturnId]
 insertDb u p = runPGSQuery queryInsert . Only . Values fields . map (insertDb' u p)
       where
@@ -156,7 +156,7 @@ queryInsert :: Query
 queryInsert = [sql|
     WITH input_rows(hash_id,typename,user_id,parent_id,name,date,hyperdata) AS (?)
     , ins AS (
-       INSERT INTO nodes (hash_id, typename,user_id,parent_id,name,date,hyperdata)
+       INSERT INTO contexts (hash_id, typename,user_id,parent_id,name,date,hyperdata)
        SELECT * FROM input_rows
        ON CONFLICT (hash_id) DO NOTHING -- on unique index -- this does not return the ids
        RETURNING id,hash_id
@@ -171,7 +171,7 @@ queryInsert = [sql|
          , n.id
          , hash_id
     FROM   input_rows
-    JOIN   nodes n USING (hash_id);         -- columns of unique index
+    JOIN   contexts n USING (hash_id);         -- columns of unique index
            |]
 
 ------------------------------------------------------------------------

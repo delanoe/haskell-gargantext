@@ -34,6 +34,9 @@ type HashPassword    = Auth.PasswordHash Auth.Argon2
 newtype GargPassword = GargPassword Text
   deriving (Generic)
 
+toGargPassword :: Text -> GargPassword
+toGargPassword x = GargPassword x
+
 instance Show GargPassword where
   show (GargPassword _) = "*GargPassword*"
 

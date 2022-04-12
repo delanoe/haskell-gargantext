@@ -23,7 +23,7 @@ module Gargantext.Database.Admin.Types.Hyperdata.Phylo
 
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
-import Gargantext.Core.Viz.LegacyPhylo (Phylo(..))
+import Gargantext.Core.Viz.Phylo (Phylo(..))
 
 ------------------------------------------------------------------------
 
@@ -56,6 +56,6 @@ instance ToSchema HyperdataPhylo where
 instance FromField HyperdataPhylo where
     fromField = fromField'
 
-instance DefaultFromField PGJsonb HyperdataPhylo
+instance DefaultFromField SqlJsonb HyperdataPhylo
   where
-    defaultFromField = fieldQueryRunnerColumn
+    defaultFromField = fromPGSFromField

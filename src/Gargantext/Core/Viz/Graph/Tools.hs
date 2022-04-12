@@ -14,10 +14,13 @@ Portability : POSIX
 module Gargantext.Core.Viz.Graph.Tools
   where
 
+import Data.Aeson
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
+import Data.Swagger hiding (items)
 import GHC.Float (sin, cos)
+import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Methods.Distances (Distance(..), measure)
 import Gargantext.Core.Methods.Distances.Conditional (conditional)
@@ -27,17 +30,30 @@ import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
-import Gargantext.Core.Viz.Graph.Types (ClusterNode)
 import Gargantext.Core.Viz.Graph.Utils (edgesFilter)
 import Gargantext.Prelude
+import Graph.Types (ClusterNode)
 import IGraph.Random -- (Gen(..))
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary
 import qualified Data.HashMap.Strict      as HashMap
 import qualified Data.List                as List
 import qualified Data.Map                 as Map
 import qualified Data.Set                 as Set
+import qualified Data.Text                as Text
 import qualified Data.Vector.Storable     as Vec
+import qualified Graph.BAC.ProxemyOptim   as BAC
 import qualified IGraph                   as Igraph
 import qualified IGraph.Algorithms.Layout as Layout
+
+
+data PartitionMethod = Spinglass | Confluence
+    deriving (Generic, Eq, Ord, Enum, Bounded, Show)
+instance FromJSON  PartitionMethod
+instance ToJSON    PartitionMethod
+instance ToSchema  PartitionMethod
+instance Arbitrary PartitionMethod where
+  arbitrary = elements [ minBound .. maxBound ]
 
 
 -------------------------------------------------------------
@@ -68,8 +84,6 @@ cooc2graph' distance threshold myCooc
         myCooc' = toIndex ti myCooc
 
 
-data PartitionMethod = Louvain | Spinglass
--- TODO Bac
 
 -- coocurrences graph computation
 cooc2graphWith :: PartitionMethod
@@ -77,9 +91,8 @@ cooc2graphWith :: PartitionMethod
                -> Threshold
                -> HashMap (NgramsTerm, NgramsTerm) Int
                -> IO Graph
-cooc2graphWith Louvain   = undefined
 cooc2graphWith Spinglass = cooc2graphWith' (spinglass 1)
--- cooc2graphWith Bac       = cooc2graphWith' (\x -> pure $ BAC.defaultClustering x)
+cooc2graphWith Confluence= cooc2graphWith' (\x -> pure $ BAC.defaultClustering x)
 
 
 cooc2graphWith' :: ToComId a
@@ -92,14 +105,18 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
   let
     (distanceMap, diag, ti) = doDistanceMap distance threshold myCooc
 
-{- -- Debug
-  saveAsFileDebug "debug/distanceMap" distanceMap
-  printDebug "similarities" similarities
--}
+--{- -- Debug
+  -- saveAsFileDebug "/tmp/distanceMap" distanceMap
+  -- saveAsFileDebug "/tmp/distanceMap.keys" (List.length $ Map.keys distanceMap)
+  -- printDebug "similarities" similarities
+--}
 
   partitions <- if (Map.size distanceMap > 0)
       then doPartitions distanceMap
-      else panic "Text.Flow: DistanceMap is empty"
+      else panic $ Text.unlines [ "[Gargantext.C.V.Graph.Tools] Similarity Matrix is empty"
+                                , "Maybe you should add more Map Terms in your list"
+                                , "Tutorial: link todo"
+                                ]
 
   let
     nodesApprox :: Int
@@ -130,14 +147,6 @@ doDistanceMap Distributional threshold myCooc = (distanceMap, toIndex ti diag, t
     (ti, _it) = createIndices theMatrix
     tiSize  = Map.size ti
 
-{-
-    matCooc = case distance of  -- Shape of the Matrix
-                Conditional    -> map2mat Triangle 0 tiSize
-                Distributional -> map2mat Square   0 tiSize
-            $ toIndex ti theMatrix
-    similarities = measure distance matCooc
--}
-
     similarities = measure Distributional
                  $ map2mat Square 0 tiSize
                  $ toIndex ti theMatrix
@@ -157,9 +166,8 @@ doDistanceMap Conditional threshold myCooc = (distanceMap, toIndex ti myCooc', t
   where
     myCooc' = Map.fromList $ HashMap.toList myCooc
     (ti, _it) = createIndices myCooc'
-    tiSize  = Map.size ti
 
-    links = round (let n :: Double = fromIntegral tiSize in n * log n)
+    links = round (let n :: Double = fromIntegral (Map.size ti) in n * log n)
 
     distanceMap = toIndex ti
                 $ Map.fromList
@@ -197,17 +205,18 @@ data2graph labels' occurences bridge conf partitions = Graph { _graph_nodes = no
                      , node_attributes = Attributes { clust_default = fromMaybe 0
                                                        (Map.lookup n community_id_by_node_id)
                                                     }
-                     , node_children = [] }
+                     , node_children = []
+                     }
                )
             | (l, n) <- labels
             , Set.member n nodesWithScores
             ]
 
     edges = [ Edge { edge_source = cs (show s)
-                       , edge_target = cs (show t)
-                       , edge_weight = weight
-                       , edge_confluence = maybe 0 identity $ Map.lookup (s,t) conf
-                       , edge_id     = cs (show i)
+                   , edge_target = cs (show t)
+                   , edge_weight = weight
+                   , edge_confluence = maybe 0 identity $ Map.lookup (s,t) conf
+                   , edge_id     = cs (show i)
                    }
             | (i, ((s,t), weight)) <- zip ([0..]::[Integer] ) $ Map.toList bridge
             , s /= t
@@ -275,7 +284,7 @@ getCoord ACP labels m n = to2d $ maybe (panic "Graph.Tools no coordinate") ident
         ns = map snd items
 
     toVec :: Int -> [Int] -> Map (Int,Int) Double -> (Int, Vec.Vector Double)
-    toVec n' ns' m' = (n', Vec.fromList $ map (\n'' -> maybe 0 identity $ Map.lookup (n',n'') m') ns')
+    toVec n' ns' m'' = (n', Vec.fromList $ map (\n'' -> maybe 0 identity $ Map.lookup (n',n'') m'') ns')
 ------------------------------------------------------------------------
 
 -- | KamadaKawai Layout

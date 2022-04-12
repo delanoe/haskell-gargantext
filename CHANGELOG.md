@@ -1,3 +1,156 @@
+## Version 0.0.5.8.5
+* [FRONT] CSS + Design, Graph Toolbar and many things
+* [BACK] Security FIX GQL route
+* [BACK] Arxiv API connexion
+
+## Version 0.0.5.8.4
+* [BACK] GraphQL routes
+* [FRONT] CSS, Forest Sidebar
+* [HAL] parser back and front
+
+## Version 0.0.5.8.3
+* [CRAWLERS] HAL for organizations, example done for IMT
+
+## Version 0.0.5.8.2
+* [FIX] Regex Error on HAL Date parsing with Duckling
+
+## Version 0.0.5.8.1
+* [FIX] Folder Up button working well now, using GraphQL
+
+## Version 0.0.5.8
+* [FIX] reindex ngrams-contexts function
+* [PARAM] decreasing the Candidate list
+* [FEAT] enabling Notebooks for Teams
+* [REFACT] Page user and email refactoring
+
+## Version 0.0.5.7.9.1
+* [FIX] Group revert + NLP French API implemented (WIP)
+* Default Names of Folder and Frames simplified
+
+## Version 0.0.5.7.9
+* [FEAT] New NLP server for postagging
+* [FIX] Spinglass unconnected componnent of graph
+
+## Version 0.0.5.7.8
+* [FIX] PubMed limit parser
+
+## Version 0.0.5.7.7
+* [FEAT FIX] Link Annuaire Corpus (WIP)
+* [UPGRADE METHOD] ./bin/psql gargantext.ini < devops/postgres/upgrade/0.0.5.7.7.sql
+
+## Version 0.0.5.7.6
+* [FIX] Default behavior of Ngrams Table: Cache off and Desc order by score
+
+## Version 0.0.5.7.5
+* [FIX] Progress length
+
+## Version 0.0.5.7.4
+* [FIX] User Page info get/update/security
+
+## Version 0.0.5.7.3
+* [OPTIM] HAL and PubMed parsers with Conduit
+* [BACK] Zip files added
+
+## Version 0.0.5.7.2
+* [FIX] Phylo default parameters on frontend side
+
+## Version 0.0.5.7.1
+* [FIX] Phylo error findBounds fixed
+
+## Version 0.0.5.7
+* [FEAT] Phylo Backend/Frontend connected for tests
+
+## Version 0.0.5.6.7
+* [BACK] fix limit with MAX_DOCS_SCRAPERS
+* [FEAT] Users Password Sugar function : in repl, runCmdReplEasy $ updateUsersPassword  ["user@mail.com"]
+
+## Version 0.0.5.6.6
+* [BACK] CSV List post and reindex after (for both CSV and JSON)
+
+## Version 0.0.5.6.5
+* [BACK] HAL parser with Conduit
+
+## Version 0.0.5.6.4
+* [FRONT] Forest Tooltip + Async progress bar fix
+
+## Version 0.0.5.6.3
+* [BACK][EXPORT][GEXF] node size
+
+## Version 0.0.5.6.2
+* [FRONT][FIX] Ngrams Batch change
+
+## Version 0.0.5.6.1
+* [BACK][FEAT] Confluence Method connection
+
+## Version 0.0.5.6
+* [BACK][FEAT] Phylo backend connection
+* [FRONT] Editable Metadata
+
+## Version 0.0.5.5.7
+* [FRONT][FIX] NgramsTable Cache search.
+
+## Version 0.0.5.5.6
+* [BACK][FIX] ./bin/psql gargantext.ini < devops/posgres/upgrade/0.0.5.5.6.sql
+* [FRONT] fix NodeType list show (Nodes options)
+
+## Version 0.0.5.5.5
+* [FORNT] fix Graph Explorer search ngrams
+* [FRONT] fix NodeType list show (main Nodes)
+
+## Version 0.0.5.5.4
+* [BACK][OPTIM] NgramsTable scores
+* [BACK] bin/client script to analyze backend performance and reproduce bugs
+* [FRONT] Adding Language selection
+
+## Version 0.0.5.5.3
+* [BACK] Adding a Max limit for others lists.
+
+## Version 0.0.5.5.2
+* [BACK][OPTIM] Index on node_node_ngrams to seed up ngrams table score
+  queries. Please execute the upgrade SQL script
+  devops/postgres/0.0.5.5.2.sql
+
+## Version 0.0.5.5.1
+* [BACK] FIX Graph Explorer search with selected ngrams
+* [FRONT] Clean CSS
+
+## Version 0.0.5.5
+* [FRONT] Visio frame removed, using a new tab instead (which is working)
+* [BACK] Scores on the docs view fixed
+
+## Version 0.0.5.3
+* [FRONT] SSL local option
+
+## Version 0.0.5.2
+* [QUAL] Scores in Ngrams Table fixed during workflow and user can
+  refresh it if needed.
+
+## Version 0.0.5.1
+* [OPTIM] Upgrade fix with indexes and scores counts
+
+## Version 0.0.5
+* [OPTIM][DATABASE] Upgrade Schema, move conTexts in contexts table which requires a version bump.
+
+## Version 0.0.4.9.9.6
+* [BACK] PubMed parser fixed
+* [FRONT] Visio Frame resized
+
+## Version 0.0.4.9.9.5
+* [FIX] Chart Sort
+
+## Version 0.0.4.9.9.4
+* [FEAT] Corpus docs download
+
+## Version 0.0.4.9.9.3
+* [BACK] Graph update with force option
+
+## Version 0.0.4.9.9.2
+* [BACK] Opaleye Upgrade
+
+## Version 0.0.4.9.9.1
+* [FRONT] 350-dev-graph-search-in-forms-not-labels
+* [FRONT] 359-dev-input-with-autocomplete
+
 ## Version 0.0.4.9.9
 * [FIX] Continuous Integration (CI)
 

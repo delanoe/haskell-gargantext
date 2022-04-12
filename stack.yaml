@@ -1,14 +1,12 @@
 resolver:
- url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/18.yaml
+ url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
 flags: {}
 extra-package-dbs: []
 skip-ghc-check: true
 packages:
 - .
   #- 'deps/gargantext-graph'
-#- 'deps/patches-map'
-#- 'deps/accelerate'
-#- 'deps/accelerate-utility'
+  #- 'deps/haskell-opaleye'
 
 docker:
   enable: false
@@ -32,9 +30,9 @@ allow-newer: true
 
 extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-  commit: 220f32810f988a5a121f110a7d557fc7d0721712
-#- git: ssh://gitolite3@delanoe.org/gargantext-graph
-#  commit: 294887a220460bd0c114638fff9ea53306cd2f18
+  commit: 08096a4913572cf22762fa77613340207ec6d9fd
+- git: https://gitlab.iscpif.fr/gargantext/gargantext-graph.git
+  commit: f68f9e78ff4302f53d0855190574c2d818a00b4d
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
@@ -59,11 +57,11 @@ extra-deps:
 - git: https://github.com/delanoe/servant-static-th.git
   commit: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
 - git: https://github.com/alpmestan/ekg-json.git
-  commit: c7bde4851a7cd41b3f3debf0c57f11bbcb11d698
+  commit: fd7e5d7325939103cd87d0dc592faf644160341c
 
   # Databases libs
 - git: https://github.com/delanoe/haskell-opaleye.git
-  commit: d3ab7acd5ede737478763630035aa880f7e34444
+  commit: 756cb90f4ce725463d957bc899d764e0ed73738c
 - git: https://github.com/delanoe/hsparql.git
   commit: 2acbbc55ac9bbd4bf1a713c586b8b8e8b82892eb
 - git: https://github.com/robstewart57/rdf4h.git
@@ -71,13 +69,17 @@ extra-deps:
 
   # External Data API connectors
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed.git
-  commit: a9d8e08a7ef82f90e29dfaced4071704a3163394
+  commit: 02e03d9b856bd35d391f43da8525330f9d184615
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/istex.git
-  commit: daeae80365250c4bd539f0a65e271f9aa37f731f
+  commit: a4a6fb6a578255c9e5b52aab2afccf874976a3f5
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
-  commit: 020f5f9b308f5c23c925aedf5fb11f8b4728fb19
+  commit: 3bf77f28d3dc71d2e8349cbf422a34cf4c23cd11
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
   commit: 3db385e767d2100d8abe900833c6e7de3ac55e1b
+- git: https://gitlab.iscpif.fr/gargantext/crawlers/arxiv-api.git
+#- git: https://gitlab.iscpif.fr/cgenie/arxiv-api.git
+  commit: f3e517cc40d92e282c5245b23d253d2ca3f802e5
+- arxiv-0.0.3@sha256:02de1114091d11f1f3ab401d104d125ad4301260806feb7f63b3dcefc7db88cf,1588
 
   # NP libs
   #- git: https://github.com/np/servant-job.git # waiting for PR

@@ -26,7 +26,7 @@ import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.User
 import Gargantext.Database.Query.Table.User
 
-selectNodesWithUsername :: HasDBid NodeType => NodeType -> Username -> Cmd err [NodeId]
+selectNodesWithUsername :: NodeType -> Username -> Cmd err [NodeId]
 selectNodesWithUsername nt u = runOpaQuery (q u)
   where
     q u' = proc () -> do
@@ -35,7 +35,7 @@ selectNodesWithUsername nt u = runOpaQuery (q u)
       restrict -< _node_typename n .== (sqlInt4 $ toDBid nt)
       returnA  -< _node_id n
 
-    join' :: Query (NodeRead, UserReadNull)
+    join' :: Select (NodeRead, UserReadNull)
     join' = leftJoin queryNodeTable queryUserTable on1
       where
         on1 (n,us) = _node_user_id n .== user_id us
