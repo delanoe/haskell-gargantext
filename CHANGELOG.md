@@ -1,3 +1,6 @@
+## Version 0.0.5.8.5.1
+* [FRONT] FIX CSS Forest
+
 ## Version 0.0.5.8.5
 * [FRONT] CSS + Design, Graph Toolbar and many things
 * [BACK] Security FIX GQL route
