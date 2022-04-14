@@ -57,7 +57,7 @@ dbTree root_id = do
 
 toTree :: (HasConnectionPool env, HasConfig env, HasMail env) => Maybe NodeId -> Tree NodeTree -> TreeFirstLevel (GqlM e env)
 toTree pId TreeN { _tn_node, _tn_children } = TreeFirstLevel
-  { parent   = resolveParent pId -- TODO
+  { parent   = resolveParent pId
   , root     = toTreeNode _tn_node
   , children = map childrenToTreeNodes _tn_children
   }
