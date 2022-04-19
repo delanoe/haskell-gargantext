@@ -176,7 +176,6 @@ getDataText_Debug a l q li = do
     Right res -> liftBase $ printDataText res
 
 
-
 -------------------------------------------------------------------------------
 flowDataText :: forall env err m.
                 ( FlowCmdM env err m
@@ -258,10 +257,9 @@ flow :: forall env err m a c.
         -> m CorpusId
 flow c u cn la mfslw (mLength, docsC) logStatus = do
   -- TODO if public insertMasterDocs else insertUserDocs
-  ids <- runConduit $
-      zipSources (yieldMany [1..]) docsC
-      .| mapMC insertDoc
-      .| sinkList
+  ids <- runConduit $ zipSources (yieldMany [1..]) docsC
+                   .| mapMC insertDoc
+                   .| sinkList
 --  ids <- traverse (\(idx, doc) -> do
 --                      id <- insertMasterDocs c la doc
 --                      logStatus JobLog { _scst_succeeded = Just $ 1 + idx
