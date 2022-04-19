@@ -70,7 +70,7 @@ data Query m
     , node_parent :: GQLNode.NodeParentArgs -> m [GQLNode.Node]
     , user_infos  :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
     , users       :: GQLUser.UserArgs -> m [GQLUser.User m]
-    , tree        :: GQLTree.TreeArgs -> m GQLTree.TreeFirstLevel 
+    , tree        :: GQLTree.TreeArgs -> m (GQLTree.TreeFirstLevel m)
     } deriving (Generic, GQLType)
 
 data Mutation m

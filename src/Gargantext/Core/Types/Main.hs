@@ -38,9 +38,9 @@ import Text.Read (readMaybe)
 
 type CorpusName = Text
 ------------------------------------------------------------------------
-data NodeTree = NodeTree { _nt_name :: Text
-                         , _nt_type :: NodeType
-                         , _nt_id   :: NodeId
+data NodeTree = NodeTree { _nt_name      :: Text
+                         , _nt_type      :: NodeType
+                         , _nt_id        :: NodeId
                          } deriving (Show, Read, Generic)
 
 $(deriveJSON (unPrefix "_nt_") ''NodeTree)
