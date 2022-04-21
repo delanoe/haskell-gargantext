@@ -1,3 +1,6 @@
+## Version 0.0.5.8.6
+* [FE] Plane navigation improvements
+
 ## Version 0.0.5.8.5.1
 * [FRONT] FIX CSS Forest
 
