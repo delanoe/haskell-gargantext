@@ -1,3 +1,6 @@
+## Version 0.0.5.8.7
+* [FE] Graph Explorer Document exploration improvements
+
 ## Version 0.0.5.8.6
 * [FE] Plane navigation improvements
 
