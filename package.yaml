@@ -187,6 +187,7 @@ library:
   - http-media
   - http-types
   - hxt
+  - ihaskell
   - ini
   - insert-ordered-containers
   - jose

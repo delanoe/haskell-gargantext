@@ -353,6 +353,7 @@ data NodeType = NodeUser
               -- Optional Nodes
               | NodeFrameWrite | NodeFrameCalc | NodeFrameVisio | NodeFrameNotebook
               | NodeFile
+              | NodeCodebook
 
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
@@ -392,6 +393,8 @@ defaultName NodeFrameVisio    = "Visio"
 defaultName NodeFrameNotebook = "Code"
 
 defaultName NodeFile          = "File"
+
+defaultName NodeCodebook      = "Codebook"
 
 
 instance FromJSON NodeType

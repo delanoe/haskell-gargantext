@@ -66,6 +66,8 @@ nodeTypeId n =
     NodeListCooc  -> 50
     NodeModel -> 52
 
+    NodeCodebook      -> 6
+
 ----  Scores
 --    NodeOccurrences -> 10
     NodeGraph       -> 9

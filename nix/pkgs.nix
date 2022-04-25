@@ -9,6 +9,7 @@ rec {
   ];
   nonhsBuildInputs = with pkgs; [
     bzip2
+    czmq
     docker-compose
     git
     gmp
