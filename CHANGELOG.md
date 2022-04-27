@@ -1,3 +1,7 @@
+## Version 0.0.5.8.8
+* [FE] Fix regression on Graph Explorer for annuaire
+* [FE] Graph Doc Focus
+
 ## Version 0.0.5.8.7.2
 * [BE] Docker solution for codebook
 
