@@ -1,3 +1,6 @@
+## Version 0.0.5.8.7.1
+* [BE] Annuaire pairing, using full first name
+
 ## Version 0.0.5.8.7
 * [FE] Graph Explorer Document exploration improvements
 
