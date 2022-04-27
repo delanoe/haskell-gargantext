@@ -1,0 +1,31 @@
+FROM gibiansky/ihaskell
+
+USER 0
+
+# gargantext stuff
+RUN apt-get update && \
+    apt-get install -y libblas-dev \
+    libbz2-dev \
+    libcairo2-dev \
+    libgsl-dev \
+    liblapack-dev \
+    liblzma-dev \
+    libmagic-dev \
+    libpq-dev \
+    librust-pangocairo-dev \
+    lzma-dev \
+    libzmq3-dev \
+    pkg-config    && \
+    rm -rf /var/lib/apt/lists/*
+
+# ADD . /home/joyvan/src
+# RUN chown -R 1000 /home/joyvan/src
+
+USER 1000
+
+# WORKDIR /home/joyvan/src
+# RUN stack install --fast
+
+#CMD ["jupyter", "notebook", "--ip", "0.0.0.0"]
+CMD ["stack", "exec", "jupyter", "--", "notebook", "--ip", "0.0.0.0"]
+
