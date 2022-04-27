@@ -5,6 +5,7 @@ extra-package-dbs: []
 skip-ghc-check: true
 packages:
 - .
+
   #- 'deps/gargantext-graph'
   #- 'deps/haskell-opaleye'
 

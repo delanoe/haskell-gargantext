@@ -57,8 +57,6 @@ data DefaultHyperdata =
 
   | DefaultFile          HyperdataFile
 
-  | DefaultCodebook      HyperdataCodebook
-
 instance Hyperdata DefaultHyperdata
 
 instance ToJSON DefaultHyperdata where
@@ -92,8 +90,6 @@ instance ToJSON DefaultHyperdata where
 
   toJSON (DefaultFile x) = toJSON x
 
-  toJSON (DefaultCodebook x) = toJSON x
-
 
 defaultHyperdata :: NodeType -> DefaultHyperdata
 defaultHyperdata NodeUser           = DefaultUser    defaultHyperdataUser
@@ -125,5 +121,3 @@ defaultHyperdata NodeFrameVisio     = DefaultFrameVisio defaultHyperdataFrame
 defaultHyperdata NodeFrameNotebook      = DefaultFrameCalc  defaultHyperdataFrame
 
 defaultHyperdata NodeFile           = DefaultFile defaultHyperdataFile
-
-defaultHyperdata NodeCodebook       = DefaultCodebook defaultHyperdataCodebook
