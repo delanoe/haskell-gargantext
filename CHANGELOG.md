@@ -1,3 +1,6 @@
+## Version 0.0.5.8.7.2
+* [BE] Docker solution for codebook
+
 ## Version 0.0.5.8.7.1
 * [BE] Annuaire pairing, using full first name
 
