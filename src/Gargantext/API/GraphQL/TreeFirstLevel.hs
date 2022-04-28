@@ -31,6 +31,7 @@ data TreeNode = TreeNode
     name      :: Text
   , id        :: Int
   , node_type :: NodeType
+  , parent_id :: Maybe Int
   } deriving (Generic, GQLType)
 
 data TreeFirstLevel m = TreeFirstLevel
@@ -42,34 +43,37 @@ data TreeFirstLevel m = TreeFirstLevel
 
 type GqlM e env = Resolver QUERY e (GargM env GargError)
 
+type ParentId = Maybe NodeId
+
 resolveTree :: (HasConnectionPool env, HasConfig env, HasMail env) => TreeArgs -> GqlM e env (TreeFirstLevel (GqlM e env))
 resolveTree TreeArgs { root_id } = dbTree root_id
 
 dbTree :: (HasConnectionPool env, HasConfig env, HasMail env) => Int -> GqlM e env (TreeFirstLevel (GqlM e env))
 dbTree root_id = do
-  t <- lift $ T.tree T.TreeFirstLevel (NodeId root_id) allNodeTypes
+  let rId = NodeId root_id
+  t <- lift $ T.tree T.TreeFirstLevel rId allNodeTypes
   n <- lift $ getNode $ NodeId root_id
   let pId = toParentId n
-  pure $ toTree pId t
+  pure $ toTree rId pId t
   where
     toParentId N.Node { _node_parent_id } = _node_parent_id
 
 
-toTree :: (HasConnectionPool env, HasConfig env, HasMail env) => Maybe NodeId -> Tree NodeTree -> TreeFirstLevel (GqlM e env)
-toTree pId TreeN { _tn_node, _tn_children } = TreeFirstLevel
+toTree :: (HasConnectionPool env, HasConfig env, HasMail env) => NodeId -> ParentId -> Tree NodeTree -> TreeFirstLevel (GqlM e env)
+toTree rId pId TreeN { _tn_node, _tn_children } = TreeFirstLevel
   { parent   = resolveParent pId
-  , root     = toTreeNode _tn_node
-  , children = map childrenToTreeNodes _tn_children
+  , root     = toTreeNode pId _tn_node
+  , children = map childrenToTreeNodes $ zip _tn_children $ repeat rId
   }
 
-toTreeNode :: NodeTree -> TreeNode
-toTreeNode NodeTree { _nt_name, _nt_id, _nt_type } = TreeNode { name = _nt_name, id = id2int _nt_id, node_type = _nt_type }
+toTreeNode :: ParentId -> NodeTree -> TreeNode
+toTreeNode pId NodeTree { _nt_name, _nt_id, _nt_type } = TreeNode { name = _nt_name, id = id2int _nt_id, node_type = _nt_type, parent_id = id2int <$> pId}
   where
     id2int :: NodeId -> Int
     id2int (NodeId n) = n
 
-childrenToTreeNodes :: Tree NodeTree -> TreeNode
-childrenToTreeNodes TreeN {_tn_node} = toTreeNode _tn_node
+childrenToTreeNodes :: (Tree NodeTree, NodeId) -> TreeNode
+childrenToTreeNodes (TreeN {_tn_node}, rId) = toTreeNode (Just rId) _tn_node
 
 resolveParent :: (HasConnectionPool env, HasConfig env, HasMail env) => Maybe NodeId -> GqlM e env (Maybe TreeNode)
 resolveParent (Just pId) = do
@@ -82,4 +86,5 @@ nodeToTreeNode :: NN.Node json -> TreeNode
 nodeToTreeNode N.Node {..} = TreeNode { id        = NN.unNodeId _node_id
                                       , name      = _node_name
                                       , node_type = fromNodeTypeId _node_typename
+                                      , parent_id = NN.unNodeId <$> _node_parent_id
                                       }
