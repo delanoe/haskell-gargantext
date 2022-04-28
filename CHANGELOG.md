@@ -1,3 +1,6 @@
+## Version 0.0.5.8.8.1
+* [FE] Fix regression on Graph Explorer: edges color + confluence filter
+
 ## Version 0.0.5.8.8
 * [FE] Fix regression on Graph Explorer for annuaire
 * [FE] Graph Doc Focus
