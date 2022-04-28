@@ -1,3 +1,6 @@
+## Version 0.0.5.8.8.2
+* [FE] Fix Contact Page
+
 ## Version 0.0.5.8.8.1
 * [FE] Fix regression on Graph Explorer: edges color + confluence filter
 

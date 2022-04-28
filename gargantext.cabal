@@ -1,11 +1,11 @@
-cabal-version: 1.12
+cabal-version: 0.0.5.8.8.2
 
 -- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-version:        0.0.5.8.8.1
+version: 0.0.5.8.8.2
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
