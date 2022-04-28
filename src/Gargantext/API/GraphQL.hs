@@ -33,6 +33,7 @@ import Data.Proxy
 import Gargantext.API.Admin.Auth.Types (AuthenticatedUser)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog)
 import Gargantext.API.Prelude (HasJobEnv')
+import qualified Gargantext.API.GraphQL.Annuaire as GQLA
 import qualified Gargantext.API.GraphQL.AsyncTask as GQLAT
 import qualified Gargantext.API.GraphQL.IMT as GQLIMT
 import qualified Gargantext.API.GraphQL.Node as GQLNode
@@ -64,7 +65,8 @@ import Gargantext.API.Admin.Types (HasSettings)
 -- | Represents possible GraphQL queries.
 data Query m
   = Query
-    { imt_schools :: GQLIMT.SchoolsArgs -> m [GQLIMT.School]
+    { annuaire_contacts :: GQLA.AnnuaireContactArgs -> m [GQLA.AnnuaireContact]
+    , imt_schools :: GQLIMT.SchoolsArgs -> m [GQLIMT.School]
     , job_logs    :: GQLAT.JobLogArgs -> m (Map Int JobLog)
     , nodes       :: GQLNode.NodeArgs -> m [GQLNode.Node]
     , node_parent :: GQLNode.NodeParentArgs -> m [GQLNode.Node]
@@ -100,13 +102,14 @@ rootResolver
   => RootResolver (GargM env GargError) e Query Mutation Undefined
 rootResolver =
   RootResolver
-    { queryResolver = Query { imt_schools = GQLIMT.resolveSchools
-                            , job_logs    = GQLAT.resolveJobLogs
-                            , nodes       = GQLNode.resolveNodes
-                            , node_parent = GQLNode.resolveNodeParent
-                            , user_infos  = GQLUserInfo.resolveUserInfos
-                            , users       = GQLUser.resolveUsers
-                            , tree        = GQLTree.resolveTree }
+    { queryResolver = Query { annuaire_contacts = GQLA.resolveAnnuaireContacts
+                            , imt_schools       = GQLIMT.resolveSchools
+                            , job_logs          = GQLAT.resolveJobLogs
+                            , nodes             = GQLNode.resolveNodes
+                            , node_parent       = GQLNode.resolveNodeParent
+                            , user_infos        = GQLUserInfo.resolveUserInfos
+                            , users             = GQLUser.resolveUsers
+                            , tree              = GQLTree.resolveTree }
     , mutationResolver = Mutation { update_user_info = GQLUserInfo.updateUserInfo }
     , subscriptionResolver = Undefined }
 
