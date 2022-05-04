@@ -219,6 +219,7 @@ exportToDot phylo export =
                      ,(toAttr (fromStrict "phyloGroups") $ pack $ show (length $ export ^. export_groups))
                      ,(toAttr (fromStrict "phyloSources") $ pack $ show (Vector.toList $ getSources phylo))
                      ,(toAttr (fromStrict "phyloTimeScale") $ pack $ getTimeScale phylo)
+                     ,(toAttr (fromStrict "phyloGranularity") $ pack $ show (_qua_granularity $ phyloQuality $ getConfig phylo))
                      -- ,(toAttr (fromStrict "phyloTermsFreq") $ pack $ show (toList $ _phylo_lastTermFreq phylo))
                      ])
 
