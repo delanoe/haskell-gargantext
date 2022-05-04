@@ -36,7 +36,8 @@ import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Metrics (updateNgramsOccurrences, updateContextScore)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Node (defaultList, getNode, insertNodes, node)
+import Gargantext.Database.Query.Table.Node (defaultList, getNode)
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Ngrams (NgramsType(NgramsTerms))
 import Gargantext.Database.Schema.Node (node_parent_id)
 import Gargantext.Prelude (Bool(..), Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic, (<*>))
@@ -191,7 +192,7 @@ updateNode _uId lId (UpdateNodeParamsList _mode) logStatus = do
                , _scst_events    = Just []
                }
 
-updateNode userId phyloId (UpdateNodePhylo config) logStatus = do
+updateNode _userId phyloId (UpdateNodePhylo config) logStatus = do
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
                    , _scst_remaining = Just 2
@@ -210,7 +211,7 @@ updateNode userId phyloId (UpdateNodePhylo config) logStatus = do
                    , _scst_events    = Just []
                    }
 
-  _phyloId <- insertNodes [node NodePhylo "Phylo" (HyperdataPhylo Nothing (Just phy)) (Just corpusId) userId]
+  _ <- updateHyperdata phyloId (HyperdataPhylo Nothing (Just phy))
 
   pure  JobLog { _scst_succeeded = Just 3
                , _scst_failed    = Just 0

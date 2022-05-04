@@ -20,16 +20,16 @@ import Data.Aeson
 import Data.Either (Either(..))
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map, toList)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.Set (Set)
-import Data.Text (Text, concat, pack)
+import Data.Text (Text, concat, pack, splitOn)
 import Data.Vector (Vector)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams (setListNgrams)
+import Gargantext.API.Ngrams.List.Types
+import Gargantext.API.Ngrams.Prelude (getNgramsList)
 import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.API.Ngrams.Types
-import Gargantext.API.Ngrams.Prelude (getNgramsList)
-import Gargantext.API.Ngrams.List.Types
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Text.Terms (ExtractedNgrams(..))
@@ -40,9 +40,11 @@ import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Types.Hyperdata.Document
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Query.Table.NodeContext (selectDocNodes)
-import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Context
+import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Schema.Node (_node_parent_id)
 import Gargantext.Database.Types (Indexed(..))
 import Gargantext.Prelude
 import Network.HTTP.Media ((//), (/:))
@@ -53,22 +55,12 @@ import qualified Data.Csv as Csv
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List           as List
 import qualified Data.Map            as Map
+import qualified Data.Set            as Set
 import qualified Data.Text           as Text
 import qualified Data.Vector         as Vec
 import qualified Prelude             as Prelude
 import qualified Protolude           as P
 ------------------------------------------------------------------------
--- | TODO refactor 
-{-
-type API =  Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
-       -- :<|> ReqBody '[JSON] NgramsList :> Post '[JSON] Bool
-       :<|> PostAPI
-       :<|> CSVPostAPI
-api :: ListId -> GargServer API
-api l = get l :<|> postAsync l :<|> csvPostAsync l
--}
-
-----------------------
 type GETAPI = Summary "Get List"
             :> "lists"
               :> Capture "listId" ListId
@@ -122,11 +114,11 @@ get lId = do
 ------------------------------------------------------------------------
 -- TODO : purge list
 -- TODO talk
-post :: FlowCmdM env err m
+setList :: FlowCmdM env err m
     => ListId
     -> NgramsList
     -> m Bool
-post l m  = do
+setList l m  = do
   -- TODO check with Version for optim
   printDebug "New list as file" l
   _ <- mapM (\(nt, Versioned _v ns) -> setListNgrams l nt ns) $ toList m
@@ -149,13 +141,13 @@ reIndexWith cId lId nt lts = do
      <$> map (\(k,vs) -> k:vs)
      <$> HashMap.toList
      <$> getTermsWith identity [lId] nt lts
-  
-  printDebug "ts" ts
+
+  -- printDebug "ts" ts
 
   -- Taking the ngrams with 0 occurrences only (orphans)
   occs <- getOccByNgramsOnlyFast' cId lId nt ts
 
-  printDebug "occs" occs
+  -- printDebug "occs" occs
 
   let orphans = List.concat 
               $ map (\t -> case HashMap.lookup t occs of
@@ -163,11 +155,11 @@ reIndexWith cId lId nt lts = do
                        Just n  -> if n <= 1 then [t] else [ ]
                        ) ts
 
-  printDebug "orphans" orphans
+  -- printDebug "orphans" orphans
 
   -- Get all documents of the corpus
   docs <- selectDocNodes cId
-  printDebug "docs length" (List.length docs)
+  -- printDebug "docs length" (List.length docs)
 
   -- Checking Text documents where orphans match
   -- TODO Tests here
@@ -184,7 +176,7 @@ reIndexWith cId lId nt lts = do
                                 (List.cycle [Map.fromList $ [(nt, Map.singleton (doc ^. context_id) 1 )]])
                         ) docs
 
-  printDebug "ngramsByDoc" ngramsByDoc
+  -- printDebug "ngramsByDoc" ngramsByDoc
 
   -- Saving the indexation in database
   _ <- mapM (saveDocNgramsWith lId) ngramsByDoc
@@ -210,7 +202,7 @@ postAsync lId =
     JobFunction (\f log' ->
       let
         log'' x = do
-          printDebug "postAsync ListId" x
+          -- printDebug "postAsync ListId" x
           liftBase $ log' x
       in postAsync' lId f log'')
 
@@ -223,20 +215,32 @@ postAsync' l (WithFile _ m _) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
-                   , _scst_remaining = Just 1
+                   , _scst_remaining = Just 2
                    , _scst_events    = Just []
                    }
   printDebug "New list as file" l
-  _ <- post l m
+  _ <- setList l m
   -- printDebug "Done" r
 
-  pure JobLog { _scst_succeeded = Just 1
+  logStatus JobLog { _scst_succeeded = Just 1
+              , _scst_failed    = Just 0
+              , _scst_remaining = Just 1
+              , _scst_events    = Just []
+              }
+
+
+  corpus_node <- getNode l -- (Proxy :: Proxy HyperdataList)
+  let corpus_id = fromMaybe (panic "") (_node_parent_id corpus_node)
+  _ <- reIndexWith corpus_id l NgramsTerms (Set.fromList [MapTerm, CandidateTerm])
+
+  pure JobLog { _scst_succeeded = Just 2
               , _scst_failed    = Just 0
               , _scst_remaining = Just 0
               , _scst_events    = Just []
               }
-------------------------------------------------------------------------
 
+
+------------------------------------------------------------------------
 type CSVPostAPI = Summary "Update List (legacy v3 CSV)"
         :> "csv"
         :> "add"
@@ -257,12 +261,22 @@ readCsvText t = case eDec of
 parseCsvData :: [(Text, Text, Text)] -> Map NgramsTerm NgramsRepoElement
 parseCsvData lst = Map.fromList $ conv <$> lst
   where
-    conv (_status, label, _forms) =
+    conv (status, label, forms) =
         (NgramsTerm label, NgramsRepoElement { _nre_size = 1
-                                             , _nre_list = CandidateTerm
+                                             , _nre_list = case status == "map" of
+                                                             True  -> MapTerm
+                                                             False -> case status == "main" of
+                                                                True  -> CandidateTerm
+                                                                False -> StopTerm
                                              , _nre_root = Nothing
                                              , _nre_parent = Nothing
-                                             , _nre_children = MSet Map.empty })
+                                             , _nre_children = MSet
+                                                             $ Map.fromList
+                                                             $ map (\form -> (NgramsTerm form, ()))
+                                                             $ filter (/= "")
+                                                             $ splitOn "|&|" forms
+                                             }
+         )
 
 csvPost :: FlowCmdM env err m
         => ListId
@@ -277,11 +291,14 @@ csvPost l m  = do
   --printDebug "[csvPost] lst" lst
   printDebug "[csvPost] p" p
   _ <- setListNgrams l NgramsTerms p
+  printDebug "ReIndexing List" l
+  corpus_node <- getNode l -- (Proxy :: Proxy HyperdataList)
+  let corpus_id = fromMaybe (panic "") (_node_parent_id corpus_node)
+  _ <- reIndexWith corpus_id l NgramsTerms (Set.fromList [MapTerm, CandidateTerm])
+
   pure True
+
 ------------------------------------------------------------------------
-
-
-
 csvPostAsync :: GargServer CSVAPI
 csvPostAsync lId =
   serveJobsAPI $

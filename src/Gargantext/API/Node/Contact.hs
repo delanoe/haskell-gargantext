@@ -22,6 +22,7 @@ Portability : POSIX
 module Gargantext.API.Node.Contact
       where
 
+import Conduit
 import Data.Aeson
 import Data.Either (Either(Right))
 import Data.Maybe (Maybe(..))
@@ -93,7 +94,7 @@ addContact u nId (AddContactParams fn ln) logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _ <- flow (Nothing :: Maybe HyperdataAnnuaire) u (Right [nId]) (Multi EN) Nothing [[hyperdataContact fn ln]] logStatus
+  _ <- flow (Nothing :: Maybe HyperdataAnnuaire) u (Right [nId]) (Multi EN) Nothing (Just 1, yield $ hyperdataContact fn ln) logStatus
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0

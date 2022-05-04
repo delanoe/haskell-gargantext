@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeOperators #-}
 module Options where
 
+import Prelude
 import Options.Generic
 
 -- | Some general options to be specified on the command line.

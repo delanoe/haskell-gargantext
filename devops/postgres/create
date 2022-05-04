@@ -16,16 +16,17 @@ HOST=$(getter "DB_HOST")
 PORT=$(getter "DB_PORT")
 
 
-#psql -c "CREATE USER \"${USER}\""
-#psql -c "ALTER USER \"${USER}\" with PASSWORD '${PW}'"
-
+psql -c "CREATE USER \"${USER}\""
+psql -c "ALTER USER \"${USER}\" with PASSWORD '${PW}'"
 psql -c "DROP DATABASE IF EXISTS \"${NAME}\""
+
 createdb "${NAME}"
 psql "${NAME}" <  extensions.sql
+
+# if new
 #psql "${NAME}" < schema.sql
 
-
-#../../bin/psql ../../gargantext.ini < gargandb.dump
+psql ${NAME} < $2
 
 psql -c "ALTER DATABASE \"${NAME}\" OWNER to \"${USER}\""
 

@@ -12,8 +12,11 @@ Portability : POSIX
 module Gargantext.Core.Text.Corpus.API.Hal
     where
 
+import Conduit
+import Data.Either
 import Data.Maybe
 import Data.Text (Text, pack, intercalate)
+import Servant.Client (ClientError)
 
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
@@ -25,8 +28,16 @@ import qualified HAL.Doc.Corpus as HAL
 
 get :: Lang -> Text -> Maybe Integer -> IO [HyperdataDocument]
 get la q ml = do
-  docs <- HAL.getMetadataWith q (Just 0) (fromIntegral <$> ml)
-  either (panic . pack . show) (\d -> mapM (toDoc' la) $ HAL._docs d) docs
+  eDocs <- HAL.getMetadataWith q (Just 0) ml
+  either (panic . pack . show) (\d -> mapM (toDoc' la) $ HAL._docs d) eDocs
+
+getC :: Lang -> Text -> Maybe Integer -> IO (Either ClientError (Maybe Integer, ConduitT () HyperdataDocument IO ()))
+getC la q ml = do
+  eRes <- HAL.getMetadataWithC q (Just 0) ml
+  pure $ (\(len, docsC) -> (len, docsC .| mapMC (toDoc' la))) <$> eRes
+--  case eRes of
+--    Left err -> panic $ pack $ show err
+--    Right (len, docsC) -> pure (len, docsC .| mapMC (toDoc' la))
 
 toDoc' :: Lang -> HAL.Corpus -> IO HyperdataDocument
 toDoc' la (HAL.Corpus i t ab d s aus affs struct_id) = do

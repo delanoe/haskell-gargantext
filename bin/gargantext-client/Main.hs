@@ -2,11 +2,11 @@ module Main where
 
 import Control.Monad
 import Network.HTTP.Client
-import Options.Generic
-import Servant.Client
-
 import Options
+import Options.Generic
+import Prelude
 import Script (script)
+import Servant.Client
 
 main :: IO ()
 main = do

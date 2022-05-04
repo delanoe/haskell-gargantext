@@ -255,6 +255,14 @@ insertDefaultNode :: HasDBid NodeType
                   => NodeType -> ParentId -> UserId -> Cmd err [NodeId]
 insertDefaultNode nt p u = insertNode nt Nothing Nothing p u
 
+insertDefaultNodeIfNotExists :: HasDBid NodeType
+                             => NodeType -> ParentId -> UserId -> Cmd err [NodeId]
+insertDefaultNodeIfNotExists nt p u = do
+  children <- getChildrenByType p nt
+  case children of
+    [] -> insertDefaultNode nt p u
+    xs -> pure xs
+
 insertNode :: HasDBid NodeType
            => NodeType -> Maybe Name -> Maybe DefaultHyperdata -> ParentId -> UserId -> Cmd err [NodeId]
 insertNode nt n h p u = insertNodesR [nodeW nt n h p u]
