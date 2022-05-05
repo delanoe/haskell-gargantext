@@ -21,8 +21,6 @@ Node API
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -264,10 +262,11 @@ instance ToJSON    NodesToCategory
 instance ToSchema  NodesToCategory
 
 catApi :: CorpusId -> GargServer CatApi
-catApi = putCat
-  where
-    putCat :: CorpusId -> NodesToCategory -> Cmd err [Int]
-    putCat cId cs' = nodeContextsCategory $ map (\n -> (cId, n, ntc_category cs')) (ntc_nodesId cs')
+catApi cId cs' = do
+  ret <- nodeContextsCategory $ map (\n -> (cId, n, ntc_category cs')) (ntc_nodesId cs')
+  lId <- defaultList cId
+  _ <- updateChart cId (Just lId) Docs Nothing
+  pure ret
 
 ------------------------------------------------------------------------
 type ScoreApi =  Summary " To Score NodeNodes"

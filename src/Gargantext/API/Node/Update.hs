@@ -24,6 +24,7 @@ import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Ngrams.List (reIndexWith)
+--import Gargantext.API.Ngrams.Types (TabType(..))
 import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core.Methods.Distances (GraphMetric(..))
 import Gargantext.Core.Types.Main (ListType(..))
@@ -153,9 +154,9 @@ updateNode _uId lId (UpdateNodeParamsList Advanced) logStatus = do
 
   _ <- case corpusId of
     Just cId -> do
-      _ <- Metrics.updatePie' cId (Just lId) NgramsTypes.Authors Nothing
-      _ <- Metrics.updateTree' cId (Just lId) NgramsTypes.Institutes MapTerm
-      _ <- Metrics.updatePie' cId (Just lId) NgramsTypes.Sources Nothing
+      _ <- Metrics.updatePie cId (Just lId) NgramsTypes.Authors Nothing
+      _ <- Metrics.updateTree cId (Just lId) NgramsTypes.Institutes MapTerm
+      _ <- Metrics.updatePie cId (Just lId) NgramsTypes.Sources Nothing
       pure ()
     Nothing  -> pure ()
 
@@ -240,6 +241,7 @@ updateNode _uId tId (UpdateNodeParamsTexts _mode) logStatus = do
       _ <- reIndexWith cId lId NgramsTerms (Set.singleton MapTerm)
       _ <- updateNgramsOccurrences cId (Just lId)
       _ <- updateContextScore      cId (Just lId)
+      _ <- Metrics.updateChart     cId (Just lId) NgramsTypes.Docs Nothing
       -- printDebug "updateContextsScore" (cId, lId, u)
       pure ()
     Nothing  -> pure ()
