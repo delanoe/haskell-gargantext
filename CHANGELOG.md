@@ -1,3 +1,8 @@
+## Version 0.0.5.8.9
+* [COUNTS] Chart update when docs are deleted or added
+* [ERGO] Plane navigation improved
+* [ERGO] Mouse misalignemnt fixed
+
 ## Version 0.0.5.8.8.2
 * [FE] Fix Contact Page
 
