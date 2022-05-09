@@ -47,7 +47,6 @@ import Gargantext.Prelude
 import GHC.Generics (Generic)
 import Gargantext.API.GraphQL.Utils (AuthStatus(Invalid, Valid), authUser)
 import Gargantext.API.Admin.Types (HasSettings)
-import Gargantext.Database.Admin.Types.Node (unNodeId)
 
 data UserInfo = UserInfo
   { ui_id             :: Int
@@ -152,7 +151,7 @@ updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
     uh lens' (Just val) u_hyperdata = u_hyperdata & lens' .~ Just val
     uh' _ Nothing u_hyperdata = u_hyperdata
     uh' lens' (Just val) u_hyperdata = u_hyperdata & lens' .~ val
-    nId Node {_node_id} = unNodeId _node_id
+    nId Node {_node_id} = _node_id
 
 -- | Inner function to fetch the user from DB.
 dbUsers
