@@ -72,6 +72,9 @@ type GargAPI' =
                 "auth"  :> Summary "AUTH API"
                         :> ReqBody '[JSON] AuthRequest
                         :> Post    '[JSON] AuthResponse
+          :<|> "forgotPassword" :> Summary "Forgot password API"
+                                :> ReqBody '[JSON] ForgotPasswordRequest
+                                :> Post '[JSON] ForgotPasswordResponse
           :<|> GargVersion
                    -- TODO-ACCESS here we want to request a particular header for
            -- auth and capabilities.
