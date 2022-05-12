@@ -2,6 +2,8 @@
 * [COUNTS] Chart update when docs are deleted or added
 * [ERGO] Plane navigation improved
 * [ERGO] Mouse misalignemnt fixed
+* [FIX] Date parser WOS
+* [FIX] Node names: List -> Terms
 
 ## Version 0.0.5.8.8.2
 * [FE] Fix Contact Page
