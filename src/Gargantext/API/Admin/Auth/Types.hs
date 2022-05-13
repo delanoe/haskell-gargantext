@@ -107,3 +107,20 @@ instance Arbitrary AuthValid where
                        ]
 
 data PathId = PathNode NodeId | PathNodeNode ListId DocId
+
+
+---------------------------
+
+type Email = String
+
+data ForgotPasswordRequest = ForgotPasswordRequest { _fpReq_email :: Email }
+  deriving (Generic )
+$(deriveJSON (unPrefix "_fpReq_") ''ForgotPasswordRequest)
+instance ToSchema ForgotPasswordRequest where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_fpReq_")
+
+data ForgotPasswordResponse = ForgotPasswordRespones { _fpRes_status :: String }
+  deriving (Generic )
+$(deriveJSON (unPrefix "_fpRes_") ''ForgotPasswordResponse)
+instance ToSchema ForgotPasswordResponse where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_fpRes_")
