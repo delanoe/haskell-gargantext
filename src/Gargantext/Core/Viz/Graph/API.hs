@@ -96,7 +96,7 @@ getGraph _uId nId = do
 
   -- printDebug "[getGraph] getting list for cId" cId
   listId <- defaultList cId
-  repo <- getRepo' [listId]
+  repo <- getRepo [listId]
 
   -- TODO Distance in Graph params
   case graph of
@@ -142,7 +142,7 @@ recomputeGraph _uId nId method maybeDistance force = do
   let cId = maybe (panic "[G.V.G.API] Node has no parent") identity mcId
 
   listId  <- defaultList cId
-  repo <- getRepo' [listId]
+  repo <- getRepo [listId]
   let v   = repo ^. unNodeStory . at listId . _Just . a_version
 
   let computeG mt = do
@@ -286,7 +286,7 @@ graphVersions n nId = do
                       else panic "[G.V.G.API] list not found after iterations"
 
     Just listId -> do
-      repo <- getRepo' [listId]
+      repo <- getRepo [listId]
       let v = repo ^. unNodeStory . at listId . _Just . a_version
       -- printDebug "graphVersions" v
 

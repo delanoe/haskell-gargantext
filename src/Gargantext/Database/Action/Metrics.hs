@@ -23,7 +23,7 @@ import Database.PostgreSQL.Simple (Query, Only(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Data.Vector (Vector)
 import Gargantext.Core (HasDBid(toDBid))
-import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo')
+import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo)
 import Gargantext.Database.Prelude (runPGSQuery{-, formatPGSQuery-})
 import Gargantext.API.Ngrams.Types (TabType(..), ngramsTypeFromTabType, NgramsTerm(..))
 import Gargantext.Core.Mail.Types (HasMail)
@@ -233,7 +233,7 @@ getNgrams :: (HasMail env, HasNodeStory env err m)
                  )
 getNgrams lId tabType = do
 
-  lists <- mapTermListRoot [lId] (ngramsTypeFromTabType tabType) <$> getRepo' [lId]
+  lists <- mapTermListRoot [lId] (ngramsTypeFromTabType tabType) <$> getRepo [lId]
   -- TODO filterListWithRoot [MapTerm, StopTerm, CandidateTerm] lists
   let maybeSyn = HM.unions $ map (\t -> filterListWithRoot t lists)
                                  [[MapTerm], [StopTerm], [CandidateTerm]]

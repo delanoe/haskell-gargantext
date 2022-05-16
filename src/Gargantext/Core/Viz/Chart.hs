@@ -59,7 +59,7 @@ chartData :: FlowCmdM env err m
 chartData cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
-  ts <- mapTermListRoot ls nt <$> getRepo' ls
+  ts <- mapTermListRoot ls nt <$> getRepo ls
   let
     dico = filterListWithRoot [lt] ts
     terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ HashMap.toList dico
@@ -83,7 +83,7 @@ treeData :: FlowCmdM env err m
 treeData cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
-  ts <- mapTermListRoot ls nt <$> getRepo' ls
+  ts <- mapTermListRoot ls nt <$> getRepo ls
 
   let
     dico = filterListWithRoot [lt] ts

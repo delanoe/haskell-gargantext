@@ -261,7 +261,7 @@ setListNgrams listId ngramsType ns = do
 currentVersion :: HasNodeStory env err m
                => ListId -> m Version
 currentVersion listId = do
-  nls <- getRepo' [listId]
+  nls <- getRepo [listId]
   pure $ nls ^. unNodeStory . at listId . _Just . a_version
 
 
