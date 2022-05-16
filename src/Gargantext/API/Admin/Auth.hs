@@ -25,6 +25,7 @@ TODO-ACCESS Critical
 
 module Gargantext.API.Admin.Auth
   ( auth
+  , forgotPassword
   , withAccess
   )
   where
@@ -32,6 +33,8 @@ module Gargantext.API.Admin.Auth
 import Control.Lens (view)
 import Data.Text.Lazy (toStrict)
 import Data.Text.Lazy.Encoding (decodeUtf8)
+import Data.UUID (UUID)
+import Data.UUID.V4 (nextRandom)
 import Servant
 import Servant.Auth.Server
 import qualified Gargantext.Prelude.Crypto.Auth as Auth
@@ -70,7 +73,7 @@ checkAuthRequest u (GargPassword p) = do
   candidate <- head <$> getUsersWith u
   case candidate of
     Nothing -> pure InvalidUser
-    Just (UserLight id _u _email (GargPassword h)) ->
+    Just (UserLight { userLight_password = GargPassword h, .. }) ->
       case Auth.checkPassword (Auth.mkPassword p) (Auth.PasswordHash h) of
         Auth.PasswordCheckFail    -> pure InvalidPassword
         Auth.PasswordCheckSuccess -> do
@@ -79,7 +82,7 @@ checkAuthRequest u (GargPassword p) = do
             Nothing  -> pure InvalidUser
             Just uid -> do
               token <- makeTokenForUser uid
-              pure $ Valid token uid id
+              pure $ Valid token uid userLight_id
 
 auth :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
      => AuthRequest -> Cmd' env err AuthResponse
@@ -134,3 +137,42 @@ User can create Team in Teams Folder.
 User can invite User in Team as NodeNode only if Team in his parents.
 All users can access to the Team folder as if they were owner.
 -}
+
+forgotPassword :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
+     => ForgotPasswordRequest -> Cmd' env err ForgotPasswordResponse
+forgotPassword (ForgotPasswordRequest email) = do
+  us <- getUsersWithEmail email
+  case us of
+    [u] -> forgotUserPassword u
+    _ -> pure ()
+
+  -- NOTE Sending anything else here could leak information about
+  -- users' emails
+  pure $ ForgotPasswordResponse "ok"
+
+forgotUserPassword :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
+     => UserLight -> Cmd' env err ()
+forgotUserPassword user@(UserLight { .. }) = do
+  printDebug "[forgotUserPassword] userLight_id" userLight_id
+  -- generate uuid for email
+  uuid <- generateForgotPasswordUUID
+
+  -- save user with that uuid
+  _ <- updateUserForgotPasswordUUID user uuid
+
+  -- send email with uuid link
+
+  -- on uuid link enter: change user password and present it to the
+  -- user
+
+  pure ()
+
+-- Generate a unique (in whole DB) UUID for passwords.
+generateForgotPasswordUUID :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
+  => Cmd' env err UUID
+generateForgotPasswordUUID = do
+  uuid <- liftBase $ nextRandom
+  us <- getUsersWithForgotPasswordUUID uuid
+  case us of
+    [] -> pure uuid
+    _ -> generateForgotPasswordUUID

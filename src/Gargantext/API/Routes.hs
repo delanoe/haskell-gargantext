@@ -29,7 +29,7 @@ import Servant.Job.Async
 import Servant.Swagger.UI
 
 import Gargantext.API.Admin.Auth (withAccess)
-import Gargantext.API.Admin.Auth.Types (AuthRequest, AuthResponse, AuthenticatedUser(..), PathId(..))
+import Gargantext.API.Admin.Auth.Types (AuthRequest, AuthResponse, AuthenticatedUser(..), ForgotPasswordRequest, ForgotPasswordResponse, PathId(..))
 import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
 import Gargantext.API.Context
 import Gargantext.API.Count  (CountAPI, count, Query)
