@@ -124,7 +124,7 @@ buildNgramsOthersList user uCid mfslw _groupParams (nt, MapListSize mapListSize,
                             $ HashMap.toList tailTerms'
 
 
-  pure $ Map.fromList [( nt, (toNgramsElement stopTerms)
+  pure $ Map.fromList [( nt, List.take maxListSize $ (toNgramsElement stopTerms)
                           <> (toNgramsElement mapTerms )
                           <> (toNgramsElement $ setListType (Just MapTerm      ) mapTerms' )
                           <> (toNgramsElement $ setListType (Just CandidateTerm) candiTerms)
