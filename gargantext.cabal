@@ -145,6 +145,7 @@ library
       Gargantext.API.Swagger
       Gargantext.API.Table
       Gargantext.API.ThrowAll
+      Gargantext.API.Types
       Gargantext.Core.Ext.IMT
       Gargantext.Core.Ext.IMTUser
       Gargantext.Core.Flow.Ngrams

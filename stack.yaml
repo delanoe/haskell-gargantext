@@ -26,7 +26,8 @@ nix:
 
 allow-newer: true
 
-#ghc-options:
+ghc-options:
+  "$everything": -fprint-potential-instances
 #  "$everything": -haddock
 
 extra-deps:

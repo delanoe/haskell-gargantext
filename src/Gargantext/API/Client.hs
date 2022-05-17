@@ -64,7 +64,8 @@ getBackendVersion :: ClientM Text
 
 -- * auth API
 postAuth :: AuthRequest -> ClientM AuthResponse
-forgotPassword :: ForgotPasswordRequest -> ClientM ForgotPasswordResponse
+forgotPasswordPost :: ForgotPasswordRequest -> ClientM ForgotPasswordResponse
+forgotPasswordGet :: Maybe Text -> ClientM Text
 
 -- * admin api
 getRoots :: Token -> ClientM [Node HyperdataUser]
@@ -439,7 +440,8 @@ clientApi = client (flatten apiGarg)
 getMetricsSample :<|> getMetricSample :<|> _ = client (Proxy :: Proxy (Flat EkgAPI))
 
 postAuth
-  :<|> forgotPassword
+  :<|> forgotPasswordPost
+  :<|> forgotPasswordGet
   :<|> getBackendVersion
   :<|> getRoots
   :<|> putRoots

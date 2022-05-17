@@ -28,8 +28,8 @@ import Servant.Auth.Swagger ()
 import Servant.Job.Async
 import Servant.Swagger.UI
 
-import Gargantext.API.Admin.Auth (withAccess)
-import Gargantext.API.Admin.Auth.Types (AuthRequest, AuthResponse, AuthenticatedUser(..), ForgotPasswordRequest, ForgotPasswordResponse, PathId(..))
+import Gargantext.API.Admin.Auth (ForgotPasswordAPI, withAccess)
+import Gargantext.API.Admin.Auth.Types (AuthRequest, AuthResponse, AuthenticatedUser(..), PathId(..))
 import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
 import Gargantext.API.Context
 import Gargantext.API.Count  (CountAPI, count, Query)
@@ -72,9 +72,7 @@ type GargAPI' =
                 "auth"  :> Summary "AUTH API"
                         :> ReqBody '[JSON] AuthRequest
                         :> Post    '[JSON] AuthResponse
-          :<|> "forgotPassword" :> Summary "Forgot password API"
-                                :> ReqBody '[JSON] ForgotPasswordRequest
-                                :> Post '[JSON] ForgotPasswordResponse
+          :<|> "forgot-password" :> ForgotPasswordAPI
           :<|> GargVersion
                    -- TODO-ACCESS here we want to request a particular header for
            -- auth and capabilities.

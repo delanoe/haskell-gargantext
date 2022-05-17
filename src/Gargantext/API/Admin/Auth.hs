@@ -22,18 +22,21 @@ TODO-ACCESS Critical
 
 {-# LANGUAGE MonoLocalBinds      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators      #-}
 
 module Gargantext.API.Admin.Auth
   ( auth
   , forgotPassword
   , withAccess
+  , ForgotPasswordAPI
   )
   where
 
 import Control.Lens (view)
+import Data.Text (Text)
 import Data.Text.Lazy (toStrict)
-import Data.Text.Lazy.Encoding (decodeUtf8)
-import Data.UUID (UUID)
+import qualified Data.Text.Lazy.Encoding as LE
+import Data.UUID (UUID, toText)
 import Data.UUID.V4 (nextRandom)
 import Servant
 import Servant.Auth.Server
@@ -41,8 +44,10 @@ import qualified Gargantext.Prelude.Crypto.Auth as Auth
 
 import Gargantext.API.Admin.Auth.Types
 import Gargantext.API.Admin.Types
-import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC)
-import Gargantext.Core.Mail.Types (HasMail)
+import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC, GargServer)
+import Gargantext.API.Types
+import Gargantext.Core.Mail (MailModel(..), mail)
+import Gargantext.Core.Mail.Types (HasMail, mailSettings)
 import Gargantext.Core.Types.Individu (User(..), Username, GargPassword(..))
 import Gargantext.Database.Admin.Types.Node (NodeId(..), UserId)
 import Gargantext.Database.Prelude (Cmd', CmdM, HasConnectionPool, HasConfig)
@@ -62,7 +67,7 @@ makeTokenForUser uid = do
   jwtS <- view $ settings . jwtSettings
   e <- liftBase $ makeJWT (AuthenticatedUser uid) jwtS Nothing
   -- TODO-SECURITY here we can implement token expiration ^^.
-  either joseError (pure . toStrict . decodeUtf8) e
+  either joseError (pure . toStrict . LE.decodeUtf8) e
   -- TODO not sure about the encoding...
 
 checkAuthRequest :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
@@ -138,9 +143,21 @@ User can invite User in Team as NodeNode only if Team in his parents.
 All users can access to the Team folder as if they were owner.
 -}
 
-forgotPassword :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
+type ForgotPasswordAPI = Summary "Forgot password POST API"
+                           :> ReqBody '[JSON] ForgotPasswordRequest
+                           :> Post '[JSON] ForgotPasswordResponse
+                         :<|> Summary "Forgot password GET API"
+                           :> QueryParam "uuid" Text
+                           :> Get '[HTML] Text
+
+  
+forgotPassword :: GargServer ForgotPasswordAPI
+     -- => ForgotPasswordRequest -> Cmd' env err ForgotPasswordResponse
+forgotPassword = forgotPasswordPost :<|> forgotPasswordGet
+
+forgotPasswordPost :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
      => ForgotPasswordRequest -> Cmd' env err ForgotPasswordResponse
-forgotPassword (ForgotPasswordRequest email) = do
+forgotPasswordPost (ForgotPasswordRequest email) = do
   us <- getUsersWithEmail email
   case us of
     [u] -> forgotUserPassword u
@@ -149,6 +166,11 @@ forgotPassword (ForgotPasswordRequest email) = do
   -- NOTE Sending anything else here could leak information about
   -- users' emails
   pure $ ForgotPasswordResponse "ok"
+
+forgotPasswordGet :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
+     => Maybe Text -> Cmd' env err Text
+forgotPasswordGet Nothing = pure ""
+forgotPasswordGet (Just uuid) = pure uuid
 
 forgotUserPassword :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
      => UserLight -> Cmd' env err ()
@@ -160,7 +182,11 @@ forgotUserPassword user@(UserLight { .. }) = do
   -- save user with that uuid
   _ <- updateUserForgotPasswordUUID user uuid
 
+  let userUUID = UserLight { userLight_forgot_password_uuid = Just $ toText uuid, .. }
+
   -- send email with uuid link
+  cfg <- view $ mailSettings
+  mail cfg (ForgotPassword { user = userUUID })
 
   -- on uuid link enter: change user password and present it to the
   -- user
