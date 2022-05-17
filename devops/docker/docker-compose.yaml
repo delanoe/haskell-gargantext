@@ -5,6 +5,7 @@ services:
     #image: 'postgres:latest'
     image: 'postgres:11'
     network_mode: host
+    #command: ["postgres", "-c", "log_statement=all"]
     #ports:
       #- 5432:5432
     environment:
