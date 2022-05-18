@@ -27,6 +27,7 @@ module Gargantext.Database.Query.Table.User
   , getUsersWithHyperdata
   , getUsersWithNodeHyperdata
   , updateUserEmail
+  , updateUserPassword
   , updateUserForgotPasswordUUID
   , getUser
   , insertNewUsers
@@ -44,6 +45,7 @@ module Gargantext.Database.Query.Table.User
 
 import Control.Arrow (returnA)
 import Control.Lens ((^.))
+import Data.Maybe (fromMaybe)
 import Data.List (find)
 import Data.Text (Text)
 import Data.Time (UTCTime)
@@ -200,14 +202,24 @@ updateUserEmail (UserLight { .. }) = mkCmd $ \c -> runUpdate_ c updateUserQuery
       , uWhere      = (\row -> user_id row .== (sqlInt4 userLight_id))
       , uReturning  = rCount }
 
-
-updateUserForgotPasswordUUID :: UserLight -> UUID.UUID -> Cmd err Int64
-updateUserForgotPasswordUUID (UserLight { .. }) uuid = mkCmd $ \c -> runUpdate_ c updateUserQuery
+updateUserPassword :: UserLight -> Cmd err Int64
+updateUserPassword (UserLight { userLight_password = GargPassword password, .. }) = mkCmd $ \c -> runUpdate_ c updateUserQuery
   where
     updateUserQuery :: Update Int64
     updateUserQuery = Update
       { uTable      = userTable
-      , uUpdateWith = updateEasy (\ (UserDB { .. }) -> UserDB { user_forgot_password_uuid = sqlStrictText $ UUID.toText uuid, .. })
+      , uUpdateWith = updateEasy (\ (UserDB { .. }) -> UserDB { user_password = sqlStrictText password, .. } )
+      , uWhere      = (\row -> user_id row .== (sqlInt4 userLight_id))
+      , uReturning  = rCount }
+
+updateUserForgotPasswordUUID :: UserLight -> Cmd err Int64
+updateUserForgotPasswordUUID (UserLight { .. }) = mkCmd $ \c -> runUpdate_ c updateUserQuery
+  where
+    pass = sqlStrictText $ fromMaybe "" userLight_forgot_password_uuid
+    updateUserQuery :: Update Int64
+    updateUserQuery = Update
+      { uTable      = userTable
+      , uUpdateWith = updateEasy (\ (UserDB { .. }) -> UserDB { user_forgot_password_uuid = pass, .. })
       , uWhere      = (\row -> user_id row .== (sqlInt4 userLight_id))
       , uReturning  = rCount }
 ------------------------------------------------------------------

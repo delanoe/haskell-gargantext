@@ -47,7 +47,6 @@ data UserLight = UserLight { userLight_id                   :: !Int
                            , userLight_password             :: !GargPassword
                            , userLight_forgot_password_uuid :: !(Maybe Text)
                            } deriving (Show, Generic)
-
 instance GQLType UserLight where
   typeOptions _ = GAGU.unPrefix "userLight_"
 

@@ -90,13 +90,13 @@ bodyWith server (ForgotPassword { user = UserLight { userLight_forgot_password_u
   , forgot_password_link server uuid ]
 
 forgot_password_link :: ServerAddress -> Text -> Text
-forgot_password_link server uuid = server <> "/forgot-password?uuid=" <> uuid
+forgot_password_link server uuid = server <> "/api/v1.0/forgot-password?uuid=" <> uuid
 
 ------------------------------------------------------------------------
 email_subject :: MailModel -> Text
-email_subject (Invitation _) = "[GarganText] Invitation"
-email_subject (PassUpdate _) = "[GarganText] Update"
-email_subject (MailInfo _ _) = "[GarganText] Info"
+email_subject (Invitation _)     = "[GarganText] Invitation"
+email_subject (PassUpdate _)     = "[GarganText] Update"
+email_subject (MailInfo _ _)     = "[GarganText] Info"
 email_subject (ForgotPassword _) = "[GarganText] Forgot Password"
 
 

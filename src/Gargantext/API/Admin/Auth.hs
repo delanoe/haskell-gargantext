@@ -32,23 +32,28 @@ module Gargantext.API.Admin.Auth
   )
   where
 
-import Control.Lens (view)
+import Control.Lens (view, (#))
 import Data.Text (Text)
 import Data.Text.Lazy (toStrict)
 import qualified Data.Text.Lazy.Encoding as LE
-import Data.UUID (UUID, toText)
+import Data.UUID (UUID, fromText, toText)
 import Data.UUID.V4 (nextRandom)
 import Servant
 import Servant.Auth.Server
+import qualified Text.Blaze.Html.Renderer.Text as H
+import qualified Text.Blaze.Html5 as H
+--import qualified Text.Blaze.Html5.Attributes as HA
+
 import qualified Gargantext.Prelude.Crypto.Auth as Auth
 
 import Gargantext.API.Admin.Auth.Types
 import Gargantext.API.Admin.Types
-import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC, GargServer)
+import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC, GargServer, _ServerError)
 import Gargantext.API.Types
 import Gargantext.Core.Mail (MailModel(..), mail)
 import Gargantext.Core.Mail.Types (HasMail, mailSettings)
 import Gargantext.Core.Types.Individu (User(..), Username, GargPassword(..))
+import Gargantext.Core.Utils (randomString)
 import Gargantext.Database.Admin.Types.Node (NodeId(..), UserId)
 import Gargantext.Database.Prelude (Cmd', CmdM, HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.User
@@ -167,22 +172,59 @@ forgotPasswordPost (ForgotPasswordRequest email) = do
   -- users' emails
   pure $ ForgotPasswordResponse "ok"
 
-forgotPasswordGet :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
+forgotPasswordGet :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env, HasServerError err)
      => Maybe Text -> Cmd' env err Text
 forgotPasswordGet Nothing = pure ""
-forgotPasswordGet (Just uuid) = pure uuid
+forgotPasswordGet (Just uuid) = do
+  let mUuid = fromText uuid
+  case mUuid of
+    Nothing -> throwError $ _ServerError # err404 { errBody = "Not found" }
+    Just uuid' -> do
+      -- fetch user
+      us <- getUsersWithForgotPasswordUUID uuid'
+      case us of
+        [u] -> forgotPasswordGetUser u
+        _ -> throwError $ _ServerError # err404 { errBody = "Not found" }
+
+forgotPasswordGetUser :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env, HasServerError err)
+     => UserLight -> Cmd' env err Text
+forgotPasswordGetUser (UserLight { .. }) = do
+  -- pick some random password
+  password <- liftBase $ randomString 10
+  
+  -- set it as user's password
+  hashed <- liftBase $ Auth.hashPassword $ Auth.mkPassword password
+  let hashed' = Auth.unPasswordHash hashed
+  let userPassword = UserLight { userLight_password = GargPassword hashed', .. }
+  _ <- updateUserPassword userPassword
+  
+  -- display this briefly in the html
+  
+  -- clear the uuid so that the page can't be refreshed
+  _ <- updateUserForgotPasswordUUID $ UserLight { userLight_forgot_password_uuid = Nothing, .. }
+    
+  pure $ toStrict $ H.renderHtml $
+    H.docTypeHtml $ do
+      H.html $ do
+        H.head $ do
+          H.title "Gargantext - forgot password"
+        H.body $ do
+          H.h1 "Forgot password"
+          H.p $ do
+            H.span "Here is your password (will be shown only once): "
+            H.b $ H.toHtml password
 
 forgotUserPassword :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
      => UserLight -> Cmd' env err ()
-forgotUserPassword user@(UserLight { .. }) = do
+forgotUserPassword (UserLight { .. }) = do
   printDebug "[forgotUserPassword] userLight_id" userLight_id
   -- generate uuid for email
   uuid <- generateForgotPasswordUUID
 
-  -- save user with that uuid
-  _ <- updateUserForgotPasswordUUID user uuid
-
   let userUUID = UserLight { userLight_forgot_password_uuid = Just $ toText uuid, .. }
+
+  -- save user with that uuid
+  _ <- updateUserForgotPasswordUUID userUUID
 
   -- send email with uuid link
   cfg <- view $ mailSettings

@@ -120,6 +120,8 @@ extra-deps:
   subdirs:
     - packages/base
 
+- random-1.2.1
+
       # Others dependencies (using stack resolver)
 - constraints-extras-0.3.1.0@sha256:12016ebb91ad5ed2c82bf7e48c6bd6947d164d33c9dca5ac3965de1bb6c780c0,1777
 - KMP-0.2.0.0@sha256:6dfbac03ef00ebd9347234732cb86a40f62ab5a80c0cc6bedb8eb51766f7df28,2562
