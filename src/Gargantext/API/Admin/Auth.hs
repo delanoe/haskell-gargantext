@@ -27,19 +27,27 @@ TODO-ACCESS Critical
 module Gargantext.API.Admin.Auth
   ( auth
   , forgotPassword
+  , forgotPasswordAsync
   , withAccess
   , ForgotPasswordAPI
+  , ForgotPasswordAsyncParams
+  , ForgotPasswordAsyncAPI
   )
   where
 
 import Control.Lens (view, (#))
+--import Control.Monad.Logger.Aeson
+import Data.Aeson
+import Data.Swagger (ToSchema(..))
 import Data.Text (Text)
 import Data.Text.Lazy (toStrict)
 import qualified Data.Text.Lazy.Encoding as LE
 import Data.UUID (UUID, fromText, toText)
 import Data.UUID.V4 (nextRandom)
+import GHC.Generics (Generic)
 import Servant
 import Servant.Auth.Server
+import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import qualified Text.Blaze.Html.Renderer.Text as H
 import qualified Text.Blaze.Html5 as H
 --import qualified Text.Blaze.Html5.Attributes as HA
@@ -47,13 +55,16 @@ import qualified Text.Blaze.Html5 as H
 import qualified Gargantext.Prelude.Crypto.Auth as Auth
 
 import Gargantext.API.Admin.Auth.Types
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types
+import Gargantext.API.Job (jobLogSuccess)
 import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC, GargServer, _ServerError)
 import Gargantext.API.Types
 import Gargantext.Core.Mail (MailModel(..), mail)
 import Gargantext.Core.Mail.Types (HasMail, mailSettings)
 import Gargantext.Core.Types.Individu (User(..), Username, GargPassword(..))
 import Gargantext.Core.Utils (randomString)
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node (NodeId(..), UserId)
 import Gargantext.Database.Prelude (Cmd', CmdM, HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.User
@@ -148,6 +159,15 @@ User can invite User in Team as NodeNode only if Team in his parents.
 All users can access to the Team folder as if they were owner.
 -}
 
+newtype ForgotPasswordAsyncParams =
+  ForgotPasswordAsyncParams { email :: Text }
+  deriving (Generic, Show)
+instance FromJSON ForgotPasswordAsyncParams where
+  parseJSON = genericParseJSON defaultOptions
+instance ToJSON ForgotPasswordAsyncParams where
+  toJSON = genericToJSON defaultOptions
+instance ToSchema ForgotPasswordAsyncParams
+
 type ForgotPasswordAPI = Summary "Forgot password POST API"
                            :> ReqBody '[JSON] ForgotPasswordRequest
                            :> Post '[JSON] ForgotPasswordResponse
@@ -160,7 +180,7 @@ forgotPassword :: GargServer ForgotPasswordAPI
      -- => ForgotPasswordRequest -> Cmd' env err ForgotPasswordResponse
 forgotPassword = forgotPasswordPost :<|> forgotPasswordGet
 
-forgotPasswordPost :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
+forgotPasswordPost :: ( HasConnectionPool env, HasConfig env, HasMail env)
      => ForgotPasswordRequest -> Cmd' env err ForgotPasswordResponse
 forgotPasswordPost (ForgotPasswordRequest email) = do
   us <- getUsersWithEmail email
@@ -185,6 +205,8 @@ forgotPasswordGet (Just uuid) = do
       case us of
         [u] -> forgotPasswordGetUser u
         _ -> throwError $ _ServerError # err404 { errBody = "Not found" }
+
+---------------------
 
 forgotPasswordGetUser :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env, HasServerError err)
      => UserLight -> Cmd' env err Text
@@ -214,10 +236,11 @@ forgotPasswordGetUser (UserLight { .. }) = do
             H.span "Here is your password (will be shown only once): "
             H.b $ H.toHtml password
 
-forgotUserPassword :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
+forgotUserPassword :: (HasConnectionPool env, HasConfig env, HasMail env)
      => UserLight -> Cmd' env err ()
 forgotUserPassword (UserLight { .. }) = do
-  printDebug "[forgotUserPassword] userLight_id" userLight_id
+  --printDebug "[forgotUserPassword] userLight_id" userLight_id
+  --logDebug $ "[forgotUserPassword]" :# ["userLight_id" .= userLight_id]
   -- generate uuid for email
   uuid <- generateForgotPasswordUUID
 
@@ -235,8 +258,10 @@ forgotUserPassword (UserLight { .. }) = do
 
   pure ()
 
+--------------------------
+
 -- Generate a unique (in whole DB) UUID for passwords.
-generateForgotPasswordUUID :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env)
+generateForgotPasswordUUID :: (HasConnectionPool env, HasConfig env, HasMail env)
   => Cmd' env err UUID
 generateForgotPasswordUUID = do
   uuid <- liftBase $ nextRandom
@@ -244,3 +269,36 @@ generateForgotPasswordUUID = do
   case us of
     [] -> pure uuid
     _ -> generateForgotPasswordUUID
+
+----------------------------
+
+-- NOTE THe async endpoint is better for the "forget password"
+-- request, because the delay in email sending etc won't reveal to
+-- malicious users emails of our users in the db
+type ForgotPasswordAsyncAPI = Summary "Forgot password asnc"
+                              :> AsyncJobs JobLog '[JSON] ForgotPasswordAsyncParams JobLog
+
+forgotPasswordAsync :: GargServer ForgotPasswordAsyncAPI
+forgotPasswordAsync =
+  serveJobsAPI $
+    JobFunction (\p log' ->
+                   forgotPasswordAsync' p (liftBase . log')
+                )
+
+forgotPasswordAsync' :: (FlowCmdM env err m)
+  => ForgotPasswordAsyncParams
+  -> (JobLog -> m ())
+  -> m JobLog
+forgotPasswordAsync' (ForgotPasswordAsyncParams { email }) logStatus = do
+  let jobLog = JobLog { _scst_succeeded = Just 1
+                      , _scst_failed    = Just 0
+                      , _scst_remaining = Just 1
+                      , _scst_events    = Just []
+                      }
+  logStatus jobLog
+
+  printDebug "[forgotPasswordAsync'] email" email
+
+  _ <- forgotPasswordPost $ ForgotPasswordRequest { _fpReq_email = email }
+
+  pure $ jobLogSuccess jobLog

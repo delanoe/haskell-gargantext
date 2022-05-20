@@ -21,7 +21,7 @@ module Gargantext.API.Admin.Settings
 -- import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Codec.Serialise (Serialise(), serialise)
 import Control.Lens
-import Control.Monad.Logger
+import Control.Monad.Logger (LogLevel(..))
 import Control.Monad.Reader
 import Data.Maybe (fromMaybe)
 import Data.Pool (Pool, createPool)

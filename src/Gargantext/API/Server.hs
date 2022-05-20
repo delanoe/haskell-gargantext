@@ -28,7 +28,7 @@ import qualified Paths_gargantext           as PG -- cabal magic build module
 import qualified Gargantext.API.Public      as Public
 
 import Gargantext.API.Admin.Auth.Types (AuthContext)
-import Gargantext.API.Admin.Auth (auth, forgotPassword)
+import Gargantext.API.Admin.Auth (auth, forgotPassword, forgotPasswordAsync)
 import Gargantext.API.Admin.FrontEnd (frontEndServer)
 import qualified Gargantext.API.GraphQL as GraphQL
 import Gargantext.API.Prelude
@@ -45,6 +45,7 @@ serverGargAPI :: ToJSON err => Text -> GargServerM env err GargAPI
 serverGargAPI baseUrl -- orchestrator
        =  auth
      :<|> forgotPassword
+     :<|> forgotPasswordAsync
      :<|> gargVersion
      :<|> serverPrivateGargAPI
      :<|> Public.api baseUrl

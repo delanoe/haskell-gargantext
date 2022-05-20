@@ -16,6 +16,7 @@ module Gargantext.Database.Prelude where
 import Control.Exception
 import Control.Lens (Getter, view)
 import Control.Monad.Except
+--import Control.Monad.Logger (MonadLogger)
 import Control.Monad.Random
 import Control.Monad.Reader
 import Control.Monad.Trans.Control (MonadBaseControl)
@@ -65,12 +66,14 @@ type CmdM'' env err m =
   , MonadError          err m
   , MonadBaseControl IO     m
   , MonadRandom             m
+  --, MonadLogger             m
   )
 
 type CmdM' env err m =
   ( MonadReader     env     m
   , MonadError          err m
   , MonadBaseControl IO     m
+  --, MonadLogger             m
   -- , MonadRandom             m
   )
 

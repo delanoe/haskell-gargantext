@@ -120,6 +120,10 @@ extra-deps:
   subdirs:
     - packages/base
 
+- monad-logger-aeson-0.2.0.0
+# required by monad-logger-aeson
+- context-0.2.0.0@sha256:6b643adb4a64fe521873d08df0497f71f88e18b9ecff4b68b4eef938e446cfc9,1886
+
 - random-1.2.1
 
       # Others dependencies (using stack resolver)
