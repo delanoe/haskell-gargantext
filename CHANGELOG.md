@@ -1,3 +1,8 @@
+## Version 0.0.5.8.9.1
+* [FE] [DESIGN] NoteBook, UI/UX Improvements
+* [FE] [FEAT] Automatic Sync when adding a new ngrams
+* [FE] Frame Page
+
 ## Version 0.0.5.8.9
 * [COUNTS] Chart update when docs are deleted or added
 * [ERGO] Plane navigation improved
