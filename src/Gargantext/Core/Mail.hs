@@ -14,6 +14,7 @@ module Gargantext.Core.Mail where
 import Control.Lens (view)
 import Data.Text (Text, unlines, splitOn)
 import Gargantext.Core.Types.Individu
+import Gargantext.Database.Schema.User (UserLight(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (gc_url)
 import Gargantext.Database.Prelude
@@ -39,6 +40,7 @@ data MailModel = Invitation { invitation_user :: NewUser GargPassword }
                | MailInfo   { mailInfo_username :: Name
                             , mailInfo_address  :: EmailAddress
                             }
+               | ForgotPassword { user :: UserLight }
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 mail :: (CmdM env err m) => MailConfig -> MailModel -> m ()
@@ -66,6 +68,7 @@ email_to :: MailModel -> (EmailAddress, Name)
 email_to (Invitation user) = email_to' user
 email_to (PassUpdate user) = email_to' user
 email_to (MailInfo { .. })    = (mailInfo_address, mailInfo_username)
+email_to (ForgotPassword { user = UserLight { .. }}) = (userLight_email, userLight_username)
 
 email_to' :: NewUser GargPassword -> (EmailAddress, Name)
 email_to' (NewUser u m _) = (m,u)
@@ -80,12 +83,21 @@ bodyWith server (PassUpdate u) = [ "Your account password have been updated on t
                                  ] <> (email_credentials server u)
 
 bodyWith server (MailInfo _ _) = [ "Your last analysis is over on the server: " <> server]
+bodyWith _server (ForgotPassword { user = UserLight { userLight_forgot_password_uuid = Nothing }}) =
+  [ "Cannot send you link to forgot password, no UUID" ]
+bodyWith server (ForgotPassword { user = UserLight { userLight_forgot_password_uuid = Just uuid }}) =
+  [ "Click on this link to restore your password: "
+  , forgot_password_link server uuid ]
+
+forgot_password_link :: ServerAddress -> Text -> Text
+forgot_password_link server uuid = server <> "/api/v1.0/forgot-password?uuid=" <> uuid
 
 ------------------------------------------------------------------------
 email_subject :: MailModel -> Text
-email_subject (Invitation _) = "[GarganText] Invitation"
-email_subject (PassUpdate _) = "[GarganText] Update"
-email_subject (MailInfo _ _) = "[GarganText] Info"
+email_subject (Invitation _)     = "[GarganText] Invitation"
+email_subject (PassUpdate _)     = "[GarganText] Update"
+email_subject (MailInfo _ _)     = "[GarganText] Info"
+email_subject (ForgotPassword _) = "[GarganText] Forgot Password"
 
 
 email_credentials :: ServerAddress -> NewUser GargPassword -> [Text]

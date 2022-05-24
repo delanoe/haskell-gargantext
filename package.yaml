@@ -199,6 +199,7 @@ library:
   - matrix
   - monad-control
   - monad-logger
+  - monad-logger-aeson
   - morpheus-graphql
   - morpheus-graphql-app
   - morpheus-graphql-core

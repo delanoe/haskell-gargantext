@@ -1,4 +1,4 @@
-cabal-version: 0.0.5.8.9.2
+cabal-version: 1.12
 
 -- This file has been generated from package.yaml by hpack version 0.34.4.
 --
@@ -145,6 +145,7 @@ library
       Gargantext.API.Swagger
       Gargantext.API.Table
       Gargantext.API.ThrowAll
+      Gargantext.API.Types
       Gargantext.Core.Ext.IMT
       Gargantext.Core.Ext.IMTUser
       Gargantext.Core.Flow.Ngrams
@@ -411,6 +412,7 @@ library
     , matrix
     , monad-control
     , monad-logger
+    , monad-logger-aeson
     , morpheus-graphql
     , morpheus-graphql-app
     , morpheus-graphql-core

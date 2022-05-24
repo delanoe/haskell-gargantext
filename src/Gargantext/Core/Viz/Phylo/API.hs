@@ -17,6 +17,7 @@ Portability : POSIX
 module Gargantext.Core.Viz.Phylo.API
   where
 
+import GHC.Generics (Generic)
 import Data.Aeson
 import Data.Either
 import Data.Maybe (fromMaybe)
@@ -30,7 +31,7 @@ import Gargantext.Core.Viz.Phylo.Example (phyloExample)
 import Gargantext.Core.Viz.Phylo.Legacy.LegacyMain
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
-import Gargantext.Database.Query.Table.Node (getClosestParentIdByType)
+import Gargantext.Database.Query.Table.Node (getClosestParentIdByType, defaultList)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Prelude
 import Network.HTTP.Media ((//), (/:))
@@ -66,6 +67,17 @@ instance ToSchema SVG where declareNamedSchema _ = declareNamedSchema (Proxy :: 
 instance ToSchema Value where declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 ------------------------------------------------------------------------
+
+data PhyloData = PhyloData { pd_corpusId :: NodeId
+                           , pd_listId   :: NodeId
+                           , pd_data     :: Value
+                           }
+  deriving (Generic)
+
+instance FromJSON PhyloData
+instance ToJSON PhyloData
+instance ToSchema PhyloData
+
 type GetPhylo =  QueryParam "listId"      ListId
               :> QueryParam "level"       Level
               :> QueryParam "minSizeBranch" MinSizeBranch
@@ -84,17 +96,25 @@ type GetPhylo =  QueryParam "listId"      ListId
               :> QueryParam "verbose"     Bool
     -}
               -- :> Get '[SVG] SVG
-              :> Get '[JSON] Value
+              :> Get '[JSON] PhyloData
+
 
 -- | TODO
 -- Add real text processing
 -- Fix Filter parameters
 -- TODO fix parameters to default config that should be in Node
 getPhylo :: PhyloId -> GargServer GetPhylo
-getPhylo phyloId _lId _level _minSizeBranch = do
+getPhylo phyloId lId _level _minSizeBranch = do
+  corpusId <- fromMaybe (panic $ "[G.C.V.Phylo.API] no parent for NodeId " <> (cs $ show phyloId))
+          <$> getClosestParentIdByType phyloId NodeCorpus
+  listId   <- case lId of
+                Nothing -> defaultList corpusId
+                Just ld -> pure ld
   theData <- getPhyloDataJson phyloId
   -- printDebug "getPhylo" theData
-  pure theData
+  pure $ PhyloData corpusId listId theData
+
+
 
 getPhyloDataJson :: PhyloId -> GargNoServer Value
 getPhyloDataJson phyloId = do
