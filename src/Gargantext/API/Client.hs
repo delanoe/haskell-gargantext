@@ -13,6 +13,7 @@ import Data.Text (Text)
 import Data.Time.Clock
 import Data.Vector (Vector)
 import Gargantext.API
+import Gargantext.API.Admin.Auth (ForgotPasswordAsyncParams)
 import Gargantext.API.Admin.Auth.Types hiding (Token)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Count
@@ -64,6 +65,13 @@ getBackendVersion :: ClientM Text
 
 -- * auth API
 postAuth :: AuthRequest -> ClientM AuthResponse
+forgotPasswordPost :: ForgotPasswordRequest -> ClientM ForgotPasswordResponse
+forgotPasswordGet :: Maybe Text -> ClientM Text
+postForgotPasswordAsync :: ClientM (JobStatus 'Safe JobLog)
+postForgotPasswordAsyncJob :: JobInput Maybe ForgotPasswordAsyncParams -> ClientM (JobStatus 'Safe JobLog)
+killForgotPasswordAsyncJob :: JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
+pollForgotPasswordAsyncJob :: JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
+waitForgotPasswordAsyncJob :: JobID 'Unsafe -> ClientM (JobOutput JobLog)
 
 -- * admin api
 getRoots :: Token -> ClientM [Node HyperdataUser]
@@ -438,6 +446,13 @@ clientApi = client (flatten apiGarg)
 getMetricsSample :<|> getMetricSample :<|> _ = client (Proxy :: Proxy (Flat EkgAPI))
 
 postAuth
+  :<|> forgotPasswordPost
+  :<|> forgotPasswordGet
+  :<|> postForgotPasswordAsync
+  :<|> postForgotPasswordAsyncJob
+  :<|> killForgotPasswordAsyncJob
+  :<|> pollForgotPasswordAsyncJob
+  :<|> waitForgotPasswordAsyncJob
   :<|> getBackendVersion
   :<|> getRoots
   :<|> putRoots

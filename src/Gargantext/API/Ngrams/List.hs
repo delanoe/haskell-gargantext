@@ -16,7 +16,6 @@ module Gargantext.API.Ngrams.List
   where
 
 import Control.Lens hiding (elements, Indexed)
-import Data.Aeson
 import Data.Either (Either(..))
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map, toList)
@@ -31,6 +30,7 @@ import Gargantext.API.Ngrams.Prelude (getNgramsList)
 import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude (GargServer)
+import Gargantext.API.Types
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Text.Terms (ExtractedNgrams(..))
 import Gargantext.Core.Text.Terms.WithList (buildPatterns, termsInText)
@@ -46,7 +46,6 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node (_node_parent_id)
 import Gargantext.Database.Types (Indexed(..))
 import Gargantext.Prelude
-import Network.HTTP.Media ((//), (/:))
 import Servant
 import Servant.Job.Async
 import qualified Data.ByteString.Lazy as BSL
@@ -66,12 +65,6 @@ type GETAPI = Summary "Get List"
             :> Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
 getApi :: GargServer GETAPI
 getApi = get
-
-data HTML
-instance Accept HTML where
-  contentType _ = "text" // "html" /: ("charset", "utf-8")
-instance ToJSON a => MimeRender HTML a where
-  mimeRender _ = encode
 
 ----------------------
 type JSONAPI = Summary "Update List"

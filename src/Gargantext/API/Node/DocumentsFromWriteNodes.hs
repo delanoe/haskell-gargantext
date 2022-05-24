@@ -48,7 +48,6 @@ type API = Summary " Documents from Write nodes."
 ------------------------------------------------------------------------
 newtype Params = Params { id :: Int }
   deriving (Generic, Show)
-
 instance FromJSON Params where
   parseJSON = genericParseJSON defaultOptions
 instance ToJSON Params where

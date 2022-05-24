@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fprint-potential-instances #-}
+
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DuplicateRecordFields #-}  -- permit duplications for field names in multiple constructors
 {-# LANGUAGE KindSignatures #-}  -- for use of Endpoint (name :: Symbol)
@@ -9,7 +11,6 @@ module Gargantext.API.GraphQL where
 import Data.ByteString.Lazy.Char8
   ( ByteString
   )
-import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.Map (Map)
 import Data.Morpheus
   ( App
@@ -41,19 +42,16 @@ import qualified Gargantext.API.GraphQL.User as GQLUser
 import qualified Gargantext.API.GraphQL.UserInfo as GQLUserInfo
 import qualified Gargantext.API.GraphQL.TreeFirstLevel as GQLTree
 import Gargantext.API.Prelude (GargM, GargError)
+import Gargantext.API.Types
 import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Prelude
 import GHC.Generics (Generic)
-import Network.HTTP.Media ((//), (/:))
-import qualified Prelude
 import Servant
   ( (:<|>) (..)
   , (:>)
-  , Accept (..)
   , Get
   , JSON
-  , MimeRender (..)
   , Post
   , ReqBody
   ,  ServerT
@@ -61,6 +59,7 @@ import Servant
 import qualified Servant.Auth as SA
 import qualified Servant.Auth.Server as SAS
 import Gargantext.API.Admin.Types (HasSettings)
+
 
 -- | Represents possible GraphQL queries.
 data Query m
@@ -123,13 +122,6 @@ app = deriveApp rootResolver
 
 -- Now for some boilerplate to integrate the above GraphQL app with
 -- servant.
-
--- | HTML type is needed for the GraphQL Playground.
-data HTML deriving (Typeable)
-instance Accept HTML where
-  contentTypes _ = "text" // "html" /: ("charset", "utf-8") :| ["text" // "html"]
-instance MimeRender HTML ByteString where
-  mimeRender _ = Prelude.id
 
 -- | Servant route for the app we defined above.
 type GQAPI = ReqBody '[JSON] GQLRequest :> Post '[JSON] GQLResponse
