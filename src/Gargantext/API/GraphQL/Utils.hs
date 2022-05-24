@@ -22,7 +22,7 @@ import Control.Lens.Getter (view)
 import Gargantext.Database.Prelude (Cmd')
 import Gargantext.API.Admin.Auth.Types (AuthenticatedUser (AuthenticatedUser, _authUser_id))
 import Data.ByteString (ByteString)
-import Gargantext.Database.Admin.Types.Node (unNodeId)
+import Gargantext.Database.Admin.Types.Node (NodeId)
 
 unPrefix :: T.Text -> GQLTypeOptions -> GQLTypeOptions
 unPrefix prefix options = options { fieldLabelModifier = nflm }
@@ -31,7 +31,7 @@ unPrefix prefix options = options { fieldLabelModifier = nflm }
 
 data AuthStatus = Valid | Invalid
 
-authUser :: (HasSettings env) => Int -> Text -> Cmd' env err AuthStatus
+authUser :: (HasSettings env) => NodeId -> Text -> Cmd' env err AuthStatus
 authUser ui_id token = do
   let token' = encodeUtf8 token
   jwtS <- view $ settings . jwtSettings
@@ -43,7 +43,7 @@ authUser ui_id token = do
         then pure Valid
         else pure Invalid
         where
-          nId AuthenticatedUser {_authUser_id} = unNodeId _authUser_id
+          nId AuthenticatedUser {_authUser_id} = _authUser_id
 
 getUserFromToken :: JWTSettings -> ByteString -> IO (Maybe AuthenticatedUser)
 getUserFromToken = verifyJWT

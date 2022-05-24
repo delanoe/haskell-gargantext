@@ -28,7 +28,7 @@ import qualified Data.HashMap.Strict as HashMap
 import Gargantext.API.Node.Corpus.Export.Types
 import qualified Gargantext.API.Node.Document.Export.Types as DocumentExport
 import Gargantext.API.Ngrams.Types
-import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo')
+import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo)
 import Gargantext.API.Prelude (GargNoServer)
 import Gargantext.Prelude.Crypto.Hash (hash)
 import Gargantext.Core.Types
@@ -66,7 +66,7 @@ getCorpus cId lId nt' = do
        <$> map (\n -> (_context_id n, n))
        <$> selectDocNodes cId
 
-  repo <- getRepo' [listId]
+  repo <- getRepo [listId]
   ngs  <- getContextNgrams cId listId MapTerm nt repo
   let  -- uniqId is hash computed already for each document imported in database
     r = Map.intersectionWith

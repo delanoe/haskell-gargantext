@@ -6,7 +6,7 @@ name: gargantext
 #         | | | +-----  Layers * : New versions with API additions
 #         | | | | +---  Layers * : New versions without API breaking changes
 #         | | | | |
-version: '0.0.5.8.5'
+version: '0.0.5.8.9'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -188,6 +188,7 @@ library:
   - http-media
   - http-types
   - hxt
+  - ihaskell
   - ini
   - insert-ordered-containers
   - jose

@@ -178,7 +178,8 @@ getNgramsContactId aId = do
   pure paired
 -- POC here, should be a probabilistic function (see the one used to find lang)
 toName :: Node HyperdataContact -> NgramsTerm
-toName contact = NgramsTerm $ (Text.toTitle $ Text.take 1 firstName) <> ". " <> (Text.toTitle lastName)
+-- toName contact = NgramsTerm $ (Text.toTitle $ Text.take 1 firstName) <> ". " <> (Text.toTitle lastName)
+toName contact = NgramsTerm $ (Text.toTitle firstName) <> " " <> (Text.toTitle lastName)
   where
     firstName = fromMaybe "" $ contact^.(node_hyperdata . hc_who . _Just . cw_firstName)
     lastName  = fromMaybe "" $ contact^.(node_hyperdata . hc_who . _Just . cw_lastName)
@@ -189,7 +190,7 @@ getNgramsDocId :: CorpusId
                 -> GargNoServer (HashMap DocAuthor (Set NodeId))
 getNgramsDocId cId lId nt = do
   lIds <- selectNodesWithUsername NodeList userMaster
-  repo <- getRepo' (lId:lIds)
+  repo <- getRepo (lId:lIds)
   let ngs = filterListWithRoot [MapTerm, CandidateTerm] $ mapTermListRoot (lId:lIds) nt repo
   -- printDebug "getNgramsDocId" ngs
 

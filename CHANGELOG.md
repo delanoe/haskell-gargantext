@@ -1,3 +1,35 @@
+## Version 0.0.5.8.9
+* [COUNTS] Chart update when docs are deleted or added
+* [ERGO] Plane navigation improved
+* [ERGO] Mouse misalignemnt fixed
+* [FIX] Date parser WOS
+* [FIX] Node names: List -> Terms
+
+## Version 0.0.5.8.8.2
+* [FE] Fix Contact Page
+
+## Version 0.0.5.8.8.1
+* [FE] Fix regression on Graph Explorer: edges color + confluence filter
+
+## Version 0.0.5.8.8
+* [FE] Fix regression on Graph Explorer for annuaire
+* [FE] Graph Doc Focus
+
+## Version 0.0.5.8.7.2
+* [BE] Docker solution for codebook
+
+## Version 0.0.5.8.7.1
+* [BE] Annuaire pairing, using full first name
+
+## Version 0.0.5.8.7
+* [FE] Graph Explorer Document exploration improvements
+
+## Version 0.0.5.8.6
+* [FE] Plane navigation improvements
+
+## Version 0.0.5.8.5.1
+* [FRONT] FIX CSS Forest
+
 ## Version 0.0.5.8.5
 * [FRONT] CSS + Design, Graph Toolbar and many things
 * [BACK] Security FIX GQL route

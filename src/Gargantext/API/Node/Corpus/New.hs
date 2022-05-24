@@ -220,7 +220,7 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
       eTxts <- mapM (\db -> getDataText db (Multi l) q maybeLimit) [database2origin dbs]
 
       let lTxts = lefts eTxts
-      printDebug "[G.A.N.C.New] eTxts" lTxts
+      printDebug "[G.A.N.C.New] lTxts" lTxts
       case lTxts of
         [] -> do
           let txts = rights eTxts
@@ -245,12 +245,14 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
         
         (err:_) -> do
           printDebug "Error: " err
-          pure $ addEvent "ERROR" (T.pack $ show err) $
-            JobLog { _scst_succeeded = Just 2
-                   , _scst_failed    = Just 1
-                   , _scst_remaining = Just 0
-                   , _scst_events    = Just []
-                   }
+          let jl = addEvent "ERROR" (T.pack $ show err) $
+                JobLog { _scst_succeeded = Just 2
+                       , _scst_failed    = Just 1
+                       , _scst_remaining = Just 0
+                       , _scst_events    = Just []
+                       }
+          logStatus jl
+          pure jl
 
 
 type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"

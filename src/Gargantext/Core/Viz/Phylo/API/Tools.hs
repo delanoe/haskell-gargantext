@@ -21,7 +21,7 @@ import Data.Text (Text, pack)
 import Data.Time.Calendar (fromGregorian, diffGregorianDurationClip, cdMonths, diffDays, showGregorian)
 import Data.Time.Clock.POSIX(posixSecondsToUTCTime)
 import Gargantext.API.Ngrams.Prelude (getTermList)
-import Gargantext.API.Ngrams.Tools (getRepo')
+import Gargantext.API.Ngrams.Tools (getRepo)
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.API.Node.Corpus.Export (getContextNgrams)
 import Gargantext.API.Prelude (GargNoServer)
@@ -96,7 +96,7 @@ corpusIdtoDocuments :: TimeUnit -> CorpusId -> GargNoServer (TermList, [Document
 corpusIdtoDocuments timeUnit corpusId = do
   docs <- selectDocNodes corpusId
   lId  <- defaultList corpusId
-  repo <- getRepo' [lId]
+  repo <- getRepo [lId]
 
   ngs_terms    <- getContextNgrams corpusId lId MapTerm NgramsTerms repo
   ngs_sources  <- getContextNgrams corpusId lId MapTerm Sources repo

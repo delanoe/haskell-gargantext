@@ -1,0 +1,15 @@
+#!/bin/bash
+
+
+sudo service docker stop
+
+echo "{ \"data-root\": \"$1\" }"  > /etc/docker/daemon.json
+
+sudo mkdir -p $1
+sudo apt update && sudo apt -y install rsync
+sudo rsync -aP /var/lib/docker/ $1
+sudo mv /var/lib/docker /var/lib/docker.old
+
+sudo service docker start
+
+
