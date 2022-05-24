@@ -1,3 +1,7 @@
+## Version 0.0.5.8.9.2
+* [FEAT] Lost Password
+* [Phylo] More Data in API
+
 ## Version 0.0.5.8.9.1
 * [FE] [DESIGN] NoteBook, UI/UX Improvements
 * [FE] [FEAT] Automatic Sync when adding a new ngrams
