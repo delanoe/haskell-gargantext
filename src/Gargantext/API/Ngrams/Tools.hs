@@ -35,20 +35,24 @@ mergeNgramsElement _neOld neNew = neNew
 
 type RootTerm = NgramsTerm
 
-{-
-getRepo :: RepoCmdM env err m => m NgramsRepo
-getRepo = do
-  v <- view repoVar
-  liftBase $ readMVar v
--}
 
-getRepo' :: HasNodeStory env err m
+getRepo :: HasNodeStory env err m
          => [ListId] -> m NodeListStory
-getRepo' listIds = do
+getRepo listIds = do
   f <- getNodeListStory
   v  <- liftBase $ f listIds
   v' <- liftBase $ readMVar v
   pure $ v'
+
+
+repoSize :: Ord k1 => NodeStory (Map.Map k1 (Map.Map k2 a)) p
+                   -> NodeId
+                   -> Map.Map k1 Int
+repoSize repo node_id = Map.map Map.size state
+  where
+    state = repo ^. unNodeStory
+                  . at node_id . _Just
+                  . a_state
 
 
 getNodeStoryVar :: HasNodeStory env err m
@@ -83,8 +87,6 @@ listNgramsFromRepo nodeIds ngramsType repo =
                 | nodeId <- nodeIds
                 ]
 
-
-
 -- TODO-ACCESS: We want to do the security check before entering here.
 --              Add a static capability parameter would be nice.
 --              Ideally this is the access to `repoVar` which needs to
@@ -93,7 +95,7 @@ getListNgrams :: HasNodeStory env err m
               => [ListId] -> NgramsType
               -> m (HashMap NgramsTerm NgramsRepoElement)
 getListNgrams nodeIds ngramsType = listNgramsFromRepo nodeIds ngramsType
-                                 <$> getRepo' nodeIds
+                                 <$> getRepo nodeIds
 
 
 getTermsWith :: (HasNodeStory env err m, Eq a, Hashable a)
@@ -105,7 +107,7 @@ getTermsWith f ls ngt lts  = HM.fromListWith (<>)
                       <$> HM.toList
                       <$> HM.filter (\f' -> Set.member (fst f') lts)
                       <$> mapTermListRoot ls ngt
-                      <$> getRepo' ls
+                      <$> getRepo ls
   where
     toTreeWith (t, (_lt, maybeRoot)) = case maybeRoot of
       Nothing -> (f t, [])

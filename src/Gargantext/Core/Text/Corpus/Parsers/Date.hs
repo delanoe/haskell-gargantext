@@ -105,6 +105,9 @@ dateFlow (DucklingFailure txt) = case readDate $ replace " " "T" txt of
                              Nothing -> dateFlow (ReadFailure1 txt)
                              Just ok -> DateFlowSuccess ok
 dateFlow (ReadFailure1 txt) = case readDate txt of
+                          Nothing -> dateFlow $ ReadFailure2 txt
+                          Just ok -> DateFlowSuccess ok
+dateFlow (ReadFailure2 txt) = case readDate $ replace " " "" txt <> "-01-01T00:00:00" of
                           Nothing -> DateFlowFailure
                           Just ok -> DateFlowSuccess ok
 dateFlow _ = DateFlowFailure

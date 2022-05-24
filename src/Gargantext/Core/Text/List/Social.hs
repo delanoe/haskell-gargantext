@@ -168,5 +168,5 @@ getHistory :: ( HasNodeStory env err m
            -> [ListId]
            -> m (Map ListId (Map NgramsType [HashMap NgramsTerm NgramsPatch]))
 getHistory hist nt listes =
-  history hist [nt] listes  <$> getRepo' listes
+  history hist [nt] listes  <$> getRepo listes
 

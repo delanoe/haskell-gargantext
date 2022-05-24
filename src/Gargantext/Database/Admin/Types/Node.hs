@@ -372,7 +372,7 @@ defaultName NodeAnnuaire   = "Annuaire"
 
 defaultName NodeDocument   = "Doc"
 defaultName NodeTexts      = "Docs"
-defaultName NodeList       = "List"
+defaultName NodeList       = "Terms"
 defaultName NodeListCooc   = "List"
 defaultName NodeModel      = "Model"
 
@@ -386,7 +386,7 @@ defaultName NodeDashboard     = "Board"
 defaultName NodeGraph         = "Graph"
 defaultName NodePhylo         = "Phylo"
 
-defaultName NodeFrameWrite    = "Write"
+defaultName NodeFrameWrite    = "Note"
 defaultName NodeFrameCalc     = "Calc"
 defaultName NodeFrameVisio    = "Visio"
 defaultName NodeFrameNotebook = "Code"

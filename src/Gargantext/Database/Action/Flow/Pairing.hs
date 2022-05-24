@@ -190,7 +190,7 @@ getNgramsDocId :: CorpusId
                 -> GargNoServer (HashMap DocAuthor (Set NodeId))
 getNgramsDocId cId lId nt = do
   lIds <- selectNodesWithUsername NodeList userMaster
-  repo <- getRepo' (lId:lIds)
+  repo <- getRepo (lId:lIds)
   let ngs = filterListWithRoot [MapTerm, CandidateTerm] $ mapTermListRoot (lId:lIds) nt repo
   -- printDebug "getNgramsDocId" ngs
 
