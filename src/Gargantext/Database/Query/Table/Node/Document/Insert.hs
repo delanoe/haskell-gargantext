@@ -91,14 +91,14 @@ import Database.PostgreSQL.Simple (formatQuery)
 -- ParentId : folder ID which is parent of the inserted documents
 -- Administrator of the database has to create a uniq index as following SQL command:
 -- `create unique index on contexts table (typename, parent_id, (hyperdata ->> 'uniqId'));`
-insertDb :: (InsertDb a, HasDBid NodeType) => UserId -> ParentId -> [a] -> Cmd err [ReturnId]
+insertDb :: (InsertDb a, HasDBid NodeType) => UserId -> Maybe ParentId -> [a] -> Cmd err [ReturnId]
 insertDb u p = runPGSQuery queryInsert . Only . Values fields . map (insertDb' u p)
       where
         fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
 
 class InsertDb a
   where
-    insertDb' :: HasDBid NodeType => UserId -> ParentId -> a -> [Action]
+    insertDb' :: HasDBid NodeType => UserId -> Maybe ParentId -> a -> [Action]
 
 
 instance InsertDb HyperdataDocument
@@ -272,10 +272,10 @@ maybeText = maybe (DT.pack "") identity
 class ToNode a
   where
     -- TODO Maybe NodeId
-    toNode :: HasDBid NodeType => UserId -> ParentId -> a -> Node a
+    toNode :: HasDBid NodeType => UserId -> Maybe ParentId -> a -> Node a
 
 instance ToNode HyperdataDocument where
-  toNode u p h = Node 0 Nothing (toDBid NodeDocument) u (Just p) n date h
+  toNode u p h = Node 0 Nothing (toDBid NodeDocument) u p n date h
     where
       n    = maybe "No Title" (DT.take 255) (_hd_title h)
       date  = jour y m d
@@ -288,7 +288,7 @@ instance ToNode HyperdataDocument where
 
 -- TODO better Node
 instance ToNode HyperdataContact where
-  toNode u p h = Node 0 Nothing (toDBid NodeContact) u (Just p) "Contact" date h
+  toNode u p h = Node 0 Nothing (toDBid NodeContact) u p "Contact" date h
     where
       date  = jour 2020 01 01
 

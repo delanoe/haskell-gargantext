@@ -349,7 +349,7 @@ insertMasterDocs :: ( FlowCmdM env err m
                  -> m [DocId]
 insertMasterDocs c lang hs  =  do
   (masterUserId, _, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left corpusMasterName) c
-  (ids', documentsWithId) <- insertDocs masterUserId masterCorpusId (map (toNode masterUserId masterCorpusId) hs )
+  (ids', documentsWithId) <- insertDocs masterUserId masterCorpusId (map (toNode masterUserId Nothing) hs )
   _ <- Doc.add masterCorpusId ids'
   -- TODO
   -- create a corpus with database name (CSV or PubMed)
@@ -413,7 +413,7 @@ insertDocs :: ( FlowCmdM env err m
               -> m ([ContextId], [Indexed ContextId a])
 insertDocs uId cId hs = do
   let docs = map addUniqId hs
-  newIds <- insertDb uId cId docs
+  newIds <- insertDb uId Nothing docs
   -- printDebug "newIds" newIds
   let
     newIds' = map reId newIds
