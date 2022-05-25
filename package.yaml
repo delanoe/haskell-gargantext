@@ -6,7 +6,7 @@ name: gargantext
 #         | | | +-----  Layers * : New versions with API additions
 #         | | | | +---  Layers * : New versions without API breaking changes
 #         | | | | |
-version: '0.0.5.8.9.1'
+version: '0.0.5.8.9.2'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -200,6 +200,7 @@ library:
   - matrix
   - monad-control
   - monad-logger
+  - monad-logger-aeson
   - morpheus-graphql
   - morpheus-graphql-app
   - morpheus-graphql-core
