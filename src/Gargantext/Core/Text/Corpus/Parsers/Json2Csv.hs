@@ -23,6 +23,7 @@ import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy (readFile)
 import Data.Text (Text, unpack)
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
 import System.IO (FilePath)
 import Gargantext.Core.Text.Corpus.Parsers.CSV (CsvDoc(..), writeFile, headerCsvGargV3)
@@ -52,8 +53,8 @@ patent2csvDoc (Patent { .. }) =
   CsvDoc { csv_title = _patent_title
          , csv_source = "Source"
          , csv_publication_year = Just $ read (unpack _patent_year)
-         , csv_publication_month = Just 1
-         , csv_publication_day = Just 1
+         , csv_publication_month = Just $ Defaults.month
+         , csv_publication_day = Just $ Defaults.day
          , csv_abstract = _patent_abstract
          , csv_authors = "Authors" }
 

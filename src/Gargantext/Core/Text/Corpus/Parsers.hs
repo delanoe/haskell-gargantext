@@ -164,6 +164,7 @@ parseFormatC _ _ _ = undefined
 -- | Parse file into documents
 -- TODO manage errors here
 -- TODO: to debug maybe add the filepath in error message
+
 parseFile :: FileType -> FileFormat -> FilePath -> IO (Either Prelude.String [HyperdataDocument])
 parseFile CsvHal    Plain p = parseHal p
 parseFile CsvGargV3 Plain p = parseCsv p
@@ -185,27 +186,27 @@ toDoc ff d = do
 
       let dateToParse = DT.replace "-" " " <$> lookup "PY" d <> Just " " <> lookup "publication_date" d
 
-      (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit lang  dateToParse
+      (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit lang dateToParse
 
-      pure $ HyperdataDocument { _hd_bdd = Just $ DT.pack $ show ff
-                               , _hd_doi = lookup "doi" d
-                               , _hd_url = lookup "URL" d
-                               , _hd_uniqId = Nothing
-                               , _hd_uniqIdBdd = Nothing
-                               , _hd_page = Nothing
-                               , _hd_title = lookup "title" d
-                               , _hd_authors = Nothing
-                               , _hd_institutes = lookup "authors" d
-                               , _hd_source = lookup "source" d
-                               , _hd_abstract = lookup "abstract" d
-                               , _hd_publication_date = fmap (DT.pack . show) utcTime
-                               , _hd_publication_year = pub_year
-                               , _hd_publication_month = pub_month
-                               , _hd_publication_day = pub_day
-                               , _hd_publication_hour = Nothing
-                               , _hd_publication_minute = Nothing
-                               , _hd_publication_second = Nothing
-                               , _hd_language_iso2 = Just $ (DT.pack . show) lang }
+      pure HyperdataDocument { _hd_bdd = Just $ DT.pack $ show ff
+                             , _hd_doi = lookup "doi" d
+                             , _hd_url = lookup "URL" d
+                             , _hd_uniqId = Nothing
+                             , _hd_uniqIdBdd = Nothing
+                             , _hd_page = Nothing
+                             , _hd_title = lookup "title" d
+                             , _hd_authors = Nothing
+                             , _hd_institutes = lookup "authors" d
+                             , _hd_source = lookup "source" d
+                             , _hd_abstract = lookup "abstract" d
+                             , _hd_publication_date = fmap (DT.pack . show) utcTime
+                             , _hd_publication_year = pub_year
+                             , _hd_publication_month = pub_month
+                             , _hd_publication_day = pub_day
+                             , _hd_publication_hour = Nothing
+                             , _hd_publication_minute = Nothing
+                             , _hd_publication_second = Nothing
+                             , _hd_language_iso2 = Just $ (DT.pack . show) lang }
 
 enrichWith :: FileType
            ->  (a, [[[(DB.ByteString, DB.ByteString)]]]) -> (a, [[(Text, Text)]])

@@ -25,8 +25,10 @@ import Data.Aeson (toJSON, Value)
 import Data.Either (Either(..))
 import Data.HashMap.Strict as HM hiding (map)
 import Data.Text (Text, unpack, splitOn, replace)
-import Data.Time (defaultTimeLocale, toGregorian, iso8601DateFormat, parseTimeM)
+import Data.Time (defaultTimeLocale, iso8601DateFormat, parseTimeM, toGregorian)
+import qualified Data.Time.Calendar as DTC
 import Data.Time.Clock (UTCTime(..), getCurrentTime)
+import Data.Time.Clock ( secondsToDiffTime)
 import Data.Time.LocalTime (utc)
 import Data.Time.LocalTime.TimeZone.Series (zonedTimeToZoneSeriesTime)
 import Duckling.Api (analyze)
@@ -37,7 +39,7 @@ import Duckling.Types (ResolvedToken(..), ResolvedVal(..))
 import Gargantext.Core (Lang(FR,EN))
 import Gargantext.Core.Types (DebugMode(..), withDebugMode)
 import Gargantext.Prelude
-import qualified Control.Exception as CE
+--import qualified Control.Exception as CE
 import qualified Data.Aeson        as Json
 import qualified Data.HashSet      as HashSet
 import qualified Duckling.Core     as DC
@@ -136,28 +138,28 @@ parserLang lang  = panic $ "[G.C.T.C.P.Date] Lang not implemented" <> (cs $ show
 
 parseRawSafe :: Lang -> Text -> IO DateFlow
 parseRawSafe lang text = do
-  triedParseRaw <- tryParseRaw lang text
+  let triedParseRaw = parseRaw lang text
   dateStr' <- case triedParseRaw of
-      Left (CE.SomeException err) -> do
+      --Left (CE.SomeException err) -> do
+      Left err -> do
         envLang <- getEnv "LANG"
         printDebug "[G.C.T.C.P.Date] Exception: " (err, envLang, lang, text)
         pure $ DucklingFailure text
       Right res -> pure $ DucklingSuccess res
   pure dateStr'
 
-tryParseRaw :: CE.Exception e => Lang -> Text -> IO (Either e Text)
-tryParseRaw lang text = CE.try (parseRaw lang text)
+--tryParseRaw :: CE.Exception e => Lang -> Text -> IO (Either e Text)
+--tryParseRaw lang text = CE.try (parseRaw lang text)
 
-parseRaw :: Lang -> Text -> IO Text
+parseRaw :: Lang -> Text -> Either Text Text
 parseRaw lang text = do -- case result
-    maybeResult <- extractValue <$> getTimeValue
-                                <$> parseDateWithDuckling lang text (Options True)
+    let maybeResult = extractValue $ getTimeValue
+                                   $ parseDateWithDuckling lang text (Options True)
     case maybeResult of
-      Just result -> pure result
+      Just result -> Right result
       Nothing     -> do
-        printDebug ("[G.C.T.C.P.D.parseRaw] ERROR " <> (cs . show) lang)
-                   text
-        pure ""
+        -- printDebug ("[G.C.T.C.P.D.parseRaw] ERROR " <> (cs . show) lang) text
+        Left $ "[G.C.T.C.P.D.parseRaw ERROR] " <> (cs . show) lang <> " :: " <> text
 
 getTimeValue :: [ResolvedToken] -> Maybe Value
 getTimeValue rt = case head rt of
@@ -182,13 +184,21 @@ utcToDucklingTime time = DucklingTime . zonedTimeToZoneSeriesTime $ fromUTC time
 
 -- | Local Context which depends on Lang and Time
 localContext :: Lang -> DucklingTime -> Context
-localContext lang dt = Context {referenceTime = dt, locale = makeLocale (parserLang lang) Nothing}
+localContext lang dt = Context { referenceTime = dt
+                               , locale = makeLocale (parserLang lang) Nothing }
+
+defaultDay :: DTC.Day
+defaultDay = DTC.fromGregorian 1 1 1
+
+defaultUTCTime :: UTCTime
+defaultUTCTime = UTCTime { utctDay = defaultDay
+                         , utctDayTime = secondsToDiffTime 0 }
 
 -- | Date parser with Duckling
-parseDateWithDuckling :: Lang -> Text -> Options -> IO [ResolvedToken]
+parseDateWithDuckling :: Lang -> Text -> Options -> [ResolvedToken]
 parseDateWithDuckling lang input options = do
-    contxt <- localContext lang <$> utcToDucklingTime <$> getCurrentTime
-    --pure $ parseAndResolve (rulesFor (locale ctx) (HashSet.fromList [(This Time)])) input ctx
-    -- TODO check/test Options False or True
-    pure $ analyze input contxt options $ HashSet.fromList [(Seal Time)]
+  let contxt = localContext lang $ utcToDucklingTime defaultUTCTime
+  --pure $ parseAndResolve (rulesFor (locale ctx) (HashSet.fromList [(This Time)])) input ctx
+  -- TODO check/test Options False or True
+  analyze input contxt options $ HashSet.fromList [(Seal Time)]
 

@@ -74,6 +74,7 @@ import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, runPGSQuery{-, formatPGSQuery-})
 import Gargantext.Database.Schema.Node (NodePoly(..))
+import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (hash)
 import qualified Data.Text as DT (pack, concat, take)
@@ -282,9 +283,9 @@ instance ToNode HyperdataDocument where
       -- NOTE: There is no year '0' in postgres, there is year 1 AD and beofre that year 1 BC:
       -- select '0001-01-01'::date, '0001-01-01'::date - '1 day'::interval;
       -- 0001-01-01    0001-12-31 00:00:00 BC
-      y = maybe 1 fromIntegral $ _hd_publication_year  h
-      m = fromMaybe 1 $ _hd_publication_month h
-      d = fromMaybe 1 $ _hd_publication_day   h
+      y = fromIntegral $ fromMaybe Defaults.day $ _hd_publication_year  h
+      m = fromMaybe Defaults.month $ _hd_publication_month h
+      d = fromMaybe (fromIntegral Defaults.year) $ _hd_publication_day   h
 
 -- TODO better Node
 instance ToNode HyperdataContact where

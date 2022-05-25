@@ -13,12 +13,14 @@ Portability : POSIX
 module Gargantext.Core.Text.Corpus.API.Istex
     where
 
+import Data.Either (Either(..))
 import Data.List (concat)
 import Data.Maybe
 import Data.Text (Text, pack)
 
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
 import qualified Gargantext.Core.Text.Corpus.Parsers.Date as Date
 import qualified ISTEX        as ISTEX
@@ -26,19 +28,37 @@ import qualified ISTEX.Client as ISTEX
 
 get :: Lang -> Text -> Maybe Integer -> IO [HyperdataDocument]
 get la q ml = do
-  docs <- ISTEX.getMetadataWith q (fromIntegral <$> ml)
-  either (panic . pack . show) (toDoc' la) docs
+  --docs <- ISTEX.getMetadataWith q (fromIntegral <$> ml)
+  printDebug "[Istex.get] calling getMetadataScrollProgress for la" la
+  printDebug "[Istex.get] calling getMetadataScrollProgress for q" q
+  printDebug "[Istex.get] calling getMetadataScrollProgress for ml" ml
+  -- The "scroll" expects "d/h/m/s/ms" time interval. Let's set it to "1 month"
+  --eDocs <- ISTEX.getMetadataScroll q ((\_n -> pack $ "1m") <$> ml) Nothing 0  --(fromIntegral <$> ml)
+  eDocs <- ISTEX.getMetadataScroll q "1m" Nothing 0  --(fromIntegral <$> ml)
+  printDebug "[Istex.get] will print length" (0 :: Int)
+  case eDocs of
+    Left _ -> pure ()
+    Right (ISTEX.Documents { _documents_hits }) -> printDebug "[Istex.get] length docs" $ length _documents_hits
+  --ISTEX.getMetadataScrollProgress q ((\_ -> pack $ "1m") <$> ml) Nothing progress errorHandler
+  case eDocs of
+    Left err -> panic . pack . show $ err
+    Right docs -> toDoc' la docs
+  --pure $ either (panic . pack . show) (toDoc' la) eDocs
+--  where
+--    progress (ISTEX.ScrollResponse { _scroll_documents = ISTEX.Documents { _documents_hits }}) =
+--      printDebug "[Istex.get] got docs: " $ length _documents_hits
+--    errorHandler err = printDebug "[Istex.get] error" $ show err
 
 toDoc' :: Lang -> ISTEX.Documents -> IO [HyperdataDocument]
-toDoc' la docs' = do
+toDoc' la docs' =  mapM (toDoc la) (ISTEX._documents_hits docs')
   --printDebug "ISTEX" (ISTEX._documents_total docs')
-  mapM (toDoc la) (ISTEX._documents_hits docs')
 
 -- | TODO remove dateSplit here
 -- TODO current year as default
 toDoc :: Lang -> ISTEX.Document -> IO HyperdataDocument
 toDoc la (ISTEX.Document i t a ab d s) = do
-  (utctime, (pub_year, pub_month, pub_day)) <- Date.dateSplit la (maybe (Just "2019") (Just . pack . show) d)
+  (utctime, (pub_year, pub_month, pub_day)) <-
+        Date.dateSplit la (maybe (Just $ pack $ show Defaults.year) (Just . pack . show) d)
   pure $ HyperdataDocument { _hd_bdd = Just "Istex"
                            , _hd_doi = Just i
                            , _hd_url = Nothing

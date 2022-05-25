@@ -37,6 +37,7 @@ import Gargantext.Database.Admin.Types.Hyperdata.Frame
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getChildrenByType, getClosestParentIdByType', getNodeWith)
 import Gargantext.Database.Schema.Node (node_hyperdata)
+import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
 import GHC.Generics (Generic)
 import Servant
@@ -114,9 +115,9 @@ hyperdataDocumentFromFrameWrite (HyperdataFrame { _hf_base, _hf_frame_id }, cont
           date' = (\(Date { year, month, day }) -> T.concat [ T.pack $ show year, "-"
                                                             , T.pack $ show month, "-"
                                                             , T.pack $ show day ]) <$> date
-          year' = fromIntegral $ maybe 2021 (\(Date { year }) -> year) date
-          month' = fromIntegral $ maybe 10 (\(Date { month }) -> month) date
-          day' = fromIntegral $ maybe 4 (\(Date { day }) -> day) date in
+          year' = fromIntegral $ maybe Defaults.year (\(Date { year }) -> year) date
+          month' = maybe Defaults.month (\(Date { month }) -> fromIntegral month) date
+          day' = maybe Defaults.day (\(Date { day }) -> fromIntegral day) date in
       Right HyperdataDocument { _hd_bdd = Just "FrameWrite"
                               , _hd_doi = Nothing
                               , _hd_url = Nothing

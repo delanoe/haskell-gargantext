@@ -15,8 +15,7 @@ module Gargantext.Core.Text.Corpus.API
   , Limit
   , get
   , externalAPIs
-  )
-    where
+  ) where
 
 import Conduit
 import Data.Either (Either(..))
