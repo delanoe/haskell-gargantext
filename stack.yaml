@@ -73,7 +73,7 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed.git
   commit: 02e03d9b856bd35d391f43da8525330f9d184615
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/istex.git
-  commit: a4a6fb6a578255c9e5b52aab2afccf874976a3f5
+  commit: 3888454a844180b87c8edd36b7e06fbdf8e9ffac
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
   commit: 9a43470241690a19c1c381c42a62c5dd4e28dff2
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
