@@ -17,7 +17,7 @@ vim CHANGELOG.md < /dev/tty
 YAML="package.yaml"
 CABL="gargantext.cabal"
 sed -i "s/version:.*/version: \'$VERSION\'/" $YAML
-sed -i "s/version:.*/version: $VERSION/" $CABL
+sed -i "s/^version:.*/version: $VERSION/" $CABL
 git add -u 
 git commit -m "[VERSION] +1 to ${VERSION}"
 git tag $VERSION
