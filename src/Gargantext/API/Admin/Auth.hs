@@ -63,7 +63,6 @@ import Gargantext.API.Types
 import Gargantext.Core.Mail (MailModel(..), mail)
 import Gargantext.Core.Mail.Types (HasMail, mailSettings)
 import Gargantext.Core.Types.Individu (User(..), Username, GargPassword(..))
-import Gargantext.Core.Utils (randomString)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node (NodeId(..), UserId)
 import Gargantext.Database.Prelude (Cmd', CmdM, HasConnectionPool, HasConfig)
@@ -72,6 +71,7 @@ import Gargantext.Database.Query.Tree (isDescendantOf, isIn)
 import Gargantext.Database.Query.Tree.Root (getRoot)
 import Gargantext.Database.Schema.Node (NodePoly(_node_id))
 import Gargantext.Prelude hiding (reverse)
+import Gargantext.Prelude.Crypto.Pass.User (gargPass)
 
 ---------------------------------------------------
 
@@ -212,7 +212,7 @@ forgotPasswordGetUser :: (HasSettings env, HasConnectionPool env, HasJoseError e
      => UserLight -> Cmd' env err Text
 forgotPasswordGetUser (UserLight { .. }) = do
   -- pick some random password
-  password <- liftBase $ randomString 10
+  password <- liftBase gargPass
   
   -- set it as user's password
   hashed <- liftBase $ Auth.hashPassword $ Auth.mkPassword password
