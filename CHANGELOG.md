@@ -1,3 +1,8 @@
+## Version 0.0.5.8.9.3
+* [BE] [FIX] garg password function
+* [FE] [FIX] Trees closing/opening issue
+* [FE] [FIX] Viz Explorer Side Panel
+
 ## Version 0.0.5.8.9.2
 * [FEAT] Lost Password
 * [Phylo] More Data in API
