@@ -227,7 +227,8 @@ graphV3ToGraph (GraphV3 links nodes) = Graph { _graph_nodes = map nodeV32node no
                        , node_x_coord = 0
                        , node_y_coord = 0
                        , node_attributes = Attributes cl'
-                       , node_children = [] }
+                       , node_children = []
+                       }
 
     linkV32edge :: Int -> EdgeV3 -> Edge
     linkV32edge n (EdgeV3 eo_s' eo_t' eo_w') =
