@@ -9,7 +9,6 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE Arrows                 #-}
@@ -41,7 +40,6 @@ import Gargantext.Database.Query.Filter (limit', offset')
 import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum, head)
-
 
 queryNodeSearchTable :: Select NodeSearchRead
 queryNodeSearchTable = selectTable nodeTableSearch

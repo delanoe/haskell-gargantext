@@ -1,5 +1,4 @@
-{-|
-Module      : Gargantext.Database.Select.Table.NodeNode
+{-| Module      : Gargantext.Database.Select.Table.NodeNode
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -106,26 +105,32 @@ type Node2_Id = NodeId
 deleteNodeNode :: Node1_Id -> Node2_Id -> Cmd err Int
 deleteNodeNode n1 n2 = mkCmd $ \conn ->
   fromIntegral <$> runDelete_ conn
-                              (Delete nodeNodeTable
-                                      (\(NodeNode n1_id n2_id _ _) -> n1_id .== pgNodeId n1
-                                                                  .&& n2_id .== pgNodeId n2
-                                      )
-                                      rCount
-                              )
+                  (Delete nodeNodeTable
+                          (\(NodeNode n1_id n2_id _ _) -> n1_id .== pgNodeId n1
+                                                      .&& n2_id .== pgNodeId n2
+                          )
+                          rCount
+                  )
 
 ------------------------------------------------------------------------
-selectPublicNodes :: HasDBid NodeType => (Hyperdata a, DefaultFromField SqlJsonb a)
+selectPublicNodes :: HasDBid NodeType
+                  => (Hyperdata a, DefaultFromField SqlJsonb a)
                   => Cmd err [(Node a, Maybe Int)]
 selectPublicNodes = runOpaQuery (queryWithType NodeFolderPublic)
 
-queryWithType :: HasDBid NodeType =>NodeType -> O.Select (NodeRead, Column (Nullable SqlInt4))
+queryWithType :: HasDBid NodeType
+              => NodeType
+              -> O.Select (NodeRead, Column (Nullable SqlInt4))
 queryWithType nt = proc () -> do
-  (n, nn) <- joinOn1 -< ()
+  (n, nn) <- node_NodeNode -< ()
   restrict -< n^.node_typename .== (sqlInt4 $ toDBid nt)
   returnA  -<  (n, nn^.nn_node2_id)
 
-joinOn1 :: O.Select (NodeRead, NodeNodeReadNull)
-joinOn1 = leftJoin queryNodeTable queryNodeNodeTable cond
+node_NodeNode :: O.Select (NodeRead, NodeNodeReadNull)
+node_NodeNode = leftJoin queryNodeTable queryNodeNodeTable cond
   where
     cond :: (NodeRead, NodeNodeRead) -> Column SqlBool
     cond (n, nn) = nn^.nn_node1_id .== n^.node_id
+
+
+

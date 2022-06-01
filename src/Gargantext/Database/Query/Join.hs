@@ -24,7 +24,9 @@ Multiple Join functions with Opaleye.
 
 module Gargantext.Database.Query.Join ( leftJoin2
                                       , leftJoin3
+                                      , leftJoin3'
                                       , leftJoin4
+                                      , leftJoin4'
                                       , leftJoin5
                                       , leftJoin6
                                       , leftJoin7
@@ -62,6 +64,27 @@ leftJoin3 :: Select columnsA -> Select columnsB -> Select columnsC
       -> ((columnsA, columnsB, columnsC) -> Column SqlBool) 
       -> Select (columnsA, columnsB, columnsC)
 leftJoin3 q1 q2 q3 cond = ((,,) <$> q1 <*> q2 <*> q3) >>> keepWhen cond
+
+
+leftJoin3' :: (Default Unpackspec b2 b2, Default Unpackspec b3 b3,
+               Default Unpackspec fieldsL fieldsL,
+               Default Unpackspec fieldsR fieldsR, Default NullMaker b3 b4,
+               Default NullMaker b2 b5, Default NullMaker fieldsR b2) =>
+              Select fieldsL
+              -> Select b3
+              -> Select fieldsR
+              -> ((fieldsL, (b3, b2)) -> Column SqlBool)
+              -> ((b3, fieldsR) -> Column SqlBool)
+              -> Select (fieldsL, (b4, b5))
+leftJoin3' q1 q2 q3 cond12 cond23 = leftJoin q1 (leftJoin q2 q3 cond23) cond12
+
+leftJoin4' :: Select columnsA
+           -> Select columnsB
+           -> Select columnsC
+           -> Select columnsD
+      -> ((columnsA, columnsB, columnsC, columnsD) -> Column SqlBool) 
+      -> Select (columnsA, columnsB, columnsC, columnsD)
+leftJoin4' q1 q2 q3 q4 cond = ((,,,) <$> q1 <*> q2 <*> q3 <*> q4) >>> keepWhen cond
 
 
 leftJoin4 :: (Default Unpackspec b2 b2,

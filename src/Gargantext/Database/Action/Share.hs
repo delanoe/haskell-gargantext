@@ -10,22 +10,30 @@ Portability : POSIX
 -}
 
 
+{-# LANGUAGE Arrows                 #-}
+
 module Gargantext.Database.Action.Share
   where
 
-import Control.Lens (view)
-import Gargantext.Database
+import Control.Arrow (returnA)
+import Control.Lens (view, (^.))
+import Data.Text (Text)
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database
 import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Admin.Config (hasNodeType, isInNodeTypes)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAny(..))
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Query.Join (leftJoin3')
 import Gargantext.Database.Query.Table.Node (getNode, getNodesWith)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError, errorWith)
-import Gargantext.Database.Query.Table.NodeNode (deleteNodeNode)
+import Gargantext.Database.Query.Table.NodeNode (deleteNodeNode, queryNodeNodeTable)
+import Gargantext.Database.Query.Table.User
 import Gargantext.Database.Query.Tree.Root (getRootId)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
+import Opaleye hiding (not)
+import qualified Opaleye as O
 
 -- | TODO move in PhyloConfig of Gargantext
 publicNodeTypes :: [NodeType]
@@ -39,6 +47,50 @@ data ShareNodeWith = ShareNodeWith_User { snwu_nodetype :: NodeType
                                         , snwn_node_id  :: NodeId
                                         }
 ------------------------------------------------------------------------
+todo :: a
+todo = undefined
+
+deleteMemberShip :: HasNodeError err => [SharedFolderId] -> Cmd err Int
+deleteMemberShip = todo
+
+------------------------------------------------------------------------
+
+type SharedFolderId = NodeId
+type TeamNodeId     = NodeId
+
+-- List members of a Team
+-- Result gives the username and its SharedFolderId that has to be eventually
+-- used for the membership
+membersOf :: HasNodeError err
+          => TeamNodeId -> Cmd err [(Text, SharedFolderId)]
+membersOf nId = runOpaQuery (membersOfQuery nId)
+
+
+membersOfQuery :: TeamNodeId
+               -> SelectArr () (Column (Nullable SqlText), Column (Nullable SqlInt4))
+membersOfQuery (NodeId sharedFolderId) = proc () -> do
+  (nn, (n, u)) <- nodeNode_node_User -< ()
+  restrict -< nn^.nn_node2_id .== sqlInt4 sharedFolderId
+  returnA -< (user_username u, n^.node_id)
+
+
+nodeNode_node_User :: O.Select (NodeNodeRead, (NodeReadNull, UserReadNull))
+nodeNode_node_User = leftJoin3' queryNodeNodeTable
+                               queryNodeTable
+                               queryUserTable
+                               cond12
+                               cond23
+  where
+    cond12 :: (NodeNodeRead, (NodeRead, UserReadNull)) -> Column SqlBool
+    cond12 (nn, (n, _u)) = (nn^.nn_node1_id  .== n^.node_id)
+    cond23 :: (NodeRead, UserRead) -> Column SqlBool
+    cond23 (n, u) = (n^.node_user_id .== user_id u)
+
+
+
+------------------------------------------------------------------------
+-- To Share a Node Team with a user, use this function
+-- basically used with the invitation to a team
 shareNodeWith :: HasNodeError err
               => ShareNodeWith
               -> NodeId

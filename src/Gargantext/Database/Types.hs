@@ -15,6 +15,7 @@ Portability : POSIX
 module Gargantext.Database.Types
   where
 
+import Data.Text (Text)
 import Data.Hashable (Hashable)
 import Gargantext.Core.Text (HasText(..))
 import Gargantext.Database.Schema.Prelude
@@ -56,4 +57,8 @@ instance DefaultFromField SqlFloat8            (Maybe Double) where
 
 instance DefaultFromField SqlInt4              (Maybe Int)    where
     defaultFromField = fromPGSFromField
+
+instance DefaultFromField (Nullable SqlText)  Text  where
+    defaultFromField = fromPGSFromField
+
 
