@@ -47,11 +47,8 @@ data ShareNodeWith = ShareNodeWith_User { snwu_nodetype :: NodeType
                                         , snwn_node_id  :: NodeId
                                         }
 ------------------------------------------------------------------------
-todo :: a
-todo = undefined
-
-deleteMemberShip :: HasNodeError err => [SharedFolderId] -> Cmd err Int
-deleteMemberShip = todo
+deleteMemberShip :: HasNodeError err => [(SharedFolderId, TeamNodeId)] -> Cmd err [Int]
+deleteMemberShip xs = mapM (\(s,t) -> deleteNodeNode s t) xs
 
 ------------------------------------------------------------------------
 
@@ -68,9 +65,9 @@ membersOf nId = runOpaQuery (membersOfQuery nId)
 
 membersOfQuery :: TeamNodeId
                -> SelectArr () (Column (Nullable SqlText), Column (Nullable SqlInt4))
-membersOfQuery (NodeId sharedFolderId) = proc () -> do
+membersOfQuery (NodeId teamId) = proc () -> do
   (nn, (n, u)) <- nodeNode_node_User -< ()
-  restrict -< nn^.nn_node2_id .== sqlInt4 sharedFolderId
+  restrict -< nn^.nn_node2_id .== sqlInt4 teamId
   returnA -< (user_username u, n^.node_id)
 
 
