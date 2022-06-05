@@ -41,6 +41,7 @@ import qualified Gargantext.API.GraphQL.Node as GQLNode
 import qualified Gargantext.API.GraphQL.User as GQLUser
 import qualified Gargantext.API.GraphQL.UserInfo as GQLUserInfo
 import qualified Gargantext.API.GraphQL.TreeFirstLevel as GQLTree
+import qualified Gargantext.API.GraphQL.Team as GQLTeam
 import Gargantext.API.Prelude (GargM, GargError)
 import Gargantext.API.Types
 import Gargantext.Core.Mail.Types (HasMail)
@@ -72,12 +73,14 @@ data Query m
     , user_infos  :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
     , users       :: GQLUser.UserArgs -> m [GQLUser.User m]
     , tree        :: GQLTree.TreeArgs -> m (GQLTree.TreeFirstLevel m)
+    , team        :: GQLTeam.TeamArgs -> m [GQLTeam.TeamMember]
     } deriving (Generic, GQLType)
 
 data Mutation m
   = Mutation
-    { update_user_info :: GQLUserInfo.UserInfoMArgs -> m Int }
-    deriving (Generic, GQLType)
+    { update_user_info        :: GQLUserInfo.UserInfoMArgs -> m Int 
+    , delete_team_membership :: GQLTeam.TeamDeleteMArgs -> m [Int] 
+    } deriving (Generic, GQLType)
 
 -- | Possible GraphQL Events, i.e. here we describe how we will
 -- manipulate the data.
@@ -108,8 +111,10 @@ rootResolver =
                             , node_parent       = GQLNode.resolveNodeParent
                             , user_infos        = GQLUserInfo.resolveUserInfos
                             , users             = GQLUser.resolveUsers
-                            , tree              = GQLTree.resolveTree }
-    , mutationResolver = Mutation { update_user_info = GQLUserInfo.updateUserInfo }
+                            , tree              = GQLTree.resolveTree
+                            , team              = GQLTeam.resolveTeam }
+    , mutationResolver = Mutation { update_user_info       = GQLUserInfo.updateUserInfo 
+                                  , delete_team_membership = GQLTeam.deleteTeamMembership }
     , subscriptionResolver = Undefined }
 
 -- | Main GraphQL "app".
