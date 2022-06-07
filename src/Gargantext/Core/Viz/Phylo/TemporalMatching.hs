@@ -249,7 +249,8 @@ getNextPeriods fil max' pId pIds =
 getCandidates :: PhyloGroup -> [[(PhyloGroupId,[Int])]] -> [[(PhyloGroupId,[Int])]]
 getCandidates ego targets =
   map (\groups' ->
-    filter (\g' -> (not . null) $ intersect (ego ^. phylo_groupNgrams) (snd g')
+    -- filter (\g' -> (not . null) $ intersect (ego ^. phylo_groupNgrams) (snd g')
+    filter (\g' -> (> 1) $ length $ intersect (ego ^. phylo_groupNgrams) (snd g')
   ) groups') targets
 
 
