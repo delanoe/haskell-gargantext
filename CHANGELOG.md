@@ -1,3 +1,6 @@
+## Version 0.0.5.8.9.4
+* [FE] [FEAT] Phylo Explorer, interactions with documents
+
 ## Version 0.0.5.8.9.3
 * [BE] [FIX] garg password function
 * [FE] [FIX] Trees closing/opening issue
