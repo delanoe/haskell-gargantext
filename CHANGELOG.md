@@ -1,5 +1,6 @@
 ## Version 0.0.5.8.9.4
 * [FE] [FEAT] Phylo Explorer, interactions with documents
+* [FE] [ERGO] Fonts in Ngrams Table
 
 ## Version 0.0.5.8.9.3
 * [BE] [FIX] garg password function
