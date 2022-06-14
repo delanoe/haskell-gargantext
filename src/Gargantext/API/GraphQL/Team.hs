@@ -13,16 +13,23 @@ import Gargantext.Core.Types (NodeId(..), unNodeId)
 import Gargantext.Database.Prelude (HasConnectionPool)
 import Gargantext.Database (HasConfig)
 import Gargantext.Core.Mail.Types (HasMail)
+import Gargantext.Database.Query.Table.Node (getNode)
+import Gargantext.API.GraphQL.Utils (authUser, AuthStatus (Invalid, Valid))
+import Gargantext.Database.Schema.Node (NodePoly(Node, _node_id), _node_user_id)
+import Gargantext.API.Admin.Types (HasSettings)
+import Gargantext.Database.Query.Table.User (getUsersWithNodeHyperdata)
 
-data TeamArgs = TeamArgs 
+import qualified Data.Text as T
+
+data TeamArgs = TeamArgs
   { team_node_id :: Int } deriving (Generic, GQLType)
 
-data TeamMember = TeamMember 
+data TeamMember = TeamMember
  { username         :: Text
  , shared_folder_id :: Int
  } deriving (Generic, GQLType)
 
-data TeamDeleteMArgs = TeamDeleteMArgs 
+data TeamDeleteMArgs = TeamDeleteMArgs
   { token :: Text
   , shared_folder_id :: Int
   , team_node_id     :: Int
@@ -49,7 +56,19 @@ dbTeam nodeId = do
       shared_folder_id = unNodeId fId
     }
 
--- TODO: authorization check, list argument
-deleteTeamMembership :: (HasConnectionPool env, HasConfig env, HasMail env) => TeamDeleteMArgs -> GqlM' e env [Int]
-deleteTeamMembership TeamDeleteMArgs { shared_folder_id, team_node_id } = do
-  lift $ deleteMemberShip [(NodeId shared_folder_id, NodeId team_node_id)]
+-- TODO: list as argument
+deleteTeamMembership :: (HasConnectionPool env, HasConfig env, HasMail env, HasSettings env) => TeamDeleteMArgs -> GqlM' e env [Int]
+deleteTeamMembership TeamDeleteMArgs { token, shared_folder_id, team_node_id } = do
+  teamNode <- lift $ getNode $ NodeId team_node_id
+  userNodes <- lift (getUsersWithNodeHyperdata $ uId teamNode)
+  case userNodes of
+    [] -> panic $ "[deleteTeamMembership] User with id " <> T.pack (show $ uId teamNode) <> " doesn't exist."
+    (( _, node_u):_) -> do
+      testAuthUser <- lift $ authUser (nId node_u) token
+      case testAuthUser of
+        Invalid -> panic "[deleteTeamMembership] failed to validate user"
+        Valid -> do
+          lift $ deleteMemberShip [(NodeId shared_folder_id, NodeId team_node_id)]
+  where
+    uId Node { _node_user_id } = _node_user_id
+    nId Node { _node_id } = _node_id
