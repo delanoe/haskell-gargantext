@@ -1,3 +1,7 @@
+## Version 0.0.5.8.9.5
+* [FIX] FrontEnd maybe ParentId
+* [FIX] IsTex crawler
+
 ## Version 0.0.5.8.9.4
 * [FE] [FEAT] Phylo Explorer, interactions with documents
 * [FE] [ERGO] Fonts in Ngrams Table
