@@ -26,6 +26,7 @@ import qualified Gargantext.Core.Text.Corpus.Parsers.Date as Date
 import qualified ISTEX        as ISTEX
 import qualified ISTEX.Client as ISTEX
 
+
 get :: Lang -> Text -> Maybe Integer -> IO [HyperdataDocument]
 get la q _ml = do
   --docs <- ISTEX.getMetadataWith q (fromIntegral <$> ml)
@@ -34,7 +35,7 @@ get la q _ml = do
   --printDebug "[Istex.get] calling getMetadataScrollProgress for ml" ml
   -- The "scroll" expects "d/h/m/s/ms" time interval. Let's set it to "1 month"
   --eDocs <- ISTEX.getMetadataScroll q ((\_n -> pack $ "1m") <$> ml) Nothing 0  --(fromIntegral <$> ml)
-  eDocs <- ISTEX.getMetadataScroll q "1m" Nothing 0  --(fromIntegral <$> ml)
+  eDocs <- ISTEX.getMetadataScroll (q <> " abstract:*")  "1m" Nothing 0  --(fromIntegral <$> ml)
   printDebug "[Istex.get] will print length" (0 :: Int)
   case eDocs of
     Left _ -> pure ()
@@ -57,15 +58,17 @@ toDoc' la docs' =  mapM (toDoc la) (ISTEX._documents_hits docs')
 -- TODO current year as default
 toDoc :: Lang -> ISTEX.Document -> IO HyperdataDocument
 toDoc la (ISTEX.Document i t a ab d s) = do
+  --printDebug "ISTEX date" d
   (utctime, (pub_year, pub_month, pub_day)) <-
         Date.dateSplit la (maybe (Just $ pack $ show Defaults.year) (Just . pack . show) d)
-  pure $ HyperdataDocument { _hd_bdd = Just "Istex"
-                           , _hd_doi = Just i
-                           , _hd_url = Nothing
-                           , _hd_uniqId = Nothing
+  --printDebug "toDoc Istex" (utctime, (pub_year, pub_month, pub_day))
+  pure $ HyperdataDocument { _hd_bdd       = Just "Istex"
+                           , _hd_doi       = Just i
+                           , _hd_url       = Nothing
+                           , _hd_uniqId    = Nothing
                            , _hd_uniqIdBdd = Nothing
-                           , _hd_page = Nothing
-                           , _hd_title = t
+                           , _hd_page      = Nothing
+                           , _hd_title     = t
                            , _hd_authors = Just $ foldl (\x y -> x <> ", " <> y) "" (map ISTEX._author_name a)
                            , _hd_institutes = Just $ foldl (\x y -> x <> ", " <> y) "" (concat $ (map ISTEX._author_affiliations) a)
                            , _hd_source = Just $ foldl (\x y -> x <> ", " <> y) "" (catMaybes $ map ISTEX._source_title s)
@@ -77,5 +80,5 @@ toDoc la (ISTEX.Document i t a ab d s) = do
                            , _hd_publication_hour = Nothing
                            , _hd_publication_minute = Nothing
                            , _hd_publication_second = Nothing
-                           , _hd_language_iso2 = Just $ (pack . show) la }
-                         
+                           , _hd_language_iso2 = Just $ (pack . show) la
+                           }

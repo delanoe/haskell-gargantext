@@ -67,14 +67,15 @@ type Day   = Int
 
 -- | Date Parser
 -- Parses dates mentions in full text given the language.
--- >>> parse FR (pack "10 avril 1900 à 19H")
--- 1900-04-10 19:00:00 UTC
--- >>> parse EN (pack "April 10 1900")
--- 1900-04-10 00:00:00 UTC
+-- >>> parse FR (pack "1 avril 1900 à 19H")
+-- 1900-04-01 19:00:00 UTC
+-- >>> parse EN (pack "April 1 1900")
+-- 1900-04-01 00:00:00 UTC
 parse :: Lang -> Text -> IO UTCTime
 parse lang s = do
-  printDebug "Date: " s
+  --printDebug "Date: " s
   dateStr' <- pure $ dateFlow (DucklingFailure s) -- parseRawSafe lang s
+  --printDebug "Date': " dateStr'
   case dateFlow dateStr' of
     DateFlowSuccess ok -> pure ok
     _                  -> withDebugMode (DebugMode True)
@@ -93,7 +94,7 @@ data DateFlow = DucklingSuccess { ds_result  :: Text }
               | DucklingFailure { df_result  :: Text }
               | ReadFailure1    { rf1_result :: Text }
               | ReadFailure2    { rf2_result :: Text }
-              | DateFlowSuccess  { success :: UTCTime }
+              | DateFlowSuccess { success :: UTCTime }
               | DateFlowFailure
   deriving Show
 
@@ -126,7 +127,7 @@ readDate txt = do
 -- | To get Homogeinity of the languages
 --   TODO : put this in a more generic place in the source code
 parserLang :: Lang -> DC.Lang
-parserLang FR = DC.FR
+parserLang FR    = DC.FR
 parserLang EN    = DC.EN
 parserLang lang  = panic $ "[G.C.T.C.P.Date] Lang not implemented" <> (cs $ show lang)
 
