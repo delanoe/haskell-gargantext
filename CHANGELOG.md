@@ -1,3 +1,6 @@
+## Version 0.0.5.8.9.6
+* [FIX] IsTex crawler working with basic queries (i.e. without quotes)
+
 ## Version 0.0.5.8.9.5
 * [FIX] FrontEnd maybe ParentId
 * [FIX] IsTex crawler
