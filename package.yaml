@@ -179,6 +179,7 @@ library:
   - hashable
   - haskell-igraph
   - hlcm
+  - hsinfomap
   - hsparql
   - hstatistics
   - http-api-data

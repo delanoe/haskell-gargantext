@@ -98,6 +98,8 @@ extra-deps:
 #- git: https://github.com/kaizhang/haskell-igraph.git
 - git: https://github.com/alpmestan/haskell-igraph.git
   commit: 9f55eb36639c8e0965c8bc539a57738869f33e9a
+- git: https://gitlab.iscpif.fr/gargantext/haskell-infomap.git
+  commit: 76b795c1eaca37f43418d07da9fbdf5f4e7d8f5c
 
   # Accelerate Linear Algebra and specific instances
   # (UndecidableInstances for newer GHC version)

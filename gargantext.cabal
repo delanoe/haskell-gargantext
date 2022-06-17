@@ -220,6 +220,7 @@ library
       Gargantext.Core.Viz.Graph.FGL
       Gargantext.Core.Viz.Graph.GEXF
       Gargantext.Core.Viz.Graph.Legend
+      Gargantext.Core.Viz.Graph.Tools.Infomap
       Gargantext.Core.Viz.Graph.Types
       Gargantext.Core.Viz.Graph.Utils
       Gargantext.Core.Viz.LegacyPhylo
@@ -392,6 +393,7 @@ library
     , hashable
     , haskell-igraph
     , hlcm
+    , hsinfomap
     , hsparql
     , hstatistics
     , http-api-data

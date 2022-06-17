@@ -30,6 +30,7 @@ import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
+import Gargantext.Core.Viz.Graph.Tools.Infomap (infomap)
 import Gargantext.Core.Viz.Graph.Utils (edgesFilter)
 import Gargantext.Prelude
 import Graph.Types (ClusterNode)
@@ -47,7 +48,7 @@ import qualified IGraph                   as Igraph
 import qualified IGraph.Algorithms.Layout as Layout
 
 
-data PartitionMethod = Spinglass | Confluence
+data PartitionMethod = Spinglass | Confluence | Infomap
     deriving (Generic, Eq, Ord, Enum, Bounded, Show)
 instance FromJSON  PartitionMethod
 instance ToJSON    PartitionMethod
@@ -93,6 +94,8 @@ cooc2graphWith :: PartitionMethod
                -> IO Graph
 cooc2graphWith Spinglass = cooc2graphWith' (spinglass 1)
 cooc2graphWith Confluence= cooc2graphWith' (\x -> pure $ BAC.defaultClustering x)
+cooc2graphWith Infomap   = cooc2graphWith' (infomap "--silent --two-level -N2")
+                        -- TODO: change these options, or make them configurable in UI?
 
 
 cooc2graphWith' :: ToComId a
