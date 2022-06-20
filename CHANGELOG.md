@@ -1,3 +1,6 @@
+## Version 0.0.5.8.9.7
+* [FEAT] Infomap Clustering
+
 ## Version 0.0.5.8.9.6
 * [FIX] IsTex crawler working with basic queries (i.e. without quotes)
 
