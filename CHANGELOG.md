@@ -1,5 +1,6 @@
 ## Version 0.0.5.8.9.8
 * [ERGO] NgramsTable, change group and search for ngrams to add
+* [FIX] Board, Source Chart fix
 
 ## Version 0.0.5.8.9.7
 * [FEAT] Infomap Clustering
