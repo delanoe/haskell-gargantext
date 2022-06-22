@@ -90,7 +90,8 @@ bodyWith server (ForgotPassword { user = UserLight { userLight_forgot_password_u
   , forgot_password_link server uuid ]
 
 forgot_password_link :: ServerAddress -> Text -> Text
-forgot_password_link server uuid = server <> "/api/v1.0/forgot-password?uuid=" <> uuid
+-- FIXME: need to percent-encode the server in the param
+forgot_password_link server uuid = server <> "/#/forgot-password?uuid=" <> uuid <> "&server=" <> server
 
 ------------------------------------------------------------------------
 email_subject :: MailModel -> Text
