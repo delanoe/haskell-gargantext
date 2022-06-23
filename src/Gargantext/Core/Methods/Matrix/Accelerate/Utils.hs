@@ -31,7 +31,7 @@ module Gargantext.Core.Methods.Matrix.Accelerate.Utils
   where
 
 import qualified Data.Foldable as P (foldl1)
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 import Data.Array.Accelerate
 import Data.Array.Accelerate.Interpreter (run)
 import qualified Gargantext.Prelude as P
@@ -306,7 +306,7 @@ sumRowMin n m = {-trace (P.show $ run m') $-} m'
        $ P.map (\z -> sumRowMin1 n (constant z) m) [0..n-1]
 
 sumRowMin1 :: (Num a, Ord a) => Dim -> Exp Int -> Acc (Matrix a) -> Acc (Vector a)
-sumRowMin1 n x m = trace (P.show (run m,run $ transpose m)) $ m''
+sumRowMin1 n x m = {-trace (P.show (run m,run $ transpose m)) $-} m''
   where
     m'' = sum $ zipWith min (transpose m) m
     _m'  = zipWith (*) (zipWith (*) (nullOf n (MatCol x)) $ nullOfWithDiag n (MatRow x)) m
