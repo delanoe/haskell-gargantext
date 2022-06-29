@@ -230,6 +230,9 @@ selectNodesIdWithType nt = proc () -> do
 
 ------------------------------------------------------------------------
 
+nodeExists :: (HasNodeError err) => NodeId -> Cmd err Bool
+nodeExists nId = (== [DPS.Only True])
+  <$> runPGSQuery [sql|SELECT true FROM nodes WHERE id = ? AND ?|] (nId, True)
 
 getNode :: HasNodeError err => NodeId -> Cmd err (Node Value)
 getNode nId = do

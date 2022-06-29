@@ -34,6 +34,7 @@ import Data.Aeson hiding ((.=), decode)
 import Data.Map.Strict (Map)
 import Data.Monoid
 import Data.Semigroup
+import Database.PostgreSQL.Simple.FromField (FromField(fromField), fromJSONField)
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (NodeId)
@@ -41,6 +42,7 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Prelude (CmdM', HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Prelude
+import Opaleye (DefaultFromField(..), SqlJsonb, fromPGSFromField)
 import System.Directory (renameFile, createDirectoryIfMissing, doesFileExist, removeFile)
 import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
@@ -278,6 +280,12 @@ type NodeListStory     = NodeStory NgramsState' NgramsStatePatch'
 type NgramsState'      = Map       TableNgrams.NgramsType NgramsTableMap
 type NgramsStatePatch' = PatchMap  TableNgrams.NgramsType NgramsTablePatch
 instance Serialise NgramsStatePatch'
+instance FromField (Archive NgramsState' NgramsStatePatch')
+  where
+    fromField = fromJSONField
+instance DefaultFromField SqlJsonb (Archive NgramsState' NgramsStatePatch')
+  where
+    defaultFromField = fromPGSFromField
 
 -- TODO Semigroup instance for unions
 -- TODO check this
