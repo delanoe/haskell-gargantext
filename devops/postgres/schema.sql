@@ -17,7 +17,7 @@ CREATE TABLE public.auth_user (
     is_staff     BOOLEAN NOT NULL,
     is_active    BOOLEAN NOT NULL,
     date_joined  TIMESTAMP with time zone DEFAULT now() NOT NULL,
-    forgot_password TEXT,
+    forgot_password_uuid TEXT,
     PRIMARY KEY (id)
 );
 ALTER TABLE public.auth_user OWNER TO gargantua;
