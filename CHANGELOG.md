@@ -1,5 +1,6 @@
 ## Version 0.0.5.9
 * [FIX] Annuaire Contact Page
+* [WIP] Graph Debug (mergeNgrams enabled again)
 
 ## Version 0.0.5.8.9.9
 * [FIX] Debug Graph Labels
