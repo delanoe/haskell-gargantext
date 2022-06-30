@@ -4,13 +4,15 @@
 module Gargantext.Database.NodeStory where
 
 import Control.Arrow (returnA)
+import Control.Concurrent (MVar(), withMVar, newMVar, modifyMVar_)
+import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Control.Monad (foldM)
 import qualified Data.Map.Strict as Map
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Gargantext.API.Ngrams.Tools (getRepo)
 import Gargantext.Core (HasDBid)
 import Gargantext.Core.Mail.Types (HasMail)
-import Gargantext.Core.NodeStory (Archive(..), NodeStory(..), NodeListStory, NgramsState', NgramsStatePatch')
+import Gargantext.Core.NodeStory (Archive(..), NodeStory(..), NodeStoryEnv(..), NodeListStory, NgramsState', NgramsStatePatch')
 import qualified Gargantext.Core.NodeStory as NS
 import Gargantext.Core.Types (NodeId(..), NodeType(..))
 import Gargantext.Database.Prelude (Cmd, mkCmd, runOpaQuery)
@@ -84,6 +86,11 @@ upsertNodeArchive nId a = do
   case Map.lookup nId m of
     Nothing -> insertNodeArchive nId a
     Just _  -> updateNodeArchive nId a
+
+writeNodeStories :: NodeListStory -> Cmd err ()
+writeNodeStories (NodeStory nls) = do
+  _ <- mapM (\(nId, a) -> upsertNodeArchive nId a) $ Map.toList nls
+  pure ()
   
 -- | Returns a `NodeListStory`, updating the given one for given `NodeId`
 nodeStoryInc :: Maybe NodeListStory -> NodeId -> Cmd err NodeListStory
@@ -96,7 +103,7 @@ nodeStoryInc (Just ns@(NodeStory nls)) nId = do
     Just _ -> pure ns
 
 nodeStoryIncs :: Maybe NodeListStory -> [NodeId] -> Cmd err NodeListStory
-nodeStoryIncs Nothing [] = panic "nodeStoryIncs: Empty"
+nodeStoryIncs Nothing [] = pure $ NodeStory $ Map.empty
 nodeStoryIncs (Just nls) ns = foldM (\m n -> nodeStoryInc (Just m) n) nls ns
 nodeStoryIncs Nothing (ni:ns) = do
   m <- getNodeStory ni
@@ -113,11 +120,6 @@ nodeStoryDec ns@(NodeStory nls) ni = do
       _ <- nodeStoryRemove ni
       pure $ NodeStory ns'
 
--- TODO
--- readNodeStoryEnv
-
--- getRepo from G.A.N.Tools
-
 migrateFromDir :: (HasMail env, HasNodeError err, NS.HasNodeStory env err m, HasDBid NodeType)
                => m ()
 migrateFromDir = do
@@ -131,3 +133,31 @@ migrateFromDir = do
             ) $ Map.toList nls
   _ <- nodeStoryIncs (Just $ NodeStory nls) listIds
   pure ()
+
+------------------------------------
+
+nodeStoryEnv :: IO NodeStoryEnv
+nodeStoryEnv = do
+  mvar <- nodeStoryVar Nothing []
+  saver <- mkNodeStorySaver mvar
+  pure $ NodeStoryEnv { _nse_var    = mvar
+                      , _nse_saver  = saver
+                      , _nse_getter = nodeStoryVar (Just mvar) }
+
+nodeStoryVar :: Maybe (MVar NodeListStory) -> [NodeId] -> IO (MVar NodeListStory)
+nodeStoryVar Nothing nis = (liftBase $ nodeStoryIncs Nothing nis) >>= newMVar
+nodeStoryVar (Just mv) nis = do
+  _ <- modifyMVar_ mv $ \mv' -> (liftBase $ nodeStoryIncs (Just mv') nis)
+  pure mv
+
+mkNodeStorySaver :: MVar NodeListStory -> IO (IO ())
+mkNodeStorySaver mvns = mkDebounce settings
+  where
+    settings = defaultDebounceSettings
+                 { debounceAction = withMVar mvns (liftBase $ writeNodeStories)
+                 , debounceFreq = 1 * minute
+--                 , debounceEdge = trailingEdge -- Trigger on the trailing edge
+                 }
+    minute = 60 * second
+    second = 10^(6 :: Int)
+

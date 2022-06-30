@@ -83,7 +83,7 @@ class HasNodeStorySaver env where
 ------------------------------------------------------------------------
 readNodeStoryEnv :: NodeStoryDir -> IO NodeStoryEnv
 readNodeStoryEnv nsd = do
-  mvar  <- nodeStoryVar nsd Nothing [0]
+  mvar  <- nodeStoryVar nsd Nothing []
   saver <- mkNodeStorySaver nsd mvar
   pure $ NodeStoryEnv { _nse_var = mvar
                       , _nse_saver = saver
@@ -125,7 +125,7 @@ nodeStoryIncs :: NodeStoryDir
               -> Maybe NodeListStory
               -> [NodeId]
               -> IO NodeListStory
-nodeStoryIncs _ Nothing    []        = panic "nodeStoryIncs: Empty"
+nodeStoryIncs _ Nothing    []        = pure $ NodeStory $ Map.empty
 nodeStoryIncs nsd (Just nls) ns      = foldM (\m n -> nodeStoryInc nsd (Just m) n) nls ns
 nodeStoryIncs nsd Nothing    (ni:ns) = do
   m <- nodeStoryRead nsd ni
