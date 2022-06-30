@@ -1,3 +1,6 @@
+## Version 0.0.5.9
+* [FIX] Annuaire Contact Page
+
 ## Version 0.0.5.8.9.9
 * [FIX] Debug Graph Labels
 * [FIX] schema upgraded, use 0.0.5.7.8.sql to upgrade your database
