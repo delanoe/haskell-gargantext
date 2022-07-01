@@ -4,15 +4,15 @@
 module Gargantext.Database.NodeStory where
 
 import Control.Arrow (returnA)
-import Control.Concurrent (MVar(), withMVar, newMVar, modifyMVar_)
-import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
+import Control.Concurrent.MVar.Lifted (MVar(), withMVar, newMVar, modifyMVar_)
+--import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Control.Monad (foldM)
 import qualified Data.Map.Strict as Map
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Gargantext.API.Ngrams.Tools (getRepo)
 import Gargantext.Core (HasDBid)
 import Gargantext.Core.Mail.Types (HasMail)
-import Gargantext.Core.NodeStory (Archive(..), NodeStory(..), NodeStoryEnv(..), NodeListStory, NgramsState', NgramsStatePatch')
+import Gargantext.Core.NodeStory (Archive(..), NodeStory(..), NodeListStory, NgramsState', NgramsStatePatch')
 import qualified Gargantext.Core.NodeStory as NS
 import Gargantext.Core.Types (NodeId(..), NodeType(..))
 import Gargantext.Database.Prelude (Cmd, mkCmd, runOpaQuery)
@@ -131,33 +131,55 @@ migrateFromDir = do
                   False -> pure 0
                   True  -> upsertNodeArchive nId a
             ) $ Map.toList nls
-  _ <- nodeStoryIncs (Just $ NodeStory nls) listIds
+  --_ <- nodeStoryIncs (Just $ NodeStory nls) listIds
   pure ()
 
 ------------------------------------
 
-nodeStoryEnv :: IO NodeStoryEnv
+data NodeStoryEnv err = NodeStoryEnv
+  { _nse_var    :: !(MVar NodeListStory)
+  , _nse_saver  :: !(Cmd err ())
+  , _nse_getter :: [NodeId] -> Cmd err (MVar NodeListStory)
+  --, _nse_cleaner :: !(IO ()) -- every 12 hours: cleans the repos of unused NodeStories
+  -- , _nse_lock  :: !FileLock -- TODO (it depends on the option: if with database or file only)
+  }
+  --deriving (Generic)
+
+
+nodeStoryEnv :: Cmd err (NodeStoryEnv err)
 nodeStoryEnv = do
   mvar <- nodeStoryVar Nothing []
-  saver <- mkNodeStorySaver mvar
+  --saver <- mkNodeStorySaver mvar
+  let saver = mkNodeStorySaver mvar
+  -- let saver = modifyMVar_ mvar $ \mv' -> do
+  --       writeNodeStories mv'
+  --       return mv'
   pure $ NodeStoryEnv { _nse_var    = mvar
                       , _nse_saver  = saver
                       , _nse_getter = nodeStoryVar (Just mvar) }
 
-nodeStoryVar :: Maybe (MVar NodeListStory) -> [NodeId] -> IO (MVar NodeListStory)
-nodeStoryVar Nothing nis = (liftBase $ nodeStoryIncs Nothing nis) >>= newMVar
-nodeStoryVar (Just mv) nis = do
-  _ <- modifyMVar_ mv $ \mv' -> (liftBase $ nodeStoryIncs (Just mv') nis)
+nodeStoryVar :: Maybe (MVar NodeListStory) -> [NodeId] -> Cmd err (MVar NodeListStory)
+nodeStoryVar Nothing nIds = do
+  state <- nodeStoryIncs Nothing nIds
+  newMVar state
+nodeStoryVar (Just mv) nIds = do
+  _ <- modifyMVar_ mv $ \nsl -> (nodeStoryIncs (Just nsl) nIds)
   pure mv
 
-mkNodeStorySaver :: MVar NodeListStory -> IO (IO ())
-mkNodeStorySaver mvns = mkDebounce settings
-  where
-    settings = defaultDebounceSettings
-                 { debounceAction = withMVar mvns (liftBase $ writeNodeStories)
-                 , debounceFreq = 1 * minute
---                 , debounceEdge = trailingEdge -- Trigger on the trailing edge
-                 }
-    minute = 60 * second
-    second = 10^(6 :: Int)
+-- TODO No debounce since this is IO stuff.
+-- debounce is useful since it could delay the saving to some later
+-- time, asynchronously and we keep operating on memory only.
+mkNodeStorySaver :: MVar NodeListStory -> Cmd err ()
+mkNodeStorySaver mvns = withMVar mvns writeNodeStories
+
+-- mkNodeStorySaver :: MVar NodeListStory -> Cmd err (Cmd err ())
+-- mkNodeStorySaver mvns = mkDebounce settings
+--   where
+--     settings = defaultDebounceSettings
+--                  { debounceAction = withMVar mvns (\ns -> writeNodeStories ns)
+--                  , debounceFreq = 1 * minute
+-- --                 , debounceEdge = trailingEdge -- Trigger on the trailing edge
+--                  }
+--     minute = 60 * second
+--     second = 10^(6 :: Int)
 
