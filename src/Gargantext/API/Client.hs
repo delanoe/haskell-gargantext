@@ -66,7 +66,7 @@ getBackendVersion :: ClientM Text
 -- * auth API
 postAuth :: AuthRequest -> ClientM AuthResponse
 forgotPasswordPost :: ForgotPasswordRequest -> ClientM ForgotPasswordResponse
-forgotPasswordGet :: Maybe Text -> ClientM Text
+forgotPasswordGet :: Maybe Text -> ClientM ForgotPasswordGet
 postForgotPasswordAsync :: ClientM (JobStatus 'Safe JobLog)
 postForgotPasswordAsyncJob :: JobInput Maybe ForgotPasswordAsyncParams -> ClientM (JobStatus 'Safe JobLog)
 killForgotPasswordAsyncJob :: JobID 'Unsafe -> Maybe Limit -> Maybe Offset -> ClientM (JobStatus 'Safe JobLog)
