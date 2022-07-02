@@ -182,10 +182,9 @@ computeGraph cId method d nt repo = do
          <$> groupNodesByNgrams ngs
          <$> getContextsByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
 
-  listNgrams <- getListNgrams [lId] nt
-
   graph <- liftBase $ cooc2graphWith method d 0 myCooc
 
+  listNgrams <- getListNgrams [lId] nt
   let graph' = mergeGraphNgrams graph (Just listNgrams)
   -- saveAsFileDebug "/tmp/graphWithNodes" graph'
 
