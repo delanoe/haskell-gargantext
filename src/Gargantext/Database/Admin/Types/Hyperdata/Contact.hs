@@ -103,6 +103,7 @@ data ContactWho =
              , _cw_lastName    :: Maybe Text
              , _cw_keywords :: [Text]
              , _cw_freetags :: [Text]
+             , _cw_description :: Maybe Text
   } deriving (Eq, Show, Generic)
 
 instance GQLType ContactWho where
@@ -120,7 +121,8 @@ contactWho fn ln =
              , _cw_firstName = Just fn
              , _cw_lastName = Just ln
              , _cw_keywords = []
-             , _cw_freetags = [] }
+             , _cw_freetags = []
+             , _cw_description = Nothing }
 
 data ContactWhere =
   ContactWhere { _cw_organization :: [Text]
