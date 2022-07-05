@@ -487,6 +487,7 @@ library
     , transformers-base
     , tuple
     , unordered-containers
+    , uri-encode
     , utf8-string
     , uuid
     , validity
