@@ -91,7 +91,7 @@ bodyWith server (ForgotPassword { user = UserLight { userLight_forgot_password_u
   , forgot_password_link server uuid ]
 
 forgot_password_link :: ServerAddress -> Text -> Text
-forgot_password_link server uuid = server <> "/#/forgot-password?uuid=" <> uuid <> "&server=" <> encodeText server
+forgot_password_link server uuid = server <> "/#/forgotPassword?uuid=" <> uuid <> "&server=" <> encodeText server
 
 ------------------------------------------------------------------------
 email_subject :: MailModel -> Text
