@@ -1,3 +1,7 @@
+## Version 0.0.5.9.1
+* [FIX] Graph self referencing nodes
+* [FIX] Ngrams Table Tree CSS
+
 ## Version 0.0.5.9
 * [FIX] Annuaire Contact Page
 * [WIP] Graph Debug (mergeNgrams enabled again)
