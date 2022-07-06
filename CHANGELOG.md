@@ -1,6 +1,8 @@
 ## Version 0.0.5.9.1
 * [FIX] Graph self referencing nodes
 * [FIX] Ngrams Table Tree CSS
+* [FIX] Ngrams Table Search with enter only
+* [FIX] Graph build: removing mergechildren function for tests
 
 ## Version 0.0.5.9
 * [FIX] Annuaire Contact Page
