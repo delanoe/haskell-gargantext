@@ -175,6 +175,7 @@ doDistanceMap Conditional threshold myCooc = (distanceMap, toIndex ti myCooc', t
     distanceMap = toIndex ti
                 $ Map.fromList
                 $ List.take links
+                $ List.reverse
                 $ List.sortOn snd
                 $ HashMap.toList
                 $ HashMap.filter (> threshold)
