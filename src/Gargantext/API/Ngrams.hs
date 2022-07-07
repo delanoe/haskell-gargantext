@@ -106,7 +106,7 @@ import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
-import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
+import Gargantext.Database.Prelude (HasConnectionPool(..), HasConfig)
 import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngramsType, ngrams_terms)
 import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
@@ -261,7 +261,9 @@ setListNgrams listId ngramsType ns = do
 currentVersion :: HasNodeStory env err m
                => ListId -> m Version
 currentVersion listId = do
-  nls <- getRepo [listId]
+  --nls <- getRepo [listId]
+  pool <- view connPool
+  nls <- liftBase $ getNodeStory pool listId
   pure $ nls ^. unNodeStory . at listId . _Just . a_version
 
 

@@ -9,6 +9,7 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE ViewPatterns      #-}
 
 module Gargantext.Core.Viz.Phylo.Legacy.LegacyMain

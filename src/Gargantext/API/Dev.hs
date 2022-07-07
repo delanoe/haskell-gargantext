@@ -22,7 +22,7 @@ import Gargantext.API.Prelude
 import Gargantext.Core.NodeStory
 import Gargantext.Database.Prelude
 import Gargantext.Prelude
-import Gargantext.Prelude.Config (GargConfig(..), readConfig)
+import Gargantext.Prelude.Config (readConfig)
 import qualified Gargantext.Prelude.Mail as Mail
 import Servant
 import System.IO (FilePath)
@@ -38,8 +38,9 @@ withDevEnv iniPath k = do
     newDevEnv = do
       cfg     <- readConfig         iniPath
       dbParam <- databaseParameters iniPath
-      nodeStory_env <- readNodeStoryEnv (_gc_repofilepath cfg)
+      --nodeStory_env <- readNodeStoryEnv (_gc_repofilepath cfg)
       pool    <- newPool            dbParam
+      nodeStory_env <- readNodeStoryEnv pool
       setts   <- devSettings devJwkFile
       mail    <- Mail.readConfig iniPath
       pure $ DevEnv
@@ -61,7 +62,7 @@ runCmdReplServantErr = runCmdRepl
 -- the command.
 -- This function is constrained to the DevEnv rather than
 -- using HasConnectionPool and HasRepoVar.
-runCmdDev :: (Show err) => DevEnv -> Cmd'' DevEnv err a -> IO a
+runCmdDev :: Show err => DevEnv -> Cmd'' DevEnv err a -> IO a
 runCmdDev env f =
   (either (fail . show) pure =<< runCmd env f)
     `finally`

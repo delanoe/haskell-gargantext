@@ -161,6 +161,7 @@ library
       Gargantext.Core.Methods.Graph.BAC.Proxemy
       Gargantext.Core.Methods.Graph.MaxClique
       Gargantext.Core.Methods.Matrix.Accelerate.Utils
+      Gargantext.Core.NodeStoryFile
       Gargantext.Core.Statistics
       Gargantext.Core.Text.Convert
       Gargantext.Core.Text.Corpus.API.Arxiv
@@ -269,7 +270,6 @@ library
       Gargantext.Database.Admin.Types.Hyperdata.User
       Gargantext.Database.Admin.Types.Metrics
       Gargantext.Database.GargDB
-      Gargantext.Database.NodeStory
       Gargantext.Database.Query
       Gargantext.Database.Query.Facet
       Gargantext.Database.Query.Filter
