@@ -36,6 +36,8 @@ import Data.Array.Accelerate
 import Data.Array.Accelerate.Interpreter (run)
 import qualified Gargantext.Prelude as P
 
+import Debug.Trace (trace)
+
 -- | Matrix cell by cell multiplication
 (.*) :: ( Shape ix
         , Slice ix
@@ -70,7 +72,7 @@ termDivNan :: ( Shape ix
      => Acc (Array ((ix :. Int) :. Int) a)
      -> Acc (Array ((ix :. Int) :. Int) a)
      -> Acc (Array ((ix :. Int) :. Int) a)
-termDivNan = zipWith (\i j -> cond ((==) j 0) 0 ((/) i j))
+termDivNan = trace "termDivNan" $ zipWith (\i j -> cond ((==) j 0) 0 ((/) i j))
 
 (.-) :: ( Shape ix
         , Slice ix
@@ -108,7 +110,7 @@ matrixIdentity n' =
             ones  = fill (index1 n)   1
             n = constant n'
         in
-        permute const zeros (\(unindex1 -> i) -> index2 i i) ones
+        permute const zeros (\(unindex1 -> i) -> Just_ $ index2 i i) ones
 
 
 matrixEye :: Num a => Dim -> Acc (Matrix a)
@@ -117,11 +119,11 @@ matrixEye n' =
             zeros  = fill (index1 n)   0
             n = constant n'
         in
-        permute const ones (\(unindex1 -> i) -> index2 i i) zeros
+        permute const ones (\(unindex1 -> i) -> Just_ $ index2 i i) zeros
 
 
 diagNull :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
-diagNull n m = zipWith (*) m (matrixEye n)
+diagNull n m = trace ("diagNull") $ zipWith (*) m (matrixEye n)
 
 
 -- Returns an N-dimensional array with the values of x for the indices where
@@ -132,7 +134,7 @@ condOrDefault
 condOrDefault theCond def x = permute const zeros filterInd x
   where 
     zeros = fill (shape x) (def)
-    filterInd ix = (cond (theCond ix)) ix ignore
+    filterInd ix = (cond (theCond ix)) (Just_ ix) Nothing_
 
 -----------------------------------------------------------------------
 _runExp :: Elt e => Exp e -> e
@@ -161,7 +163,7 @@ matrix n l = fromList (Z :. n :. n) l
 -- >>> rank (matrix 3 ([1..] :: [Int]))
 -- 2
 rank :: (Matrix a) -> Int
-rank m = arrayRank $ arrayShape m
+rank m = arrayRank m
 
 -----------------------------------------------------------------------
 -- | Dimension of a square Matrix
@@ -240,7 +242,7 @@ divByDiag d mat = zipWith (/) mat (replicate (constant (Z :. (d :: Int) :. All))
 matMiniMax :: (Elt a, Ord a, P.Num a)
            => Acc (Matrix a)
            -> Acc (Matrix a)
-matMiniMax m = filterWith' miniMax' (constant 0) m
+matMiniMax m = trace "matMiniMax" $ filterWith' miniMax' (constant 0) m
   where
     miniMax' = the $ maximum $ minimum m
 
@@ -276,7 +278,7 @@ nullOf n' dir =
             zeros  = fill (index2 n n) 0
             n = constant n'
         in
-        permute const ones ( lift1 ( \(Z :. (i :: Exp Int) :. (_j:: Exp Int))
+        permute const ones ( Just_ . lift1 ( \(Z :. (i :: Exp Int) :. (_j:: Exp Int))
                                                 -> case dir of 
                                                      MatCol m -> (Z :. i :. m)
                                                      MatRow m -> (Z :. m :. i)

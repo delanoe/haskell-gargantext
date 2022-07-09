@@ -14,6 +14,8 @@ Portability : POSIX
 module Gargantext.Core.Viz.Graph.Tools
   where
 
+import Debug.Trace
+
 import Data.Aeson
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
@@ -105,8 +107,8 @@ cooc2graphWith' :: ToComId a
                -> HashMap (NgramsTerm, NgramsTerm) Int
                -> IO Graph
 cooc2graphWith' doPartitions distance threshold myCooc = do
-  let
-    (distanceMap, diag, ti) = doDistanceMap distance threshold myCooc
+  let (distanceMap, diag, ti) = doDistanceMap distance threshold myCooc
+  distanceMap `seq` trace "distanceMap OK" diag `seq` trace "diag OK" ti `seq` printDebug "ti done" ()
 
 --{- -- Debug
   -- saveAsFileDebug "/tmp/distanceMap" distanceMap
@@ -120,7 +122,7 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
                                 , "Maybe you should add more Map Terms in your list"
                                 , "Tutorial: link todo"
                                 ]
-
+  partitions `seq` printDebug "partitions done" ()
   let
     nodesApprox :: Int
     nodesApprox = n'
@@ -129,7 +131,8 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
         n' = Set.size $ Set.fromList $ as <> bs
     bridgeness' = bridgeness (fromIntegral nodesApprox) partitions distanceMap
     confluence' = confluence (Map.keys bridgeness') 3 True False
-
+  seq bridgeness' $ printDebug "bridgeness OK" ()
+  seq confluence' $ printDebug "confluence OK" ()
   pure $ data2graph ti diag bridgeness' confluence' partitions
 
 
@@ -150,20 +153,21 @@ doDistanceMap Distributional threshold myCooc = (distanceMap, toIndex ti diag, t
     (ti, _it) = createIndices theMatrix
     tiSize  = Map.size ti
 
-    similarities = measure Distributional
-                 $ map2mat Square 0 tiSize
-                 $ toIndex ti theMatrix
+    similarities = (\m -> m `seq` trace "measure done" m)
+                 $ (\m -> m `seq` trace "map2mat done" (measure Distributional m))
+                 $ (\m -> m `seq` trace "toIndex done" (map2mat Square 0 tiSize m))
+                 $ theMatrix `seq` trace "theMatrix done" (toIndex ti theMatrix)
 
     links = round (let n :: Double = fromIntegral tiSize in n * (log n)^(2::Int))
 
-    distanceMap = Map.fromList
+    distanceMap = Map.fromList . trace "fromList" identity
                 $ List.take links
                 $ List.reverse
                 $ List.sortOn snd
                 $ Map.toList
                 $ edgesFilter
-                $ Map.filter (> threshold)
-                $ mat2map similarities
+                $ (\m -> m `seq` trace "map2map done" (Map.filter (> threshold) m))
+                $ similarities `seq` mat2map (trace "similarities done" similarities)
 
 doDistanceMap Conditional threshold myCooc = (distanceMap, toIndex ti myCooc', ti)
   where
