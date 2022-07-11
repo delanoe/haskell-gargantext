@@ -1,11 +1,12 @@
 resolver:
  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
-flags: {}
+flags:
+    accelerate:
+        debug: true
 extra-package-dbs: []
 skip-ghc-check: true
 packages:
 - .
-
   #- 'deps/gargantext-graph'
   #- 'deps/haskell-opaleye'
 
@@ -34,7 +35,7 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
   commit: 08096a4913572cf22762fa77613340207ec6d9fd
 - git: https://gitlab.iscpif.fr/gargantext/gargantext-graph.git
-  commit: f68f9e78ff4302f53d0855190574c2d818a00b4d
+  commit: 13131f5173e2e2ab35b968e53f0feaeee13ad8ac
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
@@ -102,12 +103,17 @@ extra-deps:
   commit: 76b795c1eaca37f43418d07da9fbdf5f4e7d8f5c
 
   # Accelerate Linear Algebra and specific instances
-  # (UndecidableInstances for newer GHC version)
-- git: https://gitlab.iscpif.fr/anoe/accelerate.git
-  commit: f5c0e0071ec7b6532f9a9cd3eb33d14f340fbcc9
-- git: https://gitlab.iscpif.fr/anoe/accelerate-utility.git
-  commit: 83ada76e78ac10d9559af8ed6bd4064ec81308e4
-- accelerate-arithmetic-1.0.0.1@sha256:555639232aa5cad411e89247b27871d09352b987a754230a288c690b6de6d888,2096
+- git: https://github.com/alpmestan/accelerate.git
+  commit: 199a1f6594406229d3c5f402443b09d62f92e640
+- git: https://github.com/alpmestan/accelerate-arithmetic.git
+  commit: a110807651036ca2228a76507ee35bbf7aedf87a
+- git: https://gitlab.iscpif.fr/amestanogullari/accelerate-utility.git
+  commit: a3875fe652d3bb5acb522674c22c6c814c1b4ad0
+- git: https://github.com/alpmestan/accelerate-llvm.git
+  commit: 14629a850bb10fd1401e0ac1998df52c86e5c603
+  subdirs:
+    - accelerate-llvm/
+    - accelerate-llvm-native/
 - git: https://github.com/rspeer/wikiparsec.git
   commit: 9637a82344bb70f7fa8f02e75db3c081ccd434ce
 

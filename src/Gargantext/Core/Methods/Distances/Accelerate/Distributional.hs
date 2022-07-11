@@ -46,9 +46,15 @@ module Gargantext.Core.Methods.Distances.Accelerate.Distributional
 -- import qualified Data.Foldable as P (foldl1)
 -- import Debug.Trace (trace)
 import Data.Array.Accelerate as A
-import Data.Array.Accelerate.Interpreter (run)
+-- import Data.Array.Accelerate.Interpreter (run)
+import Data.Array.Accelerate.LLVM.Native (run) -- TODO: try runQ?
 import Gargantext.Core.Methods.Matrix.Accelerate.Utils
 import qualified Gargantext.Prelude as P
+
+import Debug.Trace
+import Prelude (show, mappend{- , String, (<>), fromIntegral, flip -})
+
+import qualified Prelude
 
 -- | `distributional m` returns the distributional distance between terms each
 -- pair of terms as a matrix.  The argument m is the matrix $[n_{ij}]_{i,j}$
@@ -84,10 +90,10 @@ import qualified Gargantext.Prelude as P
 --     8.333333333333333e-2,             4.6875e-2,                1.0,               0.25,
 --       0.3333333333333333, 5.7692307692307696e-2,                1.0,                1.0]
 --
-distributional :: Matrix Int -> Matrix Double
-distributional m' = run result
+distributional :: Matrix Int -> Acc (Matrix Double)
+distributional m' = result
  where
-    m = map fromIntegral $ use m'
+    m = map A.fromIntegral $ use m'
     n = dim m'
 
     diag_m = diag m
@@ -116,7 +122,7 @@ distributional m' = run result
     result = termDivNan z_1 z_2
 
 logDistributional :: Matrix Int -> Matrix Double
-logDistributional m = run
+logDistributional m = trace ("logDistributional, dim=" `mappend` show n) . run
                     $ diagNull n
                     $ matMiniMax
                     $ logDistributional' n m
@@ -124,11 +130,11 @@ logDistributional m = run
     n = dim m
 
 logDistributional' :: Int -> Matrix Int -> Acc (Matrix Double)
-logDistributional' n m' = result
+logDistributional' n m' = trace ("logDistributional'") result
  where
     -- From Matrix Int to Matrix Double, i.e :
     -- m :: Matrix Int -> Matrix Double
-    m = map fromIntegral $ use m'
+    m = map A.fromIntegral $ use m'
 
     -- Scalar. Sum of all elements of m.
     to = the $ sum (flatten m)
@@ -152,25 +158,39 @@ logDistributional' n m' = result
     -- m_{i,j} = log(to * n_{i,j} / s_{i,j}) otherwise.
     mi = (.*) (matrixEye n) 
         (map (lift1 (\x -> cond (x == 0) 0 (log (x * to)))) ((./) m ss))
+    -- mi_nnz :: Int
+    -- mi_nnz = flip indexArray Z . run $
+    --   foldAll (+) 0 $ map (\a -> ifThenElse (abs a < 10^(-6 :: Exp Int)) 0 1) mi
+
+    -- mi_total = n*n
+
+    -- reportMat :: String -> Int -> Int -> String
+    -- reportMat name nnz tot = name <> ": " <> show nnz <> "nnz / " <> show tot <>
+    --                          " | " <> show pc <> "%"
+    --   where pc = 100 * Prelude.fromIntegral nnz / Prelude.fromIntegral tot :: Double
 
     -- Tensor nxnxn. Matrix mi replicated along the 2nd axis.
-    w_1 = replicate (constant (Z :. All :. n :. All)) mi
+    -- w_1 = trace (reportMat "mi" mi_nnz mi_total) $ replicate (constant (Z :. All :. n :. All)) mi
+    -- w1_nnz :: Int
+    -- w1_nnz = flip indexArray Z . run $
+    --   foldAll (+) 0 $ map (\a -> ifThenElse (abs a < 10^(-6 :: Exp Int)) 0 1) w_1
+    -- w1_total = n*n*n
 
     -- Tensor nxnxn. Matrix mi replicated along the 1st axis.
-    w_2 = replicate (constant (Z :. n :. All :. All)) mi
+    -- w_2 = trace (reportMat "w1" w1_nnz w1_total) $ replicate (constant (Z :. n :. All :. All)) mi
 
     -- Tensor nxnxn.
-    w' = zipWith min w_1 w_2
+    -- w' = trace "w'" $ zipWith min w_1 w_2
 
     -- A predicate that is true when the input (i, j, k) satisfy 
     -- k /= i AND k /= j
-    k_diff_i_and_j = lift1 (\(Z :. i :. j :. k) -> ((&&) ((/=) k i) ((/=) k j)))
+    -- k_diff_i_and_j = lift1 (\(Z :. i :. j :. k) -> ((&&) ((/=) k i) ((/=) k j)))
 
     -- Matrix nxn. 
-    sumMin = sum (condOrDefault k_diff_i_and_j 0 w')
+    sumMin = trace "sumMin" $ sumMin_go n mi -- sum (condOrDefault k_diff_i_and_j 0 w')
 
     -- Matrix nxn. All columns are the same.
-    sumM = sum (condOrDefault k_diff_i_and_j 0 w_1)
+    sumM = trace "sumM" $ sumM_go n mi -- trace "sumM" $ sum (condOrDefault k_diff_i_and_j 0 w_1)
 
     result = termDivNan sumMin sumM
 
@@ -202,7 +222,7 @@ distributional'' m = -- run {- $ matMiniMax -}
                        $ filterWith 0 100
                        $ filter' 0
                        $ s_mi
-                       $ map fromIntegral
+                       $ map A.fromIntegral
                           {- from Int to Double -}
                        $ use m
                           {- push matrix in Accelerate type -}
@@ -246,3 +266,70 @@ distriTest :: Int -> Matrix Double
 distriTest n = logDistributional (theMatrixInt n)
 
 
+-- * sparse utils
+
+-- compact repr of "extend along an axis" op?
+-- general sparse repr ?
+
+type Extended sh = sh :. Int
+
+data Ext where
+  Along1 :: Int -> Ext
+  Along2 :: Int -> Ext
+
+along1 :: Int -> Ext
+along1 = Along1
+
+along2 :: Int -> Ext
+along2 = Along2
+
+type Delayed sh a = Exp sh -> Exp a
+
+data ExtArr sh a = ExtArr
+  { extSh  :: Extended sh
+  , extFun :: Delayed (Extended sh) a
+  }
+
+{-
+w_1_{i, j, k} = mi_{i, k}
+w_2_{i, j, k} = mi_{j, k}
+
+w'_{i, j, k} = min  w_1_{i, j, k}  w_2_{i, j, k}
+             = min  mi_{i, k}  mi_{j, k}
+
+w"_{i, j, k} = 0                          if i = k or j = k
+               min  mi_{i, k}  mi_{j, k}  otherwise
+
+w_1'_{i, j, k} = 0          if i = k or j = k
+                 mi_{i, k}  otherwise
+
+sumMin_{i, j} = sum_k of w"_{i, j, k}
+              = sum_k (k /= i && k /= j) of  min  mi_{i, k}  mi_{j, k}
+
+sumM_{i, j} = sum_k of w_1'_{i, j, k}
+            = sum_k (k /= i && k /= j) of mi_{i, k}
+
+-}
+
+sumM_go :: (Elt a, Num a) => Int -> Acc (Array DIM2 a) -> Acc (Array DIM2 a)
+sumM_go n mi = generate (lift (Z :. n :. n)) $ \coord ->
+  let (Z :. i :. j) = unlift coord in
+    Prelude.sum
+      [ cond (constant k /= i && constant k /= j)
+             (mi ! lift (constant Z :. i :. constant k))
+             0
+      | k <- [0 .. n-1]
+      ]
+
+sumMin_go :: (Elt a, Num a, Ord a) => Int -> Acc (Array DIM2 a) -> Acc (Array DIM2 a)
+sumMin_go n mi = generate (constant (Z :. n :. n)) $ \coord ->
+  let (Z :. i :. j) = unlift coord in
+    Prelude.sum
+      [ cond (constant k /= i && constant k /= j)
+             (min
+               (mi ! lift (constant Z :. i :. constant k))
+               (mi ! lift (constant Z :. j :. constant k))
+             )
+             0
+      | k <- [0 .. n-1]
+      ]

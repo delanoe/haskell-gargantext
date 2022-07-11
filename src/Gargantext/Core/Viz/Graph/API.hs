@@ -9,6 +9,7 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedLists   #-}   -- allows to write Map and HashMap as lists
 {-# LANGUAGE TypeOperators     #-}
 
@@ -125,6 +126,7 @@ recomputeGraph :: FlowCmdM env err m
                -> Bool
                -> m Graph
 recomputeGraph _uId nId method maybeDistance force = do
+  printDebug "recomputeGraph begins" (nId, method)
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
@@ -140,15 +142,22 @@ recomputeGraph _uId nId method maybeDistance force = do
 
   mcId <- getClosestParentIdByType nId NodeCorpus
   let cId = maybe (panic "[G.V.G.API] Node has no parent") identity mcId
+  printDebug "recomputeGraph corpus" cId
 
   listId  <- defaultList cId
+  printDebug "recomputeGraph list" listId
   repo <- getRepo [listId]
   let v   = repo ^. unNodeStory . at listId . _Just . a_version
+  printDebug "recomputeGraph got repo, version: " v
 
   let computeG mt = do
+        printDebug "about to run computeGraph" ()
         g <- computeGraph cId method similarity NgramsTerms repo
+        seq g $ printDebug "graph computed" ()
         let g' = set graph_metadata mt g
-        _ <- updateHyperdata nId (HyperdataGraph (Just g') camera)
+        seq g' $ printDebug "computed graph with new metadata" ()
+        nentries <- updateHyperdata nId (HyperdataGraph (Just g') camera)
+        printDebug "graph hyperdata updated" ("entries" :: [Char], nentries)
         pure g'
 
   case graph of
@@ -171,18 +180,22 @@ computeGraph :: FlowCmdM env err m
              -> NodeListStory
              -> m Graph
 computeGraph cId method d nt repo = do
+  printDebug "computeGraph" (cId, method, nt)
   lId  <- defaultList cId
+  printDebug "computeGraph got list id: " lId
   lIds <- selectNodesWithUsername NodeList userMaster
-
+  printDebug "computeGraph got nodes with username: " userMaster
   let ngs = filterListWithRoot [MapTerm]
           $ mapTermListRoot [lId] nt repo
 
-  myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)
+  !myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)
          <$> getCoocByNgrams (Diagonal True)
          <$> groupNodesByNgrams ngs
          <$> getContextsByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
+  printDebug "computeGraph got coocs" (HashMap.size myCooc)
 
   graph <- liftBase $ cooc2graphWith method d 0 myCooc
+  printDebug "computeGraph got graph" ()
 
   --listNgrams <- getListNgrams [lId] nt
   --let graph' = mergeGraphNgrams graph (Just listNgrams)

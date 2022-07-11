@@ -110,8 +110,9 @@ updateNode uId nId (UpdateNodeParamsGraph metric method) logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-
+  printDebug "Computing graph: " method
   _ <- recomputeGraph uId nId method (Just metric) True
+  printDebug "Graph computed: " method
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
