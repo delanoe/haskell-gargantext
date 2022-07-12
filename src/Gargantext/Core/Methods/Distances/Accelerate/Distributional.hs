@@ -39,6 +39,7 @@ where $n_{ij}$ is the cooccurrence between term $i$ and term $j$
 {-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns        #-}
+{-# LANGUAGE GADTs               #-}
 
 module Gargantext.Core.Methods.Distances.Accelerate.Distributional
   where
