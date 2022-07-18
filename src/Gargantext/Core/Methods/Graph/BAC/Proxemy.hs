@@ -24,6 +24,7 @@ import qualified Data.Map as Map
 import qualified Data.List as List
 --import Gargantext.Core.Viz.Graph.IGraph
 import Gargantext.Core.Viz.Graph.FGL
+-- import qualified Graph.BAC.ProxemyOptim   as BAC
 
 type Length = Int
 type FalseReflexive = Bool

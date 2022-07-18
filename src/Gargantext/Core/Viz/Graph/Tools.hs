@@ -26,7 +26,7 @@ import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Methods.Distances (Distance(..), measure)
 import Gargantext.Core.Methods.Distances.Conditional (conditional)
-import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
+-- import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
@@ -130,10 +130,11 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
         (as, bs) = List.unzip $ Map.keys distanceMap
         n' = Set.size $ Set.fromList $ as <> bs
     bridgeness' = bridgeness (fromIntegral nodesApprox) partitions distanceMap
-    confluence' = confluence (Map.keys bridgeness') 3 True False
+    confluence' = Map.empty -- confluence (Map.keys bridgeness') 3 True False
   seq bridgeness' $ printDebug "bridgeness OK" ()
-  seq confluence' $ printDebug "confluence OK" ()
-  saveAsFileDebug "/tmp/confluence" confluence'
+  saveAsFileDebug "/tmp/bridgeness" bridgeness'
+  --seq confluence' $ printDebug "confluence OK" ()
+  --saveAsFileDebug "/tmp/confluence" confluence'
   let g = data2graph ti diag bridgeness' confluence' partitions
   saveAsFileDebug "/tmp/graph" g
   pure g
