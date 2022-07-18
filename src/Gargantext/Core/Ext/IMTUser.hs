@@ -169,7 +169,8 @@ imtUser2gargContact (IMTUser { id
                      , _cw_firstName = prenom
                      , _cw_lastName = nom
                      , _cw_keywords = catMaybes [service]
-                     , _cw_freetags = [] }
+                     , _cw_freetags = []
+                     , _cw_description = Nothing }
     ou  = ContactWhere { _cw_organization = toList entite
                        , _cw_labTeamDepts = toList service
                        , _cw_role = fonction

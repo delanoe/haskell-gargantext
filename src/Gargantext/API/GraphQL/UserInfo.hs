@@ -34,6 +34,7 @@ import Gargantext.Database.Admin.Types.Hyperdata.Contact
   , cw_organization
   , cw_role
   , cw_touch
+  , cw_description
   , ct_mail
   , ct_phone
   , hc_who
@@ -64,6 +65,7 @@ data UserInfo = UserInfo
   , ui_cwRole         :: Maybe Text
   , ui_cwTouchPhone   :: Maybe Text
   , ui_cwTouchMail    :: Maybe Text  -- TODO: Remove. userLight_email should be used instead
+  , ui_cwDescription  :: Maybe Text
   }
   deriving (Generic, GQLType, Show)
 
@@ -91,7 +93,8 @@ data UserInfoMArgs
     , ui_cwOffice       :: Maybe Text
     , ui_cwRole         :: Maybe Text
     , ui_cwTouchPhone   :: Maybe Text
-    , ui_cwTouchMail    :: Maybe Text 
+    , ui_cwTouchMail    :: Maybe Text
+    , ui_cwDescription  :: Maybe Text
     } deriving (Generic, GQLType)
 
 type GqlM e env = Resolver QUERY e (GargM env GargError)
@@ -132,6 +135,7 @@ updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
                             uh ui_cwRoleL ui_cwRole $
                             uh ui_cwTouchMailL ui_cwTouchMail $
                             uh ui_cwTouchPhoneL ui_cwTouchPhone $
+                            uh ui_cwDescriptionL ui_cwDescription
                             u_hyperdata
           -- NOTE: We have 1 username and 2 emails: userLight_email and ui_cwTouchMail
           -- The userLight_email is more important: it is used for login and sending mail.
@@ -179,7 +183,8 @@ toUser (UserLight { .. }, u_hyperdata) =
            , ui_cwRole         = u_hyperdata ^. ui_cwRoleL
            --, ui_cwTouchMail    = u_hyperdata ^. ui_cwTouchMailL
            , ui_cwTouchMail    = Just userLight_email
-           , ui_cwTouchPhone   = u_hyperdata ^. ui_cwTouchPhoneL }
+           , ui_cwTouchPhone   = u_hyperdata ^. ui_cwTouchPhoneL
+           , ui_cwDescription  = u_hyperdata ^. ui_cwDescriptionL }
 
 sharedL :: Traversal' HyperdataUser HyperdataContact
 sharedL = hu_shared . _Just
@@ -213,3 +218,5 @@ ui_cwTouchMailL = hu_shared . _Just . (hc_where . (ix 0) . cw_touch . _Just . ct
 ui_cwTouchPhoneL :: Traversal' HyperdataUser (Maybe Text)
 ui_cwTouchPhoneL = hu_shared . _Just . (hc_where . (ix 0) . cw_touch . _Just . ct_phone)
 --ui_cwTouchPhoneL = contactWhereL . cw_touch . _Just . ct_phone
+ui_cwDescriptionL :: Traversal' HyperdataUser (Maybe Text)
+ui_cwDescriptionL = contactWhoL . cw_description
