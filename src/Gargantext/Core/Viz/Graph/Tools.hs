@@ -133,8 +133,10 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
     confluence' = confluence (Map.keys bridgeness') 3 True False
   seq bridgeness' $ printDebug "bridgeness OK" ()
   seq confluence' $ printDebug "confluence OK" ()
-  pure $ data2graph ti diag bridgeness' confluence' partitions
-
+  saveAsFileDebug "/tmp/confluence" confluence'
+  let g = data2graph ti diag bridgeness' confluence' partitions
+  saveAsFileDebug "/tmp/graph" g
+  pure g
 
 doDistanceMap :: Distance
               -> Threshold
