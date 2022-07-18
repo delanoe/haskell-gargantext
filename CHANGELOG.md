@@ -1,3 +1,10 @@
+## Version 0.0.5.9.2
+* [FEAT] User description field to User page
+* [FIX] Ngrams Table cache on
+* [FEAT] Ngrams Status change from Phylo Explorer
+* [OPTIM] Graph Order 2 generation
+* [FIX] Forgot password improvement
+
 ## Version 0.0.5.9.1
 * [FIX] Graph self referencing nodes
 * [FIX] Ngrams Table Tree CSS
