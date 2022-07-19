@@ -1,3 +1,6 @@
+## Version 0.0.5.9.3
+* [FEAT] Graph options with Links Strength
+
 ## Version 0.0.5.9.2
 * [FEAT] User description field to User page
 * [FIX] Ngrams Table cache on
