@@ -76,7 +76,8 @@ instance ToSchema Edge where
 data LegendField = LegendField { _lf_id :: Int
                                , _lf_color :: Text
                                , _lf_label :: Text
-   } deriving (Show, Generic)
+                               }
+  deriving (Show, Generic)
 $(deriveJSON (unPrefix "_lf_") ''LegendField)
 
 instance ToSchema LegendField where
@@ -96,10 +97,22 @@ instance ToSchema ListForGraph where
 
 makeLenses ''ListForGraph
 
---
+data Strength = Strong | Weak
+    deriving (Generic, Eq, Ord, Enum, Bounded, Show)
+
+$(deriveJSON (unPrefix "") ''Strength)
+instance ToSchema Strength where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
+
+instance Arbitrary Strength where
+  arbitrary = elements $ [Strong, Weak]
+
+
+
 data GraphMetadata =
   GraphMetadata { _gm_title            :: Text          -- title of the graph
                 , _gm_metric           :: GraphMetric
+                , _gm_edgesStrength    :: Maybe Strength
                 , _gm_corpusId         :: [NodeId]      -- we can map with different corpus
                 , _gm_legend           :: [LegendField] -- legend of the Graph
                 , _gm_list             :: ListForGraph
@@ -111,6 +124,7 @@ $(deriveJSON (unPrefix "_gm_") ''GraphMetadata)
 instance ToSchema GraphMetadata where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_gm_")
 makeLenses ''GraphMetadata
+
 
 
 data Graph = Graph { _graph_nodes    :: [Node]

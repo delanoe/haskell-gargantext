@@ -28,6 +28,7 @@ import Gargantext.API.Ngrams.List (reIndexWith)
 import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core.Methods.Distances (GraphMetric(..))
 import Gargantext.Core.Types.Main (ListType(..))
+import Gargantext.Core.Viz.Graph (Strength)
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
 import Gargantext.Core.Viz.Graph.Tools (PartitionMethod(..))
 import Gargantext.Core.Viz.Phylo (PhyloSubConfig(..), subConfig2config)
@@ -59,8 +60,9 @@ type API = Summary " Update node according to NodeType params"
 ------------------------------------------------------------------------
 data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: !Method      }
 
-                      | UpdateNodeParamsGraph { methodGraphMetric     :: !GraphMetric 
-                                              , methodGraphClustering :: !PartitionMethod
+                      | UpdateNodeParamsGraph { methodGraphMetric        :: !GraphMetric
+                                              , methodGraphClustering    :: !PartitionMethod
+                                              , methodGraphEdgesStrength :: !Strength
                                               }
 
                       | UpdateNodeParamsTexts { methodTexts :: !Granularity }
@@ -103,7 +105,7 @@ updateNode :: (HasSettings env, FlowCmdM env err m)
     -> UpdateNodeParams
     -> (JobLog -> m ())
     -> m JobLog
-updateNode uId nId (UpdateNodeParamsGraph metric method) logStatus = do
+updateNode uId nId (UpdateNodeParamsGraph metric method strength) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
@@ -111,7 +113,7 @@ updateNode uId nId (UpdateNodeParamsGraph metric method) logStatus = do
                    , _scst_events    = Just []
                    }
   printDebug "Computing graph: " method
-  _ <- recomputeGraph uId nId method (Just metric) True
+  _ <- recomputeGraph uId nId method (Just metric) (Just strength) True
   printDebug "Graph computed: " method
 
   pure  JobLog { _scst_succeeded = Just 2
@@ -272,7 +274,7 @@ instance ToSchema  UpdateNodeParams
 instance Arbitrary UpdateNodeParams where
   arbitrary = do
     l <- UpdateNodeParamsList  <$> arbitrary
-    g <- UpdateNodeParamsGraph <$> arbitrary <*> arbitrary
+    g <- UpdateNodeParamsGraph <$> arbitrary <*> arbitrary <*> arbitrary
     t <- UpdateNodeParamsTexts <$> arbitrary
     b <- UpdateNodeParamsBoard <$> arbitrary
     elements [l,g,t,b]
