@@ -11,7 +11,7 @@ Ngrams API
 
 -- | TODO
 get ngrams filtered by NgramsType
-add get 
+add get
 
 -}
 
@@ -284,13 +284,16 @@ commitStatePatch :: (HasNodeStory env err m, HasMail env)
                  => ListId
                  ->    Versioned NgramsStatePatch'
                  -> m (Versioned NgramsStatePatch')
-commitStatePatch listId (Versioned p_version p) = do
+commitStatePatch listId (Versioned _p_version p) = do
   -- printDebug "[commitStatePatch]" listId
   var <- getNodeStoryVar [listId]
   vq' <- liftBase $ modifyMVar var $ \ns -> do
     let
       a = ns ^. unNodeStory . at listId . _Just
-      q = mconcat $ take (a ^. a_version - p_version) (a ^. a_history)
+      -- apply patches from version p_version to a ^. a_version
+      -- TODO Check this
+      --q = mconcat $ take (a ^. a_version - p_version) (a ^. a_history)
+      q = mconcat $ a ^. a_history
       (p', q') = transformWith ngramsStatePatchConflictResolution p q
       a' = a & a_version +~ 1
              & a_state   %~ act p'
@@ -810,5 +813,3 @@ listNgramsChangedSince listId ngramsType version
       Versioned <$> currentVersion listId <*> pure True
   | otherwise   =
       tableNgramsPull listId ngramsType version & mapped . v_data %~ (== mempty)
-
-

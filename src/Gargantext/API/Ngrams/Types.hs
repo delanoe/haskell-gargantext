@@ -28,7 +28,8 @@ import Data.String (IsString, fromString)
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text, pack, strip)
 import Data.Validity
-import Database.PostgreSQL.Simple.FromField (FromField, fromField, ResultError(ConversionFailed), returnError)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField, fromJSONField, ResultError(ConversionFailed), returnError)
+import Database.PostgreSQL.Simple.ToField (ToField, toJSONField, toField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..), ListId, NodeId, TODO)
@@ -524,7 +525,11 @@ instance Serialise (PatchMap NgramsTerm NgramsPatch)
 
 instance FromField NgramsTablePatch
   where
-    fromField = fromField'
+    fromField = fromJSONField
+    --fromField = fromField'
+instance ToField NgramsTablePatch
+  where
+    toField = toJSONField
 
 instance FromField (PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTablePatch))
   where

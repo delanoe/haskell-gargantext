@@ -210,4 +210,3 @@ putListNgrams nodeId ngramsType nes = putListNgrams' nodeId ngramsType m
                  & unNodeStory . at listId . _Just . a_history %~ (p :)
                  & unNodeStory . at listId . _Just . a_state . at ngramsType' .~ Just ns
       saveNodeStory
-

@@ -117,9 +117,9 @@ makeMockApp env = do
             blocking <- fireWall req (env ^. menv_firewall)
             case blocking  of
                 True  -> app req resp
-                False -> resp ( responseLBS status401 [] 
+                False -> resp ( responseLBS status401 []
                               "Invalid Origin or Host header")
-        
+
     let corsMiddleware = cors $ \_ -> Just CorsResourcePolicy
 --          { corsOrigins        = Just ([env^.settings.allowedOrigin], False)
             { corsOrigins        = Nothing --  == /*
@@ -135,7 +135,7 @@ makeMockApp env = do
 
     --let warpS = Warp.setPort (8008 :: Int)   -- (env^.settings.appPort)
     --          $ Warp.defaultSettings
-    
+
     --pure (warpS, logWare $ checkOriginAndHost $ corsMiddleware $ serverApp)
     pure $ logStdoutDev $ checkOriginAndHost $ corsMiddleware $ serverApp
 -}
@@ -149,7 +149,7 @@ makeDevMiddleware mode = do
 --            blocking <- fireWall req (env ^. menv_firewall)
 --            case blocking  of
 --                True  -> app req resp
---                False -> resp ( responseLBS status401 [] 
+--                False -> resp ( responseLBS status401 []
 --                              "Invalid Origin or Host header")
 --
     let corsMiddleware = cors $ \_ -> Just CorsResourcePolicy
