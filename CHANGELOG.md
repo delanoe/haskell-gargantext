@@ -1,3 +1,7 @@
+## Version 0.0.5.9.4
+* [FIX] Arxiv API fix
+* [DESIGN/ERGO] Tree node position highlight
+
 ## Version 0.0.5.9.3
 * [FEAT] Graph options with Links Strength
 
