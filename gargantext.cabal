@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-version: 0.0.5.9.3
+version:        0.0.5.9.3
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
@@ -347,7 +347,6 @@ library
     , aeson-lens
     , aeson-pretty
     , array
-    , arxiv
     , async
     , attoparsec
     , auto-update

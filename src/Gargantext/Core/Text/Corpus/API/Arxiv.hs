@@ -35,8 +35,8 @@ type Limit = Arxiv.Limit
 -- | TODO put default pubmed query in gargantext.ini
 -- by default: 10K docs
 get :: Lang -> Query -> Maybe Limit -> IO (Either ClientError (Maybe Integer, ConduitT () HyperdataDocument IO ()))
-get la q l = do
-  (cnt, resC) <- Arxiv.apiSimpleC l [Text.unpack q]
+get la q _l = do
+  (cnt, resC) <- Arxiv.apiSimpleC Nothing [Text.unpack q]
   pure $ Right (Just $ fromIntegral cnt, resC .| mapC (toDoc la))
 
 toDoc :: Lang -> Arxiv.Result -> HyperdataDocument

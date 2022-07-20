@@ -134,7 +134,6 @@ library:
   - aeson-lens
   - aeson-pretty
   - array
-  - arxiv
   - async
   - attoparsec
   - auto-update
