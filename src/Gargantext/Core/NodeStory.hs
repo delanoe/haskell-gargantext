@@ -10,6 +10,30 @@ Portability : POSIX
 A Node Story is a Map between NodeId and an Archive (with state,
 version and history) for that node.
 
+Couple of words on how this is implemented.
+
+First version used files which stored Archive for each NodeId in a
+separate .cbor file.
+
+For performance reasons, it is rewritten to use the DB.
+
+The table `node_stories` contains two columns: `node_id` and
+`archive`.
+
+Next, it was observed that `a_history` in `Archive` takes much
+space. So a new table was created, `node_story_archive_history` with
+columns: `node_id`, `ngrams_type_id`, `patch`. This is because each
+history item is in fact a map from `NgramsType` to `NgramsTablePatch`
+(see the `NgramsStatePatch'` type).
+
+Moreover, since in ~G.A.Ngrams.commitStatePatch~ we use current state
+only, with only recent history items, I concluded that it is not
+necessary to load whole history into memory. Instead, it is kept in DB
+(history is immutable) and only recent changes are added to
+`a_history`. Then that record is cleared whenever `Archive` is saved.
+
+Please note that
+
 TODO:
 - remove
 - filter
@@ -54,10 +78,10 @@ module Gargantext.Core.NodeStory
 where
 
 -- import Debug.Trace (traceShow)
---import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
+import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Codec.Serialise.Class
 import Control.Arrow (returnA)
-import Control.Concurrent (MVar(), {-withMVar,-} newMVar, modifyMVar_)
+import Control.Concurrent (MVar(), withMVar, newMVar, modifyMVar_)
 import Control.Exception (catch, throw, SomeException(..))
 import Control.Lens (makeLenses, Getter, (^.), (.~), traverse)
 import Control.Monad.Except
@@ -171,7 +195,6 @@ instance (Semigroup s, Semigroup p) => Semigroup (Archive s p) where
             , _a_state = s'
             , _a_history = p' <> p }
 
--- instance Monoid (Archive NgramsState' NgramsStatePatch') where
 instance (Monoid s, Semigroup p) => Monoid (Archive s p) where
   mempty = Archive { _a_version = 0
                    , _a_state = mempty
@@ -307,7 +330,9 @@ getNodeStory pool (NodeId nodeId) = do
 insertNodeArchive :: Pool PGS.Connection -> NodeId -> ArchiveQ -> IO Int64
 insertNodeArchive pool nodeId@(NodeId nId) (Archive {..}) = do
   ret <- withResource pool $ \c -> runInsert c insert
-  insertNodeArchiveHistory pool nodeId _a_history
+  -- NOTE: It is assumed that the most recent change is the first in the
+  -- list, so we save these in reverse order
+  insertNodeArchiveHistory pool nodeId $ reverse _a_history
   pure ret
   where
     emptyHistory = [] :: [NgramsStatePatch']
@@ -321,7 +346,9 @@ insertNodeArchive pool nodeId@(NodeId nId) (Archive {..}) = do
 updateNodeArchive :: Pool PGS.Connection -> NodeId -> ArchiveQ -> IO Int64
 updateNodeArchive pool nodeId@(NodeId nId) (Archive {..}) = do
   ret <- withResource pool $ \c -> runUpdate c update
-  insertNodeArchiveHistory pool nodeId _a_history
+  -- NOTE: It is assumed that the most recent change is the first in the
+  -- list, so we save these in reverse order
+  insertNodeArchiveHistory pool nodeId $ reverse _a_history
   pure ret
   where
     emptyHistory = [] :: [NgramsStatePatch']
@@ -383,13 +410,13 @@ nodeStoryIncs pool Nothing (ni:ns) = do
 readNodeStoryEnv :: Pool PGS.Connection -> IO NodeStoryEnv
 readNodeStoryEnv pool = do
   mvar <- nodeStoryVar pool Nothing []
-  -- saver <- mkNodeStorySaver pool mvar
-  let saver = modifyMVar_ mvar $ \mv -> do
-        writeNodeStories pool mv
-        printDebug "[readNodeStoryEnv] saver" mv
-        let mv' = clearHistory mv
-        printDebug "[readNodeStoryEnv] saver, cleared" mv'
-        return mv'
+  saver <- mkNodeStorySaver pool mvar
+  -- let saver = modifyMVar_ mvar $ \mv -> do
+  --       writeNodeStories pool mv
+  --       printDebug "[readNodeStoryEnv] saver" mv
+  --       let mv' = clearHistory mv
+  --       printDebug "[readNodeStoryEnv] saver, cleared" mv'
+  --       return mv'
   pure $ NodeStoryEnv { _nse_var    = mvar
                       , _nse_saver  = saver
                       , _nse_getter = nodeStoryVar pool (Just mvar) }
@@ -402,10 +429,8 @@ nodeStoryVar pool (Just mv) nIds = do
   _ <- modifyMVar_ mv $ \nsl -> (nodeStoryIncs pool (Just nsl) nIds)
   pure mv
 
--- TODO No debounce since this is IO stuff.
--- debounce is useful since it could delay the saving to some later
+-- Debounce is useful since it could delay the saving to some later
 -- time, asynchronously and we keep operating on memory only.
-{-
 mkNodeStorySaver :: Pool PGS.Connection -> MVar NodeListStory -> IO (IO ())
 mkNodeStorySaver pool mvns = mkDebounce settings
   where
@@ -413,17 +438,13 @@ mkNodeStorySaver pool mvns = mkDebounce settings
                  { debounceAction = do
                      withMVar mvns (\ns -> writeNodeStories pool ns)
                      withMVar mvns (\ns -> printDebug "[mkNodeStorySaver] debounce nodestory" ns)
-                     modifyMVar_ mvns $ \ns -> pure $ clearAHistoryToInsert ns
+                     modifyMVar_ mvns $ \ns -> pure $ clearHistory ns
                  , debounceFreq = 1*minute
                  }
     minute = 60*second
     second = 10^(6 :: Int)
--}
 
 clearHistory :: NodeListStory -> NodeListStory
--- clearHistory (NodeStory ns) =
-
---   NodeStory $ Map.map (\(Archive { .. }) -> Archive { _a_history_to_insert = emptyHistory, .. }) ns
 clearHistory (NodeStory ns) = NodeStory $ ns & (traverse . a_history) .~ emptyHistory
   where
     emptyHistory = [] :: [NgramsStatePatch']
