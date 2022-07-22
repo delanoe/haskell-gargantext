@@ -12,8 +12,9 @@ import Control.Concurrent (MVar(), modifyMVar_, newMVar, readMVar, withMVar)
 import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Gargantext.Core.NodeStory hiding (readNodeStoryEnv)
 import Gargantext.Core.Types (ListId, NodeId(..))
-import Gargantext.Database.Prelude (CmdM)
+import Gargantext.Database.Prelude (CmdM, hasConfig)
 import Gargantext.Prelude
+import Gargantext.Prelude.Config (gc_repofilepath)
 import System.Directory (renameFile, createDirectoryIfMissing, doesFileExist, removeFile)
 import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
@@ -34,10 +35,11 @@ getRepo listIds = do
   -- v' <- liftBase $ readMVar v
   -- pure $ v'
 
-getRepoNoEnv :: (CmdM env err m)
-             => NodeStoryDir -> [ListId] -> m NodeListStory
-getRepoNoEnv dir listIds = do
-  env <- liftBase $ readNodeStoryEnv dir
+getRepoReadConfig :: (CmdM env err m)
+             => [ListId] -> m NodeListStory
+getRepoReadConfig listIds = do
+  repoFP <- view $ hasConfig . gc_repofilepath
+  env <- liftBase $ readNodeStoryEnv repoFP
   let g = view nse_getter env
   liftBase $ do
     v <- g listIds

@@ -23,10 +23,9 @@ import Data.Set (Set)
 import Data.Validity
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListType(..), NodeId, NodeType(..), ListId)
-import Gargantext.Database.Prelude (CmdM, HasConnectionPool(..), hasConfig)
+import Gargantext.Database.Prelude (CmdM, HasConnectionPool(..))
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
-import Gargantext.Prelude.Config (gc_repofilepath)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
@@ -205,8 +204,7 @@ migrateFromDirToDb = do
   pool <- view connPool
   listIds <- liftBase $ getNodesIdWithType pool NodeList
   printDebug "[migrateFromDirToDb] listIds" listIds
-  repoFP <- view $ hasConfig . gc_repofilepath
-  (NodeStory nls) <- NSF.getRepoNoEnv repoFP listIds
+  (NodeStory nls) <- NSF.getRepoReadConfig listIds
   printDebug "[migrateFromDirToDb] nls" nls
   _ <- mapM (\(nId, a) -> do
                 n <- liftBase $ nodeExists pool nId
