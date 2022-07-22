@@ -30,6 +30,7 @@ import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
 import Gargantext.Core.NodeStory
+import qualified Gargantext.Core.NodeStoryFile as NSF
 
 
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
@@ -198,11 +199,13 @@ getCoocByNgrams' f (Diagonal diag) m =
 
 
 migrateFromDirToDb :: (CmdM env err m, HasNodeStory env err m)
-                   => m ()
-migrateFromDirToDb = do
+                   => NSF.NodeStoryDir ->  m ()
+migrateFromDirToDb dir = do
   pool <- view connPool
   listIds <- liftBase $ getNodesIdWithType pool NodeList
-  (NodeStory nls) <- getRepo listIds
+  printDebug "[migrateFromDirToDb] listIds" listIds
+  (NodeStory nls) <- NSF.getRepoNoEnv dir listIds
+  printDebug "[migrateFromDirToDb] nls" nls
   _ <- mapM (\(nId, a) -> do
                 n <- liftBase $ nodeExists pool nId
                 case n of

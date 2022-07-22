@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.API.Dev
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org

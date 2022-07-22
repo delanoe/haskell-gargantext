@@ -7,11 +7,12 @@ module Gargantext.Core.NodeStoryFile where
 import Control.Lens (view)
 import Control.Monad (foldM)
 import Codec.Serialise (serialise, deserialise)
-import Codec.Serialise.Class 
+import Codec.Serialise.Class
 import Control.Concurrent (MVar(), modifyMVar_, newMVar, readMVar, withMVar)
 import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
-import Gargantext.Core.NodeStory
+import Gargantext.Core.NodeStory hiding (readNodeStoryEnv)
 import Gargantext.Core.Types (ListId, NodeId(..))
+import Gargantext.Database.Prelude (CmdM)
 import Gargantext.Prelude
 import System.Directory (renameFile, createDirectoryIfMissing, doesFileExist, removeFile)
 import System.IO (FilePath, hClose)
@@ -25,10 +26,22 @@ import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 getRepo :: HasNodeStory env err m
          => [ListId] -> m NodeListStory
 getRepo listIds = do
-  f <- getNodeListStory
-  v  <- liftBase $ f listIds
-  v' <- liftBase $ readMVar v
-  pure $ v'
+  g <- getNodeListStory
+  liftBase $ do
+    v <- g listIds
+    readMVar v
+  -- v  <- liftBase $ f listIds
+  -- v' <- liftBase $ readMVar v
+  -- pure $ v'
+
+getRepoNoEnv :: (CmdM env err m)
+             => NodeStoryDir -> [ListId] -> m NodeListStory
+getRepoNoEnv dir listIds = do
+  env <- liftBase $ readNodeStoryEnv dir
+  let g = view nse_getter env
+  liftBase $ do
+    v <- g listIds
+    readMVar v
 
 getNodeListStory :: HasNodeStory env err m
                  => m ([NodeId] -> IO (MVar NodeListStory))
@@ -184,7 +197,7 @@ repoToNodeListStory (Repo _v s h) = NodeStory $ Map.fromList ns
 ngramsState_migration :: NgramsState
                       -> Map NodeId NgramsState'
 ngramsState_migration ns =
-  Map.fromListWith (Map.union) $ 
+  Map.fromListWith (Map.union) $
   List.concat $
     map (\(nt, nTable)
           -> map (\(nid, table)
@@ -200,7 +213,7 @@ ngramsStatePatch_migration np' = Map.fromListWith (<>)
                                $ map toPatch np'
   where
     toPatch :: NgramsStatePatch -> [(NodeId, [NgramsStatePatch'])]
-    toPatch p = 
+    toPatch p =
       List.concat $
         map (\(nt, nTable)
               -> map (\(nid, table)
