@@ -1,4 +1,4 @@
-{-| 
+{-|
 Module      : Gargantext.API.Admin.Settings
 Description : Settings of the API (Server and Client)
 Copyright   : (c) CNRS, 2017-Present
