@@ -1,3 +1,50 @@
+## Version 0.0.5.9.4
+* [FIX] Arxiv API fix
+* [DESIGN/ERGO] Tree node position highlight
+
+## Version 0.0.5.9.3
+* [FEAT] Graph options with Links Strength
+
+## Version 0.0.5.9.2
+* [FEAT] User description field to User page
+* [FIX] Ngrams Table cache on
+* [FEAT] Ngrams Status change from Phylo Explorer
+* [OPTIM] Graph Order 2 generation
+* [FIX] Forgot password improvement
+
+## Version 0.0.5.9.1
+* [FIX] Graph self referencing nodes
+* [FIX] Ngrams Table Tree CSS
+* [FIX] Ngrams Table Search with enter only
+* [FIX] Graph build: removing mergechildren function for tests
+
+## Version 0.0.5.9
+* [FIX] Annuaire Contact Page
+* [WIP] Graph Debug (mergeNgrams enabled again)
+
+## Version 0.0.5.8.9.9
+* [FIX] Debug Graph Labels
+* [FIX] schema upgraded, use 0.0.5.7.8.sql to upgrade your database
+* [FEAT] Script to create and sending email to user: invitation
+
+## Version 0.0.5.8.9.8
+* [ERGO] NgramsTable, change group and search for ngrams to add
+* [FIX] Board, Source Chart fix
+
+## Version 0.0.5.8.9.7
+* [FEAT] Infomap Clustering
+
+## Version 0.0.5.8.9.6
+* [FIX] IsTex crawler working with basic queries (i.e. without quotes)
+
+## Version 0.0.5.8.9.5
+* [FIX] FrontEnd maybe ParentId
+* [FIX] IsTex crawler
+
+## Version 0.0.5.8.9.4
+* [FE] [FEAT] Phylo Explorer, interactions with documents
+* [FE] [ERGO] Fonts in Ngrams Table
+
 ## Version 0.0.5.8.9.3
 * [BE] [FIX] garg password function
 * [FE] [FIX] Trees closing/opening issue

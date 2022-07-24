@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-version:        0.0.5.8.9.3
+version: 0.0.5.9.4
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
@@ -221,6 +221,7 @@ library
       Gargantext.Core.Viz.Graph.FGL
       Gargantext.Core.Viz.Graph.GEXF
       Gargantext.Core.Viz.Graph.Legend
+      Gargantext.Core.Viz.Graph.Tools.Infomap
       Gargantext.Core.Viz.Graph.Types
       Gargantext.Core.Viz.Graph.Utils
       Gargantext.Core.Viz.LegacyPhylo
@@ -341,12 +342,12 @@ library
     , Unique
     , accelerate
     , accelerate-arithmetic
+    , accelerate-llvm-native
     , accelerate-utility
     , aeson
     , aeson-lens
     , aeson-pretty
     , array
-    , arxiv
     , async
     , attoparsec
     , auto-update
@@ -393,6 +394,7 @@ library
     , hashable
     , haskell-igraph
     , hlcm
+    , hsinfomap
     , hsparql
     , hstatistics
     , http-api-data
@@ -686,6 +688,33 @@ executable gargantext-init
       Paths_gargantext
   hs-source-dirs:
       bin/gargantext-init
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
+  build-depends:
+      base
+    , extra
+    , gargantext
+    , gargantext-prelude
+    , text
+  default-language: Haskell2010
+
+executable gargantext-invitations
+  main-is: Main.hs
+  other-modules:
+      Paths_gargantext
+  hs-source-dirs:
+      bin/gargantext-invitations
   default-extensions:
       DataKinds
       DeriveGeneric

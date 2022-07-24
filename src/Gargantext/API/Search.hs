@@ -272,7 +272,7 @@ instance ToHyperdataRow HyperdataDocument where
       , _hr_uniqIdBdd = fromMaybe "" _hd_uniqIdBdd }
 
 instance ToHyperdataRow HyperdataContact where
-  toHyperdataRow (HyperdataContact { _hc_who = Just (ContactWho _ fn ln _ _), _hc_where = ou} ) =
+  toHyperdataRow (HyperdataContact { _hc_who = Just (ContactWho _ fn ln _ _ _), _hc_where = ou} ) =
     HyperdataRowContact (fromMaybe "FirstName" fn) (fromMaybe "LastName" ln) ou'
       where
         ou' = maybe "CNRS" (Text.intercalate " " . _cw_organization) (head ou)

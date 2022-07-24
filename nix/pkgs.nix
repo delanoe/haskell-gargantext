@@ -1,11 +1,12 @@
-{ pkgs ? import ./pinned-21.05.nix {} }:
+{ pkgs ? import ./pinned-22.05.nix {} }:
 
 rec {
   inherit pkgs;
-  ghc = pkgs.haskell.compiler.ghc8104;
+  ghc = pkgs.haskell.compiler.ghc8107;
   hsBuildInputs = [
     ghc
     pkgs.cabal-install
+    pkgs.haskellPackages.llvm-hs
   ];
   nonhsBuildInputs = with pkgs; [
     bzip2
@@ -30,6 +31,8 @@ rec {
     expat
     icu
     graphviz
+    libffi
+    llvmPackages_9.llvm
   ];
   libPaths = pkgs.lib.makeLibraryPath nonhsBuildInputs;
   shellHook = ''

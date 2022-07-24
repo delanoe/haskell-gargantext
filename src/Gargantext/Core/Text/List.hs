@@ -320,7 +320,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
           <>-} groupedMultTail
 
     -- Quick FIX
-    candNgramsElement = List.take 5000
+    candNgramsElement = List.take 1000
                       $ toNgramsElement cands <> toNgramsElement cands'
 
     result = Map.unionsWith (<>)

@@ -9,6 +9,7 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedLists   #-}   -- allows to write Map and HashMap as lists
 {-# LANGUAGE TypeOperators     #-}
 
@@ -103,8 +104,9 @@ getGraph _uId nId = do
     Nothing     -> do
         let defaultMetric          = Order1
         let defaultPartitionMethod = Spinglass
-        graph' <- computeGraph cId defaultPartitionMethod (withMetric defaultMetric) NgramsTerms repo
-        mt     <- defaultGraphMetadata cId "Title" repo defaultMetric
+        let defaultEdgesStrength   = Strong
+        graph' <- computeGraph cId defaultPartitionMethod (withMetric defaultMetric) defaultEdgesStrength NgramsTerms repo
+        mt     <- defaultGraphMetadata cId "Title" repo defaultMetric defaultEdgesStrength
         let
           graph'' = set graph_metadata (Just mt) graph'
           hg = HyperdataGraphAPI graph'' camera
@@ -122,9 +124,11 @@ recomputeGraph :: FlowCmdM env err m
                -> NodeId
                -> PartitionMethod
                -> Maybe GraphMetric
+               -> Maybe Strength
                -> Bool
                -> m Graph
-recomputeGraph _uId nId method maybeDistance force = do
+recomputeGraph _uId nId method maybeDistance maybeStrength force = do
+  printDebug "recomputeGraph begins" (nId, method)
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
@@ -138,22 +142,35 @@ recomputeGraph _uId nId method maybeDistance force = do
                    Nothing -> withMetric Order1
                    Just m  -> withMetric m
 
+    strength = case maybeStrength of
+                   Nothing -> case graph ^? _Just . graph_metadata . _Just . gm_edgesStrength of
+                        Nothing  -> Strong
+                        Just  mr -> fromMaybe Strong mr
+                   Just r  -> r
+
   mcId <- getClosestParentIdByType nId NodeCorpus
   let cId = maybe (panic "[G.V.G.API] Node has no parent") identity mcId
+  printDebug "recomputeGraph corpus" cId
 
   listId  <- defaultList cId
+  printDebug "recomputeGraph list" listId
   repo <- getRepo [listId]
   let v   = repo ^. unNodeStory . at listId . _Just . a_version
+  printDebug "recomputeGraph got repo, version: " v
 
   let computeG mt = do
-        g <- computeGraph cId method similarity NgramsTerms repo
+        printDebug "about to run computeGraph" ()
+        g <- computeGraph cId method similarity strength NgramsTerms repo
+        seq g $ printDebug "graph computed" ()
         let g' = set graph_metadata mt g
-        _ <- updateHyperdata nId (HyperdataGraph (Just g') camera)
+        seq g' $ printDebug "computed graph with new metadata" ()
+        nentries <- updateHyperdata nId (HyperdataGraph (Just g') camera)
+        printDebug "graph hyperdata updated" ("entries" :: [Char], nentries)
         pure g'
 
   case graph of
     Nothing     -> do
-      mt     <- defaultGraphMetadata cId "Title" repo (fromMaybe Order1 maybeDistance)
+      mt     <- defaultGraphMetadata cId "Title" repo (fromMaybe Order1 maybeDistance) strength
       g <- computeG $ Just mt
       pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" g
     Just graph' -> if (listVersion == Just v) && (not force)
@@ -167,29 +184,33 @@ computeGraph :: FlowCmdM env err m
              => CorpusId
              -> PartitionMethod
              -> Distance
+             -> Strength
              -> NgramsType
              -> NodeListStory
              -> m Graph
-computeGraph cId method d nt repo = do
+computeGraph cId method d strength nt repo = do
+  printDebug "computeGraph" (cId, method, nt)
   lId  <- defaultList cId
+  printDebug "computeGraph got list id: " lId
   lIds <- selectNodesWithUsername NodeList userMaster
-
+  printDebug "computeGraph got nodes with username: " userMaster
   let ngs = filterListWithRoot [MapTerm]
           $ mapTermListRoot [lId] nt repo
 
-  myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)
+  !myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)
          <$> getCoocByNgrams (Diagonal True)
          <$> groupNodesByNgrams ngs
          <$> getContextsByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
+  printDebug "computeGraph got coocs" (HashMap.size myCooc)
 
-  listNgrams <- getListNgrams [lId] nt
+  graph <- liftBase $ cooc2graphWith method d 0 strength myCooc
+  printDebug "computeGraph got graph" ()
 
-  graph <- liftBase $ cooc2graphWith method d 0 myCooc
-
-  let graph' = mergeGraphNgrams graph (Just listNgrams)
+  --listNgrams <- getListNgrams [lId] nt
+  --let graph' = mergeGraphNgrams graph (Just listNgrams)
   -- saveAsFileDebug "/tmp/graphWithNodes" graph'
 
-  pure graph'
+  pure graph
 
 
 defaultGraphMetadata :: HasNodeError err
@@ -197,23 +218,24 @@ defaultGraphMetadata :: HasNodeError err
                      -> Text
                      -> NodeListStory
                      -> GraphMetric
+                     -> Strength
                      -> Cmd err GraphMetadata
-defaultGraphMetadata cId t repo gm = do
+defaultGraphMetadata cId t repo gm str = do
   lId  <- defaultList cId
 
-  pure $ GraphMetadata {
-      _gm_title = t
-    , _gm_metric = gm
-    , _gm_corpusId = [cId]
-    , _gm_legend = [
-          LegendField 1 "#FFF" "Cluster1"
-        , LegendField 2 "#FFF" "Cluster2"
-        , LegendField 3 "#FFF" "Cluster3"
-        , LegendField 4 "#FFF" "Cluster4"
-        ]
-      , _gm_list = (ListForGraph lId (repo ^. unNodeStory . at lId . _Just . a_version))
-      , _gm_startForceAtlas = True
-    }
+  pure $ GraphMetadata { _gm_title         = t
+                       , _gm_metric        = gm
+                       , _gm_edgesStrength = Just str
+                       , _gm_corpusId      = [cId]
+                       , _gm_legend = [
+                             LegendField 1 "#FFF" "Cluster1"
+                           , LegendField 2 "#FFF" "Cluster2"
+                           , LegendField 3 "#FFF" "Cluster3"
+                           , LegendField 4 "#FFF" "Cluster4"
+                           ]
+                       , _gm_list  = (ListForGraph lId (repo ^. unNodeStory . at lId . _Just . a_version))
+                       , _gm_startForceAtlas = True
+                       }
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
 
 ------------------------------------------------------------
@@ -243,7 +265,7 @@ graphRecompute u n logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _g <- trace (show u) $ recomputeGraph u n Spinglass Nothing False
+  _g <- trace (show u) $ recomputeGraph u n Spinglass Nothing Nothing False
   pure  JobLog { _scst_succeeded = Just 1
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
@@ -298,7 +320,7 @@ recomputeVersions :: FlowCmdM env err m
                   => UserId
                   -> NodeId
                   -> m Graph
-recomputeVersions uId nId = recomputeGraph uId nId Spinglass Nothing False
+recomputeVersions uId nId = recomputeGraph uId nId Spinglass Nothing Nothing False
 
 ------------------------------------------------------------
 graphClone :: UserId

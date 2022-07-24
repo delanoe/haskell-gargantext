@@ -14,6 +14,8 @@ Portability : POSIX
 module Gargantext.Core.Viz.Graph.Tools
   where
 
+import Debug.Trace
+
 import Data.Aeson
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
@@ -24,12 +26,13 @@ import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Methods.Distances (Distance(..), measure)
 import Gargantext.Core.Methods.Distances.Conditional (conditional)
-import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
+-- import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
+import Gargantext.Core.Viz.Graph.Tools.Infomap (infomap)
 import Gargantext.Core.Viz.Graph.Utils (edgesFilter)
 import Gargantext.Prelude
 import Graph.Types (ClusterNode)
@@ -47,7 +50,7 @@ import qualified IGraph                   as Igraph
 import qualified IGraph.Algorithms.Layout as Layout
 
 
-data PartitionMethod = Spinglass | Confluence
+data PartitionMethod = Spinglass | Confluence | Infomap
     deriving (Generic, Eq, Ord, Enum, Bounded, Show)
 instance FromJSON  PartitionMethod
 instance ToJSON    PartitionMethod
@@ -89,21 +92,25 @@ cooc2graph' distance threshold myCooc
 cooc2graphWith :: PartitionMethod
                -> Distance
                -> Threshold
+               -> Strength
                -> HashMap (NgramsTerm, NgramsTerm) Int
                -> IO Graph
 cooc2graphWith Spinglass = cooc2graphWith' (spinglass 1)
 cooc2graphWith Confluence= cooc2graphWith' (\x -> pure $ BAC.defaultClustering x)
+cooc2graphWith Infomap   = cooc2graphWith' (infomap "--silent --two-level -N2")
+                        -- TODO: change these options, or make them configurable in UI?
 
 
 cooc2graphWith' :: ToComId a
                => Partitions a
                -> Distance
                -> Threshold
+               -> Strength
                -> HashMap (NgramsTerm, NgramsTerm) Int
                -> IO Graph
-cooc2graphWith' doPartitions distance threshold myCooc = do
-  let
-    (distanceMap, diag, ti) = doDistanceMap distance threshold myCooc
+cooc2graphWith' doPartitions distance threshold strength myCooc = do
+  let (distanceMap, diag, ti) = doDistanceMap distance threshold strength myCooc
+  distanceMap `seq` trace "distanceMap OK" diag `seq` trace "diag OK" ti `seq` printDebug "ti done" ()
 
 --{- -- Debug
   -- saveAsFileDebug "/tmp/distanceMap" distanceMap
@@ -117,7 +124,7 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
                                 , "Maybe you should add more Map Terms in your list"
                                 , "Tutorial: link todo"
                                 ]
-
+  partitions `seq` printDebug "partitions done" ()
   let
     nodesApprox :: Int
     nodesApprox = n'
@@ -125,19 +132,26 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
         (as, bs) = List.unzip $ Map.keys distanceMap
         n' = Set.size $ Set.fromList $ as <> bs
     bridgeness' = bridgeness (fromIntegral nodesApprox) partitions distanceMap
-    confluence' = confluence (Map.keys bridgeness') 3 True False
+    confluence' = Map.empty -- confluence (Map.keys bridgeness') 3 True False
+  seq bridgeness' $ printDebug "bridgeness OK" ()
+  saveAsFileDebug "/tmp/bridgeness" bridgeness'
+  --seq confluence' $ printDebug "confluence OK" ()
+  --saveAsFileDebug "/tmp/confluence" confluence'
+  let g = data2graph ti diag bridgeness' confluence' partitions
+  --saveAsFileDebug "/tmp/graph" g
+  pure g
 
-  pure $ data2graph ti diag bridgeness' confluence' partitions
-
+type Reverse = Bool
 
 doDistanceMap :: Distance
               -> Threshold
+              -> Strength
               -> HashMap (NgramsTerm, NgramsTerm) Int
               -> ( Map (Int,Int) Double
                  , Map (Index, Index) Int
                  , Map NgramsTerm Index
                  )
-doDistanceMap Distributional threshold myCooc = (distanceMap, toIndex ti diag, ti)
+doDistanceMap Distributional threshold strength myCooc = (distanceMap, toIndex ti diag, ti)
   where
     -- TODO remove below
     (diag, theMatrix) = Map.partitionWithKey (\(x,y) _ -> x == y)
@@ -147,22 +161,23 @@ doDistanceMap Distributional threshold myCooc = (distanceMap, toIndex ti diag, t
     (ti, _it) = createIndices theMatrix
     tiSize  = Map.size ti
 
-    similarities = measure Distributional
-                 $ map2mat Square 0 tiSize
-                 $ toIndex ti theMatrix
+    similarities = (\m -> m `seq` trace "measure done" m)
+                 $ (\m -> m `seq` trace "map2mat done" (measure Distributional m))
+                 $ (\m -> m `seq` trace "toIndex done" (map2mat Square 0 tiSize m))
+                 $ theMatrix `seq` trace "theMatrix done" (toIndex ti theMatrix)
 
     links = round (let n :: Double = fromIntegral tiSize in n * (log n)^(2::Int))
 
-    distanceMap = Map.fromList
+    distanceMap = Map.fromList . trace "fromList" identity
                 $ List.take links
-                $ List.reverse
+                $ (if strength == Weak then List.reverse else identity)
                 $ List.sortOn snd
                 $ Map.toList
                 $ edgesFilter
-                $ Map.filter (> threshold)
-                $ mat2map similarities
+                $ (\m -> m `seq` trace "map2map done" (Map.filter (> threshold) m))
+                $ similarities `seq` mat2map (trace "similarities done" similarities)
 
-doDistanceMap Conditional threshold myCooc = (distanceMap, toIndex ti myCooc', ti)
+doDistanceMap Conditional threshold strength myCooc = (distanceMap, toIndex ti myCooc', ti)
   where
     myCooc' = Map.fromList $ HashMap.toList myCooc
     (ti, _it) = createIndices myCooc'
@@ -172,6 +187,7 @@ doDistanceMap Conditional threshold myCooc = (distanceMap, toIndex ti myCooc', t
     distanceMap = toIndex ti
                 $ Map.fromList
                 $ List.take links
+                $ (if strength == Weak then List.reverse else identity)
                 $ List.sortOn snd
                 $ HashMap.toList
                 $ HashMap.filter (> threshold)
@@ -321,17 +337,15 @@ filterByNeighbours threshold distanceMap = filteredMap
     indexes = List.nub $ List.concat $ map (\(idx,idx') -> [idx,idx'] ) $ Map.keys distanceMap
     filteredMap :: Map (Index, Index) Double
     filteredMap = Map.fromList
-                $ List.concat 
-                $ map (\idx -> 
+                $ List.concat
+                $ map (\idx ->
                           let selected = List.reverse
                                        $ List.sortOn snd
-                                       $ Map.toList 
+                                       $ Map.toList
                                        $ Map.filter (> 0)
                                        $ Map.filterWithKey (\(from,_) _ -> idx == from) distanceMap
                            in List.take (round threshold) selected
                       ) indexes
-
-
 
 
 
