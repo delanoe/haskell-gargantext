@@ -1,3 +1,7 @@
+## Version 0.0.5.9.5
+* [FRONT][FIX] View Document List fix CSS
+* [FRONT][FIX] Node Modal fix
+
 ## Version 0.0.5.9.4
 * [FIX] Arxiv API fix
 * [DESIGN/ERGO] Tree node position highlight
