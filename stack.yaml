@@ -100,7 +100,7 @@ extra-deps:
 - git: https://github.com/alpmestan/haskell-igraph.git
   commit: 9f55eb36639c8e0965c8bc539a57738869f33e9a
 - git: https://gitlab.iscpif.fr/gargantext/haskell-infomap.git
-  commit: 76b795c1eaca37f43418d07da9fbdf5f4e7d8f5c
+  commit: 6d1d60b952b9b2b272b58fc5539700fd8890ac88
 
   # Accelerate Linear Algebra and specific instances
 - git: https://github.com/alpmestan/accelerate.git
@@ -110,7 +110,7 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/amestanogullari/accelerate-utility.git
   commit: a3875fe652d3bb5acb522674c22c6c814c1b4ad0
 - git: https://github.com/alpmestan/accelerate-llvm.git
-  commit: 08eaa8ee771dde88b3dcf37a89b31777f1ca4910
+  commit: aa4dcfe09c8dd94002117efff51cf452bf23c2db
   subdirs:
     - accelerate-llvm/
     - accelerate-llvm-native/

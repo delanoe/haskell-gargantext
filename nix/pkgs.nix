@@ -1,8 +1,8 @@
-{ pkgs ? import ./pinned-21.11.nix {} }:
+{ pkgs ? import ./pinned-22.05.nix {} }:
 
 rec {
   inherit pkgs;
-  ghc = pkgs.haskell.compiler.ghc8107;
+  ghc = pkgs.haskell.compiler.ghc8104;
   hsBuildInputs = [
     ghc
     pkgs.cabal-install
@@ -17,6 +17,7 @@ rec {
     #haskell-language-server
     hlint
     igraph
+    libffi
     liblapack
     lzma
     pcre
@@ -30,8 +31,7 @@ rec {
     expat
     icu
     graphviz
-    llvm
-    libllvm
+    llvm_9
   ];
   libPaths = pkgs.lib.makeLibraryPath nonhsBuildInputs;
   shellHook = ''
