@@ -89,7 +89,7 @@ import Control.Monad.Reader
 import Data.Aeson hiding ((.=), decode)
 import Data.ByteString.Char8 (hPutStrLn)
 import Data.Map.Strict (Map)
-import Data.Maybe (mapMaybe)
+import Data.Maybe (catMaybes, mapMaybe)
 import Data.Monoid
 import Data.Pool (Pool, withResource)
 import Data.Semigroup
@@ -294,21 +294,34 @@ nodeStorySelect = selectTable nodeStoryTable
 getNodeArchiveHistory :: Pool PGS.Connection -> NodeId -> IO [NgramsStatePatch']
 getNodeArchiveHistory pool nodeId = do
   as <- runPGSQuery pool query (nodeId, True)
-  let asTuples = mapMaybe (\(ngrams_type_id, patch) -> (\ntId -> (ntId, patch)) <$> (TableNgrams.fromNgramsTypeId ngrams_type_id)) as
-  pure $ (\(ntId, patch) -> fst $ PM.singleton ntId patch) <$> asTuples
+  let asTuples = mapMaybe (\(ngrams_type_id, ngrams, patch) -> (\ntId -> (ntId, ngrams, patch)) <$> (TableNgrams.fromNgramsTypeId ngrams_type_id)) as
+  pure $ (\(ntId, terms, patch) -> fst $ PM.singleton ntId (NgramsTablePatch $ fst $ PM.singleton terms patch)) <$> asTuples
   where
     query :: PGS.Query
-    query = [sql|SELECT ngrams_type_id, patch FROM node_story_archive_history WHERE node_id = ? AND ? |]
+    query = [sql|SELECT ngrams_type_id, terms, patch
+                   FROM node_story_archive_history
+                   JOIN ngrams ON ngrams.id = ngrams_id
+                   WHERE node_id = ? AND ? |]
 
 insertNodeArchiveHistory :: Pool PGS.Connection -> NodeId -> [NgramsStatePatch'] -> IO ()
 insertNodeArchiveHistory _ _ [] = pure ()
 insertNodeArchiveHistory pool nodeId (h:hs) = do
-  _ <- runPGSExecuteMany pool query $ (\(nType, patch) -> (nodeId, TableNgrams.ngramsTypeId nType, patch)) <$> (PM.toList h)
+  let tuples = mconcat $ (\(nType, (NgramsTablePatch patch)) ->
+                           (\(term, p) ->
+                              (nodeId, TableNgrams.ngramsTypeId nType, term, p)) <$> PM.toList patch) <$> PM.toList h :: [(NodeId, TableNgrams.NgramsTypeId, NgramsTerm, NgramsPatch)]
+  tuplesM <- mapM (\(nId, nTypeId, term, patch) -> do
+                      ngrams <- runPGSQuery pool ngramsQuery (term, True)
+                      pure $ (\(PGS.Only termId) -> (nId, nTypeId, termId, term, patch)) <$> (headMay ngrams)
+                      ) tuples :: IO [Maybe (NodeId, TableNgrams.NgramsTypeId, Int, NgramsTerm, NgramsPatch)]
+  _ <- runPGSExecuteMany pool query $ ((\(nId, nTypeId, termId, _term, patch) -> (nId, nTypeId, termId, patch)) <$> (catMaybes tuplesM))
   _ <- insertNodeArchiveHistory pool nodeId hs
   pure ()
   where
+    ngramsQuery :: PGS.Query
+    ngramsQuery = [sql| SELECT id FROM ngrams WHERE terms = ? AND ? |]
+
     query :: PGS.Query
-    query = [sql| INSERT INTO node_story_archive_history(node_id, ngrams_type_id, patch) VALUES (?, ?, ?) |]
+    query = [sql| INSERT INTO node_story_archive_history(node_id, ngrams_type_id, ngrams_id, patch) VALUES (?, ?, ?, ?) |]
 
 getNodeStory :: Pool PGS.Connection -> NodeId -> IO NodeListStory
 getNodeStory pool (NodeId nodeId) = do
