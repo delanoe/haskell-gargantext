@@ -110,7 +110,7 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/amestanogullari/accelerate-utility.git
   commit: a3875fe652d3bb5acb522674c22c6c814c1b4ad0
 - git: https://github.com/alpmestan/accelerate-llvm.git
-  commit: aa4dcfe09c8dd94002117efff51cf452bf23c2db
+  commit: 944f5a4aea35ee6aedb81ea754bf46b131fce9e3
   subdirs:
     - accelerate-llvm/
     - accelerate-llvm-native/

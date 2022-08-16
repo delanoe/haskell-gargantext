@@ -151,7 +151,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/alpmestan/accelerate-llvm.git
-  tag: aa4dcfe09c8dd94002117efff51cf452bf23c2db
+  tag: 944f5a4aea35ee6aedb81ea754bf46b131fce9e3
   subdir: accelerate-llvm/ accelerate-llvm-native/
 
 source-repository-package
