@@ -135,7 +135,7 @@ allDataOrigins = map InternalOrigin API.externalAPIs
 ---------------
 data DataText = DataOld ![NodeId]
               | DataNew !(Maybe Integer, ConduitT () HyperdataDocument IO ())
-              -- | DataNew ![[HyperdataDocument]]
+              --- | DataNew ![[HyperdataDocument]]
 
 -- Show instance is not possible because of IO
 printDataText :: DataText -> IO ()
