@@ -111,6 +111,7 @@ library
       Gargantext.API.GraphQL.AsyncTask
       Gargantext.API.GraphQL.IMT
       Gargantext.API.GraphQL.Node
+      Gargantext.API.GraphQL.Team
       Gargantext.API.GraphQL.TreeFirstLevel
       Gargantext.API.GraphQL.User
       Gargantext.API.GraphQL.UserInfo
