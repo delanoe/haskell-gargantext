@@ -1,3 +1,9 @@
+## Version 0.0.5.9.6
+* [BACK][FIX] Nix build ok
+* [BACK][OPTI] Confluence optimization
+* [FRONT][GACK][FEAT] Team management
+* [FRONT][FEAT] Legend for graph
+
 ## Version 0.0.5.9.5
 * [FRONT][FIX] View Document List fix CSS
 * [FRONT][FIX] Node Modal fix
