@@ -2,4 +2,4 @@
 
 #stack install --nix --profile --test --fast --no-install-ghc --skip-ghc-check
 
-env LANG=C.UTF-8 stack install --haddock --nix --test --no-install-ghc --skip-ghc-check
+env LANG=C.UTF-8 stack install --haddock --nix --test --no-install-ghc --skip-ghc-check --no-haddock-deps

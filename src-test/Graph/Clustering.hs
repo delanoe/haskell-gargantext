@@ -14,7 +14,7 @@ Portability : POSIX
 module Graph.Clustering where
 
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
-import Gargantext.Core.Viz.Graph (Graph(..))
+import Gargantext.Core.Viz.Graph (Graph(..), Strength(..))
 import Gargantext.Core.Viz.Graph.Tools (doDistanceMap)
 import Gargantext.Core.Viz.Graph.Tools.IGraph (spinglass)
 import Gargantext.Prelude
@@ -35,7 +35,7 @@ test :: IO ()
 test = hspec $ do
   describe "Cross" $ do
     let
-      (distanceMap,_,_) = doDistanceMap Conditional 0 myCooc
+      (distanceMap,_,_) = doDistanceMap Conditional 0 Weak myCooc
     it "Partition test" $ do
       partitions <- spinglass 1 distanceMap
       let
