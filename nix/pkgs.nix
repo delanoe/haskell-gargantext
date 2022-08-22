@@ -18,6 +18,7 @@ rec {
     #haskell-language-server
     hlint
     igraph
+    libffi
     liblapack
     lzma
     pcre
@@ -31,8 +32,7 @@ rec {
     expat
     icu
     graphviz
-    libffi
-    llvmPackages_9.llvm
+    llvm_9
   ];
   libPaths = pkgs.lib.makeLibraryPath nonhsBuildInputs;
   shellHook = ''

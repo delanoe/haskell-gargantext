@@ -1,6 +1,7 @@
 packages: .
 
 allow-newer: base, accelerate, servant, time, classy-prelude
+allow-newer: binary, primitive, vector
 
 -- Patches
 source-repository-package
@@ -61,11 +62,26 @@ source-repository-package
   location: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
   tag: 020f5f9b308f5c23c925aedf5fb11f8b4728fb19
 
+source-repository-package
+  type: git
+  location: https://gitlab.iscpif.fr/gargantext/crawlers/arxiv-api.git
+  tag: f3e517cc40d92e282c5245b23d253d2ca3f802e5
+
 -- Graphs
 source-repository-package
   type: git
   location: https://github.com/alpmestan/haskell-igraph.git
   tag: 9f55eb36639c8e0965c8bc539a57738869f33e9a
+
+source-repository-package
+  type: git
+  location: https://gitlab.iscpif.fr/gargantext/haskell-infomap.git
+  tag: 6d1d60b952b9b2b272b58fc5539700fd8890ac88
+
+source-repository-package
+  type: git
+  location: https://gitlab.iscpif.fr/gargantext/gargantext-graph.git
+  tag: f41ee8b53c3264e5aa5adc06b2e5b293d2a8c474
 
 -- Data mining
 source-repository-package
@@ -116,16 +132,33 @@ source-repository-package
   tag: fc24987d3af348a677748f226e48d64779a694e9
 
 
--- Accelerate
+-- numerical computing
 source-repository-package
   type: git
-  location: https://gitlab.iscpif.fr/anoe/accelerate.git
-  tag: f5c0e0071ec7b6532f9a9cd3eb33d14f340fbcc9
+  location: https://github.com/alpmestan/accelerate.git
+  tag: 640b5af87cea94b61c7737d878e6f7f2fca5c015
 
 source-repository-package
   type: git
-  location: https://gitlab.iscpif.fr/anoe/accelerate-utility.git
-  tag: 83ada76e78ac10d9559af8ed6bd4064ec81308e4
+  location: https://gitlab.iscpif.fr/amestanogullari/accelerate-utility.git
+  tag: a3875fe652d3bb5acb522674c22c6c814c1b4ad0
+
+source-repository-package
+  type: git
+  location: https://github.com/alpmestan/accelerate-arithmetic.git
+  tag: a110807651036ca2228a76507ee35bbf7aedf87a
+
+source-repository-package
+  type: git
+  location: https://github.com/alpmestan/accelerate-llvm.git
+  tag: 944f5a4aea35ee6aedb81ea754bf46b131fce9e3
+  subdir: accelerate-llvm/ accelerate-llvm-native/
+
+source-repository-package
+  type: git
+  location: https://github.com/alpmestan/hmatrix.git
+  tag: b9fca8beee0f23c17a6b2001ec834d071709e6e7
+  subdir: packages/base/
 
 
 -- Wikidata 
@@ -135,7 +168,22 @@ source-repository-package
   tag: 9637a82344bb70f7fa8f02e75db3c081ccd434ce
 
 
+-- numerical computing
+source-repository-package
+  type: git
+  location: https://github.com/alpmestan/sparse-linear.git
+  tag: bc6ca8058077b0b5702ea4b88bd4189cfcad267a
+  subdir: sparse-linear/
+
+
 constraints: unordered-containers==0.2.14.*,
              servant-ekg==0.3.1,
              time==1.9.3,
-             stm==2.5.0.1
+             stm==2.5.0.1,
+             vector==0.12.3.0,
+             eigen==3.3.7.0,
+             cborg==0.2.6.0,
+             primitive==0.7.3.0
+
+package accelerate
+        flags: +debug
