@@ -2,7 +2,7 @@
 
 rec {
   inherit pkgs;
-  ghc = pkgs.haskell.compiler.ghc8104;
+  ghc = pkgs.haskell.compiler.ghc8107;
   hsBuildInputs = [
     ghc
     pkgs.cabal-install
