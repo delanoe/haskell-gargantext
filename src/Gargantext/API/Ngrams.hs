@@ -11,7 +11,7 @@ Ngrams API
 
 -- | TODO
 get ngrams filtered by NgramsType
-add get 
+add get
 
 -}
 
@@ -106,7 +106,7 @@ import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast')
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
-import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
+import Gargantext.Database.Prelude (HasConnectionPool(..), HasConfig)
 import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngramsType, ngrams_terms)
 import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
@@ -261,7 +261,9 @@ setListNgrams listId ngramsType ns = do
 currentVersion :: HasNodeStory env err m
                => ListId -> m Version
 currentVersion listId = do
-  nls <- getRepo [listId]
+  --nls <- getRepo [listId]
+  pool <- view connPool
+  nls <- liftBase $ getNodeStory pool listId
   pure $ nls ^. unNodeStory . at listId . _Just . a_version
 
 
@@ -282,13 +284,16 @@ commitStatePatch :: (HasNodeStory env err m, HasMail env)
                  => ListId
                  ->    Versioned NgramsStatePatch'
                  -> m (Versioned NgramsStatePatch')
-commitStatePatch listId (Versioned p_version p) = do
+commitStatePatch listId (Versioned _p_version p) = do
   -- printDebug "[commitStatePatch]" listId
   var <- getNodeStoryVar [listId]
   vq' <- liftBase $ modifyMVar var $ \ns -> do
     let
       a = ns ^. unNodeStory . at listId . _Just
-      q = mconcat $ take (a ^. a_version - p_version) (a ^. a_history)
+      -- apply patches from version p_version to a ^. a_version
+      -- TODO Check this
+      --q = mconcat $ take (a ^. a_version - p_version) (a ^. a_history)
+      q = mconcat $ a ^. a_history
       (p', q') = transformWith ngramsStatePatchConflictResolution p q
       a' = a & a_version +~ 1
              & a_state   %~ act p'
@@ -808,5 +813,3 @@ listNgramsChangedSince listId ngramsType version
       Versioned <$> currentVersion listId <*> pure True
   | otherwise   =
       tableNgramsPull listId ngramsType version & mapped . v_data %~ (== mempty)
-
-

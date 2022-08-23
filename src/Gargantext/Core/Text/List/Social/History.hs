@@ -68,5 +68,3 @@ history' types lists = (Map.map (Map.unionsWith (<>)))
           -> Map NgramsType [HashMap NgramsTerm NgramsPatch]
     toMap m = Map.map (cons . unNgramsTablePatch)
             $ unPatchMapToMap m
-
-

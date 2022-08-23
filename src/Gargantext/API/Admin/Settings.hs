@@ -1,4 +1,4 @@
-{-| 
+{-|
 Module      : Gargantext.API.Admin.Settings
 Description : Settings of the API (Server and Client)
 Copyright   : (c) CNRS, 2017-Present
@@ -27,7 +27,7 @@ import Data.Maybe (fromMaybe)
 import Data.Pool (Pool, createPool)
 import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
 import Gargantext.Core.NodeStory
-import Gargantext.Prelude.Config (GargConfig(..), {-gc_repofilepath,-} readConfig)
+import Gargantext.Prelude.Config ({-GargConfig(..),-} {-gc_repofilepath,-} readConfig)
 import Network.HTTP.Client.TLS (newTlsManager)
 import Servant.Auth.Server (defaultJWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
 import Servant.Client (parseBaseUrl)
@@ -180,7 +180,8 @@ newEnv port file = do
   self_url_env  <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   dbParam       <- databaseParameters file
   pool          <- newPool dbParam
-  nodeStory_env <- readNodeStoryEnv (_gc_repofilepath config_env)
+  --nodeStory_env <- readNodeStoryEnv (_gc_repofilepath config_env)
+  nodeStory_env <- readNodeStoryEnv pool
   scrapers_env  <- newJobEnv defaultSettings manager_env
   logger        <- newStderrLoggerSet defaultBufSize
   config_mail   <- Mail.readConfig file

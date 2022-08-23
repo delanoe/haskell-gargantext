@@ -28,7 +28,8 @@ import Data.String (IsString, fromString)
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text, pack, strip)
 import Data.Validity
-import Database.PostgreSQL.Simple.FromField (FromField, fromField, ResultError(ConversionFailed), returnError)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField, fromJSONField, ResultError(ConversionFailed), returnError)
+import Database.PostgreSQL.Simple.ToField (ToField, toJSONField, toField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..), ListId, NodeId, TODO)
@@ -124,19 +125,14 @@ instance (ToJSONKey a, ToSchema a) => ToSchema (MSet a) where
 ------------------------------------------------------------------------
 newtype NgramsTerm = NgramsTerm { unNgramsTerm :: Text }
   deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema, Hashable, NFData)
-
 instance IsHashable NgramsTerm where
   hash (NgramsTerm t) = hash t
-
 instance Monoid NgramsTerm where
   mempty = NgramsTerm ""
-
 instance FromJSONKey NgramsTerm where
   fromJSONKey = FromJSONKeyTextParser $ \t -> pure $ NgramsTerm $ strip t
-
 instance IsString NgramsTerm where
   fromString s = NgramsTerm $ pack s
-
 instance FromField NgramsTerm
   where
     fromField field mb = do
@@ -147,6 +143,9 @@ instance FromField NgramsTerm
                       $ List.intercalate " " [ "cannot parse hyperdata for JSON: "
                                              , show v
                                              ]
+instance ToField NgramsTerm where
+  toField (NgramsTerm n) = toField n
+
 
 data RootParent = RootParent
   { _rp_root   :: NgramsTerm
@@ -448,13 +447,16 @@ instance ToSchema NgramsPatch where
                 , ("old",      nreSch)
                 , ("new",      nreSch)
                 ]
-
 instance Arbitrary NgramsPatch where
   arbitrary = frequency [ (9, NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary))
                         , (1, NgramsReplace <$> arbitrary <*> arbitrary)
                         ]
-
 instance Serialise NgramsPatch
+instance FromField NgramsPatch where
+  fromField = fromJSONField
+instance ToField NgramsPatch where
+  toField = toJSONField
+
 instance Serialise (Replace ListType)
 
 instance Serialise ListType
@@ -512,7 +514,6 @@ instance Action (PairPatch (PatchMSet NgramsTerm) (Replace ListType)) NgramsRepo
 
 instance Applicable NgramsPatch (Maybe NgramsRepoElement) where
   applicable p = applicable (p ^. _NgramsPatch)
-
 instance Action NgramsPatch (Maybe NgramsRepoElement) where
   act p = act (p ^. _NgramsPatch)
 
@@ -524,7 +525,11 @@ instance Serialise (PatchMap NgramsTerm NgramsPatch)
 
 instance FromField NgramsTablePatch
   where
-    fromField = fromField'
+    fromField = fromJSONField
+    --fromField = fromField'
+instance ToField NgramsTablePatch
+  where
+    toField = toJSONField
 
 instance FromField (PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTablePatch))
   where
@@ -751,4 +756,3 @@ instance ToSchema UpdateTableNgramsCharts where
 
 ------------------------------------------------------------------------
 type NgramsList = (Map TableNgrams.NgramsType (Versioned NgramsTableMap))
-

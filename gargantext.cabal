@@ -162,6 +162,7 @@ library
       Gargantext.Core.Methods.Graph.BAC.Proxemy
       Gargantext.Core.Methods.Graph.MaxClique
       Gargantext.Core.Methods.Matrix.Accelerate.Utils
+      Gargantext.Core.NodeStoryFile
       Gargantext.Core.Statistics
       Gargantext.Core.Text.Convert
       Gargantext.Core.Text.Corpus.API.Arxiv
@@ -410,6 +411,7 @@ library
     , jose
     , json-stream
     , lens
+    , lifted-base
     , listsafe
     , located-base
     , logging-effect

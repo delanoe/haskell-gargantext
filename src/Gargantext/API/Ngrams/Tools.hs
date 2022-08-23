@@ -22,13 +22,16 @@ import Data.Hashable (Hashable)
 import Data.Set (Set)
 import Data.Validity
 import Gargantext.API.Ngrams.Types
-import Gargantext.Core.Types (ListType(..), NodeId, ListId)
+import Gargantext.Core.Types (ListType(..), NodeId, NodeType(..), ListId)
+import Gargantext.Database.Prelude (CmdM, HasConnectionPool(..))
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
 import Gargantext.Core.NodeStory
+import qualified Gargantext.Core.NodeStoryFile as NSF
+
 
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
 mergeNgramsElement _neOld neNew = neNew
@@ -193,3 +196,21 @@ getCoocByNgrams' f (Diagonal diag) m =
   where ks = HM.keys m
 
 ------------------------------------------
+
+
+migrateFromDirToDb :: (CmdM env err m, HasNodeStory env err m)
+                   => m ()
+migrateFromDirToDb = do
+  pool <- view connPool
+  listIds <- liftBase $ getNodesIdWithType pool NodeList
+  printDebug "[migrateFromDirToDb] listIds" listIds
+  (NodeStory nls) <- NSF.getRepoReadConfig listIds
+  printDebug "[migrateFromDirToDb] nls" nls
+  _ <- mapM (\(nId, a) -> do
+                n <- liftBase $ nodeExists pool nId
+                case n of
+                  False -> pure 0
+                  True  -> liftBase $ upsertNodeArchive pool nId a
+            ) $ Map.toList nls
+  --_ <- nodeStoryIncs (Just $ NodeStory nls) listIds
+  pure ()
