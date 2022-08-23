@@ -1,11 +1,11 @@
 { pkgs ? import ./nix/pkgs.nix {} }:
-let 
+let
   myBuildInputs = [
     pkgs.pkgs.docker-compose
     pkgs.pkgs.haskell-language-server
     pkgs.pkgs.stack
   ];
-in  
+in
 pkgs.pkgs.mkShell {
   name = pkgs.shell.name;
   shellHook = pkgs.shell.shellHook;
