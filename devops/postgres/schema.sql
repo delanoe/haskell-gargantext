@@ -219,6 +219,33 @@ CREATE TABLE public.rights (
 ALTER TABLE public.rights OWNER TO gargantua;
 
 ------------------------------------------------------------
+-- Node Story
+
+create table public.node_stories (
+  id SERIAL,
+  node_id INTEGER NOT NULL,
+  archive jsonb DEFAULT '{}'::jsonb NOT NULL,
+  PRIMARY KEY (id),
+  FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE
+);
+ALTER TABLE public.node_stories OWNER TO gargantua;
+
+CREATE UNIQUE INDEX ON public.node_stories USING btree (node_id);
+
+
+create table public.node_story_archive_history (
+  id SERIAL,
+  node_id INTEGER NOT NULL,
+  ngrams_type_id INTEGER NOT NULL,
+  ngrams_id INTEGER NOT NULL,
+  patch jsonb DEFAULT '{}'::jsonb NOT NULL,
+  PRIMARY KEY (id),
+  FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
+  FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE
+);
+ALTER TABLE public.node_story_archive_history OWNER TO gargantua;
+
+
 ------------------------------------------------------------
 -- INDEXES
 CREATE INDEX        ON public.auth_user USING btree (username varchar_pattern_ops);
