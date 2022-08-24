@@ -275,6 +275,7 @@ library:
   - unordered-containers
   - utf8-string
   - uuid
+  - uri-encode
   - validity
   - vector
   - wai

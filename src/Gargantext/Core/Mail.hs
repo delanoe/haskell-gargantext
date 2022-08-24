@@ -12,6 +12,7 @@ Portability : POSIX
 module Gargantext.Core.Mail where
 
 import Control.Lens (view)
+import Network.URI.Encode (encodeText)
 import Data.Text (Text, unlines, splitOn)
 import Gargantext.Core.Types.Individu
 import Gargantext.Database.Schema.User (UserLight(..))
@@ -90,7 +91,7 @@ bodyWith server (ForgotPassword { user = UserLight { userLight_forgot_password_u
   , forgot_password_link server uuid ]
 
 forgot_password_link :: ServerAddress -> Text -> Text
-forgot_password_link server uuid = server <> "/api/v1.0/forgot-password?uuid=" <> uuid
+forgot_password_link server uuid = server <> "/#/forgotPassword?uuid=" <> uuid <> "&server=" <> encodeText server
 
 ------------------------------------------------------------------------
 email_subject :: MailModel -> Text

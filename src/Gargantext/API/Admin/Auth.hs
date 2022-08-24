@@ -48,8 +48,6 @@ import GHC.Generics (Generic)
 import Servant
 import Servant.Auth.Server
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)
-import qualified Text.Blaze.Html.Renderer.Text as H
-import qualified Text.Blaze.Html5 as H
 --import qualified Text.Blaze.Html5.Attributes as HA
 
 import qualified Gargantext.Prelude.Crypto.Auth as Auth
@@ -59,7 +57,6 @@ import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types
 import Gargantext.API.Job (jobLogSuccess)
 import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC, GargServer, _ServerError)
-import Gargantext.API.Types
 import Gargantext.Core.Mail (MailModel(..), mail)
 import Gargantext.Core.Mail.Types (HasMail, mailSettings)
 import Gargantext.Core.Types.Individu (User(..), Username, GargPassword(..))
@@ -173,7 +170,7 @@ type ForgotPasswordAPI = Summary "Forgot password POST API"
                            :> Post '[JSON] ForgotPasswordResponse
                          :<|> Summary "Forgot password GET API"
                            :> QueryParam "uuid" Text
-                           :> Get '[HTML] Text
+                           :> Get '[JSON] ForgotPasswordGet
 
   
 forgotPassword :: GargServer ForgotPasswordAPI
@@ -193,8 +190,8 @@ forgotPasswordPost (ForgotPasswordRequest email) = do
   pure $ ForgotPasswordResponse "ok"
 
 forgotPasswordGet :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env, HasServerError err)
-     => Maybe Text -> Cmd' env err Text
-forgotPasswordGet Nothing = pure ""
+     => Maybe Text -> Cmd' env err ForgotPasswordGet
+forgotPasswordGet Nothing = pure $ ForgotPasswordGet ""
 forgotPasswordGet (Just uuid) = do
   let mUuid = fromText uuid
   case mUuid of
@@ -209,7 +206,7 @@ forgotPasswordGet (Just uuid) = do
 ---------------------
 
 forgotPasswordGetUser :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env, HasMail env, HasServerError err)
-     => UserLight -> Cmd' env err Text
+     => UserLight -> Cmd' env err ForgotPasswordGet
 forgotPasswordGetUser (UserLight { .. }) = do
   -- pick some random password
   password <- liftBase gargPass
@@ -225,16 +222,7 @@ forgotPasswordGetUser (UserLight { .. }) = do
   -- clear the uuid so that the page can't be refreshed
   _ <- updateUserForgotPasswordUUID $ UserLight { userLight_forgot_password_uuid = Nothing, .. }
     
-  pure $ toStrict $ H.renderHtml $
-    H.docTypeHtml $ do
-      H.html $ do
-        H.head $ do
-          H.title "Gargantext - forgot password"
-        H.body $ do
-          H.h1 "Forgot password"
-          H.p $ do
-            H.span "Here is your password (will be shown only once): "
-            H.b $ H.toHtml password
+  pure $ ForgotPasswordGet password
 
 forgotUserPassword :: (HasConnectionPool env, HasConfig env, HasMail env)
      => UserLight -> Cmd' env err ()
