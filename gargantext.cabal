@@ -96,7 +96,7 @@ library
       Gargantext.Core.Viz.Phylo.SynchronicClustering
       Gargantext.Core.Viz.Types
   other-modules:
-      ConcurrentTest
+      -- ConcurrentTest
       Gargantext.API.Admin.Auth
       Gargantext.API.Admin.FrontEnd
       Gargantext.API.Admin.Orchestrator
