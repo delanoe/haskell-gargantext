@@ -2,7 +2,7 @@
 * [OPTIM] Ngrams Table optmization. To upgrade:
   1. `./bin/psql gargantext.ini < devops/postgresql/upgrade/0.0.6.sql`
   2. in `stack --nix repl` run `runCmdReplEasy $ migrateFromDirToDb`
-
+* [FIX] Ngrams Table next button: loads only one time instead of twice previously
 ## Version 0.0.5.9.6
 * [BACK][FIX] Nix build ok
 * [BACK][OPTI] Confluence optimization
