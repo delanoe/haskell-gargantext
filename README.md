@@ -229,3 +229,23 @@ Playground is located at http://localhost:8008/gql
 	}
 }
 ```
+## PostgreSQL
+### Upgrading
+
+https://www.cloudytuts.com/tutorials/docker/how-to-upgrade-postgresql-in-docker-and-kubernetes/
+
+To upgrade PostgreSQL in Docker containers, for example from 11.x to 14.x, simply run:
+```sh
+docker exec -it <container-id> pg_dumpall -U gargantua > 11-db.dump
+```
+
+Then, shut down the container, replace `image` section in
+`devops/docker/docker-compose.yaml` with `postgres:14`, start the container and execute:
+```sh
+# need to drop the empty DB first, since schema will be created when restoring the dump
+docker exec -i <new-container-id> dropdb -U gargantua gargandbV5
+# recreate the db, but empty with no schema
+docker exec -i <new-container-id> createdb -U gargantua gargandbV5
+# now we can restore the dump
+docker exec -i <new-container-id> psql -U gargantua -d gargandbV5 < 11-db.dump
+```
