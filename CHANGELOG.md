@@ -3,6 +3,9 @@
   1. `./bin/psql gargantext.ini < devops/postgresql/upgrade/0.0.6.sql`
   2. in `stack --nix repl` run `runCmdReplEasy $ migrateFromDirToDb`
 * [FIX] Ngrams Table next button: loads only one time instead of twice previously
+* [FRONT][FIX] Resize handler on Write Node
+* [FRONT][FIX] Do not highlight ngrams if maximum abstract length > 4500 characters
+
 ## Version 0.0.5.9.6
 * [BACK][FIX] Nix build ok
 * [BACK][OPTI] Confluence optimization
