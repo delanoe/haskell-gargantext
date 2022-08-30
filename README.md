@@ -240,7 +240,13 @@ docker exec -it <container-id> pg_dumpall -U gargantua > 11-db.dump
 ```
 
 Then, shut down the container, replace `image` section in
-`devops/docker/docker-compose.yaml` with `postgres:14`, start the container and execute:
+`devops/docker/docker-compose.yaml` with `postgres:14`. Also, it is a good practice to create a new volume, say `garg-pgdata14` and bind the new container to it. If you want to keep the same volume, remember about removing it like so:
+```sh
+docker-compose rm postgres
+docker volume rm docker_garg-pgdata
+```
+
+Now, start the container and execute:
 ```sh
 # need to drop the empty DB first, since schema will be created when restoring the dump
 docker exec -i <new-container-id> dropdb -U gargantua gargandbV5
