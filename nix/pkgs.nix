@@ -6,7 +6,6 @@ rec {
   hsBuildInputs = [
     ghc
     pkgs.cabal-install
-    pkgs.haskellPackages.llvm-hs
   ];
   nonhsBuildInputs = with pkgs; [
     bzip2
