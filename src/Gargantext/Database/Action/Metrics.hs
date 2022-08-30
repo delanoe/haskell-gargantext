@@ -27,7 +27,7 @@ import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diag
 import Gargantext.Database.Prelude (runPGSQuery{-, formatPGSQuery-})
 import Gargantext.API.Ngrams.Types (TabType(..), ngramsTypeFromTabType, NgramsTerm(..))
 import Gargantext.Core.Mail.Types (HasMail)
-import Gargantext.Core.NodeStory
+import Gargantext.Core.NodeStory hiding (runPGSQuery)
 import Gargantext.Core.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
 import Database.PostgreSQL.Simple.ToField (toField, Action{-, ToField-})
 import Gargantext.Core.Types (ListType(..), Limit, NodeType(..), ContextId)
@@ -88,7 +88,7 @@ updateNgramsOccurrences cId mlId = do
 
 
 updateNgramsOccurrences' :: (FlowCmdM env err m)
-             => CorpusId -> Maybe ListId -> Maybe Limit -> TabType 
+             => CorpusId -> Maybe ListId -> Maybe Limit -> TabType
              -> m [Int]
 updateNgramsOccurrences' cId maybeListId maybeLimit tabType = do
 
@@ -97,7 +97,7 @@ updateNgramsOccurrences' cId maybeListId maybeLimit tabType = do
     Just lId' -> pure lId'
 
   result <- getNgramsOccurrences cId lId tabType maybeLimit
-  
+
   let
     toInsert :: [[Action]]
     toInsert =  map (\(ngramsTerm, score)
@@ -121,7 +121,7 @@ updateNgramsOccurrences' cId maybeListId maybeLimit tabType = do
                   RETURNING 1
                   |]
 
-  let fields = map (\t-> QualifiedIdentifier Nothing t) 
+  let fields = map (\t-> QualifiedIdentifier Nothing t)
              $ map Text.pack ["int4", "int4","text","int4","int4"]
 
   map (\(Only a) -> a) <$> runPGSQuery queryInsert (Only $ Values fields toInsert)
@@ -163,7 +163,7 @@ updateContextScore cId maybeListId = do
     Just lId' -> pure lId'
 
   result <- getContextsNgramsScore cId lId Terms MapTerm Nothing
-  
+
   let
     toInsert :: [[Action]]
     toInsert =  map (\(contextId, score)
@@ -185,7 +185,7 @@ updateContextScore cId maybeListId = do
                     RETURNING 1
                   |]
 
-  let fields = map (\t-> QualifiedIdentifier Nothing t) 
+  let fields = map (\t-> QualifiedIdentifier Nothing t)
              $ map Text.pack ["int4", "int4","int4"]
 
   map (\(Only a) -> a) <$> runPGSQuery queryInsert (Only $ Values fields toInsert)
@@ -243,6 +243,3 @@ getNgrams lId tabType = do
 take' :: Maybe Int -> [a] -> [a]
 take' Nothing  xs = xs
 take' (Just n) xs = take n xs
-
-
-

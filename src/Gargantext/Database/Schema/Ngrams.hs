@@ -20,25 +20,27 @@ Ngrams connection to the Database.
 module Gargantext.Database.Schema.Ngrams
   where
 
-import Data.Maybe (fromMaybe)
-import Data.HashMap.Strict (HashMap)
-import Data.Hashable (Hashable)
 import Codec.Serialise (Serialise())
 import Control.Lens (over)
 import Control.Monad (mzero)
+import Data.Maybe (fromMaybe)
+import Data.HashMap.Strict (HashMap)
+import Data.Hashable (Hashable)
 import Data.Aeson
 import Data.Aeson.Types (toJSONKeyText)
 import Data.Map (fromList, lookup)
+import Database.PostgreSQL.Simple.FromField (returnError, ResultError(..))
 import Data.Text (Text, splitOn, pack, strip)
 import Gargantext.Core.Types (TODO(..), Typed(..))
 import Gargantext.Prelude
 import Servant (FromHttpApiData(..), Proxy(..), ToHttpApiData(..))
-import Text.Read (read)
 import Gargantext.Core (HasDBid(..))
 import Gargantext.Database.Types
 import Gargantext.Database.Schema.Prelude
-import qualified Database.PostgreSQL.Simple as PGS
+import Text.Read (read)
+import qualified Data.ByteString.Char8 as B
 import qualified Data.HashMap.Strict as HashMap
+import qualified Database.PostgreSQL.Simple as PGS
 
 
 type NgramsId  = Int
@@ -82,8 +84,34 @@ ngramsTable = Table "ngrams" (pNgramsDb NgramsDB { _ngrams_id    = optionalTable
 -- ngrams in text    fields of documents has Terms   Type (i.e. either title or abstract)
 data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Read, Ord, Enum, Bounded, Generic)
-
 instance Serialise NgramsType
+instance FromJSON NgramsType
+instance FromJSONKey NgramsType where
+   fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
+instance ToJSON NgramsType
+instance ToJSONKey NgramsType where
+   toJSONKey = toJSONKeyText (pack . show)
+instance FromHttpApiData NgramsType where
+  parseUrlPiece n = pure $ (read . cs) n
+instance ToHttpApiData NgramsType where
+  toUrlPiece = pack . show
+instance ToParamSchema NgramsType where
+  toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
+-- map NgramsType to its assigned id
+instance FromField NgramsType where
+  fromField fld mdata =
+    case B.unpack `fmap` mdata of
+      Nothing -> returnError UnexpectedNull fld ""
+      Just dat -> do
+        n <- fromField fld mdata
+        if (n :: Int) > 0 then
+          case fromNgramsTypeId (NgramsTypeId n) of
+            Nothing -> returnError ConversionFailed fld dat
+            Just nt -> pure nt
+        else
+          returnError ConversionFailed fld dat
+instance ToField NgramsType where
+  toField nt = toField $ ngramsTypeId nt
 
 
 ngramsTypes :: [NgramsType]
@@ -96,33 +124,13 @@ instance ToSchema NgramsType
 
 newtype NgramsTypeId = NgramsTypeId Int
   deriving (Eq, Show, Ord, Num)
-
 instance ToField NgramsTypeId where
   toField (NgramsTypeId n) = toField n
-
 instance FromField NgramsTypeId where
   fromField fld mdata = do
     n <- fromField fld mdata
     if (n :: Int) > 0 then return $ NgramsTypeId n
                       else mzero
-
-instance FromJSON NgramsType
-instance FromJSONKey NgramsType where
-   fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
-
-instance ToJSON NgramsType
-instance ToJSONKey NgramsType where
-   toJSONKey = toJSONKeyText (pack . show)
-
-instance FromHttpApiData NgramsType where
-  parseUrlPiece n = pure $ (read . cs) n
-instance ToHttpApiData NgramsType where
-  toUrlPiece = pack . show
-
-instance ToParamSchema NgramsType where
-  toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
-
-
 instance DefaultFromField (Nullable SqlInt4) NgramsTypeId
   where
     defaultFromField = fromPGSFromField

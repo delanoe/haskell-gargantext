@@ -29,6 +29,7 @@ module Gargantext.API.Ngrams
   , TableNgramsApiPut
 
   , getTableNgrams
+  , getTableNgramsCorpus
   , setListNgrams
   --, rmListNgrams TODO fix before exporting
   , apiNgramsTableCorpus

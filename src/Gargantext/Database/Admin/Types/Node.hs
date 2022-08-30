@@ -30,8 +30,8 @@ import Data.Morpheus.Types (GQLType)
 import Data.Swagger
 import Data.Text (Text, unpack, pack)
 import Data.Time (UTCTime)
-import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import Database.PostgreSQL.Simple.ToField (ToField, toField)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField, fromJSONField)
+import Database.PostgreSQL.Simple.ToField (ToField, toField, toJSONField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Schema.Context
@@ -357,6 +357,20 @@ data NodeType = NodeUser
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 instance GQLType NodeType
+instance FromJSON NodeType
+instance ToJSON NodeType
+instance FromHttpApiData NodeType where
+  parseUrlPiece = Right . read . unpack
+instance ToHttpApiData NodeType where
+  toUrlPiece = pack . show
+instance ToParamSchema NodeType
+instance ToSchema      NodeType
+instance Arbitrary NodeType where
+  arbitrary = elements allNodeTypes
+instance FromField NodeType where
+  fromField = fromJSONField
+instance ToField NodeType where
+  toField = toJSONField
 
 
 allNodeTypes :: [NodeType]
@@ -392,21 +406,6 @@ defaultName NodeFrameVisio    = "Visio"
 defaultName NodeFrameNotebook = "Code"
 
 defaultName NodeFile          = "File"
-
-
-instance FromJSON NodeType
-instance ToJSON NodeType
-
-instance FromHttpApiData NodeType where
-  parseUrlPiece = Right . read . unpack
-instance ToHttpApiData NodeType where
-  toUrlPiece = pack . show
-
-instance ToParamSchema NodeType
-instance ToSchema      NodeType
-
-instance Arbitrary NodeType where
-  arbitrary = elements allNodeTypes
 
 
 
@@ -451,4 +450,3 @@ instance DefaultFromField SqlText (Maybe Hash)
 
 context2node :: Context a -> Node a
 context2node (Context ci ch ct cu cp cn cd chy) = Node ci ch ct cu cp cn cd chy
-

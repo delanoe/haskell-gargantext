@@ -22,6 +22,7 @@ import Data.Hashable (Hashable)
 import Data.Set (Set)
 import Data.Validity
 import Gargantext.API.Ngrams.Types
+import Gargantext.Core.NodeStory
 import Gargantext.Core.Types (ListType(..), NodeId, NodeType(..), ListId)
 import Gargantext.Database.Prelude (CmdM, HasConnectionPool(..))
 import Gargantext.Database.Schema.Ngrams (NgramsType)
@@ -29,7 +30,6 @@ import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
-import Gargantext.Core.NodeStory
 import qualified Gargantext.Core.NodeStoryFile as NSF
 
 
@@ -209,7 +209,7 @@ migrateFromDirToDb = do
   _ <- mapM (\(nId, a) -> do
                 n <- liftBase $ nodeExists pool nId
                 case n of
-                  False -> pure 0
+                  False -> pure ()
                   True  -> liftBase $ upsertNodeArchive pool nId a
             ) $ Map.toList nls
   --_ <- nodeStoryIncs (Just $ NodeStory nls) listIds
