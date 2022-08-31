@@ -19,6 +19,7 @@ import Control.Lens (_Just, (^.), at, view, At, Index, IxValue)
 import Control.Monad.Reader
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
+import Data.Pool (withResource)
 import Data.Set (Set)
 import Data.Validity
 import Gargantext.API.Ngrams.Types
@@ -202,15 +203,16 @@ migrateFromDirToDb :: (CmdM env err m, HasNodeStory env err m)
                    => m ()
 migrateFromDirToDb = do
   pool <- view connPool
-  listIds <- liftBase $ getNodesIdWithType pool NodeList
-  printDebug "[migrateFromDirToDb] listIds" listIds
-  (NodeStory nls) <- NSF.getRepoReadConfig listIds
-  printDebug "[migrateFromDirToDb] nls" nls
-  _ <- mapM (\(nId, a) -> do
-                n <- liftBase $ nodeExists pool nId
-                case n of
-                  False -> pure ()
-                  True  -> liftBase $ upsertNodeArchive pool nId a
-            ) $ Map.toList nls
-  --_ <- nodeStoryIncs (Just $ NodeStory nls) listIds
-  pure ()
+  withResource pool $ \c -> do
+    listIds <- liftBase $ getNodesIdWithType c NodeList
+    printDebug "[migrateFromDirToDb] listIds" listIds
+    (NodeStory nls) <- NSF.getRepoReadConfig listIds
+    printDebug "[migrateFromDirToDb] nls" nls
+    _ <- mapM (\(nId, a) -> do
+                  n <- liftBase $ nodeExists c nId
+                  case n of
+                    False -> pure ()
+                    True  -> liftBase $ upsertNodeStories c nId a
+              ) $ Map.toList nls
+    --_ <- nodeStoryIncs (Just $ NodeStory nls) listIds
+    pure ()

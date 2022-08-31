@@ -1,3 +1,7 @@
+-- Start a new transaction. In case data migration goes wrong, we are
+-- back to our original table.
+BEGIN;
+
 -- we will migrate data here
 -- rename old table and create a new one
 
@@ -56,3 +60,6 @@ INSERT INTO public.node_stories
     FROM node_stories_old
     CROSS JOIN jsonb_each(archive->'state'->'NgramsTerms') AS j
     JOIN ngrams ON terms = j.key;
+
+-- finally, write out the stuff
+COMMIT;

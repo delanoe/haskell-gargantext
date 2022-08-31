@@ -259,15 +259,6 @@ setListNgrams listId ngramsType ns = do
   saveNodeStory
 
 
-currentVersion :: HasNodeStory env err m
-               => ListId -> m Version
-currentVersion listId = do
-  --nls <- getRepo [listId]
-  pool <- view connPool
-  nls <- liftBase $ getNodeStory pool listId
-  pure $ nls ^. unNodeStory . at listId . _Just . a_version
-
-
 newNgramsFromNgramsStatePatch :: NgramsStatePatch' -> [Ngrams]
 newNgramsFromNgramsStatePatch p =
   [ text2ngrams (unNgramsTerm n)
