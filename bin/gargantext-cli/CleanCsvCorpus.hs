@@ -40,7 +40,7 @@ main = do
   --let q = ["water", "scarcity", "morocco", "shortage","flood"]
   let q = ["gratuit", "gratuité", "culture", "culturel"]
 
-  eDocs <- CSV.readFile rPath
+  eDocs <- CSV.readCSVFile rPath
   case eDocs of
     Right (h, csvDocs) -> do
       putStrLn $ "Number of documents before:" <> show (V.length csvDocs)

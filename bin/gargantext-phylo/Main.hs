@@ -109,7 +109,7 @@ csvToDocs parser patterns time path =
                                        (termsInText patterns $ (csv_title row) <> " " <> (csv_abstract row))
                                        Nothing
                                        []
-                     ) <$> snd <$> either (\err -> panic $ cs $ "CSV error" <> (show err)) identity <$> Csv.readFile path
+                     ) <$> snd <$> either (\err -> panic $ cs $ "CSV error" <> (show err)) identity <$> Csv.readCSVFile path
     Csv' limit -> Vector.toList
       <$> Vector.take limit
       <$> Vector.map (\row -> Document (toPhyloDate  (csv'_publication_year row) (csv'_publication_month row) (csv'_publication_day row) time)

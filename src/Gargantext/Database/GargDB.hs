@@ -140,13 +140,13 @@ writeFile a = do
 ---
 
 -- | Example to read a file with Type 
-readFile :: ( MonadReader  env m
+readGargFile :: ( MonadReader  env m
             , HasConfig    env
             , MonadBase IO     m
             , ReadFile         a
             )
          => FilePath -> m a
-readFile fp = do
+readGargFile fp = do
   dataPath <- view $ hasConfig . gc_datafilepath
   liftBase $ readFile' $ toFilePath dataPath fp
 
