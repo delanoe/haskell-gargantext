@@ -1,9 +1,26 @@
 version: '3'
 
 services:
+  #postgres11:
+  #  #image: 'postgres:latest'
+  #  image: 'postgres:11'
+  #  network_mode: host
+  #  #command: ["postgres", "-c", "log_statement=all"]
+  #  #ports:
+  #    #- 5432:5432
+  #  environment:
+  #    POSTGRES_USER: gargantua
+  #    POSTGRES_PASSWORD: C8kdcUrAQy66U
+  #    POSTGRES_DB: gargandbV5
+  #  volumes:
+  #    - garg-pgdata:/var/lib/postgresql/data
+  #    - ../:/gargantext
+  #    - ../dbs:/dbs
+  #    - ../postgres/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+
   postgres:
     #image: 'postgres:latest'
-    image: 'postgres:11'
+    image: 'postgres:14'
     network_mode: host
     #command: ["postgres", "-c", "log_statement=all"]
     #ports:
@@ -13,7 +30,7 @@ services:
       POSTGRES_PASSWORD: C8kdcUrAQy66U
       POSTGRES_DB: gargandbV5
     volumes:
-      - garg-pgdata:/var/lib/postgresql/data
+      - garg-pgdata14:/var/lib/postgresql-11/data
       - ../:/gargantext
       - ../dbs:/dbs
       - ../postgres/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
@@ -44,5 +61,6 @@ services:
       - 5000:5000
 
 volumes:
-  garg-pgdata:
+  #garg-pgdata:
+  garg-pgdata14:
   js-cache:
