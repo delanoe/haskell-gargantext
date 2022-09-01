@@ -76,6 +76,7 @@ library
       Gargantext.Core.Text.Metrics.TFICF
       Gargantext.Core.Text.Metrics.CharByChar
       Gargantext.Core.Text.Metrics.Count
+      Gargantext.Core.Text.Prepare
       Gargantext.Core.Text.Search
       Gargantext.Core.Text.Terms
       Gargantext.Core.Text.Terms.Mono
