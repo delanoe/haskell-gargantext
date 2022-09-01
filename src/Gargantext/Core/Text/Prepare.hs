@@ -17,7 +17,7 @@ that could be the incarnation of the mythic Gargantua.
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Core.Text.Clean
+module Gargantext.Core.Text.Prepare
   where
 
 import Data.Text (Text)
@@ -40,21 +40,21 @@ prepareText p txt = groupText p
 ---------------------------------------------------------------------
 
 groupText :: Paragraph -> [Text] -> [Text]
-groupText (Uniform g s) = groupUniform g s
-groupText AuthorLike    = groupLines
+groupText (Uniform blockSize) = groupUniform blockSize
+groupText AuthorLike          = groupLines
 
 ---------------------------------------------------------------------
-data Paragraph = Uniform Grain Step | AuthorLike
+data Paragraph = Uniform Grain | AuthorLike
 -- Uniform does not preserve the paragraphs of the author but length of paragraphs is uniform
 -- Author Like preserve the paragraphs of the Author but length of paragraphs is not uniform
 
 -- Grain: number of Sentences by block of Text
 -- Step : overlap of sentence between connex block of Text
-groupUniform :: Grain -> Step -> [Text] -> [Text]
-groupUniform g s ts = map (Text.intercalate " ")
-                    $ chunkAlong g s
-                    $ sentences
-                    $ Text.concat ts
+groupUniform :: Grain -> [Text] -> [Text]
+groupUniform g ts = map (Text.intercalate " ")
+                  $ chunkAlong g g
+                  $ sentences
+                  $ Text.concat ts
 
 groupLines :: [Text] -> [Text]
 groupLines xxx@(a:b:xs) = 
