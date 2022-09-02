@@ -211,14 +211,6 @@ pgContextId = pgNodeId
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
   deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
-
--- TODO make another type
-type ContextId = NodeId
-
-newtype NodeContextId = NodeContextId Int
-  deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
-
-
 instance GQLType NodeId
 instance Show NodeId where
   show (NodeId n) = "nodeId-" <> show n
@@ -232,6 +224,14 @@ instance FromField NodeId where
        then return $ NodeId n
        else mzero
 instance ToSchema NodeId
+
+-- TODO make another type
+type ContextId = NodeId
+
+newtype NodeContextId = NodeContextId Int
+  deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
+
+
 --instance Csv.ToField NodeId where
 --  toField (NodeId nodeId) = Csv.toField nodeId
 
