@@ -9,7 +9,7 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE ConstraintKinds, ScopedTypeVariables #-}
 
 module Gargantext.Database.Prelude where
 
@@ -30,6 +30,7 @@ import Data.Word (Word16)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
+import Database.PostgreSQL.Simple.Types (Query(..))
 import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (readIniFile', val)
@@ -167,9 +168,8 @@ runPGSQuery_ :: ( CmdM env err m
 runPGSQuery_ q = mkCmd $ \conn -> catch (PGS.query_ conn q) printError
   where
     printError (SomeException e) = do
-      printDebug "[G.D.P.runPGSQuery_]" ("TODO: format query error" :: Text)
+      hPutStrLn stderr (fromQuery q)
       throw (SomeException e)
-
 
 execPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err Int64
 execPGSQuery q a = mkCmd $ \conn -> PGS.execute conn q a
@@ -209,3 +209,9 @@ fromField' field mb = do
 printSqlOpa :: Default Unpackspec a a => Select a -> IO ()
 printSqlOpa = putStrLn . maybe "Empty query" identity . showSql
 
+dbCheck :: CmdM env err m => m Bool
+dbCheck = do
+  r :: [PGS.Only Text] <- runPGSQuery_ "select username from public.auth_user"
+  case r of
+    [] -> return False
+    _  -> return True
