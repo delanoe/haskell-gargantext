@@ -1,3 +1,6 @@
+## Version 0.0.6.1
+* [FEAT] Spacy Server connection for French (and others) languages
+
 ## Version 0.0.6
 * [OPTIM] Ngrams Table optmization. To upgrade:
   1. `./bin/psql gargantext.ini < devops/postgresql/upgrade/0.0.6.sql`
