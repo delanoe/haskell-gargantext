@@ -28,7 +28,8 @@ import qualified Gargantext.Core.Text.Terms.Multi.Lang.En as En
 import qualified Gargantext.Core.Text.Terms.Multi.Lang.Fr as Fr
 
 import Gargantext.Core.Text.Terms.Multi.RAKE (multiterms_rake)
-import qualified Gargantext.Utils.JohnSnowNLP as JohnSnow
+-- import qualified Gargantext.Utils.JohnSnowNLP as JohnSnow
+import qualified Gargantext.Utils.SpacyNLP as SpacyNLP
 
 
 -------------------------------------------------------------------
@@ -51,7 +52,7 @@ tokenTag2terms (TokenTag ws t _ _) =  Terms ws t
 
 tokenTags :: Lang -> Text -> IO [[TokenTag]]
 tokenTags EN txt = tokenTagsWith EN txt corenlp
-tokenTags FR txt = tokenTagsWith FR txt JohnSnow.nlp
+tokenTags FR txt = tokenTagsWith FR txt SpacyNLP.nlp
 tokenTags _  _   = panic "[G.C.T.T.Multi] NLP API not implemented yet"
 
 tokenTagsWith :: Lang -> Text -> NLP_API -> IO [[TokenTag]]

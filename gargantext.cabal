@@ -319,6 +319,7 @@ library
       Gargantext.Utils.Aeson
       Gargantext.Utils.JohnSnowNLP
       Gargantext.Utils.Servant
+      Gargantext.Utils.SpacyNLP
       Gargantext.Utils.UTCTime
       Paths_gargantext
   hs-source-dirs:
