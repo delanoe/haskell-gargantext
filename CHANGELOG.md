@@ -1,6 +1,7 @@
 ## Version 0.0.6.1
 * [FEAT] Spacy Server connection for French (and others) languages
 * [FEAT] At startup, check if gargantext.init script has been activated
+* [UPGRADE] Use the devops/postgres/upgrade/0.0.6.1.sql uprade script
 
 ## Version 0.0.6
 * [OPTIM] Ngrams Table optmization. To upgrade:
