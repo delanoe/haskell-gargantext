@@ -28,7 +28,7 @@ import Data.String (IsString, fromString)
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text, pack, strip)
 import Data.Validity
-import Database.PostgreSQL.Simple.FromField (FromField, fromField, fromJSONField, ResultError(ConversionFailed), returnError)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField, fromJSONField)
 import Database.PostgreSQL.Simple.ToField (ToField, toJSONField, toField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Text (size)
@@ -44,7 +44,6 @@ import Servant.Job.Utils (jsonOptions)
 import Test.QuickCheck (elements, frequency)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.HashMap.Strict.InsOrd             as InsOrdHashMap
-import qualified Data.List                              as List
 import qualified Data.Map.Strict                        as Map
 import qualified Data.Map.Strict.Patch                  as PM
 import qualified Data.Set                               as Set
@@ -124,7 +123,7 @@ instance (ToJSONKey a, ToSchema a) => ToSchema (MSet a) where
 
 ------------------------------------------------------------------------
 newtype NgramsTerm = NgramsTerm { unNgramsTerm :: Text }
-  deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema, Hashable, NFData)
+  deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema, Hashable, NFData, FromField, ToField)
 instance IsHashable NgramsTerm where
   hash (NgramsTerm t) = hash t
 instance Monoid NgramsTerm where
@@ -133,18 +132,6 @@ instance FromJSONKey NgramsTerm where
   fromJSONKey = FromJSONKeyTextParser $ \t -> pure $ NgramsTerm $ strip t
 instance IsString NgramsTerm where
   fromString s = NgramsTerm $ pack s
-instance FromField NgramsTerm
-  where
-    fromField field mb = do
-      v <- fromField field mb
-      case fromJSON v of
-        Success a -> pure $ NgramsTerm $ strip a
-        Error _err -> returnError ConversionFailed field
-                      $ List.intercalate " " [ "cannot parse hyperdata for JSON: "
-                                             , show v
-                                             ]
-instance ToField NgramsTerm where
-  toField (NgramsTerm n) = toField n
 
 
 data RootParent = RootParent
@@ -164,19 +151,20 @@ data NgramsRepoElement = NgramsRepoElement
   , _nre_children    :: !(MSet NgramsTerm)
   }
   deriving (Ord, Eq, Show, Generic)
-
 deriveJSON (unPrefix "_nre_") ''NgramsRepoElement
 -- TODO
 -- if ngrams & not size => size
 -- drop occurrences
-
 makeLenses ''NgramsRepoElement
-
 instance ToSchema NgramsRepoElement where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_nre_")
+instance Serialise NgramsRepoElement
+instance FromField NgramsRepoElement where
+  fromField = fromJSONField
+instance ToField NgramsRepoElement where
+  toField = toJSONField
 
 instance Serialise (MSet NgramsTerm)
-instance Serialise NgramsRepoElement
 
 data NgramsElement =
      NgramsElement { _ne_ngrams      :: NgramsTerm

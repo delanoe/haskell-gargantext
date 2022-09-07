@@ -36,4 +36,3 @@ ALTER TABLE public.node_story_archive_history OWNER TO gargantua;
 -- UNION (SELECT node_id, sid, 3 AS ngrams_type_id, "Sources" AS patch FROM q WHERE "Sources" IS NOT NULL)
 -- ORDER BY node_id, ngrams_type_id, sid
 -- ) AS t;
-

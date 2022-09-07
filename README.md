@@ -229,3 +229,63 @@ Playground is located at http://localhost:8008/gql
 	}
 }
 ```
+## PostgreSQL
+
+### Upgrading using Docker
+
+https://www.cloudytuts.com/tutorials/docker/how-to-upgrade-postgresql-in-docker-and-kubernetes/
+
+To upgrade PostgreSQL in Docker containers, for example from 11.x to 14.x, simply run:
+```sh
+docker exec -it <container-id> pg_dumpall -U gargantua > 11-db.dump
+```
+
+Then, shut down the container, replace `image` section in
+`devops/docker/docker-compose.yaml` with `postgres:14`. Also, it is a good practice to create a new volume, say `garg-pgdata14` and bind the new container to it. If you want to keep the same volume, remember about removing it like so:
+```sh
+docker-compose rm postgres
+docker volume rm docker_garg-pgdata
+```
+
+Now, start the container and execute:
+```sh
+# need to drop the empty DB first, since schema will be created when restoring the dump
+docker exec -i <new-container-id> dropdb -U gargantua gargandbV5
+# recreate the db, but empty with no schema
+docker exec -i <new-container-id> createdb -U gargantua gargandbV5
+# now we can restore the dump
+docker exec -i <new-container-id> psql -U gargantua -d gargandbV5 < 11-db.dump
+```
+
+### Upgrading using 
+
+There is a solution using pgupgrade_cluster but you need to manage the
+clusters version 14 and 13. Hence here is a simple solution to upgrade.
+
+First save your data:
+```
+sudo su postgres
+pg_dumpall > gargandb.dump
+```
+
+Upgrade postgresql:
+```
+sudo apt install postgresql-server-14 postgresql-client-14
+sudo apt remove --purge postgresql-13
+```
+Restore your data:
+```
+sudo su postgres
+psql < gargandb.dump
+```
+
+Maybe you need to restore the gargantua password
+```
+ALTER ROLE gargantua PASSWORD 'yourPasswordIn_gargantext.ini'
+```
+Maybe you need to change the port to 5433 for database connection in
+your gargantext.ini file.
+
+
+
+

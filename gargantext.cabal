@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-version: 0.0.6.1
+version:        0.0.6
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
@@ -76,7 +76,6 @@ library
       Gargantext.Core.Text.Metrics.TFICF
       Gargantext.Core.Text.Metrics.CharByChar
       Gargantext.Core.Text.Metrics.Count
-      Gargantext.Core.Text.Prepare
       Gargantext.Core.Text.Search
       Gargantext.Core.Text.Terms
       Gargantext.Core.Text.Terms.Mono
@@ -97,7 +96,6 @@ library
       Gargantext.Core.Viz.Phylo.SynchronicClustering
       Gargantext.Core.Viz.Types
   other-modules:
-      -- ConcurrentTest
       Gargantext.API.Admin.Auth
       Gargantext.API.Admin.FrontEnd
       Gargantext.API.Admin.Orchestrator
@@ -318,8 +316,8 @@ library
       Gargantext.Database.Types
       Gargantext.Utils.Aeson
       Gargantext.Utils.JohnSnowNLP
-      Gargantext.Utils.Servant
       Gargantext.Utils.SpacyNLP
+      Gargantext.Utils.Servant
       Gargantext.Utils.UTCTime
       Paths_gargantext
   hs-source-dirs:
@@ -493,9 +491,9 @@ library
     , transformers-base
     , tuple
     , unordered-containers
-    , uri-encode
     , utf8-string
     , uuid
+    , uri-encode
     , validity
     , vector
     , wai

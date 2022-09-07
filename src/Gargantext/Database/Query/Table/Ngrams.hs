@@ -132,4 +132,3 @@ selectNgramsId' ns = runPGSQuery querySelectNgramsId ( PGS.Only
         JOIN input_rows ir ON ir.terms = n.terms
         GROUP BY n.terms, n.id
         |]
-

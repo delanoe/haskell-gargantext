@@ -29,6 +29,7 @@ module Gargantext.API.Ngrams
   , TableNgramsApiPut
 
   , getTableNgrams
+  , getTableNgramsCorpus
   , setListNgrams
   --, rmListNgrams TODO fix before exporting
   , apiNgramsTableCorpus
@@ -256,15 +257,6 @@ setListNgrams listId ngramsType ns = do
               .~ Just ns
            )
   saveNodeStory
-
-
-currentVersion :: HasNodeStory env err m
-               => ListId -> m Version
-currentVersion listId = do
-  --nls <- getRepo [listId]
-  pool <- view connPool
-  nls <- liftBase $ getNodeStory pool listId
-  pure $ nls ^. unNodeStory . at listId . _Just . a_version
 
 
 newNgramsFromNgramsStatePatch :: NgramsStatePatch' -> [Ngrams]
