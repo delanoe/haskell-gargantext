@@ -3,6 +3,7 @@
 * [FEAT] At startup, check if gargantext.init script has been activated
 * [UPGRADE] Use the devops/postgres/upgrade/0.0.6.1.sql uprade script
 * [FIX] PubMed Parser with threadDelay
+* [BACK][FIX] Hash to remove duplicates on filtered text
 
 ## Version 0.0.6
 * [OPTIM] Ngrams Table optmization. To upgrade:
