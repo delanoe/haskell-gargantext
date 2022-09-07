@@ -58,6 +58,7 @@ import Control.Lens (set, view)
 import Control.Lens.Cons
 import Control.Lens.Prism
 import Data.Aeson (toJSON, encode, ToJSON)
+import Data.Char (isAlpha)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 -- import Data.ByteString (ByteString)
@@ -77,7 +78,7 @@ import Gargantext.Database.Schema.Node (NodePoly(..))
 import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (hash)
-import qualified Data.Text as DT (pack, concat, take)
+import qualified Data.Text as DT (pack, concat, take, filter, toLower)
 
 {-| To Print result query
 import Data.ByteString.Internal (ByteString)
@@ -208,11 +209,15 @@ instance AddUniqId HyperdataDocument
             shaBdd = hash $ DT.concat $ map ($ doc) ([(\d -> maybeText (_hd_bdd d))] <> shaParametersDoc)
 
         shaParametersDoc :: [(HyperdataDocument -> Text)]
-        shaParametersDoc = [ \d -> maybeText (_hd_title            d)
-                           , \d -> maybeText (_hd_abstract         d)
-                           , \d -> maybeText (_hd_source           d)
+        shaParametersDoc = [ \d -> filterText $ maybeText (_hd_title            d)
+                           , \d -> filterText $ maybeText (_hd_abstract         d)
+                           , \d -> filterText $ maybeText (_hd_source           d)
                            , \d -> maybeText (_hd_publication_date d)
                            ]
+
+filterText :: Text -> Text
+filterText = DT.toLower . (DT.filter isAlpha)
+
 -- TODO put this elsewhere (fix bin/gargantext-init/Main.hs too)
 secret :: Text
 secret = "Database secret to change"
@@ -265,6 +270,7 @@ addUniqIdsContact hc = set (hc_uniqIdBdd) (Just shaBdd)
                            , \d -> maybeText $ view (hc_who   . _Just . cw_lastName               ) d
                            , \d -> maybeText $ view (hc_where . _head . cw_touch . _Just . ct_mail) d
                            ]
+
 
 maybeText :: Maybe Text -> Text
 maybeText = maybe (DT.pack "") identity
