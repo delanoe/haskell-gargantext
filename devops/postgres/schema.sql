@@ -224,13 +224,18 @@ ALTER TABLE public.rights OWNER TO gargantua;
 create table public.node_stories (
   id SERIAL,
   node_id INTEGER NOT NULL,
-  archive jsonb DEFAULT '{}'::jsonb NOT NULL,
+  version INTEGER NOT NULL,
+  ngrams_type_id INTEGER NOT NULL,
+  ngrams_id INTEGER NOT NULL,
+  --children TEXT[],
+  ngrams_repo_element jsonb DEFAULT '{}'::jsonb NOT NULL,
   PRIMARY KEY (id),
-  FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE
+  FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
+  FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE
 );
 ALTER TABLE public.node_stories OWNER TO gargantua;
 
-CREATE UNIQUE INDEX ON public.node_stories USING btree (node_id);
+CREATE UNIQUE INDEX ON public.node_stories USING btree (node_id, ngrams_type_id, ngrams_id);
 
 
 create table public.node_story_archive_history (
@@ -328,4 +333,3 @@ CREATE OR REPLACE function node_pos(int, int) returns bigint
 
 --drop index node_by_pos;
 --create index node_by_pos on nodes using btree(node_pos(id,typename));
-

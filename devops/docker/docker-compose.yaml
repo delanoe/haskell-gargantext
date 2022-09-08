@@ -30,7 +30,7 @@ services:
       POSTGRES_PASSWORD: C8kdcUrAQy66U
       POSTGRES_DB: gargandbV5
     volumes:
-      - garg-pgdata14:/var/lib/postgresql-11/data
+      - garg-pgdata14:/var/lib/postgresql/data
       - ../:/gargantext
       - ../dbs:/dbs
       - ../postgres/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
