@@ -116,7 +116,6 @@ import System.IO (stderr)
 import qualified Data.Map.Strict                        as Map
 import qualified Data.Map.Strict.Patch                  as PM
 import qualified Data.Set as Set
-import qualified Data.Text as Text
 import qualified Database.PostgreSQL.Simple as PGS
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
@@ -200,8 +199,6 @@ instance DefaultFromField SqlJsonb (Archive NgramsState' NgramsStatePatch')
 combineState :: NgramsState' -> NgramsState' -> NgramsState'
 combineState = Map.unionWith (<>)
 
--- TODO Semigroup instance for unions
--- TODO check this
 instance (Semigroup s, Semigroup p) => Semigroup (Archive s p) where
   (<>) (Archive { _a_history = p }) (Archive { _a_version = v'
                                              , _a_state = s'
@@ -209,15 +206,12 @@ instance (Semigroup s, Semigroup p) => Semigroup (Archive s p) where
     Archive { _a_version = v'
             , _a_state = s'
             , _a_history = p' <> p }
-
 instance (Monoid s, Semigroup p) => Monoid (Archive s p) where
   mempty = Archive { _a_version = 0
                    , _a_state = mempty
                    , _a_history = [] }
-
 instance (FromJSON s, FromJSON p) => FromJSON (Archive s p) where
   parseJSON = genericParseJSON $ unPrefix "_a_"
-
 instance (ToJSON s, ToJSON p) => ToJSON (Archive s p) where
   toJSON     = genericToJSON     $ unPrefix "_a_"
   toEncoding = genericToEncoding $ unPrefix "_a_"
@@ -396,16 +390,11 @@ getNodeStory c nId@(NodeId nodeId) = do
                       Archive { _a_version = version
                               , _a_history = []
                               , _a_state   = Map.singleton ngramsType $ Map.singleton ngrams ngrams_repo_element }) res
-  -- TODO (<>) for Archive doesn't concatenate states!
   -- NOTE When concatenating, check that the same version is for all states
   pure $ NodeStory $ Map.singleton nId $ foldl combine mempty dbData
   --pure $ NodeStory $ Map.fromListWith (<>) $ (\(NodeStoryDB nId a) -> (nId, a)) <$> res
   where
-    -- query :: Select NodeStoryRead
-    -- query = proc () -> do
-    --   row@(NodeStoryDB node_id _) <- nodeStorySelect -< ()
-    --   restrict -< node_id .== sqlInt4 nodeId
-    --   returnA -< row
+    -- NOTE (<>) for Archive doesn't concatenate states, so we have to use `combine`
     combine a1 a2 = a1 & a_state %~ combineState (a2 ^. a_state)
                        & a_version .~ (a2 ^. a_version)  -- version should be updated from list, not taken from the empty Archive
 
@@ -452,7 +441,8 @@ insertNodeStory c (NodeId nId) a = do
 
 insertArchiveList :: PGS.Connection -> NodeId -> ArchiveList -> IO ()
 insertArchiveList c nodeId a = do
-  _ <- runPGSExecuteMany c query $ (\(nt, n, nre) -> (nodeId, a ^. a_version, nt, nre, n)) <$> (archiveStateAsList $ a ^. a_state)
+  _ <- mapM_ (\(nt, n, nre) -> runPGSExecute c query (nodeId, a ^. a_version, nt, nre, n)) (archiveStateAsList $ a ^. a_state)
+  --_ <- runPGSExecuteMany c query $ (\(nt, n, nre) -> (nodeId, a ^. a_version, nt, nre, n)) <$> (archiveStateAsList $ a ^. a_state)
   pure ()
   where
     query :: PGS.Query
@@ -461,7 +451,8 @@ insertArchiveList c nodeId a = do
 
 deleteArchiveList :: PGS.Connection -> NodeId -> ArchiveList -> IO ()
 deleteArchiveList c nodeId a = do
-  _ <- runPGSExecuteMany c query $ (\(nt, n, _) -> (nodeId, nt, n)) <$> (archiveStateAsList $ a ^. a_state)
+  _ <- mapM_ (\(nt, n, _) -> runPGSExecute c query (nodeId, nt, n)) (archiveStateAsList $ a ^. a_state)
+  --_ <- runPGSExecuteMany c query $ (\(nt, n, _) -> (nodeId, nt, n)) <$> (archiveStateAsList $ a ^. a_state)
   pure ()
   where
     query :: PGS.Query
@@ -496,20 +487,21 @@ updateNodeStory c nodeId@(NodeId _nId) currentArchive newArchive = do
   let newSet = Set.fromList $ (\(nt, n, _) -> (nt, n)) <$> newList
 
   let inserts = filter (\(nt, n, _) -> Set.member (nt, n) $ Set.difference newSet currentSet) newList
-  printDebug "[updateNodeStory] inserts" inserts
+  --printDebug "[updateNodeStory] inserts" inserts
   let deletes = filter (\(nt, n, _) -> Set.member (nt, n) $ Set.difference currentSet newSet) currentList
-  printDebug "[updateNodeStory] deletes" deletes
+  --printDebug "[updateNodeStory] deletes" deletes
 
   -- updates are the things that are in new but not in current
   let updates = Set.toList $ Set.difference (Set.fromList newList) (Set.fromList currentList)
-  printDebug "[updateNodeStory] updates" $ Text.unlines $ (Text.pack . show) <$> updates
+  --printDebug "[updateNodeStory] updates" $ Text.unlines $ (Text.pack . show) <$> updates
 
   -- 2. Perform inserts/deletes/updates
+  printDebug "[updateNodeStory] applying insert" ()
   insertArchiveList c nodeId $ Archive { _a_version = newArchive ^. a_version
                                        , _a_history = []
                                        , _a_state = archiveStateFromList inserts }
   printDebug "[updateNodeStory] insert applied" ()
-  -- TODO Use currentArchive ^. a_version in delete and report error
+    --TODO Use currentArchive ^. a_version in delete and report error
   -- if entries with (node_id, ngrams_type_id, ngrams_id) but
   -- different version are found.
   deleteArchiveList c nodeId $ Archive { _a_version = newArchive ^. a_version
