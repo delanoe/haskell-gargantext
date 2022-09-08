@@ -244,6 +244,7 @@ create table public.node_story_archive_history (
   ngrams_type_id INTEGER NOT NULL,
   ngrams_id INTEGER NOT NULL,
   patch jsonb DEFAULT '{}'::jsonb NOT NULL,
+  version INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
   FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
   FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE

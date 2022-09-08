@@ -346,7 +346,7 @@ getNodesIdWithType c nt = do
 -- nodeStorySelect :: Select NodeStoryRead
 -- nodeStorySelect = selectTable nodeStoryTable
 
--- TODO Check ordering, "first patch in the _a_history list is the most recent"
+-- NOTE "first patch in the _a_history list is the most recent"
 getNodeArchiveHistory :: PGS.Connection -> NodeId -> IO [NgramsStatePatch']
 getNodeArchiveHistory c nodeId = do
   as <- runPGSQuery c query (PGS.Only nodeId) :: IO [(TableNgrams.NgramsType, NgramsTerm, NgramsPatch)]
@@ -356,15 +356,16 @@ getNodeArchiveHistory c nodeId = do
     query = [sql| SELECT ngrams_type_id, terms, patch
                     FROM node_story_archive_history
                     JOIN ngrams ON ngrams.id = ngrams_id
-                    WHERE node_id = ? |]
+                    WHERE node_id = ?
+                    ORDER BY version DESC |]
 
 ngramsIdQuery :: PGS.Query
 ngramsIdQuery = [sql| SELECT id FROM ngrams WHERE terms = ? |]
 
 
-insertNodeArchiveHistory :: PGS.Connection -> NodeId -> [NgramsStatePatch'] -> IO ()
-insertNodeArchiveHistory _ _ [] = pure ()
-insertNodeArchiveHistory c nodeId (h:hs) = do
+insertNodeArchiveHistory :: PGS.Connection -> NodeId -> Version -> [NgramsStatePatch'] -> IO ()
+insertNodeArchiveHistory _ _ _ [] = pure ()
+insertNodeArchiveHistory c nodeId version (h:hs) = do
   let tuples = mconcat $ (\(nType, (NgramsTablePatch patch)) ->
                            (\(term, p) ->
                               (nodeId, nType, term, p)) <$> PM.toList patch) <$> PM.toList h :: [(NodeId, TableNgrams.NgramsType, NgramsTerm, NgramsPatch)]
@@ -372,13 +373,13 @@ insertNodeArchiveHistory c nodeId (h:hs) = do
                       ngrams <- runPGSQuery c ngramsIdQuery (PGS.Only term)
                       pure $ (\(PGS.Only termId) -> (nId, nType, termId, term, patch)) <$> (headMay ngrams)
                       ) tuples :: IO [Maybe (NodeId, TableNgrams.NgramsType, Int, NgramsTerm, NgramsPatch)]
-  _ <- runPGSExecuteMany c query $ ((\(nId, nType, termId, _term, patch) -> (nId, nType, termId, patch)) <$> (catMaybes tuplesM))
-  _ <- insertNodeArchiveHistory c nodeId hs
+  _ <- runPGSExecuteMany c query $ ((\(nId, nType, termId, _term, patch) -> (nId, nType, termId, patch, version)) <$> (catMaybes tuplesM))
+  _ <- insertNodeArchiveHistory c nodeId version hs
   pure ()
   where
 
     query :: PGS.Query
-    query = [sql| INSERT INTO node_story_archive_history(node_id, ngrams_type_id, ngrams_id, patch) VALUES (?, ?, ?, ?) |]
+    query = [sql| INSERT INTO node_story_archive_history(node_id, ngrams_type_id, ngrams_id, patch, version) VALUES (?, ?, ?, ?, ?) |]
 
 getNodeStory :: PGS.Connection -> NodeId -> IO NodeListStory
 getNodeStory c nId@(NodeId nodeId) = do
@@ -540,7 +541,7 @@ upsertNodeStories c nodeId@(NodeId nId) newArchive = do
     -- whether it's insert or update, we can insert node archive history already
     -- NOTE: It is assumed that the most recent change is the first in the
     -- list, so we save these in reverse order
-    insertNodeArchiveHistory c nodeId $ reverse $ newArchive ^. a_history
+    insertNodeArchiveHistory c nodeId (newArchive ^. a_version) $ reverse $ newArchive ^. a_history
 
     (NodeStory m) <- getNodeStory c nodeId
     case Map.lookup nodeId m of
