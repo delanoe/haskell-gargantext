@@ -42,7 +42,7 @@ import Gargantext.Core.Types
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Context
 import Gargantext.Core.Text.Terms.WithList
-import Gargantext.Core.Text.Corpus.Parsers.CSV (readFile, csv_title, csv_abstract, csv_publication_year, unIntOrDec, fromMIntOrDec, defaultYear)
+import Gargantext.Core.Text.Corpus.Parsers.CSV (readCSVFile, csv_title, csv_abstract, csv_publication_year, unIntOrDec, fromMIntOrDec, defaultYear)
 import Gargantext.Core.Text.List.Formats.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms (terms)
 import Gargantext.Core.Text.Metrics.Count (coocOnContexts, Coocs)
@@ -86,7 +86,7 @@ main = do
   [corpusFile, termListFile, outputFile] <- getArgs
 
   --corpus :: IO (DM.IntMap [[Text]])
-  eCorpusFile <- readFile corpusFile
+  eCorpusFile <- readCSVFile corpusFile
   case eCorpusFile of
     Right cf -> do
       let corpus = DM.fromListWith (<>)

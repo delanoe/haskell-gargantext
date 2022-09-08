@@ -6,7 +6,7 @@ name: gargantext
 #         | | | +-----  Layers * : New versions with API additions
 #         | | | | +---  Layers * : New versions without API breaking changes
 #         | | | | |
-version: '0.0.6'
+version: '0.0.6.1'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -75,6 +75,7 @@ library:
   - Gargantext.Core.Types.Individu
   - Gargantext.Core.Types.Main
   - Gargantext.Core.Utils.Prefix
+  - Gargantext.Utils.SpacyNLP
   - Gargantext.Database.Action.Flow
   - Gargantext.Database.Action.Flow.Types
   - Gargantext.Database.Action.User.New
@@ -100,6 +101,7 @@ library:
   - Gargantext.Core.Text.Metrics.TFICF
   - Gargantext.Core.Text.Metrics.CharByChar
   - Gargantext.Core.Text.Metrics.Count
+  - Gargantext.Core.Text.Prepare
   - Gargantext.Core.Text.Search
   - Gargantext.Core.Text.Terms
   - Gargantext.Core.Text.Terms.Mono
@@ -275,6 +277,7 @@ library:
   - unordered-containers
   - utf8-string
   - uuid
+  - uri-encode
   - validity
   - vector
   - wai

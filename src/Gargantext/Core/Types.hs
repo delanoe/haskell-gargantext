@@ -126,7 +126,7 @@ instance FromJSON POS where
 instance ToJSON POS
 instance Hashable POS
 ------------------------------------------------------------------------
-data NER = PERSON | ORGANIZATION | LOCATION | NoNER
+data NER = PERSON | ORGANIZATION | LOCATION | NoNER { noNer :: !Text }
   deriving (Show, Generic)
 ------------------------------------------------------------------------
 instance FromJSON NER where
@@ -134,9 +134,11 @@ instance FromJSON NER where
     where
       ner :: [Char] -> NER
       ner "PERSON"       = PERSON
+      ner "PER"          = PERSON
       ner "ORGANIZATION" = ORGANIZATION
       ner "LOCATION"     = LOCATION
-      ner  _             = NoNER
+      ner "LOC"          = LOCATION
+      ner  x             = NoNER (cs x)
 
 instance ToJSON NER
 

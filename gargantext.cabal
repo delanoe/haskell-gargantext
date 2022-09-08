@@ -316,6 +316,7 @@ library
       Gargantext.Database.Types
       Gargantext.Utils.Aeson
       Gargantext.Utils.JohnSnowNLP
+      Gargantext.Utils.SpacyNLP
       Gargantext.Utils.Servant
       Gargantext.Utils.UTCTime
       Paths_gargantext
@@ -492,6 +493,7 @@ library
     , unordered-containers
     , utf8-string
     , uuid
+    , uri-encode
     , validity
     , vector
     , wai

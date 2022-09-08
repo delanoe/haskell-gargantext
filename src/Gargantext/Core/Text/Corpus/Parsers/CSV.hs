@@ -234,7 +234,7 @@ delimiter Comma = fromIntegral $ ord ','
 ------------------------------------------------------------------------
 readCsvOn' :: [CsvDoc -> Text] -> FilePath -> IO (Either Prelude.String [Text])
 readCsvOn' fields fp = do
-  r <- readFile fp
+  r <- readCSVFile fp
   pure $ ( V.toList
           . V.map (\l -> intercalate (pack " ") $ map (\field -> field l) fields)
           . snd ) <$> r
@@ -267,8 +267,8 @@ readByteStringStrict d ff = (readByteStringLazy d ff) . BL.fromStrict
 
 ------------------------------------------------------------------------
 -- | TODO use readFileLazy
-readFile :: FilePath -> IO (Either Prelude.String (Header, Vector CsvDoc))
-readFile fp = do
+readCSVFile :: FilePath -> IO (Either Prelude.String (Header, Vector CsvDoc))
+readCSVFile fp = do
   result <- fmap (readCsvLazyBS Comma) $ BL.readFile fp
   case result of
     Left _err -> fmap (readCsvLazyBS Tab) $ BL.readFile fp
@@ -448,7 +448,7 @@ parseHal' bs = (V.toList . V.map csvHal2doc . snd) <$> readCsvHalLazyBS bs
 ------------------------------------------------------------------------
 
 parseCsv :: FilePath -> IO (Either Prelude.String [HyperdataDocument])
-parseCsv fp = fmap (V.toList . V.map csv2doc . snd) <$> readFile fp
+parseCsv fp = fmap (V.toList . V.map csv2doc . snd) <$> readCSVFile fp
 
 {-
 parseCsv' ::  BL.ByteString -> Either Prelude.String [HyperdataDocument]

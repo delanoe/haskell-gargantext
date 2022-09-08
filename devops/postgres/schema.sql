@@ -221,7 +221,7 @@ ALTER TABLE public.rights OWNER TO gargantua;
 ------------------------------------------------------------
 -- Node Story
 
-create table public.node_stories (
+CREATE TABLE public.node_stories (
   id SERIAL,
   node_id INTEGER NOT NULL,
   version INTEGER NOT NULL,

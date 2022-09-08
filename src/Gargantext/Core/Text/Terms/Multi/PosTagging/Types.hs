@@ -9,6 +9,7 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 
@@ -22,27 +23,27 @@ import Gargantext.Prelude
 import GHC.Generics
 
 
-data Token = Token { _tokenIndex                :: Int
-                   , _tokenWord                 :: Text
-                   , _tokenOriginalText         :: Text
-                   , _tokenLemma                :: Text
-                   , _tokenCharacterOffsetBegin :: Int
-                   , _tokenCharacterOffsetEnd   :: Int
-                   , _tokenPos                  :: Maybe POS
-                   , _tokenNer                  :: Maybe NER
-                   , _tokenBefore               :: Maybe Text
-                   , _tokenAfter                :: Maybe Text
+data Token = Token { _tokenIndex                :: !Int
+                   , _tokenWord                 :: !Text
+                   , _tokenOriginalText         :: !Text
+                   , _tokenLemma                :: !Text
+                   , _tokenCharacterOffsetBegin :: !Int
+                   , _tokenCharacterOffsetEnd   :: !Int
+                   , _tokenPos                  :: !(Maybe POS)
+                   , _tokenNer                  :: !(Maybe NER)
+                   , _tokenBefore               :: !(Maybe Text)
+                   , _tokenAfter                :: !(Maybe Text)
                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_token") ''Token)
 
-data Sentence  = Sentence { _sentenceIndex  :: Int
-                          , _sentenceTokens :: [Token]
+data Sentence  = Sentence { _sentenceIndex  :: !Int
+                          , _sentenceTokens :: ![Token]
                           } deriving (Show, Generic)
 
 $(deriveJSON (unPrefix "_sentence") ''Sentence)
 
-data Properties = Properties { _propertiesAnnotators  :: Text
-                             , _propertiesOutputFormat :: Text
+data Properties = Properties { _propertiesAnnotators  :: !Text
+                             , _propertiesOutputFormat :: !Text
                              } deriving (Show, Generic)
 
 $(deriveJSON (unPrefix "_properties") ''Properties)

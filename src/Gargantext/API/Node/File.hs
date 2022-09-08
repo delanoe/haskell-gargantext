@@ -76,7 +76,7 @@ fileDownload uId nId = do
   let (HyperdataFile { _hff_name = name'
                      , _hff_path = path }) = node ^. node_hyperdata
 
-  Contents c <- GargDB.readFile $ unpack path
+  Contents c <- GargDB.readGargFile $ unpack path
 
   let (mMime, _) = DMT.guessType DMT.defaultmtd False $ unpack name'
       mime = case mMime of

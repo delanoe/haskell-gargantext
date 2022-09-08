@@ -112,6 +112,7 @@ data PathId = PathNode NodeId | PathNodeNode ListId DocId
 ---------------------------
 
 type Email = Text
+type Password = Text
 
 data ForgotPasswordRequest = ForgotPasswordRequest { _fpReq_email :: Email }
   deriving (Generic )
@@ -124,3 +125,9 @@ data ForgotPasswordResponse = ForgotPasswordResponse { _fpRes_status :: Text }
 $(deriveJSON (unPrefix "_fpRes_") ''ForgotPasswordResponse)
 instance ToSchema ForgotPasswordResponse where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_fpRes_")
+
+data ForgotPasswordGet = ForgotPasswordGet {_fpGet_password :: Password}
+  deriving (Generic )
+$(deriveJSON (unPrefix "_fpGet_") ''ForgotPasswordGet)
+instance ToSchema ForgotPasswordGet where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_fpGet_") 

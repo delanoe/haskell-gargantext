@@ -19,27 +19,35 @@ commentary with @some markup@.
 
 module Gargantext.Database.Query.Table.NodeNode
   ( module Gargantext.Database.Schema.NodeNode
-  , queryNodeNodeTable
+  , deleteNodeNode
   , getNodeNode
   , insertNodeNode
-  , deleteNodeNode
+  , nodeNodesCategory
+  , nodeNodesScore
+  , queryNodeNodeTable
+  , selectDocNodes
+  , selectDocs
+  , selectDocsDates
   , selectPublicNodes
   )
   where
 
 import Control.Arrow (returnA)
-import Control.Lens ((^.))
-import qualified Opaleye as O
-import Opaleye
-
+import Control.Lens ((^.), view)
+import Data.Text (Text, splitOn)
+import Data.Maybe (catMaybes)
+import Database.PostgreSQL.Simple.SqlQQ (sql)
+import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Core
 import Gargantext.Core.Types
-import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.NodeNode
 import Gargantext.Prelude
-
+import Opaleye
+import qualified Database.PostgreSQL.Simple as PGS
+import qualified Opaleye as O
 
 queryNodeNodeTable :: Select NodeNodeRead
 queryNodeNodeTable = selectTable nodeNodeTable
@@ -113,8 +121,113 @@ deleteNodeNode n1 n2 = mkCmd $ \conn ->
                   )
 
 ------------------------------------------------------------------------
-selectPublicNodes :: HasDBid NodeType
-                  => (Hyperdata a, DefaultFromField SqlJsonb a)
+-- | Favorite management
+_nodeNodeCategory :: CorpusId -> DocId -> Int -> Cmd err [Int]
+_nodeNodeCategory cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery favQuery (c,cId,dId)
+  where
+    favQuery :: PGS.Query
+    favQuery = [sql|UPDATE nodes_nodes SET category = ?
+               WHERE node1_id = ? AND node2_id = ?
+               RETURNING node2_id;
+               |]
+
+nodeNodesCategory :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
+nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
+                            <$> runPGSQuery catQuery (PGS.Only $ Values fields inputData)
+  where
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
+    catQuery :: PGS.Query
+    catQuery = [sql| UPDATE nodes_nodes as nn0
+                      SET category = nn1.category
+                       FROM (?) as nn1(node1_id,node2_id,category)
+                       WHERE nn0.node1_id = nn1.node1_id
+                       AND   nn0.node2_id = nn1.node2_id
+                       RETURNING nn1.node2_id
+                  |]
+
+------------------------------------------------------------------------
+-- | Score management
+_nodeNodeScore :: CorpusId -> DocId -> Int -> Cmd err [Int]
+_nodeNodeScore cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery scoreQuery (c,cId,dId)
+  where
+    scoreQuery :: PGS.Query
+    scoreQuery = [sql|UPDATE nodes_nodes SET score = ?
+                  WHERE node1_id = ? AND node2_id = ?
+                  RETURNING node2_id;
+                  |]
+
+nodeNodesScore :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
+nodeNodesScore inputData = map (\(PGS.Only a) -> a)
+                            <$> runPGSQuery catScore (PGS.Only $ Values fields inputData)
+  where
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
+    catScore :: PGS.Query
+    catScore = [sql| UPDATE nodes_nodes as nn0
+                      SET score = nn1.score
+                       FROM (?) as nn1(node1_id, node2_id, score)
+                       WHERE nn0.node1_id = nn1.node1_id
+                       AND   nn0.node2_id = nn1.node2_id
+                       RETURNING nn1.node2_id
+                  |]
+
+------------------------------------------------------------------------
+_selectCountDocs :: HasDBid NodeType => CorpusId -> Cmd err Int
+_selectCountDocs cId = runCountOpaQuery (queryCountDocs cId)
+  where
+    queryCountDocs cId' = proc () -> do
+      (n, nn) <- joinInCorpus -< ()
+      restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId')
+      restrict -< nn^.nn_category  .>= (toNullable $ sqlInt4 1)
+      restrict -< n^.node_typename .== (sqlInt4 $ toDBid NodeDocument)
+      returnA -< n
+
+
+
+
+-- | TODO use UTCTime fast
+selectDocsDates :: HasDBid NodeType => CorpusId -> Cmd err [Text]
+selectDocsDates cId =  map (head' "selectDocsDates" . splitOn "-")
+                   <$> catMaybes
+                   <$> map (view hd_publication_date)
+                   <$> selectDocs cId
+
+selectDocs :: HasDBid NodeType => CorpusId -> Cmd err [HyperdataDocument]
+selectDocs cId = runOpaQuery (queryDocs cId)
+
+queryDocs :: HasDBid NodeType => CorpusId -> O.Select (Column SqlJsonb)
+queryDocs cId = proc () -> do
+  (n, nn) <- joinInCorpus -< ()
+  restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
+  restrict -< nn^.nn_category  .>= (toNullable $ sqlInt4 1)
+  restrict -< n^.node_typename .== (sqlInt4 $ toDBid NodeDocument)
+  returnA -< view (node_hyperdata) n
+
+selectDocNodes :: HasDBid NodeType =>CorpusId -> Cmd err [Node HyperdataDocument]
+selectDocNodes cId = runOpaQuery (queryDocNodes cId)
+
+queryDocNodes :: HasDBid NodeType =>CorpusId -> O.Select NodeRead
+queryDocNodes cId = proc () -> do
+  (n, nn) <- joinInCorpus -< ()
+  restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
+  restrict -< nn^.nn_category  .>= (toNullable $ sqlInt4 1)
+  restrict -< n^.node_typename .== (sqlInt4 $ toDBid NodeDocument)
+  returnA -<  n
+
+joinInCorpus :: O.Select (NodeRead, NodeNodeReadNull)
+joinInCorpus = leftJoin queryNodeTable queryNodeNodeTable cond
+  where
+    cond :: (NodeRead, NodeNodeRead) -> Column SqlBool
+    cond (n, nn) = nn^.nn_node2_id .== (view node_id n)
+
+_joinOn1 :: O.Select (NodeRead, NodeNodeReadNull)
+_joinOn1 = leftJoin queryNodeTable queryNodeNodeTable cond
+  where
+    cond :: (NodeRead, NodeNodeRead) -> Column SqlBool
+    cond (n, nn) = nn^.nn_node1_id .== n^.node_id
+
+
+------------------------------------------------------------------------
+selectPublicNodes :: HasDBid NodeType => (Hyperdata a, DefaultFromField SqlJsonb a)
                   => Cmd err [(Node a, Maybe Int)]
 selectPublicNodes = runOpaQuery (queryWithType NodeFolderPublic)
 
