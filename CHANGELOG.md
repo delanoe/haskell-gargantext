@@ -1,3 +1,7 @@
+## Version 0.0.6.2
+* [BACK][FIX] Ngrams List saved in database on halting
+* [BACK][FIX] Confluence on Graph
+
 ## Version 0.0.6.1
 * [FEAT] Spacy Server connection for French (and others) languages
 * [FEAT] At startup, check if gargantext.init script has been activated
