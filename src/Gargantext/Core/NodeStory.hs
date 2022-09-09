@@ -119,6 +119,7 @@ import System.IO (stderr)
 import qualified Data.Map.Strict                        as Map
 import qualified Data.Map.Strict.Patch                  as PM
 import qualified Data.Set as Set
+import qualified Data.Text as Text
 import qualified Database.PostgreSQL.Simple as PGS
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
@@ -286,7 +287,7 @@ runPGSExecute c qs a = catch (PGS.execute c qs a) printError
   where
     printError (SomeException e) = do
       --q' <- PGS.formatQuery c qs a
-      --hPutStrLn stderr q'
+      _ <- panic $ Text.pack $ show e
       throw (SomeException e)
 
 runPGSExecuteMany :: (PGS.ToRow q) => PGS.Connection -> PGS.Query -> [q] -> IO Int64
@@ -294,7 +295,7 @@ runPGSExecuteMany c qs a = catch (PGS.executeMany c qs a) printError
   where
     printError (SomeException e) = do
       --q' <- PGS.formatQuery c qs a
-      --hPutStrLn stderr q'
+      _ <- panic $ Text.pack $ show e
       throw (SomeException e)
 
 runPGSQuery :: (PGS.FromRow r, PGS.ToRow q) => PGS.Connection -> PGS.Query -> q -> IO [r]
