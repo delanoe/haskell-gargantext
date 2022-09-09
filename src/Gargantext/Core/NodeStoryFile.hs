@@ -57,8 +57,10 @@ readNodeStoryEnv :: NodeStoryDir -> IO NodeStoryEnv
 readNodeStoryEnv nsd = do
   mvar  <- nodeStoryVar nsd Nothing []
   saver <- mkNodeStorySaver nsd mvar
+  let saver_immediate = withMVar mvar (writeNodeStories nsd)
   pure $ NodeStoryEnv { _nse_var = mvar
                       , _nse_saver = saver
+                      , _nse_saver_immediate = saver_immediate
                       , _nse_getter = nodeStoryVar nsd (Just mvar) }
 
 ------------------------------------------------------------------------

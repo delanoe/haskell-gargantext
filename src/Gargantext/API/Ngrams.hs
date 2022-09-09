@@ -55,6 +55,7 @@ module Gargantext.API.Ngrams
   , r_history
   , NgramsRepoElement(..)
   , saveNodeStory
+  , saveNodeStoryImmediate
   , initRepo
 
   , TabType(..)
@@ -179,7 +180,22 @@ mkChildrenGroups addOrRem nt patches =
 
 saveNodeStory :: ( MonadReader env m, MonadBase IO m, HasNodeStorySaver env )
          => m ()
-saveNodeStory = liftBase =<< view hasNodeStorySaver
+saveNodeStory = do
+  saver <- view hasNodeStorySaver
+  liftBase $ do
+    Gargantext.Prelude.putStrLn "---- Running node story saver ----"
+    saver
+    Gargantext.Prelude.putStrLn "---- Node story saver finished ----"
+
+
+saveNodeStoryImmediate :: ( MonadReader env m, MonadBase IO m, HasNodeStoryImmediateSaver env )
+         => m ()
+saveNodeStoryImmediate = do
+  saver <- view hasNodeStoryImmediateSaver
+  liftBase $ do
+    Gargantext.Prelude.putStrLn "---- Running node story immediate saver ----"
+    saver
+    Gargantext.Prelude.putStrLn "---- Node story immediate saver finished ----"
 
 
 listTypeConflictResolution :: ListType -> ListType -> ListType

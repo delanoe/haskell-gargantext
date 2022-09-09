@@ -53,6 +53,9 @@ instance HasNodeStoryVar Env where
 instance HasNodeStorySaver Env where
   hasNodeStorySaver = hasNodeStory . nse_saver
 
+instance HasNodeStoryImmediateSaver Env where
+  hasNodeStoryImmediateSaver = hasNodeStory . nse_saver_immediate
+
 instance HasSettings Env where
   settings = env_settings
 
@@ -103,6 +106,9 @@ instance HasNodeStoryVar DevEnv where
 
 instance HasNodeStorySaver DevEnv where
   hasNodeStorySaver = hasNodeStory . nse_saver
+
+instance HasNodeStoryImmediateSaver DevEnv where
+  hasNodeStoryImmediateSaver = hasNodeStory . nse_saver_immediate
 
 instance HasMail DevEnv where
   mailSettings = dev_env_mail

@@ -47,7 +47,7 @@ import Gargantext.API.Admin.Auth.Types (AuthContext)
 import Gargantext.API.Admin.Settings (newEnv)
 import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, jwtSettings, settings)
 import Gargantext.API.EKG
-import Gargantext.API.Ngrams (saveNodeStory)
+import Gargantext.API.Ngrams (saveNodeStoryImmediate)
 import Gargantext.API.Prelude
 import Gargantext.API.Routes
 import Gargantext.API.Server (server)
@@ -92,10 +92,10 @@ portRouteInfo port = do
   putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
 
 -- TODO clean this Monad condition (more generic) ?
-stopGargantext :: HasNodeStorySaver env => env -> IO ()
+stopGargantext :: HasNodeStoryImmediateSaver env => env -> IO ()
 stopGargantext env = do
   putStrLn "----- Stopping gargantext -----"
-  runReaderT saveNodeStory env
+  runReaderT saveNodeStoryImmediate env
 
 {-
 startGargantextMock :: PortNumber -> IO ()

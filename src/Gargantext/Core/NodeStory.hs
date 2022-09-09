@@ -54,6 +54,8 @@ module Gargantext.Core.NodeStory
   , hasNodeStoryVar
   , HasNodeStorySaver
   , hasNodeStorySaver
+  , HasNodeStoryImmediateSaver
+  , hasNodeStoryImmediateSaver
   , NodeStory(..)
   , NgramsStatePatch'
   , NodeListStory
@@ -62,6 +64,7 @@ module Gargantext.Core.NodeStory
   , initNodeStory
   , nse_getter
   , nse_saver
+  , nse_saver_immediate
   , nse_var
   , unNodeStory
   , getNodeArchiveHistory
@@ -123,6 +126,7 @@ import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 data NodeStoryEnv = NodeStoryEnv
   { _nse_var    :: !(MVar NodeListStory)
   , _nse_saver  :: !(IO ())
+  , _nse_saver_immediate :: !(IO ())
   , _nse_getter :: [NodeId] -> IO (MVar NodeListStory)
   --, _nse_cleaner :: !(IO ()) -- every 12 hours: cleans the repos of unused NodeStories
   -- , _nse_lock  :: !FileLock -- TODO (it depends on the option: if with database or file only)
@@ -147,6 +151,9 @@ class HasNodeStoryVar env where
 
 class HasNodeStorySaver env where
   hasNodeStorySaver :: Getter env (IO ())
+
+class HasNodeStoryImmediateSaver env where
+  hasNodeStoryImmediateSaver :: Getter env (IO ())
 
 ------------------------------------------------------------------------
 
@@ -592,6 +599,11 @@ readNodeStoryEnv :: Pool PGS.Connection -> IO NodeStoryEnv
 readNodeStoryEnv pool = do
   mvar <- nodeStoryVar pool Nothing []
   saver <- mkNodeStorySaver pool mvar
+  let saver_immediate = modifyMVar_ mvar $ \ns -> do
+        withResource pool $ \c -> do
+          --printDebug "[mkNodeStorySaver] will call writeNodeStories, ns" ns
+          writeNodeStories c ns
+          pure $ clearHistory ns
   -- let saver = modifyMVar_ mvar $ \mv -> do
   --       writeNodeStories pool mv
   --       printDebug "[readNodeStoryEnv] saver" mv
@@ -600,6 +612,7 @@ readNodeStoryEnv pool = do
   --       return mv'
   pure $ NodeStoryEnv { _nse_var    = mvar
                       , _nse_saver  = saver
+                      , _nse_saver_immediate = saver_immediate
                       , _nse_getter = nodeStoryVar pool (Just mvar) }
 
 nodeStoryVar :: Pool PGS.Connection -> Maybe (MVar NodeListStory) -> [NodeId] -> IO (MVar NodeListStory)

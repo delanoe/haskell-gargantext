@@ -62,7 +62,7 @@ main = do
            , ""
            , "Press ENTER if you want to continue, CTRL+C if you want to stop."
            ]
-  
+
   _ok  <- getLine
 
   cfg       <- readConfig         iniPath
@@ -88,7 +88,7 @@ main = do
     _ <- runCmdDev env (initFirstTriggers secret :: Cmd GargError [Int64])
     _ <- runCmdDev env (contextsTriggers         :: Cmd GargError ())
 
-   -- Move nodes to contexts table 
+   -- Move nodes to contexts table
     _ <- runCmdDev env sqlNodes2Contexts
 
    -- Update the hashes
@@ -283,6 +283,3 @@ sqlSchema = do
         CREATE INDEX IF NOT EXISTS context_node_node_id_idx ON public.context_node_ngrams USING btree (node_id);
 
   |]
-
-
-
