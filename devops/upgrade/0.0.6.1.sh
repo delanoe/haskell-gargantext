@@ -14,10 +14,13 @@ sudo apt -yy dist-upgrade
 git pull origin dev
 ./bin/install
 
+# Database upgrade
 #./bin/psql gargantext.ini < devops/postgres/upgrade/0.0.6.0.sql
-#./bin/psql gargantext.ini < devops/postgres/upgrade/0.0.6.1.sql
-
 # exec script haskell upgrade
+
+#./bin/psql gargantext.ini < devops/postgres/upgrade/0.0.6.1.sql
+# ~/.local/bin/gargantext-upgrade
+
 
 sudo sed -i "s/bullseye/bookworm/g" /etc/apt/sources.list
 sudo apt update
@@ -31,8 +34,6 @@ DBPASS=$(grep "DB_PASS" gargantext.ini | sed "s/^.*= //")
 sudo -i -u postgres bash << EOF 
 psql < 'ALTER ROLE gargantua password \'$DBPASS\'';
 EOF
-
-
 
 
 ./bin/psql gargantext.ini < devops/postgres/upgrade/0.0.6.2.sql
