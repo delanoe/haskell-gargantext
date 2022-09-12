@@ -132,7 +132,10 @@ cooc2graphWith' doPartitions distance threshold strength myCooc = do
         (as, bs) = List.unzip $ Map.keys distanceMap
         n' = Set.size $ Set.fromList $ as <> bs
     bridgeness' = bridgeness (fromIntegral nodesApprox) partitions distanceMap
-    confluence' = Map.empty -- BAC.computeConfluences 3 (Map.keys bridgeness') True
+    -- indices of bridgeness seem to start at 1, while computeConfluences
+    -- expects 0-based indexing.
+    -- ks = map (\(a, b) -> (a-1, b-1)) (Map.keys bridgeness')
+    confluence' = Map.empty -- Map.mapKeys (\(a, b) -> (a+1, b+1)) $ BAC.computeConfluences 3 ks True
                -- confluence (Map.keys bridgeness') 3 True False
   seq bridgeness' $ printDebug "bridgeness OK" ()
   seq confluence' $ printDebug "confluence OK" ()

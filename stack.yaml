@@ -35,7 +35,7 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
   commit: 08096a4913572cf22762fa77613340207ec6d9fd
 - git: https://gitlab.iscpif.fr/gargantext/gargantext-graph.git
-  commit: f41ee8b53c3264e5aa5adc06b2e5b293d2a8c474
+  commit: 642b9ec7ffa59a5db7b2ec7b24436e07309dc097
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
@@ -76,7 +76,7 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/istex.git
   commit: a34bb341236d82cf3d488210bc1d8448a98f5808
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
-  commit: 9a43470241690a19c1c381c42a62c5dd4e28dff2
+  commit: 4aad6c62483de21e8b61845c0c487aaf8677da96
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
   commit: 3db385e767d2100d8abe900833c6e7de3ac55e1b
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/arxiv-api.git

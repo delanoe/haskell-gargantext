@@ -1,15 +1,22 @@
+## Version 0.0.6.2
+* [BACK][FIX] Ngrams List saved in database on halting
+* [BACK][FIX] Confluence on Graph
+* [BACK][FIX] HAL parser fix
+* [BACK][UPGRADE] ./bin/psql gargantext.ini < devops/postgres/upgrade/0.0.6.2.sql
+* [BACK][ADMIN] upgrade script, test ok
+
 ## Version 0.0.6.1
-* [FEAT] Spacy Server connection for French (and others) languages
-* [FEAT] At startup, check if gargantext.init script has been activated
-* [UPGRADE] Use the devops/postgres/upgrade/0.0.6.1.sql uprade script
-* [FIX] PubMed Parser with threadDelay
+* [BACK][FEAT] Spacy Server connection for French (and others) languages
+* [BACK][FEAT] At startup, check if gargantext.init script has been activated
+* [BACK][UPGRADE] Use the devops/postgres/upgrade/0.0.6.1.sql upgrade script
+* [BACK][FIX] PubMed Parser with threadDelay
 * [BACK][FIX] Hash to remove duplicates on filtered text
 
 ## Version 0.0.6
-* [OPTIM] Ngrams Table optmization. To upgrade:
-  1. `./bin/psql gargantext.ini < devops/postgresql/upgrade/0.0.6.sql`
-  2. in `stack --nix repl` run `runCmdReplEasy $ migrateFromDirToDb`
-* [FIX] Ngrams Table next button: loads only one time instead of twice previously
+* [BACK][OPTIM] Ngrams Table optmization. To upgrade:
+      1. `./bin/psql gargantext.ini < devops/postgresql/upgrade/0.0.6.sql`
+      2. in `stack --nix repl` run `runCmdReplEasy $ migrateFromDirToDb`
+* [FRONT][FIX] Ngrams Table next button: loads only one time instead of twice previously
 * [FRONT][FIX] Resize handler on Write Node
 * [FRONT][FIX] Do not highlight ngrams if maximum abstract length > 4500 characters
 
