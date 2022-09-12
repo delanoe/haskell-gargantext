@@ -365,7 +365,7 @@ getNodeArchiveHistory c nodeId = do
                     FROM node_story_archive_history
                     JOIN ngrams ON ngrams.id = ngrams_id
                     WHERE node_id = ?
-                    ORDER BY version DESC |]
+                    ORDER BY (version, node_story_archive_history.id) DESC |]
 
 ngramsIdQuery :: PGS.Query
 ngramsIdQuery = [sql| SELECT id FROM ngrams WHERE terms = ? |]
