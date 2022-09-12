@@ -111,6 +111,7 @@ import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListId, NodeId(..), NodeType)
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Prelude (CmdM', HasConnectionPool(..), HasConfig)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Prelude
@@ -327,7 +328,7 @@ nodeExists c nId = (== [PGS.Only True])
 
 getNodesIdWithType :: PGS.Connection -> NodeType -> IO [NodeId]
 getNodesIdWithType c nt = do
-  ns <- runPGSQuery c query (PGS.Only nt)
+  ns <- runPGSQuery c query (PGS.Only $ nodeTypeId nt)
   pure $ map (\(PGS.Only nId) -> NodeId nId) ns
   where
     query :: PGS.Query
