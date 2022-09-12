@@ -199,7 +199,7 @@ getCoocByNgrams' f (Diagonal diag) m =
 ------------------------------------------
 
 
-migrateFromDirToDb :: (CmdM env err m, HasNodeStory env err m)
+migrateFromDirToDb :: (CmdM env err m) -- , HasNodeStory env err m)
                    => m ()
 migrateFromDirToDb = do
   pool <- view connPool
