@@ -466,8 +466,7 @@ deleteArchiveList c nodeId a = do
   pure ()
   where
     query :: PGS.Query
-    query = [sql| WITH (SELECT id FROM ngrams WHERE terms = ?) AS ngrams
-                  DELETE FROM node_stories
+    query = [sql| DELETE FROM node_stories
                     WHERE node_id = ? AND ngrams_type_id = ? AND ngrams_id IN (SELECT id FROM ngrams WHERE terms = ?) |]
 
 updateArchiveList :: PGS.Connection -> NodeId -> ArchiveList -> IO ()
