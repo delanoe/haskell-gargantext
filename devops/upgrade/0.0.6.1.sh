@@ -5,7 +5,7 @@
 # backup
 
 sudo apt update
-sudo apt upgrade
+sudo apt -yy upgrade
 
 sudo sed -i "s/buster/bullseye/g" /etc/apt/sources.list
 sudo apt update
@@ -21,14 +21,22 @@ git pull origin dev
 #./bin/psql gargantext.ini < devops/postgres/upgrade/0.0.6.1.sql
 # ~/.local/bin/gargantext-upgrade
 
+sudo -i -u postgres bash << EOF 
+pg_dumpall > /tmp/backup.dump
+EOF
 
 sudo sed -i "s/bullseye/bookworm/g" /etc/apt/sources.list
 sudo apt update
 sudo apt -yy dist-upgrade
 sudo apt install -y postgresql-14 libpq-dev
-sed -i "s/DB_PORT = 5432/DB_PORT = 5433/" gargantext.ini
 
+sudo -i -u postgres bash << EOF 
+psql < /tmp/backup.dump
+EOF
+
+sed -i "s/DB_PORT = 5432/DB_PORT = 5433/" gargantext.ini
 DBPASS=$(grep "DB_PASS" gargantext.ini | sed "s/^.*= //")
+
 
 
 sudo -i -u postgres bash << EOF 
