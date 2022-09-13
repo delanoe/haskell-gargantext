@@ -4,6 +4,7 @@
 * [BACK][FIX] HAL parser fix
 * [BACK][UPGRADE] ./bin/psql gargantext.ini < devops/postgres/upgrade/0.0.6.2.sql
 * [BACK][ADMIN] upgrade script, test ok
+* [BACK][FIX][API] IsTex
 
 ## Version 0.0.6.1
 * [BACK][FEAT] Spacy Server connection for French (and others) languages
