@@ -57,6 +57,7 @@ library:
   - Gargantext.API.Dev
   - Gargantext.API.HashedResponse
   - Gargantext.API.Node
+  - Gargantext.API.Node.Share
   - Gargantext.API.Node.File
   - Gargantext.API.Ngrams
   - Gargantext.API.Ngrams.Tools

@@ -29,23 +29,25 @@ import Gargantext.Database.Query.Table.Node (getOrMkList)
 import Gargantext.Database.Query.Table.User (insertNewUsers, )
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..), readConfig)
-import Prelude (getLine)
+import Prelude (getLine, read)
 import System.Environment (getArgs)
 import Gargantext.Database.Action.User.New (newUsers)
+import Gargantext.Core.Types.Individu (User(..))
+import qualified Gargantext.API.Node.Share as Share
 
 main :: IO ()
 main = do
-  params@[iniPath,email] <- getArgs
+  params@[iniPath,user,node_id,email] <- getArgs
 
-  _ <- if length params /= 2
-      then panic "USAGE: ./gargantext-init gargantext.ini student@university.edu"
+  _ <- if length params /= 4
+      then panic "USAGE: ./gargantext-init gargantext.ini username node_id student@university.edu"
       else pure ()
 
   cfg       <- readConfig         iniPath
 
-  let createUsers :: CmdR GargError Int64
-      createUsers = newUsers [cs email]
+  let invite :: CmdR GargError Int
+      invite = Share.api (UserName $ cs user) (NodeId $ (read node_id :: Int)) (Share.ShareTeamParams $ cs email)
 
   withDevEnv iniPath $ \env -> do
-    _ <- runCmdDev env createUsers
+    _ <- runCmdDev env invite
     pure ()

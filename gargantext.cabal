@@ -33,6 +33,7 @@ library
       Gargantext.API.Dev
       Gargantext.API.HashedResponse
       Gargantext.API.Node
+      Gargantext.API.Node.Share
       Gargantext.API.Node.File
       Gargantext.API.Ngrams
       Gargantext.API.Ngrams.Tools
@@ -139,7 +140,6 @@ library
       Gargantext.API.Node.FrameCalcUpload
       Gargantext.API.Node.Get
       Gargantext.API.Node.New
-      Gargantext.API.Node.Share
       Gargantext.API.Node.Types
       Gargantext.API.Node.Update
       Gargantext.API.Public
