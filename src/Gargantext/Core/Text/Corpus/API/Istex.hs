@@ -29,13 +29,15 @@ import qualified ISTEX.Client as ISTEX
 
 get :: Lang -> Text -> Maybe Integer -> IO [HyperdataDocument]
 get la q _ml = do
-  --docs <- ISTEX.getMetadataWith q (fromIntegral <$> ml)
   --printDebug "[Istex.get] calling getMetadataScrollProgress for la" la
   --printDebug "[Istex.get] calling getMetadataScrollProgress for q" q
   --printDebug "[Istex.get] calling getMetadataScrollProgress for ml" ml
   -- The "scroll" expects "d/h/m/s/ms" time interval. Let's set it to "1 month"
   --eDocs <- ISTEX.getMetadataScroll q ((\_n -> pack $ "1m") <$> ml) Nothing 0  --(fromIntegral <$> ml)
-  --eDocs <- ISTEX.getMetadataScroll (q <> " abstract:*")  "1m" Nothing 0  --(fromIntegral <$> ml)
+
+  -- TODO check if abstract is in query already if not add like below
+  -- eDocs <- ISTEX.getMetadataScroll (q <> " abstract:*")  "1m" Nothing 0  --(fromIntegral <$> ml)
+  -- eDocs <- ISTEX.getMetadataScroll q "1m" Nothing 0  --(fromIntegral <$> ml)
   eDocs <- ISTEX.getMetadataWith q (Just 5000)
   printDebug "[Istex.get] will print length" (0 :: Int)
   case eDocs of
