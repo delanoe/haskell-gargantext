@@ -9,12 +9,10 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, ScopedTypeVariables #-}
 
 module Gargantext.Core.Viz.Graph.Tools
   where
-
-import Debug.Trace
 
 import Data.Aeson
 import Data.HashMap.Strict (HashMap)
@@ -26,7 +24,6 @@ import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Methods.Distances (Distance(..), measure)
 import Gargantext.Core.Methods.Distances.Conditional (conditional)
--- import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
@@ -110,7 +107,7 @@ cooc2graphWith' :: ToComId a
                -> IO Graph
 cooc2graphWith' doPartitions distance threshold strength myCooc = do
   let (distanceMap, diag, ti) = doDistanceMap distance threshold strength myCooc
-  distanceMap `seq` trace "distanceMap OK" diag `seq` trace "diag OK" ti `seq` printDebug "ti done" ()
+  distanceMap `seq` diag `seq` ti `seq` return ()
 
 --{- -- Debug
   -- saveAsFileDebug "/tmp/distanceMap" distanceMap
@@ -124,21 +121,15 @@ cooc2graphWith' doPartitions distance threshold strength myCooc = do
                                 , "Maybe you should add more Map Terms in your list"
                                 , "Tutorial: link todo"
                                 ]
-  partitions `seq` printDebug "partitions done" ()
+  length partitions `seq` return ()
   let
     nodesApprox :: Int
     nodesApprox = n'
       where
         (as, bs) = List.unzip $ Map.keys distanceMap
         n' = Set.size $ Set.fromList $ as <> bs
-    bridgeness' = bridgeness (fromIntegral nodesApprox) partitions distanceMap
-    -- indices of bridgeness seem to start at 1, while computeConfluences
-    -- expects 0-based indexing.
-    -- ks = map (\(a, b) -> (a-1, b-1)) (Map.keys bridgeness')
-    confluence' = Map.empty -- Map.mapKeys (\(a, b) -> (a+1, b+1)) $ BAC.computeConfluences 3 ks True
-               -- confluence (Map.keys bridgeness') 3 True False
-  seq bridgeness' $ printDebug "bridgeness OK" ()
-  seq confluence' $ printDebug "confluence OK" ()
+    !bridgeness' = bridgeness (fromIntegral nodesApprox) partitions distanceMap
+    !confluence' = BAC.computeConfluences 3 (Map.keys bridgeness') True
   pure $ data2graph ti diag bridgeness' confluence' partitions
 
 type Reverse = Bool
@@ -161,21 +152,21 @@ doDistanceMap Distributional threshold strength myCooc = (distanceMap, toIndex t
     (ti, _it) = createIndices theMatrix
     tiSize  = Map.size ti
 
-    similarities = (\m -> m `seq` trace "measure done" m)
-                 $ (\m -> m `seq` trace "map2mat done" (measure Distributional m))
-                 $ (\m -> m `seq` trace "toIndex done" (map2mat Square 0 tiSize m))
-                 $ theMatrix `seq` trace "theMatrix done" (toIndex ti theMatrix)
+    similarities = (\m -> m `seq` m)
+                 $ (\m -> m `seq` measure Distributional m)
+                 $ (\m -> m `seq` map2mat Square 0 tiSize m)
+                 $ theMatrix `seq` toIndex ti theMatrix
 
     links = round (let n :: Double = fromIntegral tiSize in n * (log n)^(2::Int))
 
-    distanceMap = Map.fromList . trace "fromList" identity
+    distanceMap = Map.fromList
                 $ List.take links
                 $ (if strength == Weak then List.reverse else identity)
                 $ List.sortOn snd
                 $ Map.toList
                 $ edgesFilter
-                $ (\m -> m `seq` trace "map2map done" (Map.filter (> threshold) m))
-                $ similarities `seq` mat2map (trace "similarities done" similarities)
+                $ (\m -> m `seq` Map.filter (> threshold) m)
+                $ similarities `seq` mat2map similarities
 
 doDistanceMap Conditional threshold strength myCooc = (distanceMap, toIndex ti myCooc', ti)
   where
