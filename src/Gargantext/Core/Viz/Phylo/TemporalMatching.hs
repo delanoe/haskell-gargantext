@@ -205,7 +205,7 @@ phyloGroupMatching candidates fil proxi docs diagos thr oldPointers (id,ngrams) 
     where
         nextPointers :: [[(Pointer,[Int])]]
         nextPointers = take 1
-                 $ dropWhile (null)
+                 $ dropWhile null
                  {- for each time frame, process the proximity on relevant pairs of targeted groups -}
                  $ scanl (\acc groups ->
                             let periods = nub $ map (fst . fst . fst) $ concat groups
@@ -259,32 +259,32 @@ matchGroupsToGroups :: Int -> [PhyloPeriodId] -> Proximity -> Double -> Map Date
 matchGroupsToGroups frame periods proximity thr docs coocs groups =
   let groups' = groupByField _phylo_groupPeriod groups
    in foldl' (\acc prd ->
-        let -- 1) find the parents/childs matching periods
-            periodsPar = getNextPeriods ToParents frame prd periods
-            periodsChi = getNextPeriods ToChilds  frame prd periods
-            --  2) find the parents/childs matching candidates
-            candidatesPar = map (\prd' -> map (\g -> (getGroupId g, g ^. phylo_groupNgrams)) $ findWithDefault [] prd' groups') periodsPar
-            candidatesChi = map (\prd' -> map (\g -> (getGroupId g, g ^. phylo_groupNgrams)) $ findWithDefault [] prd' groups') periodsChi
-            --  3) find the parents/child number of docs by years
-            docsPar = filterDocs docs ([prd] ++ periodsPar)
-            docsChi = filterDocs docs ([prd] ++ periodsChi)
-            --  4) find the parents/child diago by years
-            diagoPar = filterDiago (map coocToDiago coocs) ([prd] ++ periodsPar)
-            diagoChi = filterDiago (map coocToDiago coocs) ([prd] ++ periodsPar)
-            --  5) match in parallel all the groups (egos) to their possible candidates
-            egos  = map (\ego ->
-                      let pointersPar = phyloGroupMatching (getCandidates ego candidatesPar) ToParents proximity docsPar diagoPar
-                                        thr (getPeriodPointers ToParents ego) (getGroupId ego, ego ^. phylo_groupNgrams)
-                          pointersChi = phyloGroupMatching (getCandidates ego candidatesChi) ToChilds  proximity docsChi diagoChi
-                                        thr (getPeriodPointers ToChilds  ego) (getGroupId ego, ego ^. phylo_groupNgrams)
-                       in addPointers ToChilds  TemporalPointer pointersChi
-                        $ addPointers ToParents TemporalPointer pointersPar
-                        $ addMemoryPointers ToChildsMemory  TemporalPointer thr pointersChi
-                        $ addMemoryPointers ToParentsMemory TemporalPointer thr pointersPar ego)
-                  $ findWithDefault [] prd groups'
-            egos' = egos `using` parList rdeepseq
-         in acc ++ egos'
-    ) [] periods
+                        let -- 1) find the parents/childs matching periods
+                            periodsPar = getNextPeriods ToParents frame prd periods
+                            periodsChi = getNextPeriods ToChilds  frame prd periods
+                            --  2) find the parents/childs matching candidates
+                            candidatesPar = map (\prd' -> map (\g -> (getGroupId g, g ^. phylo_groupNgrams)) $ findWithDefault [] prd' groups') periodsPar
+                            candidatesChi = map (\prd' -> map (\g -> (getGroupId g, g ^. phylo_groupNgrams)) $ findWithDefault [] prd' groups') periodsChi
+                            --  3) find the parents/child number of docs by years
+                            docsPar = filterDocs docs ([prd] ++ periodsPar)
+                            docsChi = filterDocs docs ([prd] ++ periodsChi)
+                            --  4) find the parents/child diago by years
+                            diagoPar = filterDiago (map coocToDiago coocs) ([prd] ++ periodsPar)
+                            diagoChi = filterDiago (map coocToDiago coocs) ([prd] ++ periodsPar)
+                            --  5) match in parallel all the groups (egos) to their possible candidates
+                            egos  = map (\ego ->
+                                      let pointersPar = phyloGroupMatching (getCandidates ego candidatesPar) ToParents proximity docsPar diagoPar
+                                                        thr (getPeriodPointers ToParents ego) (getGroupId ego, ego ^. phylo_groupNgrams)
+                                          pointersChi = phyloGroupMatching (getCandidates ego candidatesChi) ToChilds  proximity docsChi diagoChi
+                                                        thr (getPeriodPointers ToChilds  ego) (getGroupId ego, ego ^. phylo_groupNgrams)
+                                       in addPointers ToChilds  TemporalPointer pointersChi
+                                        $ addPointers ToParents TemporalPointer pointersPar
+                                        $ addMemoryPointers ToChildsMemory  TemporalPointer thr pointersChi
+                                        $ addMemoryPointers ToParentsMemory TemporalPointer thr pointersPar ego)
+                                  $ findWithDefault [] prd groups'
+                            egos' = egos `using` parList rdeepseq
+                         in acc ++ egos'
+            ) [] periods
 
 
 -----------------------
