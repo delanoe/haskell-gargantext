@@ -247,10 +247,12 @@ getNextPeriods fil max' pId pIds =
 
 
 getCandidates :: PhyloGroup -> [[(PhyloGroupId,[Int])]] -> [[(PhyloGroupId,[Int])]]
-getCandidates ego targets =
-  map (\groups' ->
-    filter (\g' -> (not . null) $ intersect (ego ^. phylo_groupNgrams) (snd g')
-  ) groups') targets
+getCandidates ego targets = 
+  if (length (ego ^. phylo_groupNgrams)) > 1
+    then  
+      map (\groups' -> filter (\g' -> (> 1) $ length $ intersect (ego ^. phylo_groupNgrams) (snd g')) groups') targets
+    else 
+      map (\groups' -> filter (\g' -> (not . null) $ intersect (ego ^. phylo_groupNgrams) (snd g')) groups') targets
 
 
 matchGroupsToGroups :: Int -> [PhyloPeriodId] -> Proximity -> Double -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
