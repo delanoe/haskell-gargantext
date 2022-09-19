@@ -129,7 +129,7 @@ cooc2graphWith' doPartitions distance threshold strength myCooc = do
         (as, bs) = List.unzip $ Map.keys distanceMap
         n' = Set.size $ Set.fromList $ as <> bs
     !bridgeness' = bridgeness (fromIntegral nodesApprox) partitions distanceMap
-    !confluence' = BAC.computeConfluences 3 (Map.keys bridgeness') True
+    !confluence' = Map.empty -- BAC.computeConfluences 3 (Map.keys bridgeness') True
   pure $ data2graph ti diag bridgeness' confluence' partitions
 
 type Reverse = Bool
