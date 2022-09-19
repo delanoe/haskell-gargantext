@@ -87,9 +87,9 @@ phylo2dot2json phylo = do
 flowPhyloAPI :: PhyloConfig -> CorpusId -> GargNoServer Phylo
 flowPhyloAPI config cId = do
   (mapList, corpus) <- corpusIdtoDocuments (timeUnit config) cId
-  phyloWithCliques <- pure $ toPhyloStep corpus mapList config
+  temporalSeries <- pure $ toPhyloStep corpus mapList config
   -- writePhylo phyloWithCliquesFile phyloWithCliques
-  pure $ toPhylo (setConfig config phyloWithCliques)
+  pure $ toPhylo (setConfig config temporalSeries)
 
 --------------------------------------------------------------------
 corpusIdtoDocuments :: TimeUnit -> CorpusId -> GargNoServer (TermList, [Document])
