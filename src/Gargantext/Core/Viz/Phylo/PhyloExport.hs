@@ -26,7 +26,7 @@ import Debug.Trace (trace)
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.PhyloTools
 import Gargantext.Core.Viz.Phylo.TemporalMatching (filterDocs, filterDiago, reduceDiagos, toProximity, getNextPeriods)
-import Gargantext.Prelude
+import Gargantext.Prelude hiding (scale)
 import Prelude (writeFile)
 import System.FilePath
 import qualified Data.GraphViz.Attributes.HTML as H
@@ -73,7 +73,7 @@ groupIdToDotId (((d,d'),lvl),idx) = (fromStrict . Text.pack) $ ("group" <> (show
 branchIdToDotId :: PhyloBranchId -> DotId
 branchIdToDotId bId = (fromStrict . Text.pack) $ ("branch" <> show (snd bId))
 
-periodIdToDotId :: PhyloPeriodId -> DotId
+periodIdToDotId :: Period -> DotId
 periodIdToDotId prd = (fromStrict . Text.pack) $ ("period" <> show (fst prd) <> show (snd prd))
 
 groupToTable :: Vector Ngrams -> PhyloGroup -> H.Label
@@ -220,7 +220,8 @@ exportToDot phylo export =
                      ,(toAttr (fromStrict "phyloGroups") $ pack $ show (length $ export ^. export_groups))
                      ,(toAttr (fromStrict "phyloSources") $ pack $ show (Vector.toList $ getSources phylo))
                      ,(toAttr (fromStrict "phyloTimeScale") $ pack $ getTimeScale phylo)
-                     ,(toAttr (fromStrict "phyloLevel") $ pack $ show (_qua_granularity $ phyloQuality $ getConfig phylo))
+                     ,(toAttr (fromStrict "PhyloScale") $ pack $ show (_qua_granularity $ phyloQuality $ getConfig phylo))
+                     ,(toAttr (fromStrict "phyloQuality") $ pack $ show (phylo ^. phylo_quality))
                      ,(toAttr (fromStrict "phyloSeaRiseStart") $ pack $ show (_cons_start $ getSeaElevation phylo))
                      ,(toAttr (fromStrict "phyloSeaRiseSteps") $ pack $ show (_cons_step  $ getSeaElevation phylo))
                      -- ,(toAttr (fromStrict "phyloTermsFreq") $ pack $ show (toList $ _phylo_lastTermFreq phylo))
@@ -249,7 +250,7 @@ exportToDot phylo export =
         _ <- mapM (\period ->
                 subgraph ((Str . fromStrict . Text.pack) $ ("Period" <> show (fst $ _phylo_periodPeriod period) <> show (snd $ _phylo_periodPeriod period))) $ do
                     graphAttrs [Rank SameRank]
-                    periodToDotNode (period ^. phylo_periodPeriod) (period ^. phylo_periodPeriod')
+                    periodToDotNode (period ^. phylo_periodPeriod) (period ^. phylo_periodPeriodStr)
 
                     {--  6) create a node for each group -}
                     mapM (\g -> groupToDotNode (getRoots phylo) g (toBid g (export ^. export_branches))) (filter (\g -> g ^. phylo_groupPeriod == (period ^. phylo_periodPeriod)) $ export ^. export_groups)
@@ -615,28 +616,28 @@ headsToAncestors nbDocs diago proximity step heads acc =
 toHorizon :: Phylo -> Phylo
 toHorizon phylo =
   let phyloAncestor = updatePhyloGroups
-                    level
+                    scale
                     (fromList $ map (\g -> (getGroupId g, g))
                               $ concat
                               $ tracePhyloAncestors newGroups) phylo
       reBranched = fromList $ map (\g -> (getGroupId g, g)) $ concat
-                 $ groupsToBranches $ fromList $ map (\g -> (getGroupId g, g)) $ getGroupsFromLevel level phyloAncestor
-   in updatePhyloGroups level reBranched phylo
+                 $ groupsToBranches' $ fromList $ map (\g -> (getGroupId g, g)) $ getGroupsFromLevel scale phyloAncestor
+   in updatePhyloGroups scale reBranched phylo
   where
     -- | 1) for each periods
-    periods :: [PhyloPeriodId]
+    periods :: [Period]
     periods = getPeriodIds phylo
     -- --
-    level :: Level
-    level = getLastLevel phylo
+    scale :: Scale
+    scale = getLastLevel phylo
     -- --
     frame :: Int
     frame = getTimeFrame $ timeUnit $ getConfig phylo
     -- | 2) find ancestors between groups without parents
     mapGroups :: [[PhyloGroup]]
     mapGroups = map (\prd ->
-      let groups  = getGroupsFromLevelPeriods level [prd] phylo
-          childs  = getPreviousChildIds level frame prd periods phylo
+      let groups  = getGroupsFromLevelPeriods scale [prd] phylo
+          childs  = getPreviousChildIds scale frame prd periods phylo
               -- maybe add a better filter for non isolated  ancestors
           heads   = filter (\g -> (not . null) $ (g ^. phylo_groupPeriodChilds))
                   $ filter (\g -> null (g ^. phylo_groupPeriodParents) && (notElem (getGroupId g) childs)) groups
@@ -656,7 +657,7 @@ toHorizon phylo =
     newGroups = mapGroups `using` parList rdeepseq
     --------------------------------------
 
-getPreviousChildIds :: Level -> Int -> PhyloPeriodId -> [PhyloPeriodId] -> Phylo -> [PhyloGroupId]
+getPreviousChildIds :: Scale -> Int -> Period -> [Period] -> Phylo -> [PhyloGroupId]
 getPreviousChildIds lvl frame curr prds phylo =
     concat $ map ((map fst) . _phylo_groupPeriodChilds)
            $ getGroupsFromLevelPeriods lvl (getNextPeriods ToParents frame curr prds) phylo
@@ -695,7 +696,7 @@ toPhyloExport phylo = exportToDot phylo
         groups :: [PhyloGroup]
         groups = traceExportGroups
                $ processDynamics
-               $ getGroupsFromLevel (phyloLevel $ getConfig phylo)
+               $ getGroupsFromLevel (phyloScale $ getConfig phylo)
                $ tracePhyloInfo phylo
                -- \$ toHorizon phylo
 

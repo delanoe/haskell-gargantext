@@ -38,7 +38,7 @@ import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.API.Tools
 import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
-import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo, toPhyloStep)
+import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo, toPhyloWithoutLink)
 import Gargantext.Core.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment, setConfig)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
@@ -50,7 +50,7 @@ import qualified Data.Text                               as T
 import qualified Data.Vector                             as Vector
 import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv
 
-data PhyloStage = PhyloWithCliques | PhyloWithLinks deriving (Show)
+data Backup = BackupPhyloWithoutLink | BackupPhylo deriving (Show)
 
 ---------------
 -- | Tools | --
@@ -179,7 +179,7 @@ configToLabel :: PhyloConfig -> [Char]
 configToLabel config = outputPath config
                     <> (unpack $ phyloName config)
                     <> "-" <> (timeToLabel config)
-                    <> "-scale_" <> (show (phyloLevel config))
+                    <> "-scale_" <> (show (phyloScale config))
                     <> "-" <> (seaToLabel config)
                     <> "-" <> (sensToLabel config)
                     <> "-" <> (cliqueToLabel config)
@@ -189,18 +189,18 @@ configToLabel config = outputPath config
 
 
 -- To write a sha256 from a set of config's parameters
-configToSha :: PhyloStage -> PhyloConfig -> [Char]
+configToSha :: Backup -> PhyloConfig -> [Char]
 configToSha stage config = unpack
                          $ replace "/" "-"
                          $ T.pack (show (hash $ C8.pack label))
   where
     label :: [Char]
     label = case stage of
-      PhyloWithCliques -> (corpusPath    config)
+      phyloWithoutLink -> (corpusPath    config)
                        <> (listPath      config)
                        <> (timeToLabel   config)
                        <> (cliqueToLabel config)
-      PhyloWithLinks   -> (corpusPath    config)
+      phylo   -> (corpusPath    config)
                        <> (listPath      config)
                        <> (timeToLabel   config)
                        <> (cliqueToLabel config)
@@ -208,7 +208,7 @@ configToSha stage config = unpack
                        <> (seaToLabel    config)
                        <> (syncToLabel   config)
                        <> (qualToConfig  config)
-                       <> (show (phyloLevel config))
+                       <> (show (phyloScale config))
 
 
 readListV4 :: [Char] -> IO NgramsList
@@ -255,55 +255,38 @@ main = do
 
             printIOMsg "Reconstruct the phylo"
 
-            let phyloWithCliquesFile =  (outputPath config) <> "phyloWithCliques_" <> (configToSha PhyloWithCliques config) <> ".json"
-            let phyloWithLinksFile   =  (outputPath config) <> "phyloWithLinks_"   <> (configToSha PhyloWithLinks   config) <> ".json"
+            -- check the existing backup files
 
-            phyloWithCliquesExists <- doesFileExist phyloWithCliquesFile
-            phyloWithLinksExists   <- doesFileExist phyloWithLinksFile
+            let backupPhyloWithoutLink = (outputPath config) <> "backupPhyloWithoutLink_" <> (configToSha BackupPhyloWithoutLink config) <> ".json"
+            let backupPhylo = (outputPath config) <> "backupPhylo_"   <> (configToSha BackupPhylo config) <> ".json"
 
-            -- phyloStep <- if phyloWithCliquesExists
-            --                   then do
-            --                     printIOMsg "Reconstruct the phylo step from an existing file"
-            --                     readPhylo phyloWithCliquesFile
-            --                   else do
-            --                     printIOMsg "Reconstruct the phylo step from scratch"
-            --                     pure $ toPhyloStep corpus mapList config
+            phyloWithoutLinkExists <- doesFileExist backupPhyloWithoutLink
+            phyloExists   <- doesFileExist backupPhylo
 
-            -- writePhylo phyloWithCliquesFile phyloStep
+            -- reconstruct the phylo
 
-            -- let phylo = toPhylo (setConfig config phyloStep)
+            phylo <- if phyloExists
+                        then do
+                          printIOMsg "Reconstruct the phylo from an existing file"
+                          readPhylo backupPhylo
+                        else do
+                          if phyloWithoutLinkExists
+                            then do
+                              printIOMsg "Reconstruct the phylo from an existing file without links"
+                              phyloWithoutLink <- readPhylo backupPhyloWithoutLink
+                              writePhylo backupPhyloWithoutLink phyloWithoutLink
+                              pure $ toPhylo (setConfig config phyloWithoutLink)
+                            else do
+                              printIOMsg "Reconstruct the phylo from scratch"
+                              phyloWithoutLink <- pure $ toPhyloWithoutLink corpus mapList config
+                              writePhylo backupPhyloWithoutLink phyloWithoutLink
+                              pure $ toPhylo (setConfig config phyloWithoutLink)
 
-            phyloWithLinks <- if phyloWithLinksExists
-                                  then do
-                                    printIOMsg "Reconstruct the phylo from an existing file with intertemporal links"
-                                    readPhylo phyloWithLinksFile
-                                  else do
-                                    if phyloWithCliquesExists
-                                      then do
-                                        printIOMsg "Reconstruct the phylo from an existing file with cliques"
-                                        phyloWithCliques <- readPhylo phyloWithCliquesFile
-                                        writePhylo phyloWithCliquesFile phyloWithCliques
-                                        pure $ toPhylo (setConfig config phyloWithCliques)
-                                      else do
-                                        printIOMsg "Reconstruct the phylo from scratch"
-                                        phyloWithCliques <- pure $ toPhyloStep corpus mapList config
-                                        writePhylo phyloWithCliquesFile phyloWithCliques
-                                        pure $ toPhylo (setConfig config phyloWithCliques)
-
-            writePhylo phyloWithLinksFile phyloWithLinks
-
-
-            -- probes
-
-            -- writeFile ((outputPath config) <> (unpack $ phyloName config) <> "_synchronic_distance_cumu_jaccard.txt")
-            --          $ synchronicDistance' phylo 1
-
-            -- writeFile ((outputPath config) <> (unpack $ phyloName config) <> "_inflexion_points.txt")
-            --         $ inflexionPoints phylo 1
+            writePhylo backupPhylo phylo
 
             printIOMsg "End of reconstruction, start the export"
 
-            let dot = toPhyloExport (setConfig config phyloWithLinks)
+            let dot = toPhyloExport (setConfig config phylo)
 
             let output = configToLabel config
 

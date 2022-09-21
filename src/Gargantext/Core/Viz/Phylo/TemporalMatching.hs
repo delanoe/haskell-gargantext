@@ -13,7 +13,8 @@ module Gargantext.Core.Viz.Phylo.TemporalMatching where
 
 import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
-import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, groupBy, scanl, nub, nubBy, union, dropWhile, partition, or, sort, (!!))
+import Data.Ord
+import Data.List (concat, splitAt, tail, sortOn, sortBy, (++), intersect, null, inits, groupBy, scanl, nub, nubBy, union, dropWhile, partition, or, sort, (!!))
 import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, findWithDefault, keys, (!), (!?), filterWithKey, singleton, empty, mapKeys, adjust)
 import Debug.Trace (trace)
 import Gargantext.Core.Viz.Phylo
@@ -115,7 +116,7 @@ toProximity nbDocs diago proximity egoNgrams targetNgrams targetNgrams' =
 -- | Local Matching | --
 ------------------------
 
-findLastPeriod :: Filiation -> [PhyloPeriodId] -> PhyloPeriodId
+findLastPeriod :: Filiation -> [Period] -> Period
 findLastPeriod fil periods = case fil of
     ToParents -> head' "findLastPeriod" (sortOn fst periods)
     ToChilds  -> last' "findLastPeriod" (sortOn fst periods)
@@ -124,7 +125,7 @@ findLastPeriod fil periods = case fil of
 
 
 -- | To filter pairs of candidates related to old pointers periods
-removeOldPointers :: [Pointer] -> Filiation -> Double -> Proximity -> PhyloPeriodId
+removeOldPointers :: [Pointer] -> Filiation -> Double -> Proximity -> Period
                   -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))]
                   -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))]
 removeOldPointers oldPointers fil thr prox prd pairs
@@ -144,7 +145,33 @@ removeOldPointers oldPointers fil thr prox prd pairs
   | otherwise = []
 
 
-makePairs' :: (PhyloGroupId,[Int]) -> [(PhyloGroupId,[Int])] -> [PhyloPeriodId] -> [Pointer] -> Filiation -> Double -> Proximity
+
+makePairs :: (PhyloGroupId,[Int]) -> [(PhyloGroupId,[Int])] -> [Period] -> [Pointer] -> Filiation -> Double -> Proximity
+           -> Map Date Double -> Map Date Cooc -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))]
+makePairs (egoId, egoNgrams) candidates periods oldPointers fil thr prox docs diagos =
+    if (null periods)
+        then []
+        else removeOldPointers oldPointers fil thr prox lastPrd
+           {- at least on of the pair candidates should be from the last added period -}
+           $ filter (\((id,_),(id',_)) -> ((fst . fst) id == lastPrd) || ((fst . fst) id' == lastPrd))
+           $ filter (\((id,_),(id',_)) -> (elem id inPairs) || (elem id' inPairs)) 
+           $ listToKeys candidates
+    where
+      --------------------------------------
+      inPairs :: [PhyloGroupId]
+      inPairs = map fst
+                    $ filter (\(id,ngrams) ->
+                          let nbDocs = (sum . elems) $ filterDocs docs    ([(fst . fst) egoId, (fst . fst) id])
+                              diago  = reduceDiagos  $ filterDiago diagos ([(fst . fst) egoId, (fst . fst) id])
+                           in (toProximity nbDocs diago prox egoNgrams egoNgrams ngrams) >= thr
+                      ) candidates
+      --------------------------------------
+      lastPrd :: Period
+      lastPrd = findLastPeriod fil periods
+      --------------------------------------
+
+
+makePairs' :: (PhyloGroupId,[Int]) -> [(PhyloGroupId,[Int])] -> [Period] -> [Pointer] -> Filiation -> Double -> Proximity
            -> Map Date Double -> Map Date Cooc -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))]
 makePairs' (egoId, egoNgrams) candidates periods oldPointers fil thr prox docs diagos =
     if (null periods)
@@ -159,7 +186,7 @@ makePairs' (egoId, egoNgrams) candidates periods oldPointers fil thr prox docs d
                  in (toProximity nbDocs diago prox egoNgrams egoNgrams ngrams) >= thr
             ) candidates
     where
-      lastPrd :: PhyloPeriodId
+      lastPrd :: Period
       lastPrd = findLastPeriod fil periods
 
 
@@ -190,16 +217,17 @@ filterPointersByPeriod fil pts =
 
 phyloGroupMatching :: [[(PhyloGroupId,[Int])]] -> Filiation -> Proximity -> Map Date Double -> Map Date Cooc
                    -> Double -> [Pointer] -> (PhyloGroupId,[Int]) -> [Pointer]
-phyloGroupMatching candidates fil proxi docs diagos thr oldPointers (id,ngrams) =
+phyloGroupMatching candidates filiation proxi docs diagos thr oldPointers (id,ngrams) =
         if (null $ filterPointers proxi thr oldPointers)
           {- let's find new pointers -}
           then if null nextPointers
             then []
-            else filterPointersByPeriod fil
+            else filterPointersByPeriod filiation
                $ head' "phyloGroupMatching"
                -- Keep only the best set of pointers grouped by proximity
                $ groupBy (\pt pt' -> (snd . fst) pt == (snd . fst) pt')
-               $ reverse $ sortOn (snd . fst) $ head' "pointers" nextPointers
+               -- verifier que l on garde bien les plus importants
+               $ sortBy (comparing (Down . snd . fst)) $ head' "pointers" nextPointers
                -- Find the first time frame where at leats one pointer satisfies the proximity threshold
           else oldPointers
     where
@@ -212,8 +240,7 @@ phyloGroupMatching candidates fil proxi docs diagos thr oldPointers (id,ngrams) 
                                 nbdocs  = sum $ elems $ (filterDocs docs ([(fst . fst) id] ++ periods))
                                 diago   = reduceDiagos
                                         $ filterDiago diagos ([(fst . fst) id] ++ periods)
-                                        {- important resize nbdocs et diago dans le make pairs -}
-                                pairs = makePairs' (id,ngrams) (concat groups) periods oldPointers fil thr proxi docs diagos
+                                pairs = makePairs (id,ngrams) (concat groups) periods oldPointers filiation thr proxi docs diagos
                             in acc ++ ( filterPointers' proxi thr
                                         $ concat
                                         $ map (\(c,c') ->
@@ -225,10 +252,10 @@ phyloGroupMatching candidates fil proxi docs diagos thr oldPointers (id,ngrams) 
                  $ inits candidates -- groups from [[1900],[1900,1901],[1900,1901,1902],...]
 
 
-filterDocs :: Map Date Double -> [PhyloPeriodId] -> Map Date Double
+filterDocs :: Map Date Double -> [Period] -> Map Date Double
 filterDocs d pds = restrictKeys d $ periodsToYears pds
 
-filterDiago :: Map Date Cooc -> [PhyloPeriodId] -> Map Date Cooc
+filterDiago :: Map Date Cooc -> [Period] -> Map Date Cooc
 filterDiago diago pds = restrictKeys diago $ periodsToYears pds
 
 
@@ -237,7 +264,7 @@ filterDiago diago pds = restrictKeys diago $ periodsToYears pds
 -----------------------------
 
 
-getNextPeriods :: Filiation -> Int -> PhyloPeriodId -> [PhyloPeriodId] -> [PhyloPeriodId]
+getNextPeriods :: Filiation -> Int -> Period -> [Period] -> [Period]
 getNextPeriods fil max' pId pIds =
     case fil of
         ToChilds  -> take max' $ (tail . snd) $ splitAt (elemIndex' pId pIds) pIds
@@ -255,7 +282,7 @@ getCandidates ego targets =
       map (\groups' -> filter (\g' -> (not . null) $ intersect (ego ^. phylo_groupNgrams) (snd g')) groups') targets
 
 
-matchGroupsToGroups :: Int -> [PhyloPeriodId] -> Proximity -> Double -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
+matchGroupsToGroups :: Int -> [Period] -> Proximity -> Double -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
 matchGroupsToGroups frame periods proximity thr docs coocs groups =
   let groups' = groupByField _phylo_groupPeriod groups
    in foldl' (\acc prd ->
@@ -319,18 +346,6 @@ fScore lambda x periods bk bx =
 wk :: [PhyloGroup] -> Double
 wk bk = fromIntegral $ length bk
 
-
-toPhyloQuality' :: Double -> Map Int Double -> [[PhyloGroup]] -> Double
-toPhyloQuality' lambda freq branches =
-  if (null branches)
-    then 0
-    else sum
-       $ map (\i ->
-          let bks = relevantBranches i branches
-              periods = nub $ map _phylo_groupPeriod $ filter (\g -> elem i $ g ^. phylo_groupNgrams) $ concat bks
-           in (freq ! i) * (sum $ map (\bk -> ((wk bk) / (sum $ map wk bks)) * (fScore lambda i periods bk bks)) bks))
-       $ keys freq
-
 toRecall :: Map Int Double -> [[PhyloGroup]] -> Double
 toRecall freq branches =
   if (null branches)
@@ -391,9 +406,8 @@ toPhyloQuality fdt lambda freq branches =
 -- | Constant Temporal Matching | --
 ------------------------------------
 
-
-groupsToBranches' :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
-groupsToBranches' groups =
+groupsToBranches :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
+groupsToBranches groups =
     {- run the related component algorithm -}
     let egos = groupBy (\gs gs' -> (fst $ fst $ head' "egos" gs) == (fst $ fst $ head' "egos" gs'))
              $ sortOn  (\gs -> fst $ fst $ head' "egos" gs)
@@ -427,12 +441,12 @@ updateThr thr branches = map (\b -> map (\g ->
 -- ego  = the current branch we want to break
 -- rest = the branches we still have to break
 breakBranches :: Double -> Proximity -> Double -> Map Int Double -> Int -> Double -> Double -> Double
-              -> Int -> Map Date Double -> Map Date Cooc -> [PhyloPeriodId] -> [([PhyloGroup],Bool)] -> ([PhyloGroup],Bool) -> [([PhyloGroup],Bool)] -> [([PhyloGroup],Bool)]
+              -> Int -> Map Date Double -> Map Date Cooc -> [Period] -> [([PhyloGroup],Bool)] -> ([PhyloGroup],Bool) -> [([PhyloGroup],Bool)] -> [([PhyloGroup],Bool)]
 breakBranches fdt proximity lambda frequency minBranch thr depth elevation frame docs coocs periods done ego rest =
   --  1) keep or not the new division of ego
   let done' = done ++ (if snd ego
                         then
-                            (if ((null (fst ego')) || (quality > quality'))
+                            (if ((null (fst ego')) || (quality > quality'))
                                then
                                 -- trace ("  ✗ F(β) = " <> show(quality) <> " (vs) " <> show(quality')
                                 --         <> "  | "  <> show(length $ fst ego) <> " groups : "
@@ -460,7 +474,7 @@ breakBranches fdt proximity lambda frequency minBranch thr depth elevation frame
     --------------------------------------
     ego' :: ([[PhyloGroup]],[[PhyloGroup]])
     ego' =
-      let branches  = groupsToBranches' $ fromList $ map (\g -> (getGroupId g, g))
+      let branches  = groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
                     $ matchGroupsToGroups frame periods proximity thr docs coocs (fst ego)
           branches' = branches `using` parList rdeepseq
        in partition (\b -> (length $ nub $ map _phylo_groupPeriod b) >= minBranch)
@@ -473,11 +487,11 @@ breakBranches fdt proximity lambda frequency minBranch thr depth elevation frame
 
 
 seaLevelMatching :: Double -> Proximity -> Double -> Int -> Map Int Double -> Double -> Double -> Double -> Double
-                 -> Int -> [PhyloPeriodId] -> Map Date Double -> Map Date Cooc -> [([PhyloGroup],Bool)] -> [([PhyloGroup],Bool)]
+                 -> Int -> [Period] -> Map Date Double -> Map Date Cooc -> [([PhyloGroup],Bool)] -> ([([PhyloGroup],Bool)],Double)
 seaLevelMatching fdt proximity lambda minBranch frequency thr step depth elevation frame periods docs coocs branches =
   --  if there is no branch to break or if seaLvl level > 1 then end
   if (thr >= 1) || ((not . or) $ map snd branches)
-    then branches
+    then (branches, toPhyloQuality fdt lambda frequency (map fst branches))
     else
       -- break all the possible branches at the current seaLvl level
       let quality    = toPhyloQuality fdt lambda frequency (map fst branches)
@@ -495,13 +509,13 @@ seaLevelMatching fdt proximity lambda minBranch frequency thr step depth elevati
 
 constanteTemporalMatching :: Double -> Double -> Phylo -> Phylo
 constanteTemporalMatching start step phylo = updatePhyloGroups 1
-                         (fromList $ map (\g -> (getGroupId g,g)) $ traceMatchEnd $ concat branches)
-                         (toPhyloHorizon phylo)
+                         (fromList $ map (\g -> (getGroupId g,g)) $ traceMatchEnd $ concat (map fst $ (fst branches)))
+                         (toPhyloHorizon (updateQuality (snd branches) phylo))
   where
     --  2) process the temporal matching by elevating seaLvl level
-    branches :: [[PhyloGroup]]
-    branches = map fst
-             $ seaLevelMatching (fromIntegral $ Vector.length $ getRoots phylo)
+    -- branches :: ([([groups in the same branch],should we still break the branch?)],final quality)
+    branches :: ([([PhyloGroup],Bool)],Double)
+    branches = seaLevelMatching (fromIntegral $ Vector.length $ getRoots phylo)
                                 (phyloProximity $ getConfig phylo)
                                 (_qua_granularity $ phyloQuality $ getConfig phylo)
                                 (_qua_minBranch $ phyloQuality $ getConfig phylo)
@@ -518,7 +532,7 @@ constanteTemporalMatching start step phylo = updatePhyloGroups 1
     --  here we suppose that all the groups of level 1 are part of the same big branch
     groups :: [([PhyloGroup],Bool)]
     groups = map (\b -> (b,(length $ nub $ map _phylo_groupPeriod b) >= (_qua_minBranch $ phyloQuality $ getConfig phylo)))
-           $ groupsToBranches' $ fromList $ map (\g -> (getGroupId g, g))
+           $ groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
            $ matchGroupsToGroups (getTimeFrame $ timeUnit $ getConfig phylo)
                          (getPeriodIds phylo) (phyloProximity $ getConfig phylo)
                          start
@@ -583,7 +597,7 @@ toThreshold lvl proxiGroups =
 -- rest = the branches we still have to break
 adaptativeBreakBranches :: Double -> Proximity -> Double -> Double -> Map (PhyloGroupId,PhyloGroupId) Double
                -> Double -> Map Int Double -> Int -> Int -> Map Date Double -> Map Date Cooc
-               -> [PhyloPeriodId] -> [([PhyloGroup],(Bool,[Double]))] -> ([PhyloGroup],(Bool,[Double])) -> [([PhyloGroup],(Bool,[Double]))]
+               -> [Period] -> [([PhyloGroup],(Bool,[Double]))] -> ([PhyloGroup],(Bool,[Double])) -> [([PhyloGroup],(Bool,[Double]))]
                -> [([PhyloGroup],(Bool,[Double]))]
 adaptativeBreakBranches fdt  proxiConf depth elevation groupsProxi lambda frequency minBranch frame docs coocs periods done ego rest =
   --  1) keep or not the new division of ego
@@ -617,7 +631,7 @@ adaptativeBreakBranches fdt  proxiConf depth elevation groupsProxi lambda freque
     --------------------------------------
     ego' :: ([[PhyloGroup]],[[PhyloGroup]])
     ego' =
-      let branches  = groupsToBranches' $ fromList $ map (\g -> (getGroupId g, g))
+      let branches  = groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
                     $ matchGroupsToGroups frame periods proxiConf thr docs coocs (fst ego)
           branches' = branches `using` parList rdeepseq
        in partition (\b -> (length $ nub $ map _phylo_groupPeriod b) > minBranch)
@@ -631,7 +645,7 @@ adaptativeBreakBranches fdt  proxiConf depth elevation groupsProxi lambda freque
 
 adaptativeSeaLevelMatching :: Double -> Proximity -> Double -> Double -> Map (PhyloGroupId, PhyloGroupId) Double
                   -> Double -> Int -> Map Int Double
-                  -> Int -> [PhyloPeriodId] -> Map Date Double -> Map Date Cooc
+                  -> Int -> [Period] -> Map Date Double -> Map Date Cooc
                   -> [([PhyloGroup],(Bool,[Double]))] -> [([PhyloGroup],(Bool,[Double]))]
 adaptativeSeaLevelMatching fdt proxiConf depth elevation groupsProxi lambda minBranch frequency frame periods docs coocs branches =
   --  if there is no branch to break or if seaLvl level >= depth then end
@@ -676,7 +690,7 @@ adaptativeTemporalMatching elevation phylo = updatePhyloGroups 1
     --  here we suppose that all the groups of level 1 are part of the same big branch
     groups :: [([PhyloGroup],(Bool,[Double]))]
     groups = map (\b -> (b,((length $ nub $ map _phylo_groupPeriod b) >= (_qua_minBranch $ phyloQuality $ getConfig phylo),[thr])))
-           $ groupsToBranches' $ fromList $ map (\g -> (getGroupId g, g))
+           $ groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
            $ matchGroupsToGroups (getTimeFrame $ timeUnit $ getConfig phylo)
                          (getPeriodIds phylo) (phyloProximity $ getConfig phylo)
                          thr

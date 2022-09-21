@@ -231,41 +231,41 @@ keepFilled f thr l = if (null $ f thr l) && (not $ null l)
                      else f thr l
 
 
-traceClique :: Map (Date, Date) [PhyloClique] -> String
+traceClique :: Map (Date, Date) [Clustering] -> String
 traceClique mFis = foldl (\msg cpt -> msg <> show (countSup cpt cliques) <> " (>" <> show (cpt) <> ") "  ) "" [1..6]
     where
         --------------------------------------
         cliques :: [Double]
-        cliques = sort $ map (fromIntegral . length . _phyloClique_nodes) $ concat $ elems mFis
+        cliques = sort $ map (fromIntegral . length . _clustering_roots) $ concat $ elems mFis
         --------------------------------------
 
 
-traceSupport :: Map (Date, Date) [PhyloClique] -> String
+traceSupport :: Map (Date, Date) [Clustering] -> String
 traceSupport mFis = foldl (\msg cpt -> msg <> show (countSup cpt supports) <> " (>" <> show (cpt) <> ") "  ) "" [1..6]
     where
         --------------------------------------
         supports :: [Double]
-        supports = sort $ map (fromIntegral . _phyloClique_support) $ concat $ elems mFis
+        supports = sort $ map (fromIntegral . _clustering_support) $ concat $ elems mFis
         --------------------------------------
 
 
-traceFis :: [Char] -> Map (Date, Date) [PhyloClique] -> Map (Date, Date) [PhyloClique]
+traceFis :: [Char] -> Map (Date, Date) [Clustering] -> Map (Date, Date) [Clustering]
 traceFis msg mFis = trace ( "\n" <> "-- | " <> msg <> " : " <> show (sum $ map length $ elems mFis) <> "\n"
                          <> "Support : " <> (traceSupport mFis) <> "\n"
                          <> "Nb Ngrams : "  <> (traceClique mFis)  <> "\n" ) mFis
 
 
----------------
--- | Clique| --
----------------
+----------------
+-- | Cluster| --
+----------------
 
 
-getCliqueSupport :: Clique -> Int
+getCliqueSupport :: Cluster -> Int
 getCliqueSupport unit = case unit of
     Fis s _ -> s
     MaxClique _ _ _ -> 0
 
-getCliqueSize :: Clique -> Int
+getCliqueSize :: Cluster -> Int
 getCliqueSize unit = case unit of
     Fis _ s -> s
     MaxClique s _ _ -> s
@@ -315,9 +315,9 @@ ngramsToCooc ngrams coocs =
 --------------------
 
 getGroupId :: PhyloGroup -> PhyloGroupId
-getGroupId g = ((g ^. phylo_groupPeriod, g ^. phylo_groupLevel), g ^. phylo_groupIndex)
+getGroupId g = ((g ^. phylo_groupPeriod, g ^. phylo_groupScale), g ^. phylo_groupIndex)
 
-idToPrd :: PhyloGroupId -> PhyloPeriodId
+idToPrd :: PhyloGroupId -> Period
 idToPrd id = (fst . fst) id
 
 groupByField :: Ord a => (PhyloGroup -> a) -> [PhyloGroup] ->  Map a [PhyloGroup]
@@ -357,9 +357,9 @@ addPointers fil pty pointers g =
                                 ToParents -> g & phylo_groupPeriodParents .~ pointers
                                 ToChildsMemory  -> undefined
                                 ToParentsMemory -> undefined
-        LevelPointer    -> case fil of
-                                ToChilds  -> g & phylo_groupLevelChilds   .~ pointers
-                                ToParents -> g & phylo_groupLevelParents  .~ pointers
+        ScalePointer    -> case fil of
+                                ToChilds  -> g & phylo_groupScaleChilds   .~ pointers
+                                ToParents -> g & phylo_groupScaleParents  .~ pointers
                                 ToChildsMemory  -> undefined
                                 ToParentsMemory -> undefined
 
@@ -375,7 +375,7 @@ addMemoryPointers fil pty thr pointers g =
                                 ToParents -> undefined
                                 ToChildsMemory  -> g & phylo_groupPeriodMemoryChilds  .~ (concat [(g ^. phylo_groupPeriodMemoryChilds),(map (\pt -> toPointer' thr pt) pointers)])
                                 ToParentsMemory -> g & phylo_groupPeriodMemoryParents .~ (concat [(g ^. phylo_groupPeriodMemoryParents),(map (\pt -> toPointer' thr pt) pointers)])
-        LevelPointer    -> undefined
+        ScalePointer    -> undefined
 
 
 getPeriodIds :: Phylo -> [(Date,Date)]
@@ -384,17 +384,17 @@ getPeriodIds phylo = sortOn fst
                    $ phylo ^. phylo_periods
 
 getLevelParentId :: PhyloGroup -> PhyloGroupId
-getLevelParentId g = fst $ head' "getLevelParentId" $ g ^. phylo_groupLevelParents
+getLevelParentId g = fst $ head' "getLevelParentId" $ g ^. phylo_groupScaleParents
 
-getLastLevel :: Phylo -> Level
+getLastLevel :: Phylo -> Scale
 getLastLevel phylo = last' "lastLevel" $ getLevels phylo
 
-getLevels :: Phylo -> [Level]
+getLevels :: Phylo -> [Scale]
 getLevels phylo = nub
                 $ map snd
                 $ keys $ view ( phylo_periods
                        .  traverse
-                       . phylo_periodLevels ) phylo
+                       . phylo_periodScales ) phylo
 
 getSeaElevation :: Phylo -> SeaElevation
 getSeaElevation phylo = seaElevation (getConfig phylo)
@@ -426,44 +426,44 @@ phyloToLastBranches phylo = elems
     $ map (\g -> (g ^. phylo_groupBranchId, [g]))
     $ getGroupsFromLevel (last' "byBranches" $ getLevels phylo) phylo
 
-getGroupsFromLevel :: Level -> Phylo -> [PhyloGroup]
+getGroupsFromLevel :: Scale -> Phylo -> [PhyloGroup]
 getGroupsFromLevel lvl phylo =
     elems $ view ( phylo_periods
                  .  traverse
-                 . phylo_periodLevels
+                 . phylo_periodScales
                  .  traverse
-                 .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
-                 . phylo_levelGroups ) phylo
+                 .  filtered (\phyloLvl -> phyloLvl ^. phylo_scaleScale == lvl)
+                 . phylo_scaleGroups ) phylo
 
 
-getGroupsFromLevelPeriods :: Level -> [PhyloPeriodId] -> Phylo -> [PhyloGroup]
+getGroupsFromLevelPeriods :: Scale -> [Period] -> Phylo -> [PhyloGroup]
 getGroupsFromLevelPeriods lvl periods phylo =
     elems $ view ( phylo_periods
                  .  traverse
                  .  filtered (\phyloPrd -> elem (phyloPrd ^. phylo_periodPeriod) periods)
-                 . phylo_periodLevels
+                 . phylo_periodScales
                  .  traverse
-                 .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
-                 . phylo_levelGroups ) phylo
+                 .  filtered (\phyloLvl -> phyloLvl ^. phylo_scaleScale == lvl)
+                 . phylo_scaleGroups ) phylo
 
 
-getGroupsFromPeriods :: Level -> Map PhyloPeriodId PhyloPeriod -> [PhyloGroup]
+getGroupsFromPeriods :: Scale -> Map Period PhyloPeriod -> [PhyloGroup]
 getGroupsFromPeriods lvl periods =
     elems $ view (  traverse
-                 . phylo_periodLevels
+                 . phylo_periodScales
                  .  traverse
-                 .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
-                 . phylo_levelGroups ) periods
+                 .  filtered (\phyloLvl -> phyloLvl ^. phylo_scaleScale == lvl)
+                 . phylo_scaleGroups ) periods
 
 
-updatePhyloGroups :: Level -> Map PhyloGroupId PhyloGroup -> Phylo -> Phylo
+updatePhyloGroups :: Scale -> Map PhyloGroupId PhyloGroup -> Phylo -> Phylo
 updatePhyloGroups lvl m phylo =
     over ( phylo_periods
          .  traverse
-         . phylo_periodLevels
+         . phylo_periodScales
          .  traverse
-         .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
-         . phylo_levelGroups
+         .  filtered (\phyloLvl -> phyloLvl ^. phylo_scaleScale == lvl)
+         . phylo_scaleGroups
          .  traverse
          ) (\g ->
                 let id = getGroupId g
@@ -477,13 +477,16 @@ updatePeriods periods' phylo =
     over (phylo_periods . traverse)
             (\prd ->
                 let prd' = periods' ! (prd ^. phylo_periodPeriod)
-                    lvls = map (\lvl -> lvl & phylo_levelPeriod' .~ prd') $ prd ^. phylo_periodLevels
-                 in prd & phylo_periodPeriod' .~ prd'
-                        & phylo_periodLevels  .~ lvls
+                    lvls = map (\lvl -> lvl & phylo_scalePeriodStr .~ prd') $ prd ^. phylo_periodScales
+                 in prd & phylo_periodPeriodStr .~ prd'
+                        & phylo_periodScales    .~ lvls
                 ) phylo
 
+updateQuality :: Double -> Phylo -> Phylo
+updateQuality quality phylo = phylo { _phylo_quality = quality }           
 
-traceToPhylo :: Level -> Phylo -> Phylo
+
+traceToPhylo :: Scale -> Phylo -> Phylo
 traceToPhylo lvl phylo =
     trace ("\n" <> "-- | End of phylo making at level " <> show (lvl) <> " with "
                 <> show (length $ getGroupsFromLevel lvl phylo) <> " groups and "
@@ -516,8 +519,8 @@ mergeMeta bId groups =
    in fromList [("breaks",(ego ^. phylo_groupMeta) ! "breaks"),("seaLevels",(ego ^. phylo_groupMeta) ! "seaLevels")]
 
 
-groupsToBranches :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
-groupsToBranches groups =
+groupsToBranches' :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
+groupsToBranches' groups =
     {- run the related component algorithm -}
     let egos  = map (\g -> [getGroupId g]
                         ++ (map fst $ g ^. phylo_groupPeriodParents)
