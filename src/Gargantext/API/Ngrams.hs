@@ -302,6 +302,10 @@ commitStatePatch listId (Versioned _p_version p) = do
       -- TODO Check this
       --q = mconcat $ take (a ^. a_version - p_version) (a ^. a_history)
       q = mconcat $ a ^. a_history
+
+    printDebug "transformWith" (p,q)
+
+    let
       (p', q') = transformWith ngramsStatePatchConflictResolution p q
       a' = a & a_version +~ 1
              & a_state   %~ act p'
