@@ -391,10 +391,10 @@ defaultName NodeListCooc   = "List"
 defaultName NodeModel      = "Model"
 
 defaultName NodeFolder        = "Folder"
-defaultName NodeFolderPrivate = defaultName NodeFolder
-defaultName NodeFolderShared  = defaultName NodeFolder
-defaultName NodeTeam          = defaultName NodeFolder
-defaultName NodeFolderPublic  = defaultName NodeFolder
+defaultName NodeFolderPrivate = "Private"
+defaultName NodeFolderShared  = "Share"
+defaultName NodeTeam          = "Team"
+defaultName NodeFolderPublic  = "Public"
 
 defaultName NodeDashboard     = "Board"
 defaultName NodeGraph         = "Graph"
