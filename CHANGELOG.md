@@ -1,3 +1,8 @@
+## Version 0.0.6.3
+* [BACK][FRONT][FEAT] FR NLP connection tested
+* [FRONT][ERGO] click on node to get the modal actions
+* [BACK][DOC] default name of folder
+
 ## Version 0.0.6.2
 * [BACK][FIX] Ngrams List saved in database on halting
 * [BACK][FIX] Confluence on Graph
