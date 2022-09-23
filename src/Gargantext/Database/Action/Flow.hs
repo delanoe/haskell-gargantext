@@ -318,9 +318,9 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
     <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
 
   --let gp = (GroupParams l 2 3 (StopSize 3))
-  -- Here the PosTagAlgo should be chosen according the Lang
-  let gp = GroupWithPosTag l CoreNLP HashMap.empty 
-  ngs         <- buildNgramsLists user userCorpusId masterCorpusId mfslw gp
+  -- Here the PosTagAlgo should be chosen according to the Lang
+  let gp = GroupWithPosTag l CoreNLP HashMap.empty
+  ngs    <- buildNgramsLists user userCorpusId masterCorpusId mfslw gp
 
   -- printDebug "flowCorpusUser:ngs" ngs
 
@@ -329,8 +329,8 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
   -- _ <- insertOccsUpdates userCorpusId mastListId
   -- printDebug "userListId" userListId
   -- User Graph Flow
-  _ <- insertDefaultNodeIfNotExists NodeDashboard userCorpusId userId
   _ <- insertDefaultNodeIfNotExists NodeGraph     userCorpusId userId
+  _ <- insertDefaultNodeIfNotExists NodeDashboard userCorpusId userId
   --_ <- mkPhylo  userCorpusId userId
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId

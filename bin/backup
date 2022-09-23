@@ -3,7 +3,7 @@
 # 0 3 * * * pg_dump --dbname=$MYDB | gzip > ~/backup/db/$(date +%Y-%m-%d).psql.gz
 
 if [[ $1 == "" || $2 == "" ]]
-then echo "USAGE : ./psql gargantext.ini backup_directory"
+then echo "USAGE : ./bin/backup gargantext.ini backup_directory"
 else 
 
 INIFILE=$1

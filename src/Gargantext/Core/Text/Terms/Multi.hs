@@ -29,6 +29,7 @@ import qualified Gargantext.Core.Text.Terms.Multi.Lang.Fr as Fr
 
 import Gargantext.Core.Text.Terms.Multi.RAKE (multiterms_rake)
 -- import qualified Gargantext.Utils.JohnSnowNLP as JohnSnow
+
 import qualified Gargantext.Utils.SpacyNLP as SpacyNLP
 
 
@@ -36,15 +37,14 @@ import qualified Gargantext.Utils.SpacyNLP as SpacyNLP
 type NLP_API = Lang -> Text -> IO PosSentences
 
 -------------------------------------------------------------------
--- To be removed
 multiterms :: Lang -> Text -> IO [Terms]
 multiterms = multiterms' tokenTag2terms
- 
-multiterms' :: (TokenTag -> a) -> Lang -> Text -> IO [a]
-multiterms' f lang txt = concat
-                   <$> map (map f)
-                   <$> map (filter (\t -> _my_token_pos t == Just NP))
-                   <$> tokenTags lang txt
+  where
+    multiterms' :: (TokenTag -> a) -> Lang -> Text -> IO [a]
+    multiterms' f lang txt = concat
+                       <$> map (map f)
+                       <$> map (filter (\t -> _my_token_pos t == Just NP))
+                       <$> tokenTags lang txt
 
 -------------------------------------------------------------------
 tokenTag2terms :: TokenTag -> Terms
@@ -53,7 +53,7 @@ tokenTag2terms (TokenTag ws t _ _) =  Terms ws t
 tokenTags :: Lang -> Text -> IO [[TokenTag]]
 tokenTags EN txt = tokenTagsWith EN txt corenlp
 tokenTags FR txt = tokenTagsWith FR txt SpacyNLP.nlp
-tokenTags _  _   = panic "[G.C.T.T.Multi] NLP API not implemented yet"
+tokenTags l  _   = panic $ "[G.C.T.T.Multi] Lang NLP API not implemented yet " <> (cs $ show l)
 
 tokenTagsWith :: Lang -> Text -> NLP_API -> IO [[TokenTag]]
 tokenTagsWith lang txt nlp = map (groupTokens lang)

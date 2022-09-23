@@ -35,6 +35,10 @@ import Gargantext.Core.Types
 import Gargantext.Prelude
 import Network.HTTP.Simple
 
+-- import qualified Gargantext.Utils.SpacyNLP as SpacyNLP
+
+
+
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 tokens2tokensTags :: [Token] -> [TokenTag]
@@ -73,17 +77,11 @@ corenlp' :: ( FromJSON a
 corenlp' lang txt = do
     let properties = case lang of
             EN -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
-            -- FR -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
             FR -> "{\"annotators\": \"tokenize,ssplit,pos,lemma,ner\", \"parse.model\":\"edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz\", \"pos.model\":\"edu/stanford/nlp/models/pos-tagger/french/french.tagger\", \"tokenize.language\":\"fr\", \"outputFormat\": \"json\"}"
             _  -> panic $ pack "not implemented yet"
     url <- parseRequest $ "POST http://localhost:9000/?properties=" <> properties
     let request = setRequestBodyLBS (cs txt) url
     httpJSON request
-
-corenlpRaw :: Lang -> Text -> IO Value
-corenlpRaw lang txt = do
-  response <- corenlp' lang txt
-  pure (getResponseBody response)
 
 
 corenlp :: Lang -> Text -> IO PosSentences

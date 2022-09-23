@@ -254,9 +254,7 @@ makeLenses ''NodeStoryEnv
 makeLenses ''NodeStory
 makeLenses ''Archive
 
------------------------------------------
-
-
+----------------------------------------------------------------------
 data NodeStoryPoly nid v ngtid ngid nre =
   NodeStoryDB { node_id             :: nid
               , version             :: v
@@ -614,14 +612,20 @@ readNodeStoryEnv pool = do
   pure $ NodeStoryEnv { _nse_var    = mvar
                       , _nse_saver  = saver
                       , _nse_saver_immediate = saver_immediate
-                      , _nse_getter = nodeStoryVar pool (Just mvar) }
+                      , _nse_getter = nodeStoryVar pool (Just mvar)
+                      }
 
-nodeStoryVar :: Pool PGS.Connection -> Maybe (MVar NodeListStory) -> [NodeId] -> IO (MVar NodeListStory)
+nodeStoryVar :: Pool PGS.Connection
+             -> Maybe (MVar NodeListStory)
+             -> [NodeId]
+             -> IO (MVar NodeListStory)
 nodeStoryVar pool Nothing nIds = do
   state <- withResource pool $ \c -> nodeStoryIncs c Nothing nIds
   newMVar state
 nodeStoryVar pool (Just mv) nIds = do
-  _ <- withResource pool $ \c -> modifyMVar_ mv $ \nsl -> (nodeStoryIncs c (Just nsl) nIds)
+  _ <- withResource pool
+      $ \c -> modifyMVar_ mv
+      $ \nsl -> (nodeStoryIncs c (Just nsl) nIds)
   pure mv
 
 -- Debounce is useful since it could delay the saving to some later
