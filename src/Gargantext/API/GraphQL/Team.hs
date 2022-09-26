@@ -20,9 +20,15 @@ import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.Database.Query.Table.User (getUsersWithNodeHyperdata)
 
 import qualified Data.Text as T
+import Gargantext.Database.Schema.User (UserLight(..))
 
 data TeamArgs = TeamArgs
   { team_node_id :: Int } deriving (Generic, GQLType)
+
+data Team = Team
+ { team_leader_username :: Text
+ , team_members         :: [TeamMember]
+ } deriving (Generic, GQLType)
 
 data TeamMember = TeamMember
  { username         :: Text
@@ -38,23 +44,29 @@ data TeamDeleteMArgs = TeamDeleteMArgs
 type GqlM e env = Resolver QUERY e (GargM env GargError)
 type GqlM' e env a = ResolverM e (GargM env GargError) a
 
-todo :: a
-todo = undefined
 
-resolveTeam :: (HasConnectionPool env, HasConfig env, HasMail env) => TeamArgs -> GqlM e env [TeamMember]
+resolveTeam :: (HasConnectionPool env, HasConfig env, HasMail env) => TeamArgs -> GqlM e env Team
 resolveTeam TeamArgs { team_node_id } = dbTeam team_node_id
 
-dbTeam :: (HasConnectionPool env, HasConfig env, HasMail env) => Int -> GqlM e env [TeamMember]
+dbTeam :: (HasConnectionPool env, HasConfig env, HasMail env) => Int -> GqlM e env Team
 dbTeam nodeId = do
   let nId = NodeId nodeId
   res <- lift $ membersOf nId
-  pure $ map toTeamMember res
+  teamNode <- lift $ getNode nId
+  userNodes <- lift $ getUsersWithNodeHyperdata $ uId teamNode
+  let username = getUsername userNodes
+  pure $ Team { team_leader_username = username
+              , team_members = map toTeamMember res
+              }
   where
     toTeamMember :: (Text, NodeId) -> TeamMember
     toTeamMember (username, fId)= TeamMember {
       username,
       shared_folder_id = unNodeId fId
     }
+    uId Node { _node_user_id } = _node_user_id
+    getUsername [] = panic "[resolveTeam] Team creator doesn't exist"
+    getUsername ((UserLight {userLight_username}, _):_) = userLight_username
 
 -- TODO: list as argument
 deleteTeamMembership :: (HasConnectionPool env, HasConfig env, HasMail env, HasSettings env) => TeamDeleteMArgs -> GqlM' e env [Int]
