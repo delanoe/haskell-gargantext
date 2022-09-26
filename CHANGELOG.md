@@ -1,6 +1,7 @@
 ## Version 0.0.6.4
 * [FRONT][FIX] Modal closing
 * [FRONT][TEAM] Show leader of the Team
+* [FRONT][ADM] [Forgot password] disable input field after submit 
 
 ## Version 0.0.6.3
 * [BACK][FRONT][FEAT] FR NLP connection tested
