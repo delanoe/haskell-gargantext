@@ -19,6 +19,7 @@
 
 ## Version 0.0.6.1
 * [BACK][FEAT] Spacy Server connection for French (and others) languages
+  * git clone https://gitlab.iscpif.fr/gargantext/spacy-server.git
 * [BACK][FEAT] At startup, check if gargantext.init script has been activated
 * [BACK][UPGRADE] Use the devops/postgres/upgrade/0.0.6.1.sql upgrade script
 * [BACK][FIX] PubMed Parser with threadDelay
