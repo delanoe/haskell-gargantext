@@ -73,7 +73,7 @@ data Query m
     , user_infos  :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
     , users       :: GQLUser.UserArgs -> m [GQLUser.User m]
     , tree        :: GQLTree.TreeArgs -> m (GQLTree.TreeFirstLevel m)
-    , team        :: GQLTeam.TeamArgs -> m [GQLTeam.TeamMember]
+    , team        :: GQLTeam.TeamArgs -> m GQLTeam.Team
     } deriving (Generic, GQLType)
 
 data Mutation m
