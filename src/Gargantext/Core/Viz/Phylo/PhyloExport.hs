@@ -222,8 +222,8 @@ exportToDot phylo export =
                      ,(toAttr (fromStrict "phyloTimeScale") $ pack $ getTimeScale phylo)
                      ,(toAttr (fromStrict "PhyloScale") $ pack $ show (_qua_granularity $ phyloQuality $ getConfig phylo))
                      ,(toAttr (fromStrict "phyloQuality") $ pack $ show (phylo ^. phylo_quality))
-                     ,(toAttr (fromStrict "phyloSeaRiseStart") $ pack $ show (_cons_start $ getSeaElevation phylo))
-                     ,(toAttr (fromStrict "phyloSeaRiseSteps") $ pack $ show (_cons_step  $ getSeaElevation phylo))
+                     ,(toAttr (fromStrict "phyloSeaRiseStart") $ pack $ show (getPhyloSeaRiseStart phylo))
+                     ,(toAttr (fromStrict "phyloSeaRiseSteps") $ pack $ show (getPhyloSeaRiseSteps phylo))
                      -- ,(toAttr (fromStrict "phyloTermsFreq") $ pack $ show (toList $ _phylo_lastTermFreq phylo))
                      ])
 
@@ -373,9 +373,9 @@ sortByBirthDate order export =
 processSort :: Sort -> SeaElevation -> PhyloExport -> PhyloExport
 processSort sort' elev export = case sort' of
     ByBirthDate o -> sortByBirthDate o export
-    ByHierarchy _ -> export & export_branches .~ (branchToIso' (_cons_start elev) (_cons_step elev)
-                       $ sortByHierarchy 0 (export ^. export_branches))
-
+    ByHierarchy _ -> case elev of
+            Constante  s s' ->  export & export_branches .~ (branchToIso' s s' $ sortByHierarchy 0 (export ^. export_branches))
+            Adaptative _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches))       
 
 -----------------
 -- | Metrics | --
@@ -647,7 +647,7 @@ toHorizon phylo =
           proximity = (phyloProximity $ getConfig phylo)
           step = case getSeaElevation phylo of
             Constante  _ s -> s
-            Adaptative _ -> undefined
+            Adaptative _ -> 0
        -- in headsToAncestors nbDocs diago proximity heads groups []
        in map (\ego -> toAncestor nbDocs diago proximity step noHeads ego)
         $ headsToAncestors nbDocs diago proximity step heads []

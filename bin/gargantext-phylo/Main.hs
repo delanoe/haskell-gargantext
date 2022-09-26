@@ -153,9 +153,9 @@ seaToLabel config = case (seaElevation config) of
 
 sensToLabel :: PhyloConfig -> [Char]
 sensToLabel config = case (phyloProximity config) of
-      Hamming _ -> undefined
-      WeightedLogJaccard s -> ("WeightedLogJaccard_"  <> show s)
-      WeightedLogSim s -> ( "WeightedLogSim-sens_"  <> show s)
+      Hamming _ _ -> undefined
+      WeightedLogJaccard s _ -> ("WeightedLogJaccard_"  <> show s)
+      WeightedLogSim s _ -> ( "WeightedLogSim-sens_"  <> show s)
 
 
 cliqueToLabel :: PhyloConfig -> [Char]
@@ -196,11 +196,11 @@ configToSha stage config = unpack
   where
     label :: [Char]
     label = case stage of
-      phyloWithoutLink -> (corpusPath    config)
+      BackupPhyloWithoutLink -> (corpusPath    config)
                        <> (listPath      config)
                        <> (timeToLabel   config)
                        <> (cliqueToLabel config)
-      phylo   -> (corpusPath    config)
+      BackupPhylo   -> (corpusPath    config)
                        <> (listPath      config)
                        <> (timeToLabel   config)
                        <> (cliqueToLabel config)

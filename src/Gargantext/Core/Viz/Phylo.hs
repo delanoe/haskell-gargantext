@@ -72,24 +72,14 @@ instance ToSchema SeaElevation
 
 data Proximity =
       WeightedLogJaccard
-      { _wlj_sensibility   :: Double
-{-
-      -- , _wlj_thresholdInit :: Double
-      -- , _wlj_thresholdStep :: Double
-      -- | max height for sea level in temporal matching
-      -- , _wlj_elevation     :: Double
--}
-      }
+      { _wlj_sensibility     :: Double
+      , _wlj_minSharedNgrams :: Int }
     | WeightedLogSim
-      { _wlj_sensibility   :: Double
-{-
-      -- , _wlj_thresholdInit :: Double
-      -- , _wlj_thresholdStep :: Double
-      -- | max height for sea level in temporal matching
-      -- , _wlj_elevation     :: Double
--}
-      }
-    | Hamming { _wlj_sensibility :: Double }
+      { _wls_sensibility     :: Double
+      , _wls_minSharedNgrams :: Int }
+    | Hamming 
+      { _hmg_sensibility     :: Double 
+      , _hmg_minSharedNgrams :: Int}
 
     deriving (Show,Generic,Eq)
 
@@ -214,7 +204,7 @@ data PhyloSubConfig =
 
 
 subConfig2config :: PhyloSubConfig -> PhyloConfig
-subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard $ _sc_phyloProximity subConfig
+subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard (_sc_phyloProximity subConfig) 1 
                                            , phyloSynchrony = ByProximityThreshold (_sc_phyloSynchrony subConfig) 0 AllBranches MergeAllGroups
                                            , phyloQuality   = Quality (_sc_phyloQuality   subConfig) 1
                                            , timeUnit       = _sc_timeUnit       subConfig
@@ -232,7 +222,7 @@ defaultConfig =
             , listParser     = V4
             , phyloName      = pack "Phylo Name"
             , phyloScale     = 2
-            , phyloProximity = WeightedLogJaccard 0.5
+            , phyloProximity = WeightedLogJaccard 0.5 1
             , seaElevation   = Constante 0.1 0.1
             , findAncestors  = False
             , phyloSynchrony = ByProximityThreshold 0.5 0 AllBranches MergeAllGroups

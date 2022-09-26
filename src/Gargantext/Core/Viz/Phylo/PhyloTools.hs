@@ -334,16 +334,16 @@ getPeriodPointers fil g =
 filterProximity :: Proximity -> Double -> Double -> Bool
 filterProximity proximity thr local =
     case proximity of
-        WeightedLogJaccard _ -> local >= thr
-        WeightedLogSim     _ -> local >= thr
-        Hamming            _ -> undefined
+        WeightedLogJaccard _ _ -> local >= thr
+        WeightedLogSim     _ _ -> local >= thr
+        Hamming            _ _ -> undefined
 
 getProximityName :: Proximity -> String
 getProximityName proximity =
     case proximity of
-        WeightedLogJaccard _ -> "WLJaccard"
-        WeightedLogSim     _ -> "WeightedLogSim"
-        Hamming            _ -> "Hamming"
+        WeightedLogJaccard _ _ -> "WLJaccard"
+        WeightedLogSim     _ _ -> "WeightedLogSim"
+        Hamming            _ _ -> "Hamming"
 
 ---------------
 -- | Phylo | --
@@ -398,6 +398,17 @@ getLevels phylo = nub
 
 getSeaElevation :: Phylo -> SeaElevation
 getSeaElevation phylo = seaElevation (getConfig phylo)
+
+
+getPhyloSeaRiseStart :: Phylo -> Double
+getPhyloSeaRiseStart phylo = case (getSeaElevation phylo) of
+    Constante  s _ -> s
+    Adaptative _ -> 0
+
+getPhyloSeaRiseSteps :: Phylo -> Double
+getPhyloSeaRiseSteps phylo = case (getSeaElevation phylo) of
+    Constante  _ s -> s
+    Adaptative s -> s    
 
 
 getConfig :: Phylo -> PhyloConfig
@@ -533,13 +544,15 @@ groupsToBranches' groups =
             bId = mergeBranchIds $ map (\g -> snd $ g ^. phylo_groupBranchId) groups'
          in map (\g -> g & phylo_groupBranchId %~ (\(lvl,_) -> (lvl,bId))) groups') graph
 
+
 relatedComponents :: Ord a => [[a]] -> [[a]]
-relatedComponents graph = foldl' (\acc groups ->
-    if (null acc)
-    then acc ++ [groups]
+relatedComponents graph = foldl' (\branches groups ->
+    if (null branches)
+    then branches ++ [groups]
     else
-        let acc' = partition (\groups' -> disjoint (Set.fromList groups') (Set.fromList groups)) acc
-         in (fst acc') ++ [nub $ concat $ (snd acc') ++ [groups]]) [] graph
+        let branchPart = partition (\branch -> disjoint (Set.fromList branch) (Set.fromList groups)) branches
+         in (fst branchPart) ++ [nub $ concat $ (snd branchPart) ++ [groups]]) [] graph
+
 
 toRelatedComponents :: [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)] -> [[PhyloGroup]]
 toRelatedComponents nodes edges =
@@ -569,9 +582,15 @@ traceSynchronyStart phylo =
 
 getSensibility :: Proximity -> Double
 getSensibility proxi = case proxi of
-    WeightedLogJaccard s -> s
-    WeightedLogSim     s -> s
-    Hamming            _ -> undefined
+    WeightedLogJaccard s _ -> s
+    WeightedLogSim     s _ -> s
+    Hamming            _ _ -> undefined
+
+getMinSharedNgrams :: Proximity -> Int
+getMinSharedNgrams proxi = case proxi of
+    WeightedLogJaccard _ m -> m
+    WeightedLogSim     _ m -> m
+    Hamming            _ _ -> undefined    
 
 ----------------
 -- | Branch | --
