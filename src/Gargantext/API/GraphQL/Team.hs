@@ -26,7 +26,7 @@ data TeamArgs = TeamArgs
   { team_node_id :: Int } deriving (Generic, GQLType)
 
 data Team = Team
- { team_leader_username :: Text
+ { team_owner_username :: Text
  , team_members         :: [TeamMember]
  } deriving (Generic, GQLType)
 
@@ -55,7 +55,7 @@ dbTeam nodeId = do
   teamNode <- lift $ getNode nId
   userNodes <- lift $ getUsersWithNodeHyperdata $ uId teamNode
   let username = getUsername userNodes
-  pure $ Team { team_leader_username = username
+  pure $ Team { team_owner_username = username
               , team_members = map toTeamMember res
               }
   where
