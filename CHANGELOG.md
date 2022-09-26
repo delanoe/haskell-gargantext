@@ -1,3 +1,7 @@
+## Version 0.0.6.4
+* [FRONT][FIX] Modal closing
+* [FRONT][TEAM] Show leader of the Team
+
 ## Version 0.0.6.3
 * [BACK][FRONT][FEAT] FR NLP connection tested
 * [FRONT][ERGO] click on node to get the modal actions
