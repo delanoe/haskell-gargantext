@@ -1,3 +1,6 @@
+## Version 0.0.6.5
+- [BACKFRONT][FIX] APIs HAL et ISTEX
+
 ## Version 0.0.6.4
 * [FRONT][FIX] Modal closing
 * [FRONT][TEAM] Show leader of the Team
