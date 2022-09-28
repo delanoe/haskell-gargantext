@@ -1,5 +1,6 @@
 ## Version 0.0.6.5
-- [BACKFRONT][FIX] APIs HAL et ISTEX
+* [BACKFRONT][FIX] APIs HAL et ISTEX
+* [FRONT][FIX] Search page parameters to 0 for the result
 
 ## Version 0.0.6.4
 * [FRONT][FIX] Modal closing
