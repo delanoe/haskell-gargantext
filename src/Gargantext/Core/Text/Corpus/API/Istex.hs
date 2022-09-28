@@ -18,6 +18,8 @@ import Data.List (concat)
 import Data.Maybe
 import Data.Text (Text, pack)
 
+import qualified Data.Text as Text
+import qualified Data.List as List
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import qualified Gargantext.Defaults as Defaults
@@ -26,9 +28,11 @@ import qualified Gargantext.Core.Text.Corpus.Parsers.Date as Date
 import qualified ISTEX        as ISTEX
 import qualified ISTEX.Client as ISTEX
 
+type Query = Text
+type MaxResults = Maybe Integer
 
-get :: Lang -> Text -> Maybe Integer -> IO [HyperdataDocument]
-get la q _ml = do
+get :: Lang -> Query -> MaxResults -> IO [HyperdataDocument]
+get la query' maxResults = do
   --printDebug "[Istex.get] calling getMetadataScrollProgress for la" la
   --printDebug "[Istex.get] calling getMetadataScrollProgress for q" q
   --printDebug "[Istex.get] calling getMetadataScrollProgress for ml" ml
@@ -38,14 +42,29 @@ get la q _ml = do
   -- TODO check if abstract is in query already if not add like below
   -- eDocs <- ISTEX.getMetadataScroll (q <> " abstract:*")  "1m" Nothing 0  --(fromIntegral <$> ml)
   -- eDocs <- ISTEX.getMetadataScroll q "1m" Nothing 0  --(fromIntegral <$> ml)
-  eDocs <- ISTEX.getMetadataWith q (Just 5000)
+
+  let query = case (List.length $ Text.splitOn ":" query') == 1 of
+        -- True case means users is entering default search of IsTex
+        -- In that case we need to enrich his query with 2 parameters
+        -- First expected language: user has to define it in GTXT
+        -- Second : query in abstract
+        True  -> ("language:"<> lang la) <> " AND abstract:"<>query'
+            where
+              lang FR = "fre"
+              lang _  = "eng"
+
+        False -> query'
+        -- Complex queries of IsTex needs parameters using ":" so we leave the query as it is
+        -- in that case we suppose user is knowing what s.he is doing
+
+  eDocs <- ISTEX.getMetadataWith query (fromIntegral <$> maxResults)
   printDebug "[Istex.get] will print length" (0 :: Int)
   case eDocs of
     Left _ -> pure ()
     Right (ISTEX.Documents { _documents_hits }) -> printDebug "[Istex.get] length docs" $ length _documents_hits
   --ISTEX.getMetadataScrollProgress q ((\_ -> pack $ "1m") <$> ml) Nothing progress errorHandler
   case eDocs of
-    Left err -> panic . pack . show $ err
+    Left err -> panic . Text.pack . show $ err
     Right docs -> toDoc' la docs
   --pure $ either (panic . pack . show) (toDoc' la) eDocs
 --  where

@@ -136,7 +136,10 @@ insertSearxResponse user cId listId l (Right (SearxResponse { _srs_results })) =
   _ <- Doc.add cId ids
   (_masterUserId, _masterRootId, masterCorpusId)
     <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") mCorpus
-  let gp = GroupWithPosTag l CoreNLP HashMap.empty 
+  let
+    gp = case l of
+      FR -> GroupWithPosTag l Spacy HashMap.empty
+      _       -> GroupWithPosTag l CoreNLP HashMap.empty
   ngs         <- buildNgramsLists user cId masterCorpusId Nothing gp
   _userListId <- flowList_DbRepo listId ngs
 
