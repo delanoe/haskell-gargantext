@@ -1,5 +1,6 @@
 ## Version 0.0.6.5.1
 * [BACK][FIX] Ngrams Table concurrency issue
+* [BACK][MERGE] dev-phylo branch
 
 ## Version 0.0.6.5
 * [BACKFRONT][FIX] APIs HAL et ISTEX
