@@ -1,3 +1,6 @@
+## Version 0.0.6.5.1
+* [BACK][FIX] Ngrams Table concurrency issue
+
 ## Version 0.0.6.5
 * [BACKFRONT][FIX] APIs HAL et ISTEX
 * [FRONT][FIX] Search page parameters to 0 for the result
