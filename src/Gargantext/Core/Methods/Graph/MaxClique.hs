@@ -72,7 +72,7 @@ type Neighbor = Node
 -- | getMaxCliques
 -- TODO chose distance order
 
-getMaxCliques :: Ord a => CliqueFilter -> Distance -> Threshold -> Map (a, a) Int -> [[a]]
+getMaxCliques :: Ord a => MaxCliqueFilter -> Distance -> Threshold -> Map (a, a) Int -> [[a]]
 getMaxCliques f d t m = map fromIndices $ getMaxCliques' t m'
   where
     m'          = toIndex to m

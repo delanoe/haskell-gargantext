@@ -27,9 +27,10 @@ import Gargantext.Core.Viz.Phylo.PhyloExport
 import Gargantext.Core.Viz.Phylo.PhyloMaker
 import Gargantext.Core.Viz.Phylo.PhyloTools
 import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
-import Gargantext.Core.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching)
+import Gargantext.Core.Viz.Phylo.TemporalMatching (temporalMatching)
 import Gargantext.Prelude
 import qualified Data.Vector as Vector
+import qualified Data.Set as Set
 
 ---------------------------------
 -- | STEP 5 | -- Export the phylo
@@ -39,49 +40,50 @@ phyloExport :: IO ()
 phyloExport = dotToFile "/home/qlobbe/data/phylo/output/cesar_cleopatre_V2.dot" phyloDot 
 
 phyloDot :: DotGraph DotId
-phyloDot = toPhyloExport phyloExample
+phyloDot = toPhyloExport phyloCleopatre
 
 --------------------------------------------------
 -- | STEP 4 | -- Process the synchronic clustering
 --------------------------------------------------
 
-phyloExample :: Phylo
-phyloExample = synchronicClustering $ toHorizon phylo1
+phyloCleopatre :: Phylo
+phyloCleopatre = synchronicClustering $ toHorizon flatPhylo
 
 -----------------------------------------------
 -- | STEP 3 | -- Build the Level 1 of the Phylo
 -----------------------------------------------
 
-phylo1 :: Phylo
-phylo1 = case (getSeaElevation phyloBase) of 
-    Constante s g   -> constanteTemporalMatching s g 
-       $ toGroupsProxi 1
-       $ appendGroups cliqueToGroup 1 phyloClique phyloBase
-    Adaptative s    -> adaptativeTemporalMatching s
-       $ toGroupsProxi 1
-       $ appendGroups cliqueToGroup 1 phyloClique phyloBase
+flatPhylo :: Phylo
+flatPhylo = case (getSeaElevation emptyPhylo) of 
+    Constante s g   -> temporalMatching (constDiachronicLadder s g Set.empty) 
+       $ scanSimilarity 1
+       $ appendGroups clusterToGroup 1 seriesOfClustering emptyPhylo
+    Adaptative s    -> temporalMatching (adaptDiachronicLadder s (emptyPhylo' ^. phylo_diaSimScan) Set.empty) emptyPhylo'
 
+emptyPhylo' :: Phylo
+emptyPhylo' = scanSimilarity 1
+            $ appendGroups clusterToGroup 1 seriesOfClustering emptyPhylo
 
 ---------------------------------------------
 -- | STEP 2 | -- Build the cliques
 ---------------------------------------------
 
 
-phyloClique :: Map (Date,Date) [PhyloClique]
-phyloClique = toPhyloClique phyloBase docsByPeriods
+seriesOfClustering :: Map (Date,Date) [Clustering]
+seriesOfClustering = toSeriesOfClustering emptyPhylo docsByPeriods
 
 
 docsByPeriods :: Map (Date,Date) [Document]
 docsByPeriods = groupDocsByPeriod date periods docs
 
 
---------------------------------------------
--- | STEP 1 | -- Init the Base of the Phylo
---------------------------------------------
+---------------------------------
+-- | STEP 1 | -- Init the Phylo
+---------------------------------
 
 
-phyloBase :: Phylo
-phyloBase = toPhyloBase docs mapList config
+emptyPhylo :: Phylo
+emptyPhylo = initPhylo docs mapList config
 
 
 phyloCooc :: Map Date Cooc
@@ -101,7 +103,8 @@ nbDocsByYear = docsToTimeScaleNb docs
 config :: PhyloConfig
 config = 
     defaultConfig { phyloName  = "Cesar et Cleopatre"
-                  , phyloLevel = 2
+                  , phyloScale = 2
+                  , seaElevation   = Adaptative 4
                   , exportFilter = [ByBranchSize 0]
                   , clique = MaxClique 0 15 ByNeighbours }
 

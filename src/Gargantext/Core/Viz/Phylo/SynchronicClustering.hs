@@ -60,19 +60,19 @@ mergeGroups coocs id mapIds childs =
         mergeAncestors :: [Pointer] -> [Pointer]
         mergeAncestors pointers = Map.toList $ fromListWith max pointers
 
-addPhyloLevel :: Level -> Phylo -> Phylo
-addPhyloLevel lvl phylo = 
+addPhyloScale :: Scale -> Phylo -> Phylo
+addPhyloScale lvl phylo = 
   over ( phylo_periods .  traverse ) 
-       (\phyloPrd -> phyloPrd & phylo_periodLevels 
+       (\phyloPrd -> phyloPrd & phylo_periodScales 
                         %~ (insert (phyloPrd ^. phylo_periodPeriod, lvl) 
-                                   (PhyloLevel (phyloPrd ^. phylo_periodPeriod) (phyloPrd ^. phylo_periodPeriod') lvl empty))) phylo
+                                   (PhyloScale (phyloPrd ^. phylo_periodPeriod) (phyloPrd ^. phylo_periodPeriodStr) lvl empty))) phylo
 
 
-toNextLevel' :: Phylo -> [PhyloGroup] -> Phylo
-toNextLevel' phylo groups =
+toNextScale :: Phylo -> [PhyloGroup] -> Phylo
+toNextScale phylo groups =
     let curLvl = getLastLevel phylo
         oldGroups = fromList $ map (\g -> (getGroupId g, getLevelParentId g)) groups
-        newGroups = concat $ groupsToBranches
+        newGroups = concat $ groupsToBranches'
                   $ fromList $ map (\g -> (getGroupId g, g))
                   $ foldlWithKey (\acc id groups' ->
                         --  4) create the parent group
@@ -83,17 +83,17 @@ toNextLevel' phylo groups =
 
         newPeriods = fromListWith (++) $ map (\g -> (g ^. phylo_groupPeriod, [g])) newGroups
     in  traceSynchronyEnd 
-      $ over ( phylo_periods . traverse . phylo_periodLevels . traverse
+      $ over ( phylo_periods . traverse . phylo_periodScales . traverse
              --  6) update each period at curLvl + 1
-             . filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == (curLvl + 1)))
+             . filtered (\phyloLvl -> phyloLvl ^. phylo_scaleScale == (curLvl + 1)))
              --  7) by adding the parents
              (\phyloLvl -> 
-                if member (phyloLvl ^. phylo_levelPeriod) newPeriods
-                    then phyloLvl & phylo_levelGroups
-                            .~ fromList (map (\g -> (getGroupId g, g)) $ newPeriods ! (phyloLvl ^. phylo_levelPeriod))
+                if member (phyloLvl ^. phylo_scalePeriod) newPeriods
+                    then phyloLvl & phylo_scaleGroups
+                            .~ fromList (map (\g -> (getGroupId g, g)) $ newPeriods ! (phyloLvl ^. phylo_scalePeriod))
                     else phyloLvl)
-      --  2) add the curLvl + 1 phyloLevel to the phylo
-      $ addPhyloLevel (curLvl + 1)
+      --  2) add the curLvl + 1 PhyloScale to the phylo
+      $ addPhyloScale (curLvl + 1)
       --  1) update the current groups (with level parent pointers) in the phylo
       $ updatePhyloGroups curLvl (fromList $ map (\g -> (getGroupId g, g)) groups) phylo 
 
@@ -140,17 +140,17 @@ groupsToEdges prox sync nbDocs diago groups =
         toEdges :: Double -> [(PhyloGroup,PhyloGroup)] -> [((PhyloGroup,PhyloGroup),Double)]
         toEdges sens edges = 
             case prox of
-                WeightedLogJaccard _ -> map (\(g,g') -> 
+                WeightedLogJaccard _ _ -> map (\(g,g') -> 
                                                      ((g,g'), weightedLogJaccard' (sens) nbDocs diago
                                                                   (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
-                WeightedLogSim _ -> map (\(g,g') -> 
+                WeightedLogSim _ _     -> map (\(g,g') -> 
                                                      ((g,g'), weightedLogJaccard' (1 / sens) nbDocs diago
                                                                   (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
                 
                 _ -> undefined  
 
 toParentId :: PhyloGroup -> PhyloGroupId
-toParentId child = ((child ^. phylo_groupPeriod, child ^. phylo_groupLevel + 1), child ^. phylo_groupIndex) 
+toParentId child = ((child ^. phylo_groupPeriod, child ^. phylo_groupScale + 1), child ^. phylo_groupIndex) 
 
 
 reduceGroups :: Proximity -> Synchrony -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
@@ -159,6 +159,7 @@ reduceGroups prox sync docs diagos branch =
     let periods = fromListWith (++)
                  $ map (\g -> (g ^. phylo_groupPeriod,[g])) branch
     in  (concat . concat . elems)
+      -- TODO : ajouter un parallelisme
       $ mapWithKey (\prd groups -> 
             --  2) for each period, transform the groups as a proximity graph filtered by a threshold
             let diago = reduceDiagos $ filterDiago diagos [prd]
@@ -166,17 +167,17 @@ reduceGroups prox sync docs diagos branch =
              in map (\comp -> 
                     --  4) add to each groups their futur level parent group
                     let parentId = toParentId (head' "parentId" comp)
-                    in  map (\g -> g & phylo_groupLevelParents %~ (++ [(parentId,1)]) ) comp )
+                    in  map (\g -> g & phylo_groupScaleParents %~ (++ [(parentId,1)]) ) comp )
                 -- 3) reduce the graph a a set of related components
               $ toRelatedComponents groups edges) periods 
 
 
-adjustClustering :: Synchrony -> [[PhyloGroup]] -> [[PhyloGroup]]
-adjustClustering sync branches = case sync of
+chooseClusteringStrategy :: Synchrony -> [[PhyloGroup]] -> [[PhyloGroup]]
+chooseClusteringStrategy sync branches = case sync of
   ByProximityThreshold _ _ scope _ -> case scope of 
       SingleBranch -> branches
-      SiblingBranches -> groupBy (\g g' -> (last' "adjustClustering" $ (g  ^. phylo_groupMeta) ! "breaks") 
-                                        == (last' "adjustClustering" $ (g' ^. phylo_groupMeta) ! "breaks"))
+      SiblingBranches -> groupBy (\g g' -> (last' "chooseClusteringStrategy" $ (g  ^. phylo_groupMeta) ! "breaks") 
+                                        == (last' "chooseClusteringStrategy" $ (g' ^. phylo_groupMeta) ! "breaks"))
                        $ sortOn _phylo_groupBranchId $ concat branches
       AllBranches -> [concat branches]
   ByProximityDistribution _ _ -> branches
@@ -185,7 +186,7 @@ adjustClustering sync branches = case sync of
 levelUpAncestors :: [PhyloGroup] -> [PhyloGroup]
 levelUpAncestors groups =
   -- 1) create an associative map of (old,new) ids
-  let ids' = fromList $ map (\g -> (getGroupId g, fst $ head' "levelUpAncestors" ( g ^. phylo_groupLevelParents))) groups 
+  let ids' = fromList $ map (\g -> (getGroupId g, fst $ head' "levelUpAncestors" ( g ^. phylo_groupScaleParents))) groups 
    in map (\g -> 
         let id' = ids' ! (getGroupId g)
             ancestors  = g ^. phylo_groupAncestors
@@ -202,11 +203,11 @@ synchronicClustering phylo =
         diagos = map coocToDiago $ phylo ^. phylo_timeCooc
         newBranches  = map (\branch -> reduceGroups prox sync docs diagos branch) 
                      $ map processDynamics
-                     $ adjustClustering sync
-                     $ phyloToLastBranches 
+                     $ chooseClusteringStrategy sync
+                     $ phyloLastScale 
                      $ traceSynchronyStart phylo
         newBranches' = newBranches `using` parList rdeepseq
-     in toNextLevel' phylo $ levelUpAncestors $ concat newBranches'
+     in toNextScale phylo $ levelUpAncestors $ concat newBranches'
 
 
 -- synchronicDistance :: Phylo -> Level -> String

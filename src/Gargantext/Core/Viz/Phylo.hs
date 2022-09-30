@@ -31,6 +31,7 @@ import Control.Lens (makeLenses)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Map (Map)
+import Data.Set (Set)
 import Data.Swagger
 import Data.Text   (Text, pack)
 import Data.Vector (Vector)
@@ -63,33 +64,23 @@ instance ToSchema ListParser
 data SeaElevation =
       Constante
       { _cons_start :: Double
-      , _cons_step  :: Double }
+      , _cons_gap   :: Double }
     | Adaptative
-      { _adap_granularity :: Double }
+      { _adap_steps :: Double }
     deriving (Show,Generic,Eq)
 
 instance ToSchema SeaElevation
 
 data Proximity =
       WeightedLogJaccard
-      { _wlj_sensibility   :: Double
-{-
-      -- , _wlj_thresholdInit :: Double
-      -- , _wlj_thresholdStep :: Double
-      -- | max height for sea level in temporal matching
-      -- , _wlj_elevation     :: Double
--}
-      }
+      { _wlj_sensibility     :: Double
+      , _wlj_minSharedNgrams :: Int }
     | WeightedLogSim
-      { _wlj_sensibility   :: Double
-{-
-      -- , _wlj_thresholdInit :: Double
-      -- , _wlj_thresholdStep :: Double
-      -- | max height for sea level in temporal matching
-      -- , _wlj_elevation     :: Double
--}
-      }
-    | Hamming { _wlj_sensibility :: Double }
+      { _wls_sensibility     :: Double
+      , _wls_minSharedNgrams :: Int }
+    | Hamming 
+      { _hmg_sensibility     :: Double 
+      , _hmg_minSharedNgrams :: Int}
 
     deriving (Show,Generic,Eq)
 
@@ -150,24 +141,24 @@ instance ToSchema TimeUnit where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
 
-data CliqueFilter = ByThreshold | ByNeighbours deriving (Show,Generic,Eq)
+data MaxCliqueFilter = ByThreshold | ByNeighbours deriving (Show,Generic,Eq)
 
-instance ToSchema CliqueFilter where
+instance ToSchema MaxCliqueFilter where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
 
 
-data Clique =
+data Cluster =
       Fis
       { _fis_support :: Int
       , _fis_size    :: Int }
     | MaxClique
       { _mcl_size      :: Int
       , _mcl_threshold :: Double
-      , _mcl_filter    :: CliqueFilter }
+      , _mcl_filter    :: MaxCliqueFilter }
       deriving (Show,Generic,Eq)
 
-instance ToSchema Clique where
+instance ToSchema Cluster where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
 
@@ -187,14 +178,14 @@ data PhyloConfig =
             , corpusParser   :: CorpusParser
             , listParser     :: ListParser
             , phyloName      :: Text
-            , phyloLevel     :: Int
+            , phyloScale     :: Int
             , phyloProximity :: Proximity
             , seaElevation   :: SeaElevation
             , findAncestors  :: Bool
             , phyloSynchrony :: Synchrony
             , phyloQuality   :: Quality
             , timeUnit       :: TimeUnit
-            , clique         :: Clique
+            , clique         :: Cluster
             , exportLabel    :: [PhyloLabel]
             , exportSort     :: Sort
             , exportFilter   :: [Filter]
@@ -207,14 +198,14 @@ data PhyloSubConfig =
                  , _sc_phyloSynchrony :: Double
                  , _sc_phyloQuality   :: Double
                  , _sc_timeUnit       :: TimeUnit
-                 , _sc_clique         :: Clique
+                 , _sc_clique         :: Cluster
                  , _sc_exportFilter   :: Double
                  }
   deriving (Show,Generic,Eq)
 
 
 subConfig2config :: PhyloSubConfig -> PhyloConfig
-subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard $ _sc_phyloProximity subConfig
+subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard (_sc_phyloProximity subConfig) 1 
                                            , phyloSynchrony = ByProximityThreshold (_sc_phyloSynchrony subConfig) 0 AllBranches MergeAllGroups
                                            , phyloQuality   = Quality (_sc_phyloQuality   subConfig) 1
                                            , timeUnit       = _sc_timeUnit       subConfig
@@ -231,8 +222,8 @@ defaultConfig =
             , corpusParser   = Csv 100000
             , listParser     = V4
             , phyloName      = pack "Phylo Name"
-            , phyloLevel     = 2
-            , phyloProximity = WeightedLogJaccard 0.5
+            , phyloScale     = 2
+            , phyloProximity = WeightedLogJaccard 0.5 1
             , seaElevation   = Constante 0.1 0.1
             , findAncestors  = False
             , phyloSynchrony = ByProximityThreshold 0.5 0 AllBranches MergeAllGroups
@@ -269,11 +260,11 @@ instance ToJSON SeaElevation
 instance FromJSON TimeUnit
 instance ToJSON TimeUnit
 
-instance FromJSON CliqueFilter
-instance ToJSON CliqueFilter
+instance FromJSON MaxCliqueFilter
+instance ToJSON MaxCliqueFilter
 
-instance FromJSON Clique
-instance ToJSON Clique
+instance FromJSON Cluster
+instance ToJSON Cluster
 
 instance FromJSON PhyloLabel
 instance ToJSON PhyloLabel
@@ -316,8 +307,8 @@ instance ToSchema Software where
 
 defaultSoftware :: Software
 defaultSoftware =
-      Software { _software_name    = pack "Gargantext"
-               , _software_version = pack "v4" }
+      Software { _software_name    = pack "GarganText"
+               , _software_version = pack "v5" }
 
 
 -- | Global parameters of a Phylo
@@ -334,7 +325,7 @@ instance ToSchema PhyloParam where
 
 defaultPhyloParam :: PhyloParam
 defaultPhyloParam =
-      PhyloParam { _phyloParam_version  = pack "v2.adaptative"
+      PhyloParam { _phyloParam_version  = pack "v3"
                  , _phyloParam_software = defaultSoftware
                  , _phyloParam_config   = defaultConfig }
 
@@ -346,6 +337,9 @@ defaultPhyloParam =
 -- | Date : a simple Integer
 type Date = Int
 
+-- | DateStr : the string version of a Date
+type DateStr = Text
+
 -- | Ngrams : a contiguous sequence of n terms
 type Ngrams = Text
 
@@ -354,7 +348,7 @@ type Ngrams = Text
 -- Export Database to Document
 data Document = Document
       { date    :: Date   -- datatype Date {unDate :: Int}
-      , date'   :: Text   -- show date
+      , date'   :: DateStr   -- show date
       , text    :: [Ngrams]
       , weight  :: Maybe Double
       , sources :: [Text]
@@ -396,6 +390,12 @@ type Cooc =  Map (Int,Int) Double
 -- | Phylomemy | --
 -------------------
 
+-- | Period : a tuple of Dates
+type Period = (Date,Date)
+
+-- | PeriodStr : a tuple of DateStr
+type PeriodStr = (DateStr,DateStr)
+
 
 -- | Phylo datatype of a phylomemy
 --  foundations : the foundations of the phylo
@@ -410,10 +410,10 @@ data Phylo =
            , _phylo_timeDocs     :: !(Map Date Double)
            , _phylo_termFreq     :: !(Map Int Double)
            , _phylo_lastTermFreq :: !(Map Int Double)
-           , _phylo_horizon      :: !(Map (PhyloGroupId,PhyloGroupId) Double)
-           , _phylo_groupsProxi  :: !(Map (PhyloGroupId,PhyloGroupId) Double)
+           , _phylo_diaSimScan   :: Set Double
            , _phylo_param        :: PhyloParam
-           , _phylo_periods      :: Map PhyloPeriodId PhyloPeriod
+           , _phylo_periods      :: Map Period PhyloPeriod
+           , _phylo_quality      :: Double
            }
            deriving (Generic, Show, Eq)
 
@@ -421,57 +421,56 @@ instance ToSchema Phylo where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_")
 
 
--- | PhyloPeriodId : the id of a given period
-type PhyloPeriodId = (Date,Date)
+----------------
+-- | Period | --
+----------------
 
 -- | PhyloPeriod : steps of a phylomemy on a temporal axis
 --  id: tuple (start date, end date) of the temporal step of the phylomemy
---  levels: levels of granularity
+--  scales: scales of synchronic description
 data PhyloPeriod =
-     PhyloPeriod { _phylo_periodPeriod  :: (Date,Date)
-                 , _phylo_periodPeriod' :: (Text,Text)
-                 , _phylo_periodLevels  :: Map PhyloLevelId PhyloLevel
+     PhyloPeriod { _phylo_periodPeriod    :: Period
+                 , _phylo_periodPeriodStr :: PeriodStr
+                 , _phylo_periodScales    :: Map PhyloScaleId PhyloScale
                  } deriving (Generic, Show, Eq)
 
 instance ToSchema PhyloPeriod where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_")
 
+---------------
+-- | Scale | --
+---------------
 
+-- | Scale : a scale of synchronic description
+type Scale = Int
 
--- | Level : a level of clustering
-type Level = Int
+-- | PhyloScaleId : the id of a scale of synchronic description
+type PhyloScaleId  = (Period,Scale)
 
--- | PhyloLevelId : the id of a level of clustering in a given period
-type PhyloLevelId  = (PhyloPeriodId,Level)
-
--- | PhyloLevel : levels of phylomemy on a synchronic axis
--- Levels description:
--- Level 0: The foundations and the base of the phylo
--- Level 1: First level of clustering (the Fis)
--- Level [2..N]: Nth level of synchronic clustering (cluster of Fis)
-data PhyloLevel =
-     PhyloLevel { _phylo_levelPeriod  :: (Date,Date)
-                , _phylo_levelPeriod' :: (Text,Text)
-                , _phylo_levelLevel   :: Level
-                , _phylo_levelGroups  :: Map PhyloGroupId PhyloGroup
+-- | PhyloScale : sub-structure of the phylomemy in scale of synchronic description
+data PhyloScale =
+     PhyloScale { _phylo_scalePeriod    :: Period
+                , _phylo_scalePeriodStr :: PeriodStr
+                , _phylo_scaleScale     :: Scale
+                , _phylo_scaleGroups    :: Map PhyloGroupId PhyloGroup
                 }
                 deriving (Generic, Show, Eq)
 
-instance ToSchema PhyloLevel where
+instance ToSchema PhyloScale where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_")
 
 
-type PhyloGroupId  = (PhyloLevelId, Int)
+type PhyloGroupId  = (PhyloScaleId, Int)
 
--- | BranchId : (a level, a sequence of branch index)
+-- | BranchId : (a scale, a sequence of branch index)
 -- the sequence is a path of heritage from the most to the less specific branch
-type PhyloBranchId = (Level, [Int])
+type PhyloBranchId = (Scale, [Int])
 
--- | PhyloGroup : group of ngrams at each level and period
+-- | PhyloGroup : group of ngrams at each scale and period
 data PhyloGroup =
-      PhyloGroup { _phylo_groupPeriod   :: (Date,Date)
+      PhyloGroup { _phylo_groupPeriod   :: Period
                  , _phylo_groupPeriod'  :: (Text,Text)
-                 , _phylo_groupLevel    :: Level
+                 , _phylo_groupScale    :: Scale
                  , _phylo_groupIndex    :: Int
                  , _phylo_groupLabel    :: Text
                  , _phylo_groupSupport  :: Support
@@ -481,8 +480,8 @@ data PhyloGroup =
                  , _phylo_groupCooc     :: !(Cooc)
                  , _phylo_groupBranchId :: PhyloBranchId
                  , _phylo_groupMeta     :: Map Text [Double]
-                 , _phylo_groupLevelParents  :: [Pointer]
-                 , _phylo_groupLevelChilds   :: [Pointer]
+                 , _phylo_groupScaleParents  :: [Pointer]
+                 , _phylo_groupScaleChilds   :: [Pointer]
                  , _phylo_groupPeriodParents :: [Pointer]
                  , _phylo_groupPeriodChilds  :: [Pointer]
                  , _phylo_groupAncestors     :: [Pointer]
@@ -505,22 +504,23 @@ type Pointer = (PhyloGroupId, Weight)
 type Pointer' = (PhyloGroupId, (Thr,Weight))
 
 data Filiation = ToParents | ToChilds | ToParentsMemory | ToChildsMemory deriving (Generic, Show)
-data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)
+data PointerType = TemporalPointer | ScalePointer deriving (Generic, Show)
 
 
-----------------------
--- | Phylo Clique | --
-----------------------
+--------------------------
+-- | Phylo Clustering | --
+--------------------------
 
--- | Support : Number of Documents where a Clique occurs
+-- | Support : Number of Documents where a Cluster occurs
 type Support  = Int
 
-data PhyloClique = PhyloClique
-  { _phyloClique_nodes   :: [Int]
-  , _phyloClique_support :: Support
-  , _phyloClique_period  :: (Date,Date)
-  , _phyloClique_weight  :: Maybe Double
-  , _phyloClique_sources :: [Int]
+data Clustering = Clustering
+  { _clustering_roots   :: [Int]
+  , _clustering_support :: Support
+  , _clustering_period  :: Period
+  -- additional materials for visualization
+  , _clustering_visWeighting :: Maybe Double
+  , _clustering_visFiltering :: [Int]
   } deriving (Generic,NFData,Show,Eq)
 
 ----------------
@@ -595,14 +595,14 @@ makeLenses ''PhyloSubConfig
 makeLenses ''Proximity
 makeLenses ''SeaElevation
 makeLenses ''Quality
-makeLenses ''Clique
+makeLenses ''Cluster
 makeLenses ''PhyloLabel
 makeLenses ''TimeUnit
 makeLenses ''PhyloFoundations
-makeLenses ''PhyloClique
+makeLenses ''Clustering
 makeLenses ''Phylo
 makeLenses ''PhyloPeriod
-makeLenses ''PhyloLevel
+makeLenses ''PhyloScale
 makeLenses ''PhyloGroup
 makeLenses ''PhyloParam
 makeLenses ''PhyloExport
@@ -624,8 +624,8 @@ instance ToJSON PhyloParam
 instance FromJSON PhyloPeriod
 instance ToJSON PhyloPeriod
 
-instance FromJSON PhyloLevel
-instance ToJSON PhyloLevel
+instance FromJSON PhyloScale
+instance ToJSON PhyloScale
 
 instance FromJSON Software
 instance ToJSON Software

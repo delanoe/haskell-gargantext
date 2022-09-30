@@ -27,7 +27,7 @@ import Gargantext.Core.Types (TODO(..))
 import Gargantext.Core.Viz.LegacyPhylo
 import Gargantext.Core.Viz.Phylo (defaultConfig)
 import Gargantext.Core.Viz.Phylo.API.Tools
-import Gargantext.Core.Viz.Phylo.Example (phyloExample)
+import Gargantext.Core.Viz.Phylo.Example (phyloCleopatre)
 import Gargantext.Core.Viz.Phylo.Legacy.LegacyMain
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
@@ -118,7 +118,8 @@ getPhylo phyloId lId _level _minSizeBranch = do
 
 getPhyloDataJson :: PhyloId -> GargNoServer Value
 getPhyloDataJson phyloId = do
-  phyloData <- fromMaybe phyloExample <$> getPhyloData phyloId
+  maybePhyloData <- getPhyloData phyloId
+  let phyloData = fromMaybe phyloCleopatre maybePhyloData
   phyloJson <- liftBase $ phylo2dot2json phyloData
   pure phyloJson
 
