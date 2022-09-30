@@ -31,6 +31,7 @@ import Control.Lens (makeLenses)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Map (Map)
+import Data.Set (Set)
 import Data.Swagger
 import Data.Text   (Text, pack)
 import Data.Vector (Vector)
@@ -63,9 +64,9 @@ instance ToSchema ListParser
 data SeaElevation =
       Constante
       { _cons_start :: Double
-      , _cons_step  :: Double }
+      , _cons_gap   :: Double }
     | Adaptative
-      { _adap_granularity :: Double }
+      { _adap_steps :: Double }
     deriving (Show,Generic,Eq)
 
 instance ToSchema SeaElevation
@@ -306,8 +307,8 @@ instance ToSchema Software where
 
 defaultSoftware :: Software
 defaultSoftware =
-      Software { _software_name    = pack "Gargantext"
-               , _software_version = pack "v4" }
+      Software { _software_name    = pack "GarganText"
+               , _software_version = pack "v5" }
 
 
 -- | Global parameters of a Phylo
@@ -324,7 +325,7 @@ instance ToSchema PhyloParam where
 
 defaultPhyloParam :: PhyloParam
 defaultPhyloParam =
-      PhyloParam { _phyloParam_version  = pack "v2.adaptative"
+      PhyloParam { _phyloParam_version  = pack "v3"
                  , _phyloParam_software = defaultSoftware
                  , _phyloParam_config   = defaultConfig }
 
@@ -409,8 +410,7 @@ data Phylo =
            , _phylo_timeDocs     :: !(Map Date Double)
            , _phylo_termFreq     :: !(Map Int Double)
            , _phylo_lastTermFreq :: !(Map Int Double)
-           , _phylo_horizon      :: !(Map (PhyloGroupId,PhyloGroupId) Double)
-           , _phylo_groupsProxi  :: !(Map (PhyloGroupId,PhyloGroupId) Double)
+           , _phylo_diaSimScan   :: Set Double
            , _phylo_param        :: PhyloParam
            , _phylo_periods      :: Map Period PhyloPeriod
            , _phylo_quality      :: Double
