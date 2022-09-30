@@ -17,9 +17,11 @@ import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
 import Data.List (concat, nub, partition, sort, (++), group, intersect, null, sortOn, groupBy, tail)
 import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, foldlWithKey, insert)
+import Data.Set (Set)
 import Data.Text (Text)
 import Data.Vector (Vector)
 import Debug.Trace (trace)
+import Prelude (floor)
 
 import Gargantext.Core.Methods.Similarities (Similarity(Conditional))
 import Gargantext.Core.Methods.Graph.MaxClique (getMaxCliques)
@@ -29,7 +31,7 @@ import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.PhyloExport (toHorizon)
 import Gargantext.Core.Viz.Phylo.PhyloTools
 import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
-import Gargantext.Core.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching, getNextPeriods, filterDocs, filterDiago, reduceDiagos, toProximity)
+import Gargantext.Core.Viz.Phylo.TemporalMatching (temporalMatching, getNextPeriods, filterDocs, filterDiago, reduceDiagos, toProximity)
 import Gargantext.Prelude
 
 import qualified Data.Set as Set
@@ -42,7 +44,7 @@ import qualified Data.Vector as Vector
 {-
 -- TODO AD
 data Phylo' = PhyloBase { _phylo'_phyloBase :: Phylo}
-            | PhyloN    { _phylo'_flatPhylo    :: Phylo}
+            | PhyloN    { _phylo'_flatPhylo :: Phylo}
 
 
 toPhylo' :: Phylo' -> [Document] -> TermList -> PhyloConfig -> Phylo
@@ -50,12 +52,14 @@ toPhylo' (PhyloN    phylo) = toPhylo'
 toPhylo' (PhyloBase phylo) = toPhylo 
 -}
 
+-- TODO an adaptative synchronic clustering with a slider
+
 toPhylo :: Phylo -> Phylo
-toPhylo phylowithoutLink = trace ("# flatPhylo groups " <> show(length $ getGroupsFromLevel 1 flatPhylo))
+toPhylo phylowithoutLink = trace ("# flatPhylo groups " <> show(length $ getGroupsFromScale 1 flatPhylo))
                       $ traceToPhylo (phyloScale $ getConfig phylowithoutLink) $
     if (phyloScale $ getConfig phylowithoutLink) > 1
       then foldl' (\phylo' _ -> synchronicClustering phylo') phyloAncestors [2..(phyloScale $ getConfig phylowithoutLink)]
-      else flatPhylo 
+      else phyloAncestors 
     where
         --------------------------------------
         phyloAncestors :: Phylo
@@ -69,14 +73,42 @@ toPhylo phylowithoutLink = trace ("# flatPhylo groups " <> show(length $ getGrou
         --------------------------------------
 
 
---------------------
--- | To Phylo 1 | --
---------------------
+-----------------------------
+-- | Create a flat Phylo | --
+-----------------------------
 
-toGroupsProxi :: Scale -> Phylo -> Phylo
-toGroupsProxi lvl phylo = 
+
+{- 
+-- create an adaptative diachronic 'sea elevation' ladder
+-}
+adaptDiachronicLadder :: Double -> Set Double -> Set Double -> [Double]
+adaptDiachronicLadder curr similarities ladder = 
+  if curr <= 0 || Set.null similarities
+    then Set.toList ladder
+    else 
+      let idx = ((Set.size similarities) `div` (floor curr)) - 1
+          thr = Set.elemAt idx similarities
+      -- we use a sliding methods 1/10, then 1/9, then ... 1/2
+      in adaptDiachronicLadder (curr -1) (Set.filter (> thr) similarities) (Set.insert thr ladder) 
+
+
+{- 
+-- create a constante diachronic 'sea elevation' ladder
+-}
+constDiachronicLadder :: Double -> Double -> Set Double -> [Double]
+constDiachronicLadder curr step ladder = 
+  if curr > 1
+    then Set.toList ladder
+    else constDiachronicLadder (curr + step) step (Set.insert curr ladder)
+
+
+{- 
+-- process an initial scanning of the kinship links
+-}
+scanSimilarity :: Scale -> Phylo -> Phylo
+scanSimilarity lvl phylo = 
   let proximity = phyloProximity $ getConfig phylo
-      groupsProxi = foldlWithKey (\acc pId pds -> 
+      scanning  = foldlWithKey (\acc pId pds -> 
                       -- 1) process period by period
                       let egos = map (\g -> (getGroupId g, g ^. phylo_groupNgrams))
                                $ elems 
@@ -84,7 +116,7 @@ toGroupsProxi lvl phylo =
                                       . traverse . filtered (\phyloLvl -> phyloLvl ^. phylo_scaleScale == lvl) 
                                       . phylo_scaleGroups ) pds
                           next    = getNextPeriods ToParents (getTimeFrame $ timeUnit $ getConfig phylo) pId (keys $ phylo ^. phylo_periods)
-                          targets = map (\g ->  (getGroupId g, g ^. phylo_groupNgrams)) $ getGroupsFromLevelPeriods lvl next phylo
+                          targets = map (\g ->  (getGroupId g, g ^. phylo_groupNgrams)) $ getGroupsFromScalePeriods lvl next phylo
                           docs    = filterDocs  (phylo ^. phylo_timeDocs) ([pId] ++ next)
                           diagos  = filterDiago (phylo ^. phylo_timeCooc) ([pId] ++ next)
                           -- 2) compute the pairs in parallel
@@ -98,7 +130,8 @@ toGroupsProxi lvl phylo =
                           pairs' = pairs `using` parList rdeepseq
                        in acc ++ (concat pairs')
                     ) [] $ phylo ^. phylo_periods
-   in phylo & phylo_groupsProxi .~ ((traceGroupsProxi . fromList) groupsProxi) 
+   in phylo & phylo_diaSimScan .~ Set.fromList (traceGroupsProxi $ map snd scanning) 
+
 
 
 appendGroups :: (a -> Period -> (Text,Text) -> Scale -> Int -> [Cooc] -> PhyloGroup) -> Scale -> Map (Date,Date) [a] -> Phylo -> Phylo
@@ -134,11 +167,16 @@ clusterToGroup fis pId pId' lvl idx coocs = PhyloGroup pId pId' lvl idx ""
                    (fromList [("breaks",[0]),("seaLevels",[0])])
                    [] [] [] [] [] [] []
 
-
+{- 
+-- enhance the phylo with temporal links
+-}
 addTemporalLinksToPhylo :: Phylo -> Phylo
-addTemporalLinksToPhylo phylowithoutLink = case (getSeaElevation phylowithoutLink) of 
-    Constante start gap -> constanteTemporalMatching  start gap phylowithoutLink
-    Adaptative steps    -> adaptativeTemporalMatching steps phylowithoutLink
+addTemporalLinksToPhylo phylowithoutLink = case strategy of 
+    Constante start gap -> temporalMatching (constDiachronicLadder start gap Set.empty) phylowithoutLink
+    Adaptative steps    -> temporalMatching (adaptDiachronicLadder steps (phylowithoutLink ^. phylo_diaSimScan) Set.empty) phylowithoutLink
+  where
+    strategy :: SeaElevation
+    strategy = getSeaElevation phylowithoutLink
 
 -----------------------
 -- | To Phylo Step | --
@@ -163,7 +201,7 @@ indexDates' m = map (\docs ->
 toPhyloWithoutLink :: [Document] -> TermList -> PhyloConfig -> Phylo
 toPhyloWithoutLink docs lst conf = case (getSeaElevation phyloBase) of 
     Constante  _ _ -> appendGroups clusterToGroup 1 seriesOfClustering (updatePeriods (indexDates' docs') phyloBase)
-    Adaptative _   -> toGroupsProxi 1 
+    Adaptative _   -> scanSimilarity 1 
                     $ appendGroups clusterToGroup 1 seriesOfClustering (updatePeriods (indexDates' docs') phyloBase)
     where
         --------------------------------------
@@ -376,8 +414,7 @@ initPhylo docs lst conf =
                (docsToTimeScaleNb docs)
                (docsToTermFreq docs (foundations ^. foundations_roots))
                (docsToLastTermFreq (getTimePeriod $ timeUnit conf) docs (foundations ^. foundations_roots))
-               empty
-               empty
+               Set.empty
                params
                (fromList $ map (\prd -> (prd, PhyloPeriod prd ("","") (initPhyloScales 1 prd))) periods)
                0

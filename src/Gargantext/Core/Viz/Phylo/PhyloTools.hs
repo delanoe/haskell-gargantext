@@ -25,7 +25,6 @@ import Gargantext.Prelude
 import Prelude (floor,read)
 import Text.Printf
 import qualified Data.List as List
-import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
@@ -387,10 +386,10 @@ getLevelParentId :: PhyloGroup -> PhyloGroupId
 getLevelParentId g = fst $ head' "getLevelParentId" $ g ^. phylo_groupScaleParents
 
 getLastLevel :: Phylo -> Scale
-getLastLevel phylo = last' "lastLevel" $ getLevels phylo
+getLastLevel phylo = last' "lastLevel" $ getScales phylo
 
-getLevels :: Phylo -> [Scale]
-getLevels phylo = nub
+getScales :: Phylo -> [Scale]
+getScales phylo = nub
                 $ map snd
                 $ keys $ view ( phylo_periods
                        .  traverse
@@ -431,14 +430,16 @@ getRoots phylo = (phylo ^. phylo_foundations) ^. foundations_roots
 getSources :: Phylo -> Vector Text
 getSources phylo = _sources (phylo ^. phylo_sources)
 
-phyloToLastBranches :: Phylo -> [[PhyloGroup]]
-phyloToLastBranches phylo = elems
+
+-- get the groups distributed by branches at the last scale
+phyloLastScale :: Phylo -> [[PhyloGroup]]
+phyloLastScale phylo = elems
     $ fromListWith (++)
     $ map (\g -> (g ^. phylo_groupBranchId, [g]))
-    $ getGroupsFromLevel (last' "byBranches" $ getLevels phylo) phylo
+    $ getGroupsFromScale (last' "byBranches" $ getScales phylo) phylo
 
-getGroupsFromLevel :: Scale -> Phylo -> [PhyloGroup]
-getGroupsFromLevel lvl phylo =
+getGroupsFromScale :: Scale -> Phylo -> [PhyloGroup]
+getGroupsFromScale lvl phylo =
     elems $ view ( phylo_periods
                  .  traverse
                  . phylo_periodScales
@@ -447,8 +448,8 @@ getGroupsFromLevel lvl phylo =
                  . phylo_scaleGroups ) phylo
 
 
-getGroupsFromLevelPeriods :: Scale -> [Period] -> Phylo -> [PhyloGroup]
-getGroupsFromLevelPeriods lvl periods phylo =
+getGroupsFromScalePeriods :: Scale -> [Period] -> Phylo -> [PhyloGroup]
+getGroupsFromScalePeriods lvl periods phylo =
     elems $ view ( phylo_periods
                  .  traverse
                  .  filtered (\phyloPrd -> elem (phyloPrd ^. phylo_periodPeriod) periods)
@@ -500,8 +501,8 @@ updateQuality quality phylo = phylo { _phylo_quality = quality }
 traceToPhylo :: Scale -> Phylo -> Phylo
 traceToPhylo lvl phylo =
     trace ("\n" <> "-- | End of phylo making at level " <> show (lvl) <> " with "
-                <> show (length $ getGroupsFromLevel lvl phylo) <> " groups and "
-                <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel lvl phylo) <> " branches" <> "\n") phylo
+                <> show (length $ getGroupsFromScale lvl phylo) <> " groups and "
+                <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromScale lvl phylo) <> " branches" <> "\n") phylo
 
 --------------------
 -- | Clustering | --
@@ -564,15 +565,15 @@ toRelatedComponents nodes edges =
 traceSynchronyEnd :: Phylo -> Phylo
 traceSynchronyEnd phylo =
     trace ( "-- | End synchronic clustering at level " <> show (getLastLevel phylo)
-                 <> " with " <> show (length $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " groups"
-                 <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " branches"
+                 <> " with " <> show (length $ getGroupsFromScale (getLastLevel phylo) phylo) <> " groups"
+                 <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromScale (getLastLevel phylo) phylo) <> " branches"
                  <> "\n" ) phylo
 
 traceSynchronyStart :: Phylo -> Phylo
 traceSynchronyStart phylo =
     trace ( "\n" <> "-- | Start synchronic clustering at level " <> show (getLastLevel phylo)
-                 <> " with " <> show (length $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " groups"
-                 <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " branches"
+                 <> " with " <> show (length $ getGroupsFromScale (getLastLevel phylo) phylo) <> " groups"
+                 <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromScale (getLastLevel phylo) phylo) <> " branches"
                  <> "\n" ) phylo
 
 
@@ -659,6 +660,6 @@ traceTemporalMatching groups =
     trace ( "\n" <> "-- | Start temporal matching for " <> show(length groups) <> " groups" <> "\n") groups
 
 
-traceGroupsProxi :: Map (PhyloGroupId,PhyloGroupId) Double -> Map (PhyloGroupId,PhyloGroupId) Double
-traceGroupsProxi m =
-    trace ( "\n" <> "-- | " <> show(Map.size m) <> " computed pairs of groups proximity" <> "\n") m
+traceGroupsProxi :: [Double] -> [Double]
+traceGroupsProxi l =
+    trace ( "\n" <> "-- | " <> show(List.length l) <> " computed pairs of groups proximity" <> "\n") l

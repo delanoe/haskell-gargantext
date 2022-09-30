@@ -159,6 +159,7 @@ reduceGroups prox sync docs diagos branch =
     let periods = fromListWith (++)
                  $ map (\g -> (g ^. phylo_groupPeriod,[g])) branch
     in  (concat . concat . elems)
+      -- TODO : ajouter un parallelisme
       $ mapWithKey (\prd groups -> 
             --  2) for each period, transform the groups as a proximity graph filtered by a threshold
             let diago = reduceDiagos $ filterDiago diagos [prd]
@@ -171,12 +172,12 @@ reduceGroups prox sync docs diagos branch =
               $ toRelatedComponents groups edges) periods 
 
 
-adjustClustering :: Synchrony -> [[PhyloGroup]] -> [[PhyloGroup]]
-adjustClustering sync branches = case sync of
+chooseClusteringStrategy :: Synchrony -> [[PhyloGroup]] -> [[PhyloGroup]]
+chooseClusteringStrategy sync branches = case sync of
   ByProximityThreshold _ _ scope _ -> case scope of 
       SingleBranch -> branches
-      SiblingBranches -> groupBy (\g g' -> (last' "adjustClustering" $ (g  ^. phylo_groupMeta) ! "breaks") 
-                                        == (last' "adjustClustering" $ (g' ^. phylo_groupMeta) ! "breaks"))
+      SiblingBranches -> groupBy (\g g' -> (last' "chooseClusteringStrategy" $ (g  ^. phylo_groupMeta) ! "breaks") 
+                                        == (last' "chooseClusteringStrategy" $ (g' ^. phylo_groupMeta) ! "breaks"))
                        $ sortOn _phylo_groupBranchId $ concat branches
       AllBranches -> [concat branches]
   ByProximityDistribution _ _ -> branches
@@ -202,8 +203,8 @@ synchronicClustering phylo =
         diagos = map coocToDiago $ phylo ^. phylo_timeCooc
         newBranches  = map (\branch -> reduceGroups prox sync docs diagos branch) 
                      $ map processDynamics
-                     $ adjustClustering sync
-                     $ phyloToLastBranches 
+                     $ chooseClusteringStrategy sync
+                     $ phyloLastScale 
                      $ traceSynchronyStart phylo
         newBranches' = newBranches `using` parList rdeepseq
      in toNextScale phylo $ levelUpAncestors $ concat newBranches'

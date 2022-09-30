@@ -27,9 +27,10 @@ import Gargantext.Core.Viz.Phylo.PhyloExport
 import Gargantext.Core.Viz.Phylo.PhyloMaker
 import Gargantext.Core.Viz.Phylo.PhyloTools
 import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
-import Gargantext.Core.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching)
+import Gargantext.Core.Viz.Phylo.TemporalMatching (temporalMatching)
 import Gargantext.Prelude
 import qualified Data.Vector as Vector
+import qualified Data.Set as Set
 
 ---------------------------------
 -- | STEP 5 | -- Export the phylo
@@ -54,13 +55,14 @@ phyloCleopatre = synchronicClustering $ toHorizon flatPhylo
 
 flatPhylo :: Phylo
 flatPhylo = case (getSeaElevation emptyPhylo) of 
-    Constante s g   -> constanteTemporalMatching s g 
-       $ toGroupsProxi 1
+    Constante s g   -> temporalMatching (constDiachronicLadder s g Set.empty) 
+       $ scanSimilarity 1
        $ appendGroups clusterToGroup 1 seriesOfClustering emptyPhylo
-    Adaptative s    -> adaptativeTemporalMatching s
-       $ toGroupsProxi 1
-       $ appendGroups clusterToGroup 1 seriesOfClustering emptyPhylo
+    Adaptative s    -> temporalMatching (adaptDiachronicLadder s (emptyPhylo' ^. phylo_diaSimScan) Set.empty) emptyPhylo'
 
+emptyPhylo' :: Phylo
+emptyPhylo' = scanSimilarity 1
+            $ appendGroups clusterToGroup 1 seriesOfClustering emptyPhylo
 
 ---------------------------------------------
 -- | STEP 2 | -- Build the cliques
@@ -102,6 +104,7 @@ config :: PhyloConfig
 config = 
     defaultConfig { phyloName  = "Cesar et Cleopatre"
                   , phyloScale = 2
+                  , seaElevation   = Adaptative 4
                   , exportFilter = [ByBranchSize 0]
                   , clique = MaxClique 0 15 ByNeighbours }
 
