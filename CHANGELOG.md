@@ -1,5 +1,5 @@
 ## Version 0.0.6.5.1
-* [BACK][FIX] Ngrams Table concurrency issue
+* [BACK][FIX] Ngrams Table concurrency issue. [Issue 143](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/143)
 * [BACK][MERGE] dev-phylo branch
 * [FRONT][FIX] If space are in username or password
 
@@ -9,7 +9,7 @@
 
 ## Version 0.0.6.4
 * [FRONT][FIX] Modal closing
-* [FRONT][TEAM] Show leader of the Team
+* [FRONT][TEAM] Show leader of the Team. [Issue 438](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/438)
 * [FRONT][ADM] [Forgot password] disable input field after submit 
 
 ## Version 0.0.6.3
