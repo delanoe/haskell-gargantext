@@ -1,3 +1,8 @@
+## Version 0.0.6.6
+* [FRONT][UPGRADE][Upgrade PS to 0.15 (#395)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/395)
+  * SigmaJS upgrade inside
+* [BACK][OPTIM] [Confluence optimization (#137)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/137)
+
 ## Version 0.0.6.5.1
 * [BACK][FIX] Ngrams Table concurrency issue. [Issue 143](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/143)
 * [BACK][MERGE] dev-phylo branch
