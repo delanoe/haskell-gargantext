@@ -1,3 +1,7 @@
+## Version 0.0.6.7
+* [GRAPH][FIX] Nodes with one edge only are removed now
+* [FRONT][GRAPH] Option to chose the clustering method is not shown any more.
+
 ## Version 0.0.6.6
 * [FRONT][UPGRADE][Upgrade PS to 0.15 (#395)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/395)
   * SigmaJS upgrade inside
