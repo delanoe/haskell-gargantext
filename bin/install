@@ -2,4 +2,11 @@
 
 #stack install --nix --profile --test --fast --no-install-ghc --skip-ghc-check
 
-env LANG=C.UTF-8 stack install --haddock --nix --test --no-install-ghc --skip-ghc-check --no-haddock-deps
+if [[ $1 == "dev" ]] ;
+  then
+    echo "DEV install"
+    env LANG=C.UTF-8 stack install --nix --no-install-ghc --skip-ghc-check --no-haddock-deps
+  else
+    echo "PROD install (with documentation)" 
+    env LANG=C.UTF-8 stack install --haddock --nix --test --no-install-ghc --skip-ghc-check --no-haddock-deps
+fi

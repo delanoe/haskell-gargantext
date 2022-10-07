@@ -38,7 +38,7 @@ updateHyperdataQuery i h = seq h' $ trace "updateHyperdataQuery: encoded JSON" $
    , uUpdateWith = updateEasy (\  (Node _ni _nh _nt _nu _np _nn _nd _h)
                                 -> trace "updating mate" $ Node _ni _nh _nt _nu _np _nn _nd h'
                               )
-   , uWhere      = (\row -> trace "uWhere" $ _node_id row .== pgNodeId i )
+   , uWhere      = (\row -> {-trace "uWhere" $-} _node_id row .== pgNodeId i )
    , uReturning  = rCount
    }
     where h' =  (sqlJSONB $ cs $ encode $ h)
@@ -63,7 +63,5 @@ updateNodesWithType_ :: ( HasNodeError err
 updateNodesWithType_ nt h = do
   ns <- getNodesIdWithType nt
   mapM (\n -> updateHyperdata n h) ns
-
-
 
 

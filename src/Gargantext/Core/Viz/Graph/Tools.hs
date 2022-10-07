@@ -30,7 +30,7 @@ import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
 import Gargantext.Core.Viz.Graph.Tools.Infomap (infomap)
-import Gargantext.Core.Viz.Graph.Utils (edgesFilter)
+import Gargantext.Core.Viz.Graph.Utils (edgesFilter, nodesFilter)
 import Gargantext.Prelude
 import Graph.Types (ClusterNode)
 import IGraph.Random -- (Gen(..))
@@ -172,9 +172,7 @@ doDistanceMap Conditional threshold strength myCooc = (distanceMap, toIndex ti m
   where
     myCooc' = Map.fromList $ HashMap.toList myCooc
     (ti, _it) = createIndices myCooc'
-
     links = round (let n :: Double = fromIntegral (Map.size ti) in n * log n)
-
     distanceMap = toIndex ti
                 $ Map.fromList
                 $ List.take links
@@ -216,8 +214,10 @@ data2graph labels' occurences bridge conf partitions = Graph { _graph_nodes = no
                      }
                )
             | (l, n) <- labels
-            , Set.member n nodesWithScores
+            , Set.member n toKeep
             ]
+
+    (bridge', toKeep) = nodesFilter (\v -> v > 1) bridge
 
     edges = [ Edge { edge_source = cs (show s)
                    , edge_target = cs (show t)
@@ -225,7 +225,7 @@ data2graph labels' occurences bridge conf partitions = Graph { _graph_nodes = no
                    , edge_confluence = maybe 0 identity $ Map.lookup (s,t) conf
                    , edge_id     = cs (show i)
                    }
-            | (i, ((s,t), weight)) <- zip ([0..]::[Integer] ) $ Map.toList bridge
+            | (i, ((s,t), weight)) <- zip ([0..]::[Integer] ) $ Map.toList bridge'
             , s /= t
             , weight > 0
             ]
@@ -234,11 +234,6 @@ data2graph labels' occurences bridge conf partitions = Graph { _graph_nodes = no
                             $ map nodeId2comId partitions
 
     labels = Map.toList labels'
-
-    nodesWithScores = Set.fromList
-                     $ List.concat
-                     $ map (\((s,t),d) -> if d > 0 && s/=t then [s,t] else [])
-                     $ Map.toList bridge
 
 
 ------------------------------------------------------------------------
@@ -337,6 +332,4 @@ filterByNeighbours threshold distanceMap = filteredMap
                                        $ Map.filterWithKey (\(from,_) _ -> idx == from) distanceMap
                            in List.take (round threshold) selected
                       ) indexes
-
-
 
