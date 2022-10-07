@@ -147,7 +147,7 @@ getOccByNgramsOnlyFast' cId lId nt tms = do -- trace (show (cId, lId)) $
         GROUP BY ngi.id, nng.weight
 
         |]
-  
+
 
 
 
@@ -187,6 +187,29 @@ queryNgramsOccurrencesOnlyByContextUser_withSample = [sql|
       AND nn.category     > 0
       GROUP BY cng.node_id, ng.terms
   |]
+
+queryNgramsOccurrencesOnlyByContextUser_withSample' :: DPS.Query
+queryNgramsOccurrencesOnlyByContextUser_withSample' = [sql|
+  WITH contexts_sample AS (SELECT c.id FROM contexts c TABLESAMPLE SYSTEM_ROWS (?)
+                          JOIN nodes_contexts nc ON c.id = nc.context_id
+                            WHERE c.typename  = ?
+                            AND nc.node_id = ?),
+       -- input_rows(terms) AS (?)
+  SELECT ng.terms, COUNT(cng.context_id) FROM context_node_ngrams cng
+    JOIN ngrams ng      ON cng.ngrams_id = ng.id
+    JOIN input_rows  ir ON ir.terms      = ng.terms
+    JOIN nodes_contexts nc ON nc.context_id   = cng.context_id
+    JOIN contexts_sample c ON nc.context_id   = c.id
+    WHERE nc.node_id      = ? -- CorpusId
+      AND cng.ngrams_type = ? -- NgramsTypeId
+      AND nc.category     > 0
+      GROUP BY cng.node_id, ng.terms
+  |]
+
+
+
+
+
 
 
 ------------------------------------------------------------------------
