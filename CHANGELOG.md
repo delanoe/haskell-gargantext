@@ -1,5 +1,7 @@
 ## Version 0.0.6.7.1
 * [BACK][OPTIM][Ngrams Table, queries optimization (#144)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/144)
+* [BACK][CONFIG] gargantext.ini needs new field
+                BACKEND_NAME = THE INSTANCE NAME
 
 ## Version 0.0.6.7
 * [GRAPH][FIX] Nodes with one edge only are removed now
