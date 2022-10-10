@@ -188,22 +188,38 @@ queryNgramsOccurrencesOnlyByContextUser_withSample = [sql|
       GROUP BY cng.node_id, ng.terms
   |]
 
+selectNgramsOccurrencesOnlyByContextUser_withSample' :: HasDBid NodeType
+                                      => CorpusId
+                                      -> Int
+                                      -> NgramsType
+                                      -> Cmd err [(NgramsTerm, Int)]
+selectNgramsOccurrencesOnlyByContextUser_withSample' cId int nt =
+  fmap (first NgramsTerm) <$>
+  runPGSQuery queryNgramsOccurrencesOnlyByContextUser_withSample
+                ( int
+                , toDBid NodeDocument
+                , cId
+                , cId
+                , ngramsTypeId nt
+                )
+    where
+      fields = [QualifiedIdentifier Nothing "text"]
+
 queryNgramsOccurrencesOnlyByContextUser_withSample' :: DPS.Query
 queryNgramsOccurrencesOnlyByContextUser_withSample' = [sql|
   WITH contexts_sample AS (SELECT c.id FROM contexts c TABLESAMPLE SYSTEM_ROWS (?)
                           JOIN nodes_contexts nc ON c.id = nc.context_id
                             WHERE c.typename  = ?
-                            AND nc.node_id = ?),
-       -- input_rows(terms) AS (?)
+                            AND nc.node_id = ?)
   SELECT ng.terms, COUNT(cng.context_id) FROM context_node_ngrams cng
     JOIN ngrams ng      ON cng.ngrams_id = ng.id
-    JOIN input_rows  ir ON ir.terms      = ng.terms
+    JOIN node_stories ns ON ns.ngrams_id = ng.id
     JOIN nodes_contexts nc ON nc.context_id   = cng.context_id
     JOIN contexts_sample c ON nc.context_id   = c.id
     WHERE nc.node_id      = ? -- CorpusId
       AND cng.ngrams_type = ? -- NgramsTypeId
       AND nc.category     > 0
-      GROUP BY cng.node_id, ng.terms
+      GROUP BY ng.id
   |]
 
 
