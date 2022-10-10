@@ -22,8 +22,8 @@ import Data.Swagger hiding (items)
 import GHC.Float (sin, cos)
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
-import Gargantext.Core.Methods.Distances (Distance(..), measure)
-import Gargantext.Core.Methods.Distances.Conditional (conditional)
+import Gargantext.Core.Methods.Similarities (Similarity(..), measure)
+import Gargantext.Core.Methods.Similarities.Conditional (conditional)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
@@ -65,7 +65,7 @@ defaultClustering x = spinglass 1 x
 type Threshold = Double
 
 
-cooc2graph' :: Ord t => Distance
+cooc2graph' :: Ord t => Similarity
                      -> Double
                      -> Map (t, t) Int
                      -> Map (Index, Index) Double
@@ -87,7 +87,7 @@ cooc2graph' distance threshold myCooc
 
 -- coocurrences graph computation
 cooc2graphWith :: PartitionMethod
-               -> Distance
+               -> Similarity
                -> Threshold
                -> Strength
                -> HashMap (NgramsTerm, NgramsTerm) Int
@@ -100,13 +100,13 @@ cooc2graphWith Infomap   = cooc2graphWith' (infomap "--silent --two-level -N2")
 
 cooc2graphWith' :: ToComId a
                => Partitions a
-               -> Distance
+               -> Similarity
                -> Threshold
                -> Strength
                -> HashMap (NgramsTerm, NgramsTerm) Int
                -> IO Graph
-cooc2graphWith' doPartitions distance threshold strength myCooc = do
-  let (distanceMap, diag, ti) = doDistanceMap distance threshold strength myCooc
+cooc2graphWith' doPartitions similarity threshold strength myCooc = do
+  let (distanceMap, diag, ti) = doSimilarityMap similarity threshold strength myCooc
   distanceMap `seq` diag `seq` ti `seq` return ()
 
 --{- -- Debug
@@ -134,7 +134,7 @@ cooc2graphWith' doPartitions distance threshold strength myCooc = do
 
 type Reverse = Bool
 
-doDistanceMap :: Distance
+doSimilarityMap :: Similarity
               -> Threshold
               -> Strength
               -> HashMap (NgramsTerm, NgramsTerm) Int
@@ -142,7 +142,7 @@ doDistanceMap :: Distance
                  , Map (Index, Index) Int
                  , Map NgramsTerm Index
                  )
-doDistanceMap Distributional threshold strength myCooc = (distanceMap, toIndex ti diag, ti)
+doSimilarityMap Distributional threshold strength myCooc = (distanceMap, toIndex ti diag, ti)
   where
     -- TODO remove below
     (diag, theMatrix) = Map.partitionWithKey (\(x,y) _ -> x == y)
@@ -168,7 +168,7 @@ doDistanceMap Distributional threshold strength myCooc = (distanceMap, toIndex t
                 $ (\m -> m `seq` Map.filter (> threshold) m)
                 $ similarities `seq` mat2map similarities
 
-doDistanceMap Conditional threshold strength myCooc = (distanceMap, toIndex ti myCooc', ti)
+doSimilarityMap Conditional threshold strength myCooc = (distanceMap, toIndex ti myCooc', ti)
   where
     myCooc' = Map.fromList $ HashMap.toList myCooc
     (ti, _it) = createIndices myCooc'
@@ -302,7 +302,7 @@ layout m n gen = maybe (panic "") identity $ Map.lookup n $ coord
 
 -----------------------------------------------------------------------------
 -- MISC Tools
-cooc2graph'' :: Ord t => Distance
+cooc2graph'' :: Ord t => Similarity
                       -> Double
                       -> Map (t, t) Int
                       -> Map (Index, Index) Double

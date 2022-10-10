@@ -210,8 +210,8 @@ synchronicClustering phylo =
      in toNextScale phylo $ levelUpAncestors $ concat newBranches'
 
 
--- synchronicDistance :: Phylo -> Level -> String
--- synchronicDistance phylo lvl = 
+-- synchronicSimilarity :: Phylo -> Level -> String
+-- synchronicSimilarity phylo lvl = 
 --     foldl' (\acc branch -> 
 --              acc <> (foldl' (\acc' period ->
 --                               acc' <> let prox  = phyloProximity $ getConfig phylo

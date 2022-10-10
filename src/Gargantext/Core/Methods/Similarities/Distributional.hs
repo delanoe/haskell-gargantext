@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Methods.Distances.Distributional
+Module      : Gargantext.Core.Methods.Similarities.Distributional
 Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -14,7 +14,7 @@ Motivation and definition of the @Distributional@ distance.
 {-# LANGUAGE Strict            #-}
 
 
-module Gargantext.Core.Methods.Distances.Distributional
+module Gargantext.Core.Methods.Similarities.Distributional
   where
 
 import Data.Matrix hiding (identity)

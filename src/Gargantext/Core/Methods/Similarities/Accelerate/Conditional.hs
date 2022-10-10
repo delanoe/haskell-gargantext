@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Methods.Distances.Accelerate.Conditional
+Module      : Gargantext.Core.Methods.Similarities.Accelerate.Conditional
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -20,7 +20,7 @@ See Gargantext.Core.Methods.Graph.Accelerate)
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns        #-}
 
-module Gargantext.Core.Methods.Distances.Accelerate.Conditional
+module Gargantext.Core.Methods.Similarities.Accelerate.Conditional
   where
 
 -- import qualified Data.Foldable as P (foldl1)
@@ -28,7 +28,7 @@ module Gargantext.Core.Methods.Distances.Accelerate.Conditional
 import Data.Array.Accelerate
 import Data.Array.Accelerate.Interpreter (run)
 import Gargantext.Core.Methods.Matrix.Accelerate.Utils
-import Gargantext.Core.Methods.Distances.Accelerate.SpeGen
+import Gargantext.Core.Methods.Similarities.Accelerate.SpeGen
 import qualified Gargantext.Prelude as P
 
 

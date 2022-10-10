@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Graph.Distances.Utils
+Module      : Gargantext.Graph.Similarities.Utils
 Description : Tools to compute distances from Cooccurrences
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3

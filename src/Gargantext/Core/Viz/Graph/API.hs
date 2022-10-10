@@ -27,7 +27,7 @@ import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Prelude
-import Gargantext.Core.Methods.Distances (Distance(..), GraphMetric(..), withMetric)
+import Gargantext.Core.Methods.Similarities (Similarity(..), GraphMetric(..), withMetric)
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Types.Main
 import Gargantext.Core.Viz.Graph
@@ -101,7 +101,7 @@ getGraph _uId nId = do
   listId <- defaultList cId
   repo <- getRepo [listId]
 
-  -- TODO Distance in Graph params
+  -- TODO Similarity in Graph params
   case graph of
     Nothing     -> do
         let defaultMetric          = Order1
@@ -129,16 +129,16 @@ recomputeGraph :: FlowCmdM env err m
                -> Maybe Strength
                -> Bool
                -> m Graph
-recomputeGraph _uId nId method maybeDistance maybeStrength force = do
+recomputeGraph _uId nId method maybeSimilarity maybeStrength force = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
     camera = nodeGraph ^. node_hyperdata . hyperdataCamera
     graphMetadata = graph ^? _Just . graph_metadata . _Just
     listVersion   = graph ^? _Just . graph_metadata . _Just . gm_list . lfg_version
-    graphMetric   = case maybeDistance of
+    graphMetric   = case maybeSimilarity of
                       Nothing -> graph ^? _Just . graph_metadata . _Just . gm_metric
-                      _       -> maybeDistance
+                      _       -> maybeSimilarity
     similarity = case graphMetric of
                    Nothing -> withMetric Order1
                    Just m  -> withMetric m
@@ -164,7 +164,7 @@ recomputeGraph _uId nId method maybeDistance maybeStrength force = do
 
   case graph of
     Nothing     -> do
-      mt     <- defaultGraphMetadata cId "Title" repo (fromMaybe Order1 maybeDistance) strength
+      mt     <- defaultGraphMetadata cId "Title" repo (fromMaybe Order1 maybeSimilarity) strength
       g <- computeG $ Just mt
       pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" g
     Just graph' -> if (listVersion == Just v) && (not force)
@@ -177,27 +177,24 @@ recomputeGraph _uId nId method maybeDistance maybeStrength force = do
 computeGraph :: FlowCmdM env err m
              => CorpusId
              -> PartitionMethod
-             -> Distance
+             -> Similarity
              -> Strength
              -> NgramsType
              -> NodeListStory
              -> m Graph
-computeGraph cId method d strength nt repo = do
-  lId  <- defaultList cId
+computeGraph corpusId method similarity strength nt repo = do
+  lId  <- defaultList corpusId
   lIds <- selectNodesWithUsername NodeList userMaster
   let ngs = filterListWithRoot [MapTerm]
           $ mapTermListRoot [lId] nt repo
 
-  !myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)
+             -- Removing the hapax (ngrams with 1 cooc)
+  !myCooc <- HashMap.filter (>1)
          <$> getCoocByNgrams (Diagonal True)
          <$> groupNodesByNgrams ngs
-         <$> getContextsByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
+         <$> getContextsByNgramsOnlyUser corpusId (lIds <> [lId]) nt (HashMap.keys ngs)
 
-  graph <- liftBase $ cooc2graphWith method d 0 strength myCooc
-
-  --listNgrams <- getListNgrams [lId] nt
-  --let graph' = mergeGraphNgrams graph (Just listNgrams)
-  -- saveAsFileDebug "/tmp/graphWithNodes" graph'
+  graph <- liftBase $ cooc2graphWith method similarity 0 strength myCooc
 
   pure graph
 

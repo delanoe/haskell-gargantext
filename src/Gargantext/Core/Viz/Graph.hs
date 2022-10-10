@@ -25,7 +25,7 @@ import qualified Data.Text as T
 import qualified Text.Read as T
 
 import Gargantext.API.Ngrams.Types (NgramsTerm(..), NgramsRepoElement(..), mSetToList)
-import Gargantext.Core.Methods.Distances (GraphMetric)
+import Gargantext.Core.Methods.Similarities (GraphMetric)
 import Gargantext.Core.Types (ListId)
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Database.Admin.Types.Node (NodeId)

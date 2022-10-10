@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Methods.Distances.Accelerate.Distributional
+Module      : Gargantext.Core.Methods.Similarities.Accelerate.Distributional
 Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -8,7 +8,7 @@ Stability   : experimental
 Portability : POSIX
 
 
-* Distributional Distance metric
+* Distributional Similarity metric
 __Definition :__ Distributional metric is a relative metric which depends on the
 selected list, it represents structural equivalence of mutual information.
 
@@ -41,7 +41,7 @@ where $n_{ij}$ is the cooccurrence between term $i$ and term $j$
 {-# LANGUAGE ViewPatterns        #-}
 {-# LANGUAGE GADTs               #-}
 
-module Gargantext.Core.Methods.Distances.Accelerate.Distributional
+module Gargantext.Core.Methods.Similarities.Accelerate.Distributional
   where
 
 -- import qualified Data.Foldable as P (foldl1)

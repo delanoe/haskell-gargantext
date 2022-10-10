@@ -187,11 +187,12 @@ getCoocByNgrams' f (Diagonal diag) m =
                                  <$> (fmap f $ HM.lookup t1 m)
                                  <*> (fmap f $ HM.lookup t2 m)
                )
-              | (t1,t2) <- if diag then
-                             [ (x,y) | x <- ks, y <- ks, x <= y] -- TODO if we keep a Data.Map here it might be
-                                                                 -- more efficient to enumerate all the y <= x.
-                           else
-                             listToCombi identity ks
+              | (t1,t2) <- if diag
+                              then [ (x,y) | x <- ks, y <- ks, x <= y]
+                                   -- TODO if we keep a Data.Map here it might be
+                                   -- more efficient to enumerate all the y <= x.
+                              else
+                                listToCombi identity ks
               ]
 
   where ks = HM.keys m

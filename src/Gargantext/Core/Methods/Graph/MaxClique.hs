@@ -62,7 +62,7 @@ import Data.Set (fromList, toList, isSubsetOf)
 import Data.Graph.Inductive hiding (Graph, neighbors, subgraph, (&))
 import Gargantext.Core.Viz.Graph.FGL (Graph_Undirected, degree, neighbors, mkGraphUfromEdges)
 import Gargantext.Core.Viz.Graph.Tools (cooc2graph',cooc2graph'', Threshold)
-import Gargantext.Core.Methods.Distances (Distance)
+import Gargantext.Core.Methods.Similarities (Similarity)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex)
 import Gargantext.Core.Viz.Phylo
 -- import Debug.Trace (trace)
@@ -70,9 +70,9 @@ type Graph = Graph_Undirected
 type Neighbor = Node
 
 -- | getMaxCliques
--- TODO chose distance order
+-- TODO chose similarity order
 
-getMaxCliques :: Ord a => MaxCliqueFilter -> Distance -> Threshold -> Map (a, a) Int -> [[a]]
+getMaxCliques :: Ord a => MaxCliqueFilter -> Similarity -> Threshold -> Map (a, a) Int -> [[a]]
 getMaxCliques f d t m = map fromIndices $ getMaxCliques' t m'
   where
     m'          = toIndex to m

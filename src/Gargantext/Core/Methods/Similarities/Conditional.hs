@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Methods.Distances
+Module      : Gargantext.Core.Methods.Similarities
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -12,7 +12,7 @@ Motivation and definition of the @Conditional@ distance.
 
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE Strict            #-}
-module Gargantext.Core.Methods.Distances.Conditional
+module Gargantext.Core.Methods.Similarities.Conditional
   where
 
 import Control.DeepSeq (NFData)

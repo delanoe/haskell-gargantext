@@ -70,7 +70,7 @@ library:
   - Gargantext.API.Prelude
   - Gargantext.Core
   - Gargantext.Core.NodeStory
-  - Gargantext.Core.Methods.Distances
+  - Gargantext.Core.Methods.Similarities
   - Gargantext.Core.Types
   - Gargantext.Core.Types.Individu
   - Gargantext.Core.Types.Main
