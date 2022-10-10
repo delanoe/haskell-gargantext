@@ -105,7 +105,7 @@ import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid, HasInvalidError)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.Database.Action.Flow.Types
-import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast')
+import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast)
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (HasConnectionPool(..), HasConfig)
@@ -581,10 +581,9 @@ getTableNgrams _nType nId tabType listId limit_ offset
       let ngrams_terms = table ^.. each . ne_ngrams
       -- printDebug "ngrams_terms" ngrams_terms
       t1 <- getTime
-      occurrences <- getOccByNgramsOnlyFast' nId
+      occurrences <- getOccByNgramsOnlyFast nId
                                              listId
                                             ngramsType
-                                            ngrams_terms
       --printDebug "occurrences" occurrences
       t2 <- getTime
       liftBase $ hprint stderr
@@ -644,17 +643,13 @@ scoresRecomputeTableNgrams nId tabType listId = do
 
     setScores :: forall t. Each t t NgramsElement NgramsElement => t -> m t
     setScores table = do
-      let ngrams_terms = table ^.. each . ne_ngrams
-      occurrences <- getOccByNgramsOnlyFast' nId
+      occurrences <- getOccByNgramsOnlyFast nId
                                              listId
                                             ngramsType
-                                            ngrams_terms
       let
         setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 
       pure $ table & each %~ setOcc
-
-
 
 
 -- APIs
