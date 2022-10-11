@@ -17,20 +17,20 @@ module Gargantext.Core.Viz.Graph
 
 import Data.ByteString.Lazy as DBL (readFile, writeFile)
 import Data.HashMap.Strict (HashMap, lookup)
+import Data.HashSet (HashSet)
 import Data.Text (pack)
 import GHC.IO (FilePath)
-
-import qualified Data.Aeson as DA
-import qualified Data.Text as T
-import qualified Text.Read as T
-
 import Gargantext.API.Ngrams.Types (NgramsTerm(..), NgramsRepoElement(..), mSetToList)
 import Gargantext.Core.Methods.Similarities (GraphMetric)
 import Gargantext.Core.Types (ListId)
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
-
+import qualified Data.Aeson   as DA
+import qualified Data.HashSet as HashSet
+import qualified Data.Text    as Text
+import qualified Text.Read    as Text
 
 data TypeNode = Terms | Unknown
   deriving (Show, Generic)
@@ -84,7 +84,34 @@ instance ToSchema LegendField where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_lf_")
 
 makeLenses ''LegendField
+
 ---------------------------------------------------------------
+data Partite = Partite { _partite_nodes :: HashSet NgramsTerm
+                       , _partite_type :: NgramsType
+                       }
+  deriving (Show, Generic)
+$(deriveJSON (unPrefix "_partite_") ''Partite)
+instance ToSchema Partite where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_partite_")
+makeLenses ''Partite
+
+
+data MultiPartite = MultiPartite { _multipartite_data1 :: Partite
+                                 , _multipartite_data2 :: Partite
+                                 }
+  deriving (Show, Generic)
+$(deriveJSON (unPrefix "_multipartite_") ''MultiPartite)
+instance ToSchema MultiPartite where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_multipartite_")
+makeLenses ''MultiPartite
+
+defaultMultipartite :: MultiPartite 
+defaultMultipartite = MultiPartite a a
+  where
+    a = Partite HashSet.empty NgramsTerms
+
+---------------------------------------------------------------
+
 type Version = Int
 data ListForGraph =
   ListForGraph { _lfg_listId  :: ListId
@@ -117,6 +144,7 @@ data GraphMetadata =
                 , _gm_legend           :: [LegendField] -- legend of the Graph
                 , _gm_list             :: ListForGraph
                 , _gm_startForceAtlas  :: Bool
+                -- , _gm_nodesTypes       :: Maybe (NgramsType, NgramsType)
                 -- , _gm_version       :: Int
                 }
   deriving (Show, Generic)
@@ -248,7 +276,7 @@ graphV3ToGraph (GraphV3 links nodes) = Graph { _graph_nodes = map nodeV32node no
     linkV32edge n (EdgeV3 eo_s' eo_t' eo_w') =
       Edge { edge_source = cs $ show eo_s'
            , edge_target = cs $ show eo_t'
-           , edge_weight = (T.read $ T.unpack eo_w') :: Double
+           , edge_weight = (Text.read $ Text.unpack eo_w') :: Double
            , edge_confluence = 0.5
            , edge_id = cs $ show n }
 
@@ -258,7 +286,7 @@ graphV3ToGraphWithFiles g1 g2 = do
   -- GraphV3 <- IO Fichier
   graph <- DBL.readFile g1
   let newGraph = case DA.decode graph :: Maybe GraphV3 of
-        Nothing -> panic (T.pack "no graph")
+        Nothing -> panic (Text.pack "no graph")
         Just new -> new
 
   DBL.writeFile g2 (DA.encode $ graphV3ToGraph newGraph)

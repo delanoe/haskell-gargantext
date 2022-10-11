@@ -107,7 +107,7 @@ getGraph _uId nId = do
         let defaultMetric          = Order1
         let defaultPartitionMethod = Spinglass
         let defaultEdgesStrength   = Strong
-        graph' <- computeGraph cId defaultPartitionMethod (withMetric defaultMetric) defaultEdgesStrength NgramsTerms repo
+        graph' <- computeGraph cId defaultPartitionMethod (withMetric defaultMetric) defaultEdgesStrength (NgramsTerms, NgramsTerms) repo
         mt     <- defaultGraphMetadata cId "Title" repo defaultMetric defaultEdgesStrength
         let
           graph'' = set graph_metadata (Just mt) graph'
@@ -127,9 +127,11 @@ recomputeGraph :: FlowCmdM env err m
                -> PartitionMethod
                -> Maybe GraphMetric
                -> Maybe Strength
+               -> NgramsType
+               -> NgramsType
                -> Bool
                -> m Graph
-recomputeGraph _uId nId method maybeSimilarity maybeStrength force = do
+recomputeGraph _uId nId method maybeSimilarity maybeStrength nt1 nt2 force = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
@@ -157,7 +159,7 @@ recomputeGraph _uId nId method maybeSimilarity maybeStrength force = do
   let v   = repo ^. unNodeStory . at listId . _Just . a_version
 
   let computeG mt = do
-        !g <- computeGraph cId method similarity strength NgramsTerms repo
+        !g <- computeGraph cId method similarity strength (nt1,nt2) repo
         let g' = set graph_metadata mt g
         _nentries <- updateHyperdata nId (HyperdataGraph (Just g') camera)
         pure g'
@@ -174,29 +176,51 @@ recomputeGraph _uId nId method maybeSimilarity maybeStrength force = do
                        pure $ trace "[G.V.G.API] Graph exists, recomputing" g
 
 
+-- TODO remove repo
 computeGraph :: FlowCmdM env err m
              => CorpusId
              -> PartitionMethod
              -> Similarity
              -> Strength
-             -> NgramsType
+             -> (NgramsType, NgramsType)
              -> NodeListStory
              -> m Graph
-computeGraph corpusId method similarity strength nt repo = do
+computeGraph corpusId method similarity strength (nt1,nt2) repo = do
+  -- Getting the Node parameters
   lId  <- defaultList corpusId
   lIds <- selectNodesWithUsername NodeList userMaster
-  let ngs = filterListWithRoot [MapTerm]
-          $ mapTermListRoot [lId] nt repo
 
-             -- Removing the hapax (ngrams with 1 cooc)
-  !myCooc <- HashMap.filter (>1)
-         <$> getCoocByNgrams (Diagonal True)
-         <$> groupNodesByNgrams ngs
-         <$> getContextsByNgramsOnlyUser corpusId (lIds <> [lId]) nt (HashMap.keys ngs)
+  -- Getting the Ngrams to compute with and grouping it according to the lists
+  let 
+    groupedContextsByNgrams nt corpusId' (lists_master, lists_user) = do
+      let
+        ngs = filterListWithRoot [MapTerm] $ mapTermListRoot lists_user nt repo
+      groupNodesByNgrams ngs <$> getContextsByNgramsOnlyUser corpusId'
+                                     (lists_user <> lists_master) nt (HashMap.keys ngs)
 
-  graph <- liftBase $ cooc2graphWith method similarity 0 strength myCooc
+  -- Optim if nt1 == nt2 : do not compute twice
+  (m1,m2) <- do
+    m1 <- groupedContextsByNgrams nt1 corpusId (lIds, [lId])
+    if nt1 == nt2
+      then 
+        pure (m1,m1)
+      else do
+        m2 <- groupedContextsByNgrams nt2 corpusId (lIds, [lId])
+        pure (m1,m2)
+
+            -- Removing the hapax (ngrams with 1 cooc)
+  let !myCooc = HashMap.filter (>1)
+              $ getCoocByNgrams'' (Diagonal True) (identity, identity) (m1,m2)
+
+  -- TODO MultiPartite Here
+  graph <- liftBase
+        $ cooc2graphWith method (MultiPartite (Partite (HashMap.keysSet m1) nt1)
+                                              (Partite (HashMap.keysSet m2) nt2)
+                                              )
+                                similarity 0 strength myCooc
 
   pure graph
+
 
 
 defaultGraphMetadata :: HasNodeError err
@@ -240,6 +264,7 @@ graphAsync u n =
 --               -> NodeId
 --               -> (JobLog -> GargNoServer ())
 --               -> GargNoServer JobLog
+-- TODO get Graph Metadata to recompute
 graphRecompute :: FlowCmdM env err m
                => UserId
                -> NodeId
@@ -251,7 +276,7 @@ graphRecompute u n logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _g <- recomputeGraph u n Spinglass Nothing Nothing False
+  _g <- recomputeGraph u n Spinglass Nothing Nothing NgramsTerms NgramsTerms False
   pure  JobLog { _scst_succeeded = Just 1
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
@@ -306,7 +331,7 @@ recomputeVersions :: FlowCmdM env err m
                   => UserId
                   -> NodeId
                   -> m Graph
-recomputeVersions uId nId = recomputeGraph uId nId Spinglass Nothing Nothing False
+recomputeVersions uId nId = recomputeGraph uId nId Spinglass Nothing Nothing NgramsTerms NgramsTerms False
 
 ------------------------------------------------------------
 graphClone :: UserId

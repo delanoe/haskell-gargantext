@@ -64,6 +64,8 @@ data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: !Method      }
                       | UpdateNodeParamsGraph { methodGraphMetric        :: !GraphMetric
                                               , methodGraphClustering    :: !PartitionMethod
                                               , methodGraphEdgesStrength :: !Strength
+                                              , methodGraphNodeType1     :: !NgramsType
+                                              , methodGraphNodeType2     :: !NgramsType
                                               }
 
                       | UpdateNodeParamsTexts { methodTexts :: !Granularity }
@@ -104,7 +106,7 @@ updateNode :: (HasSettings env, FlowCmdM env err m)
     -> UpdateNodeParams
     -> (JobLog -> m ())
     -> m JobLog
-updateNode uId nId (UpdateNodeParamsGraph metric method strength) logStatus = do
+updateNode uId nId (UpdateNodeParamsGraph metric method strength nt1 nt2) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
@@ -112,7 +114,7 @@ updateNode uId nId (UpdateNodeParamsGraph metric method strength) logStatus = do
                    , _scst_events    = Just []
                    }
   printDebug "Computing graph: " method
-  _ <- recomputeGraph uId nId method (Just metric) (Just strength) True
+  _ <- recomputeGraph uId nId method (Just metric) (Just strength) nt1 nt2 True
   printDebug "Graph computed: " method
 
   pure  JobLog { _scst_succeeded = Just 2
@@ -273,7 +275,7 @@ instance ToSchema  UpdateNodeParams
 instance Arbitrary UpdateNodeParams where
   arbitrary = do
     l <- UpdateNodeParamsList  <$> arbitrary
-    g <- UpdateNodeParamsGraph <$> arbitrary <*> arbitrary <*> arbitrary
+    g <- UpdateNodeParamsGraph <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
     t <- UpdateNodeParamsTexts <$> arbitrary
     b <- UpdateNodeParamsBoard <$> arbitrary
     elements [l,g,t,b]

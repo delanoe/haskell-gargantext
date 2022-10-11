@@ -23,20 +23,21 @@ module Gargantext.Database.Schema.Ngrams
 import Codec.Serialise (Serialise())
 import Control.Lens (over)
 import Control.Monad (mzero)
-import Data.Maybe (fromMaybe)
-import Data.HashMap.Strict (HashMap)
-import Data.Hashable (Hashable)
 import Data.Aeson
 import Data.Aeson.Types (toJSONKeyText)
+import Data.HashMap.Strict (HashMap)
+import Data.Hashable (Hashable)
 import Data.Map (fromList, lookup)
-import Database.PostgreSQL.Simple.FromField (returnError, ResultError(..))
+import Data.Maybe (fromMaybe)
 import Data.Text (Text, splitOn, pack, strip)
+import Database.PostgreSQL.Simple.FromField (returnError, ResultError(..))
+import Gargantext.Core (HasDBid(..))
 import Gargantext.Core.Types (TODO(..), Typed(..))
+import Gargantext.Database.Schema.Prelude
+import Gargantext.Database.Types
 import Gargantext.Prelude
 import Servant (FromHttpApiData(..), Proxy(..), ToHttpApiData(..))
-import Gargantext.Core (HasDBid(..))
-import Gargantext.Database.Types
-import Gargantext.Database.Schema.Prelude
+import Test.QuickCheck (elements)
 import Text.Read (read)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.HashMap.Strict as HashMap
@@ -84,10 +85,19 @@ ngramsTable = Table "ngrams" (pNgramsDb NgramsDB { _ngrams_id    = optionalTable
 -- ngrams in text    fields of documents has Terms   Type (i.e. either title or abstract)
 data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Read, Ord, Enum, Bounded, Generic)
+
 instance Serialise NgramsType
 instance FromJSON NgramsType
+  where
+    parseJSON (String "Authors")    = pure Authors
+    parseJSON (String "Institutes") = pure Institutes
+    parseJSON (String "Sources")    = pure Sources
+    parseJSON (String "Terms")      = pure NgramsTerms
+    parseJSON _                     = mzero
+
 instance FromJSONKey NgramsType where
    fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
+
 instance ToJSON NgramsType
 instance ToJSONKey NgramsType where
    toJSONKey = toJSONKeyText (pack . show)
@@ -97,6 +107,9 @@ instance ToHttpApiData NgramsType where
   toUrlPiece = pack . show
 instance ToParamSchema NgramsType where
   toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
+instance Arbitrary NgramsType where
+  arbitrary = elements [ minBound .. maxBound ]
+
 -- map NgramsType to its assigned id
 instance FromField NgramsType where
   fromField fld mdata =
