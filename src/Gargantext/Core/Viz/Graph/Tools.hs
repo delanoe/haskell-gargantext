@@ -188,18 +188,13 @@ doSimilarityMap Conditional threshold strength myCooc = (distanceMap, toIndex ti
 
 ----------------------------------------------------------
 -- | From data to Graph
-
 type Occurrences      = Int
 
-multiPartiteWith :: MultiPartite -> NgramsTerm -> TypeNode
-multiPartiteWith (MultiPartite (Partite s1 t1) (Partite _s2 t2)) t = 
+nodeTypeWith :: MultiPartite -> NgramsTerm -> NgramsType
+nodeTypeWith (MultiPartite (Partite s1 t1) (Partite _s2 t2)) t =
   if HashSet.member t s1
-     then typeNode t1
-     else typeNode t2
-
-typeNode :: NgramsType -> TypeNode
-typeNode NgramsTerms = Terms
-typeNode _           = Unknown
+     then t1
+     else t2
 
 
 data2graph :: ToComId a
@@ -210,26 +205,29 @@ data2graph :: ToComId a
            -> Map (Int, Int) Double
            -> [a]
            -> Graph
-data2graph multi labels' occurences bridge conf partitions = Graph { _graph_nodes = nodes
-                                                             , _graph_edges = edges
-                                                             , _graph_metadata = Nothing
-                                                             }
-  where
+data2graph multi labels' occurences bridge conf partitions =
+  Graph { _graph_nodes = nodes
+        , _graph_edges = edges
+        , _graph_metadata = Nothing
+        }
+
+   where
 
     nodes = map (setCoord ForceAtlas labels bridge)
           [ (n, Node { node_size    = maybe 0 identity (Map.lookup (n,n) occurences)
-                     , node_type    = multiPartiteWith multi l
-                     , node_id      = cs (show n)
-                     , node_label   = unNgramsTerm l
+                     , node_type    = nodeTypeWith multi label
+                     , node_id      = (cs . show) n
+                     , node_label   = unNgramsTerm label
                      , node_x_coord = 0
                      , node_y_coord = 0
-                     , node_attributes = Attributes { clust_default = fromMaybe 0
-                                                       (Map.lookup n community_id_by_node_id)
-                                                    }
+                     , node_attributes =
+                              Attributes { clust_default = fromMaybe 0
+                                                           (Map.lookup n community_id_by_node_id)
+                                         }
                      , node_children = []
                      }
                )
-            | (l, n) <- labels
+            | (label, n) <- labels
             , Set.member n toKeep
             ]
 
