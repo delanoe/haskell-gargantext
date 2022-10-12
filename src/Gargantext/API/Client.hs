@@ -106,7 +106,7 @@ waitUpdateNodeAsyncJob :: Token -> NodeId -> JobID 'Unsafe -> ClientM (JobOutput
 deleteNode :: Token -> NodeId -> ClientM Int
 getNodeChildren :: Token -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int -> ClientM (NodeTableResult HyperdataAny)
 
-getNodeTable :: Token -> NodeId -> Maybe TabType -> Maybe ListId -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> Maybe Text -> ClientM (HashedResponse FacetTableResult)
+getNodeTable :: Token -> NodeId -> Maybe TabType -> Maybe ListId -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> Maybe Text -> Maybe Text -> ClientM (HashedResponse FacetTableResult)
 postNodeTableQuery :: Token -> NodeId -> TableQuery -> ClientM FacetTableResult
 getNodeTableHash :: Token -> NodeId -> Maybe TabType -> ClientM Text
 
@@ -195,7 +195,7 @@ waitUpdateCorpusAsyncJob :: Token -> CorpusId -> JobID 'Unsafe -> ClientM (JobOu
 deleteCorpus :: Token -> CorpusId -> ClientM Int
 getCorpusChildren :: Token -> CorpusId -> Maybe NodeType -> Maybe Int -> Maybe Int -> ClientM (NodeTableResult HyperdataCorpus)
 
-getCorpusTable :: Token -> CorpusId -> Maybe TabType -> Maybe ListId -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> Maybe Text -> ClientM (HashedResponse FacetTableResult)
+getCorpusTable :: Token -> CorpusId -> Maybe TabType -> Maybe ListId -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> Maybe Text -> Maybe Text -> ClientM (HashedResponse FacetTableResult)
 postCorpusTableQuery :: Token -> CorpusId -> TableQuery -> ClientM FacetTableResult
 getCorpusTableHash :: Token -> CorpusId -> Maybe TabType -> ClientM Text
 
@@ -290,7 +290,7 @@ waitUpdateAnnuaireAsyncJob :: Token -> AnnuaireId -> JobID 'Unsafe -> ClientM (J
 deleteAnnuaire :: Token -> AnnuaireId -> ClientM Int
 getAnnuaireChildren :: Token -> AnnuaireId -> Maybe NodeType -> Maybe Int -> Maybe Int -> ClientM (NodeTableResult HyperdataAnnuaire)
 
-getAnnuaireTable :: Token -> AnnuaireId -> Maybe TabType -> Maybe ListId -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> Maybe Text -> ClientM (HashedResponse FacetTableResult)
+getAnnuaireTable :: Token -> AnnuaireId -> Maybe TabType -> Maybe ListId -> Maybe Int -> Maybe Int -> Maybe Facet.OrderBy -> Maybe Text -> Maybe Text -> ClientM (HashedResponse FacetTableResult)
 postAnnuaireTableQuery :: Token -> AnnuaireId -> TableQuery -> ClientM FacetTableResult
 getAnnuaireTableHash :: Token -> AnnuaireId -> Maybe TabType -> ClientM Text
 

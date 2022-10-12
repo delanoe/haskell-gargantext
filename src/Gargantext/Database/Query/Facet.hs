@@ -301,26 +301,28 @@ runViewDocuments :: HasDBid NodeType
                  -> Maybe Limit
                  -> Maybe OrderBy
                  -> Maybe Text
+                 -> Maybe Text
                  -> Cmd err [FacetDoc]
-runViewDocuments cId t o l order query = do
+runViewDocuments cId t o l order query year = do
     printDebug "[runViewDocuments] sqlQuery" $ showSql sqlQuery
     runOpaQuery $ filterWith o l order sqlQuery
   where
-    sqlQuery = viewDocuments cId t (toDBid NodeDocument) query
+    sqlQuery = viewDocuments cId t (toDBid NodeDocument) query year
 
-runCountDocuments :: HasDBid NodeType => CorpusId -> IsTrash -> Maybe Text -> Cmd err Int
-runCountDocuments cId t mQuery = do
+runCountDocuments :: HasDBid NodeType => CorpusId -> IsTrash -> Maybe Text -> Maybe Text -> Cmd err Int
+runCountDocuments cId t mQuery mYear = do
   runCountOpaQuery sqlQuery
   where
-    sqlQuery = viewDocuments cId t (toDBid NodeDocument) mQuery
+    sqlQuery = viewDocuments cId t (toDBid NodeDocument) mQuery mYear
 
 
 viewDocuments :: CorpusId
               -> IsTrash
               -> NodeTypeId
               -> Maybe Text
+              -> Maybe Text
               -> Select FacetDocRead
-viewDocuments cId t ntId mQuery = viewDocumentsQuery cId t ntId mQuery >>> proc (c, nc) -> do
+viewDocuments cId t ntId mQuery mYear = viewDocumentsQuery cId t ntId mQuery mYear >>> proc (c, nc) -> do
   returnA  -< FacetDoc { facetDoc_id         = _cs_id        c
                        , facetDoc_created    = _cs_date      c
                        , facetDoc_title      = _cs_name      c
@@ -334,8 +336,9 @@ viewDocumentsQuery :: CorpusId
                    -> IsTrash
                    -> NodeTypeId
                    -> Maybe Text
+                   -> Maybe Text
                    -> Select (ContextSearchRead, NodeContextRead)
-viewDocumentsQuery cId t ntId mQuery = proc () -> do
+viewDocumentsQuery cId t ntId mQuery mYear = proc () -> do
   c  <- queryContextSearchTable -< ()
   nc <- queryNodeContextTable   -< ()
   restrict -< c^.cs_id         .== nc^.nc_context_id
@@ -346,14 +349,20 @@ viewDocumentsQuery cId t ntId mQuery = proc () -> do
 
   let
     query         = (fromMaybe "" mQuery)
+    year          = (fromMaybe "" mYear)
     iLikeQuery    = T.intercalate "" ["%", query, "%"]
     abstractLHS h = fromNullable (sqlStrictText "")
                   $ toNullable h .->> (sqlStrictText "abstract")
+    yearLHS h     = fromNullable (sqlStrictText "")
+                  $ toNullable h .->> (sqlStrictText "publication_year")
 
   restrict -<
     if query == "" then sqlBool True
       else  ((c^.cs_name) `ilike` (sqlStrictText iLikeQuery))
         .|| ((abstractLHS (c^.cs_hyperdata)) `ilike` (sqlStrictText iLikeQuery))
+  restrict -<
+    if year == "" then sqlBool True
+      else (yearLHS (c^.cs_hyperdata)) .== (sqlStrictText year)
 
   returnA -< (c, nc)
 
