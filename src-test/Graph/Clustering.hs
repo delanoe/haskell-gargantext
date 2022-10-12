@@ -22,7 +22,6 @@ import Test.Hspec
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
-import Gargantext.Core.Viz.Graph.Tools (PartitionMethod(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (spinglass)
 import Gargantext.Core.Methods.Similarities (Similarity(..))
 

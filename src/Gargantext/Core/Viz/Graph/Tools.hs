@@ -97,7 +97,8 @@ cooc2graphWith :: PartitionMethod
                -> IO Graph
 cooc2graphWith Spinglass = cooc2graphWith' (spinglass 1)
 cooc2graphWith Confluence= cooc2graphWith' (\x -> pure $ BAC.defaultClustering x)
-cooc2graphWith Infomap   = cooc2graphWith' (infomap "--silent --two-level -N2")
+cooc2graphWith Infomap   = cooc2graphWith' (infomap "-v -N2")
+--cooc2graphWith Infomap   = cooc2graphWith' (infomap "--silent --two-level -N2")
                         -- TODO: change these options, or make them configurable in UI?
 
 
@@ -132,8 +133,8 @@ cooc2graphWith' doPartitions multi similarity threshold strength myCooc = do
       where
         (as, bs) = List.unzip $ Map.keys distanceMap
         n' = Set.size $ Set.fromList $ as <> bs
-    !bridgeness' = bridgeness (fromIntegral nodesApprox) partitions distanceMap
     !confluence' = BAC.computeConfluences 3 (Map.keys bridgeness') True
+    !bridgeness' = bridgeness (fromIntegral nodesApprox) partitions distanceMap
   pure $ data2graph multi ti diag bridgeness' confluence' partitions
 
 type Reverse = Bool

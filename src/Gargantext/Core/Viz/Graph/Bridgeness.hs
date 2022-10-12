@@ -26,8 +26,6 @@ import Gargantext.Prelude
 import Graph.Types (ClusterNode(..))
 import qualified Data.Map as DM
 
-
-
 ----------------------------------------------------------------------
 type Partitions a = Map (Int, Int) Double -> IO [a]
 ----------------------------------------------------------------------
@@ -45,23 +43,23 @@ instance ToComId ClusterNode where
 ----------------------------------------------------------------------
 type Bridgeness = Double
 
-bridgeness :: ToComId a => Bridgeness
+bridgeness :: ToComId a
+           => Bridgeness
            -> [a]
            -> Map (NodeId, NodeId) Double
            -> Map (NodeId, NodeId) Double
-bridgeness = bridgeness' nodeId2comId
-
-
-bridgeness' :: (a -> (Int, Int))
-           -> Bridgeness
-           -> [a]
-           -> Map (Int, Int) Double
-           -> Map (Int, Int) Double
-bridgeness' f b ns = DM.fromList
-                   . concat
-                   . DM.elems
-                   . filterComs b
-                   . groupEdges (DM.fromList $ map f ns)
+bridgeness = bridgenessWith nodeId2comId
+  where
+    bridgenessWith :: (a -> (Int, Int))
+               -> Bridgeness
+               -> [a]
+               -> Map (Int, Int) Double
+               -> Map (Int, Int) Double
+    bridgenessWith f b ns = DM.fromList
+                       . concat
+                       . DM.elems
+                       . filterComs b
+                       . groupEdges (DM.fromList $ map f ns)
 
 
 groupEdges :: (Ord a, Ord b1)
@@ -71,7 +69,7 @@ groupEdges :: (Ord a, Ord b1)
 groupEdges m = fromListWith (<>)
              . catMaybes
              . map (\((n1,n2), d)
-                     -> let 
+                     -> let
                           n1n2_m = (,) <$> lookup n1 m <*> lookup n2 m
                           n1n2_d = Just [((n1,n2),d)]
                         in (,) <$> n1n2_m <*> n1n2_d
@@ -79,7 +77,7 @@ groupEdges m = fromListWith (<>)
              . toList
 
 -- | TODO : sortOn Confluence
-filterComs :: (Ord n1, Eq n2) 
+filterComs :: (Ord n1, Eq n2)
            => p
            -> Map (n2, n2) [(a3, n1)]
            -> Map (n2, n2) [(a3, n1)]
@@ -95,3 +93,22 @@ filterComs _b m = DM.filter (\n -> length n > 0) $ mapWithKey filter' m
             a'= fromIntegral $ length a
             t :: Double
             t = fromIntegral $ length $ concat $ elems m
+
+--------------------------------------------------------------
+
+{--
+Compute the median of a list
+From:  https://hackage.haskell.org/package/dsp-0.2.5.1/docs/src/Numeric.Statistics.Median.html
+Compute the center of the list in a more lazy manner
+and thus halves memory requirement.
+-}
+median :: (Ord a, Fractional a) => [a] -> a
+median [] = panic "medianFast: empty list has no median"
+median zs =
+   let recurse (x0:_)    (_:[])   = x0
+       recurse (x0:x1:_) (_:_:[]) = (x0+x1)/2
+       recurse (_:xs)    (_:_:ys) = recurse xs ys
+       recurse _ _  =
+          panic "median: this error cannot occur in the way 'recurse' is called"
+   in  recurse zs zs
+
