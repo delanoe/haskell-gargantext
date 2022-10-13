@@ -99,6 +99,12 @@ instance FromJSONKey NgramsType where
    fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
 
 instance ToJSON NgramsType
+  where
+    toJSON Authors     = String "Authors"
+    toJSON Institutes  = String "Institutes"
+    toJSON Sources     = String "Sources"
+    toJSON NgramsTerms = String "Terms"
+
 instance ToJSONKey NgramsType where
    toJSONKey = toJSONKeyText (pack . show)
 instance FromHttpApiData NgramsType where

@@ -26,7 +26,7 @@ import Gargantext.Core.Methods.Similarities (Similarity(..), measure)
 import Gargantext.Core.Methods.Similarities.Conditional (conditional)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
-import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
+import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness2, Partitions, ToComId(..))
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
 import Gargantext.Core.Viz.Graph.Tools.Infomap (infomap)
@@ -127,14 +127,10 @@ cooc2graphWith' doPartitions multi similarity threshold strength myCooc = do
                                 , "Tutorial: link todo"
                                 ]
   length partitions `seq` return ()
+
   let
-    nodesApprox :: Int
-    nodesApprox = n'
-      where
-        (as, bs) = List.unzip $ Map.keys distanceMap
-        n' = Set.size $ Set.fromList $ as <> bs
     !confluence' = BAC.computeConfluences 3 (Map.keys bridgeness') True
-    !bridgeness' = bridgeness (fromIntegral nodesApprox) partitions distanceMap
+    !bridgeness' = bridgeness2 confluence' distanceMap
   pure $ data2graph multi ti diag bridgeness' confluence' partitions
 
 type Reverse = Bool
@@ -177,7 +173,7 @@ doSimilarityMap Conditional threshold strength myCooc = (distanceMap, toIndex ti
   where
     myCooc' = Map.fromList $ HashMap.toList myCooc
     (ti, _it) = createIndices myCooc'
-    links = round (let n :: Double = fromIntegral (Map.size ti) in n * log n)
+    links = round (let n :: Double = fromIntegral (Map.size ti) in n * (log n)^(2::Int))
     distanceMap = toIndex ti
                 $ Map.fromList
                 $ List.take links
