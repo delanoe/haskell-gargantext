@@ -21,7 +21,7 @@ module Gargantext.Core.Viz.Graph.Bridgeness -- (bridgeness)
 
 import Data.List (concat, sortOn)
 import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Maybe (catMaybes{-, fromMaybe-})
 import Data.Set (Set)
 import Gargantext.Prelude
 import Graph.Types (ClusterNode(..))
@@ -66,13 +66,15 @@ bridgeness2 c m = Map.fromList
   where
     toKeep :: Map NodeId (Set NodeId)
     !toKeep = Map.fromListWith (<>)
-            $ map (\((k1,k2), _v) -> if k1 > k2 
+            $ map (\((k1,k2), _v) -> if k1 > k2
                                         then (k1, Set.singleton k2)
                                         else (k2, Set.singleton k1)
                   )
             $ List.take n
             $ List.sortOn (Down . snd)
-            $ Map.toList c
+            $ catMaybes
+            $ map (\ks -> (,) <$> Just ks <*> Map.lookup ks c)
+            $ Map.keys m
 
     !m' = Map.toList m
     n :: Int
