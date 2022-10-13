@@ -21,14 +21,16 @@ module Gargantext.Core.Viz.Graph.Bridgeness -- (bridgeness)
 
 import Data.List (concat, sortOn)
 import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
-import Data.Maybe (catMaybes{-, fromMaybe-})
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.Set (Set)
 import Gargantext.Prelude
 import Graph.Types (ClusterNode(..))
 import Data.Ord (Down(..))
-import qualified Data.List as List
-import qualified Data.Map  as Map
-import qualified Data.Set  as Set
+import Data.IntMap (IntMap)
+import qualified Data.IntMap as IntMap
+import qualified Data.List   as List
+import qualified Data.Map    as Map
+import qualified Data.Set    as Set
 
 ----------------------------------------------------------------------
 type Partitions a = Map (Int, Int) Double -> IO [a]
@@ -53,28 +55,45 @@ bridgeness3 :: Confluence
            -> Map (NodeId, NodeId) Double
 bridgeness3 _ m = m
 
+map2intMap :: Map (Int, Int) a -> IntMap (IntMap a)
+map2intMap m = IntMap.fromListWith (<>)
+             $ map (\((k1,k2), v) -> if k1 < k2
+                                   then (k1, IntMap.singleton k2 v)
+                                   else (k2, IntMap.singleton k1 v)
+                    )
+             $ Map.toList m
+
+look :: (Int,Int) -> IntMap (IntMap a) -> Maybe a
+look (k1,k2) m = if k1 > k2
+                    then case (IntMap.lookup k1 m) of
+                           Just m' -> IntMap.lookup k2 m'
+                           _       -> Nothing
+                    else look (k2,k1) m
+
 
 bridgeness2 :: Confluence
            -> Map (NodeId, NodeId) Double
            -> Map (NodeId, NodeId) Double
 bridgeness2 c m = Map.fromList
-                $ List.filter (\((k1,k2),_v) -> if k1 > k2
-                                                   then fromMaybe False (Set.member k2 <$> Map.lookup k1 toKeep)
-                                                   else fromMaybe False (Set.member k1 <$> Map.lookup k2 toKeep)
+                $ List.filter (\((k1,k2),_v) -> if k1 < k2
+                                                   then fromMaybe False (Set.member k2 <$> IntMap.lookup k1 toKeep)
+                                                   else fromMaybe False (Set.member k1 <$> IntMap.lookup k2 toKeep)
                                )
                 $ m'
   where
-    toKeep :: Map NodeId (Set NodeId)
-    !toKeep = Map.fromListWith (<>)
-            $ map (\((k1,k2), _v) -> if k1 > k2
+    toKeep :: IntMap (Set NodeId)
+    !toKeep = IntMap.fromListWith (<>)
+            $ map (\((k1,k2), _v) -> if k1 < k2
                                         then (k1, Set.singleton k2)
                                         else (k2, Set.singleton k1)
                   )
             $ List.take n
             $ List.sortOn (Down . snd)
             $ catMaybes
-            $ map (\ks -> (,) <$> Just ks <*> Map.lookup ks c)
+            $ map (\ks -> (,) <$> Just ks <*> look ks c')
             $ Map.keys m
+
+    c' = map2intMap c
 
     !m' = Map.toList m
     n :: Int
