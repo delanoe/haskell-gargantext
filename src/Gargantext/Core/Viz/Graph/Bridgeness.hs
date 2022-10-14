@@ -19,10 +19,9 @@ TODO use Map LouvainNodeId (Map LouvainNodeId)
 module Gargantext.Core.Viz.Graph.Bridgeness -- (bridgeness)
   where
 
-import Data.List (concat, sortOn)
+import Debug.Trace (trace)
 import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
-import Data.Maybe (catMaybes, fromMaybe)
-import Data.Set (Set)
+import Data.Maybe (catMaybes)
 import Gargantext.Prelude
 import Graph.Types (ClusterNode(..))
 import Data.Ord (Down(..))
@@ -30,7 +29,6 @@ import Data.IntMap (IntMap)
 import qualified Data.IntMap as IntMap
 import qualified Data.List   as List
 import qualified Data.Map    as Map
-import qualified Data.Set    as Set
 
 ----------------------------------------------------------------------
 type Partitions a = Map (Int, Int) Double -> IO [a]
@@ -50,10 +48,24 @@ instance ToComId ClusterNode where
 type Bridgeness = Double
 type Confluence = Map (NodeId, NodeId) Double
 
+
 bridgeness3 :: Confluence
            -> Map (NodeId, NodeId) Double
            -> Map (NodeId, NodeId) Double
-bridgeness3 _ m = m
+bridgeness3 c m = Map.fromList
+            $ map fst
+            $ List.take n
+            $ List.sortOn (Down . snd)
+            $ catMaybes
+            $ map (\(ks,v) -> (,) <$> Just (ks,v) <*> look ks c')
+            $ Map.toList m
+  where
+    !c' = map2intMap c
+    !m' = Map.toList m
+
+    n :: Int
+    !n = trace ("bridgeness m size: " <> (show $ List.length m')) $ round $ (fromIntegral $ List.length m') / (10 :: Double)
+
 
 map2intMap :: Map (Int, Int) a -> IntMap (IntMap a)
 map2intMap m = IntMap.fromListWith (<>)
@@ -64,41 +76,13 @@ map2intMap m = IntMap.fromListWith (<>)
              $ Map.toList m
 
 look :: (Int,Int) -> IntMap (IntMap a) -> Maybe a
-look (k1,k2) m = if k1 > k2
+look (k1,k2) m = if k1 < k2
                     then case (IntMap.lookup k1 m) of
                            Just m' -> IntMap.lookup k2 m'
                            _       -> Nothing
                     else look (k2,k1) m
 
 
-bridgeness2 :: Confluence
-           -> Map (NodeId, NodeId) Double
-           -> Map (NodeId, NodeId) Double
-bridgeness2 c m = Map.fromList
-                $ List.filter (\((k1,k2),_v) -> if k1 < k2
-                                                   then fromMaybe False (Set.member k2 <$> IntMap.lookup k1 toKeep)
-                                                   else fromMaybe False (Set.member k1 <$> IntMap.lookup k2 toKeep)
-                               )
-                $ m'
-  where
-    toKeep :: IntMap (Set NodeId)
-    !toKeep = IntMap.fromListWith (<>)
-            $ map (\((k1,k2), _v) -> if k1 < k2
-                                        then (k1, Set.singleton k2)
-                                        else (k2, Set.singleton k1)
-                  )
-            $ List.take n
-            $ List.sortOn (Down . snd)
-            $ catMaybes
-            $ map (\ks -> (,) <$> Just ks <*> look ks c')
-            $ Map.keys m
-
-    c' = map2intMap c
-
-    !m' = Map.toList m
-    n :: Int
-    !n = round $ (fromIntegral $ List.length m') / (2 :: Double)
-    
 {-
     n :: Int
     n = Set.size $ Set.fromList $ as <> bs
@@ -119,7 +103,7 @@ bridgeness = bridgenessWith nodeId2comId
                -> Map (Int, Int) Double
                -> Map (Int, Int) Double
     bridgenessWith f b ns = Map.fromList
-                           . concat
+                           . List.concat
                            . Map.elems
                            . filterComs b
                            . groupEdges (Map.fromList $ map f ns)
@@ -149,13 +133,13 @@ filterComs _b m = Map.filter (\n -> length n > 0) $ mapWithKey filter' m
     filter' (c1,c2) a
       | c1 == c2  = a
       -- TODO use n here
-      | otherwise = take 1 $ sortOn (Down . snd) a
+      | otherwise = take 1 $ List.sortOn (Down . snd) a
            where
             _n :: Int
             _n = round $ 100 * a' / t
             a'= fromIntegral $ length a
             t :: Double
-            t = fromIntegral $ length $ concat $ elems m
+            t = fromIntegral $ length $ List.concat $ elems m
 
 --------------------------------------------------------------
 

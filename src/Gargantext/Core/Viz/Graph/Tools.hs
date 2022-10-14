@@ -26,7 +26,7 @@ import Gargantext.Core.Methods.Similarities (Similarity(..), measure)
 import Gargantext.Core.Methods.Similarities.Conditional (conditional)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
-import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness2, Partitions, ToComId(..))
+import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness3, Partitions, ToComId(..))
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
 import Gargantext.Core.Viz.Graph.Tools.Infomap (infomap)
@@ -130,7 +130,7 @@ cooc2graphWith' doPartitions multi similarity threshold strength myCooc = do
 
   let
     !confluence' = BAC.computeConfluences 3 (Map.keys bridgeness') True
-    !bridgeness' = bridgeness2 confluence' distanceMap
+    !bridgeness' = bridgeness3 confluence' distanceMap
   pure $ data2graph multi ti diag bridgeness' confluence' partitions
 
 type Reverse = Bool
