@@ -52,19 +52,21 @@ type Confluence = Map (NodeId, NodeId) Double
 bridgeness3 :: Confluence
            -> Map (NodeId, NodeId) Double
            -> Map (NodeId, NodeId) Double
-bridgeness3 c m = Map.fromList
-            $ map fst
-            $ List.take n
-            $ List.sortOn (Down . snd)
-            $ catMaybes
-            $ map (\(ks,v) -> (,) <$> Just (ks,v) <*> look ks c')
-            $ Map.toList m
+bridgeness3 c m = trace ("bridgeness c' size: " <> (show $ List.length c'))
+                $ Map.fromList
+                $ map (\(ks, (v1,_v2)) -> (ks,v1))
+                $ List.take n
+     --           $ List.sortOn (Down . (snd . snd))
+                $ Map.toList c'
   where
-    !c' = map2intMap c
+    -- !c' = map2intMap c
+    !c' = Map.intersectionWithKey (\_k v1 v2 -> (v1, v2)) m c
     !m' = Map.toList m
 
     n :: Int
-    !n = trace ("bridgeness m size: " <> (show $ List.length m')) $ round $ (fromIntegral $ List.length m') / (10 :: Double)
+    !n = trace ("bridgeness m size: " <> (show $ List.length m'))
+       $ round
+       $ (fromIntegral $ List.length m') / (10 :: Double)
 
 
 map2intMap :: Map (Int, Int) a -> IntMap (IntMap a)
