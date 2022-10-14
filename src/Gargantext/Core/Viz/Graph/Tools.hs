@@ -14,6 +14,7 @@ Portability : POSIX
 module Gargantext.Core.Viz.Graph.Tools
   where
 
+import Debug.Trace (trace)
 import Data.Aeson
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
@@ -129,8 +130,9 @@ cooc2graphWith' doPartitions multi similarity threshold strength myCooc = do
   length partitions `seq` return ()
 
   let
-    !confluence' = BAC.computeConfluences 3 (Map.keys bridgeness') True
-    !bridgeness' = bridgeness3 confluence' distanceMap
+    !confluence' = BAC.computeConfluences 3 (Map.keys distanceMap) True
+    !bridgeness' = trace ("bridgeness3 in tools" <> show (confluence', distanceMap)) $ bridgeness3 confluence' distanceMap
+
   pure $ data2graph multi ti diag bridgeness' confluence' partitions
 
 type Reverse = Bool
