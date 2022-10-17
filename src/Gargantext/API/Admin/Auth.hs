@@ -47,16 +47,16 @@ import Data.UUID.V4 (nextRandom)
 import GHC.Generics (Generic)
 import Servant
 import Servant.Auth.Server
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 --import qualified Text.Blaze.Html5.Attributes as HA
 
 import qualified Gargantext.Prelude.Crypto.Auth as Auth
 
 import Gargantext.API.Admin.Auth.Types
+import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types
 import Gargantext.API.Job (jobLogSuccess)
-import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC, GargServer, _ServerError)
+import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC, GargServer, _ServerError, GargM, GargError)
 import Gargantext.Core.Mail (MailModel(..), mail)
 import Gargantext.Core.Mail.Types (HasMail, mailSettings)
 import Gargantext.Core.Types.Individu (User(..), Username, GargPassword(..))
@@ -69,6 +69,7 @@ import Gargantext.Database.Query.Tree.Root (getRoot)
 import Gargantext.Database.Schema.Node (NodePoly(_node_id))
 import Gargantext.Prelude hiding (reverse)
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
+import Gargantext.Utils.Jobs (serveJobsAPI)
 
 ---------------------------------------------------
 
@@ -266,12 +267,10 @@ generateForgotPasswordUUID = do
 type ForgotPasswordAsyncAPI = Summary "Forgot password asnc"
                               :> AsyncJobs JobLog '[JSON] ForgotPasswordAsyncParams JobLog
 
-forgotPasswordAsync :: GargServer ForgotPasswordAsyncAPI
+forgotPasswordAsync :: ServerT ForgotPasswordAsyncAPI (GargM Env GargError)
 forgotPasswordAsync =
-  serveJobsAPI $
-    JobFunction (\p log' ->
-                   forgotPasswordAsync' p (liftBase . log')
-                )
+  serveJobsAPI ForgotPasswordJob $ \p log' ->
+    forgotPasswordAsync' p (liftBase . log')
 
 forgotPasswordAsync' :: (FlowCmdM env err m)
   => ForgotPasswordAsyncParams

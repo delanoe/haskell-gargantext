@@ -10,9 +10,9 @@ import Data.Aeson
 import Data.Swagger (ToSchema)
 import GHC.Generics (Generic)
 import Servant
-import Servant.Job.Async
 import qualified Data.Text as T
 
+import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Job (jobLogSuccess)
 import Gargantext.API.Prelude
@@ -28,14 +28,15 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getClosestParentIdByType')
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Corpus (HyperdataCorpus(..))
+import Gargantext.Utils.Jobs (serveJobsAPI)
 
 
 data DocumentUpload = DocumentUpload
   { _du_abstract :: T.Text
   , _du_authors  :: T.Text
   , _du_sources  :: T.Text
-  , _du_title    :: T.Text 
-  , _du_date     :: T.Text 
+  , _du_title    :: T.Text
+  , _du_date     :: T.Text
   }
   deriving (Generic)
 
@@ -65,12 +66,10 @@ type API = Summary " Document upload"
            :> "async"
            :> AsyncJobs JobLog '[JSON] DocumentUpload JobLog
 
-api :: UserId -> NodeId -> GargServer API
+api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI $
-    JobFunction (\q log' -> do
+  serveJobsAPI UploadDocumentJob $ \q log' -> do
       documentUploadAsync uId nId q (liftBase . log')
-    )
 
 documentUploadAsync :: (FlowCmdM env err m)
                => UserId
@@ -99,8 +98,8 @@ documentUpload nId doc = do
   let cId = case mcId of
         Just c  -> c
         Nothing -> panic $ T.pack $ "[G.A.N.DU] Node has no corpus parent: " <> show nId
- 
-  (theFullDate, (year, month, day)) <- liftBase $ dateSplit EN 
+
+  (theFullDate, (year, month, day)) <- liftBase $ dateSplit EN
                                                         $ Just
                                                         $ view du_date doc <> "T:0:0:0"
 
@@ -123,9 +122,7 @@ documentUpload nId doc = do
                              , _hd_publication_minute = Nothing
                              , _hd_publication_second = Nothing
                              , _hd_language_iso2 = Just $ T.pack $ show EN }
-  
+
   docIds <- insertMasterDocs (Nothing :: Maybe HyperdataCorpus) (Multi EN) [hd]
   _ <- Doc.add cId docIds
   pure docIds
-
-

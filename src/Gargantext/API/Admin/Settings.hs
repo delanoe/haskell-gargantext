@@ -47,6 +47,9 @@ import Gargantext.Database.Prelude (databaseParameters)
 import Gargantext.Prelude
 -- import Gargantext.Prelude.Config (gc_repofilepath)
 import qualified Gargantext.Prelude.Mail as Mail
+import qualified Gargantext.Utils.Jobs       as Jobs
+import qualified Gargantext.Utils.Jobs.Monad as Jobs
+import qualified Gargantext.Utils.Jobs.Queue as Jobs
 
 devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
@@ -177,12 +180,19 @@ newEnv port file = do
     panic "TODO: conflicting settings of port"
 
   config_env    <- readConfig file
+  prios         <- Jobs.readPrios (file <> ".jobs")
+  let prios' = Jobs.applyPrios prios Jobs.defaultPrios
+  putStrLn $ "Overrides: " <> show prios
+  putStrLn $ "New priorities: " <> show prios'
   self_url_env  <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   dbParam       <- databaseParameters file
   pool          <- newPool dbParam
   --nodeStory_env <- readNodeStoryEnv (_gc_repofilepath config_env)
   nodeStory_env <- readNodeStoryEnv pool
   scrapers_env  <- newJobEnv defaultSettings manager_env
+
+  secret        <- Jobs.genSecret
+  jobs_env      <- Jobs.newJobEnv (Jobs.defaultJobSettings secret) prios' manager_env
   logger        <- newStderrLoggerSet defaultBufSize
   config_mail   <- Mail.readConfig file
 
@@ -193,6 +203,7 @@ newEnv port file = do
     , _env_nodeStory = nodeStory_env
     , _env_manager   = manager_env
     , _env_scrapers  = scrapers_env
+    , _env_jobs      = jobs_env
     , _env_self_url  = self_url_env
     , _env_config    = config_env
     , _env_mail      = config_mail

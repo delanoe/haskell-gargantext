@@ -95,6 +95,7 @@ import Data.Text (Text, isInfixOf, unpack, pack)
 import Data.Text.Lazy.IO as DTL
 import Formatting (hprint, int, (%))
 import GHC.Generics (Generic)
+import Gargantext.API.Admin.EnvTypes (Env, GargJob(..))
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Job
@@ -118,7 +119,7 @@ import Gargantext.Prelude hiding (log)
 import Gargantext.Prelude.Clock (hasTime, getTime)
 import Prelude (error)
 import Servant hiding (Patch)
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
+import Gargantext.Utils.Jobs (serveJobsAPI)
 import System.IO (stderr)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -774,28 +775,23 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
 
 
 
-apiNgramsTableCorpus :: ( GargServerC env err m
-                        )
-                     => NodeId -> ServerT TableNgramsApi m
+apiNgramsTableCorpus :: NodeId -> ServerT TableNgramsApi (GargM Env GargError)
 apiNgramsTableCorpus cId =  getTableNgramsCorpus       cId
                        :<|> tableNgramsPut
                        :<|> scoresRecomputeTableNgrams cId
                        :<|> getTableNgramsVersion      cId
                        :<|> apiNgramsAsync             cId
 
-apiNgramsTableDoc :: ( GargServerC env err m
-                     )
-                  => DocId -> ServerT TableNgramsApi m
+apiNgramsTableDoc :: DocId -> ServerT TableNgramsApi (GargM Env GargError)
 apiNgramsTableDoc dId =  getTableNgramsDoc          dId
                     :<|> tableNgramsPut
                     :<|> scoresRecomputeTableNgrams dId
                     :<|> getTableNgramsVersion      dId
                     :<|> apiNgramsAsync             dId
 
-apiNgramsAsync :: NodeId -> GargServer TableNgramsAsyncApi
+apiNgramsAsync :: NodeId -> ServerT TableNgramsAsyncApi (GargM Env GargError)
 apiNgramsAsync _dId =
-  serveJobsAPI $
-    JobFunction $ \i log ->
+  serveJobsAPI TableNgramsJob $ \i log ->
       let
         log' x = do
           printDebug "tableNgramsPostChartsAsync" x

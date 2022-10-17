@@ -14,9 +14,9 @@ import GHC.Generics (Generic)
 import Network.HTTP.Client (newManager, httpLbs, parseRequest, responseBody)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Servant
-import Servant.Job.Async
 import Web.FormUrlEncoded (FromForm)
 
+import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Job (jobLogInit, jobLogSuccess, jobLogFail)
 import Gargantext.API.Node.Corpus.New (addToCorpusWithForm)
@@ -31,6 +31,7 @@ import Gargantext.Database.Prelude (HasConfig)
 import Gargantext.Database.Query.Table.Node (getClosestParentIdByType, getNodeWith)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
+import Gargantext.Utils.Jobs (serveJobsAPI)
 
 data FrameCalcUpload = FrameCalcUpload ()
   deriving (Generic)
@@ -46,12 +47,11 @@ type API = Summary " FrameCalc upload"
            :> "async"
            :> AsyncJobs JobLog '[JSON] FrameCalcUpload JobLog
 
-api :: UserId -> NodeId -> GargServer API
+api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI $ 
-    JobFunction (\p logs ->
-                   frameCalcUploadAsync uId nId p (liftBase . logs) (jobLogInit 5)
-                )
+  serveJobsAPI UploadFrameCalcJob $ \p logs ->
+    frameCalcUploadAsync uId nId p (liftBase . logs) (jobLogInit 5)
+
 
 
 frameCalcUploadAsync :: (HasConfig env, FlowCmdM env err m)
