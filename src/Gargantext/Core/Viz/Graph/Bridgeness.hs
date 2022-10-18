@@ -19,16 +19,18 @@ TODO use Map LouvainNodeId (Map LouvainNodeId)
 module Gargantext.Core.Viz.Graph.Bridgeness -- (bridgeness)
   where
 
-import Debug.Trace (trace)
+import Gargantext.Core.Methods.Similarities (Similarity(..))
+import Data.IntMap (IntMap)
 import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
 import Data.Maybe (catMaybes)
+import Data.Ord (Down(..))
+import Debug.Trace (trace)
 import Gargantext.Prelude
 import Graph.Types (ClusterNode(..))
-import Data.Ord (Down(..))
-import Data.IntMap (IntMap)
 import qualified Data.IntMap as IntMap
 import qualified Data.List   as List
 import qualified Data.Map    as Map
+import qualified Data.Set    as Set
 
 ----------------------------------------------------------------------
 type Partitions a = Map (Int, Int) Double -> IO [a]
@@ -49,12 +51,13 @@ type Bridgeness = Double
 type Confluence = Map (NodeId, NodeId) Double
 
 
-bridgeness3 :: Confluence
+bridgeness3 :: Similarity
+           -> Confluence
            -> Map (NodeId, NodeId) Double
            -> Map (NodeId, NodeId) Double
-bridgeness3 c m = Map.fromList
+bridgeness3 sim c m = Map.fromList
                 $ map (\(ks, (v1,_v2)) -> (ks,v1))
-                $ List.take n
+                $ List.take (if sim == Conditional then 2*n else 4*n)
                 $ List.sortOn (Down . (snd . snd))
                 $ Map.toList
                 $ trace ("bridgeness3 m c" <> show (m,c)) $ Map.intersectionWithKey (\k v1 v2 -> trace ("intersectionWithKey " <> (show (k, v1, v2))) (v1, v2)) m c
@@ -63,7 +66,12 @@ bridgeness3 c m = Map.fromList
     n :: Int
     !n = trace ("bridgeness m size: " <> (show $ List.length m'))
        $ round
-       $ (fromIntegral $ List.length m') / (50 :: Double)
+       $ (fromIntegral $ List.length m') / (log $ fromIntegral nodesNumber :: Double)
+
+    nodesNumber :: Int
+    nodesNumber = Set.size $ Set.fromList $ as <> bs
+      where
+        (as, bs) = List.unzip $ Map.keys m
 
 
 map2intMap :: Map (Int, Int) a -> IntMap (IntMap a)
@@ -81,13 +89,6 @@ look (k1,k2) m = if k1 < k2
                            _       -> Nothing
                     else look (k2,k1) m
 
-
-{-
-    n :: Int
-    n = Set.size $ Set.fromList $ as <> bs
-      where
-        (as, bs) = List.unzip $ Map.keys m
--}
 
 bridgeness :: ToComId a
            => Confluence
