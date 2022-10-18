@@ -61,6 +61,7 @@ type TableApi = Summary "Table API"
               :> QueryParam "offset" Int
               :> QueryParam "orderBy" OrderBy
               :> QueryParam "query" Text
+              :> QueryParam "year" Text
               :> Get    '[JSON] (HashedResponse FacetTableResult)
             :<|> Summary "Table API (POST)"
               :> ReqBody '[JSON] TableQuery
@@ -106,14 +107,16 @@ getTableApi :: NodeId
             -> Maybe Int
             -> Maybe OrderBy
             -> Maybe Text
+            -> Maybe Text
             -> Cmd err (HashedResponse FacetTableResult)
-getTableApi cId tabType _mListId mLimit mOffset mOrderBy mQuery = do
+getTableApi cId tabType _mListId mLimit mOffset mOrderBy mQuery mYear = do
   printDebug "[getTableApi] mQuery" mQuery
-  t <- getTable cId tabType mOffset mLimit mOrderBy mQuery
+  printDebug "[getTableApi] mYear" mYear
+  t <- getTable cId tabType mOffset mLimit mOrderBy mQuery mYear
   pure $ constructHashedResponse t
 
 postTableApi :: NodeId -> TableQuery -> Cmd err FacetTableResult
-postTableApi cId (TableQuery o l order ft "") = getTable cId (Just ft) (Just o) (Just l) (Just order) Nothing
+postTableApi cId (TableQuery o l order ft "") = getTable cId (Just ft) (Just o) (Just l) (Just order) Nothing Nothing
 postTableApi cId (TableQuery o l order ft q) = case ft of
       Docs  -> searchInCorpus' cId False [q] (Just o) (Just l) (Just order)
       Trash -> searchInCorpus' cId True [q] (Just o) (Just l) (Just order)
@@ -121,7 +124,7 @@ postTableApi cId (TableQuery o l order ft q) = case ft of
 
 getTableHashApi :: NodeId -> Maybe TabType -> Cmd err Text
 getTableHashApi cId tabType = do
-  HashedResponse { hash = h } <- getTableApi cId tabType Nothing Nothing Nothing Nothing Nothing
+  HashedResponse { hash = h } <- getTableApi cId tabType Nothing Nothing Nothing Nothing Nothing Nothing
   pure h
 
 searchInCorpus' :: CorpusId
@@ -143,10 +146,11 @@ getTable :: NodeId
          -> Maybe Limit
          -> Maybe OrderBy
          -> Maybe Text
+         -> Maybe Text
          -> Cmd err FacetTableResult
-getTable cId ft o l order query = do
-  docs      <- getTable' cId ft o l order query
-  docsCount <- runCountDocuments cId (ft == Just Trash) query
+getTable cId ft o l order query year = do
+  docs      <- getTable' cId ft o l order query year
+  docsCount <- runCountDocuments cId (ft == Just Trash) query year
   pure $ TableResult { tr_docs = docs, tr_count = docsCount }
 
 getTable' :: NodeId
@@ -155,11 +159,12 @@ getTable' :: NodeId
           -> Maybe Limit
           -> Maybe OrderBy
           -> Maybe Text
+          -> Maybe Text
           -> Cmd err [FacetDoc]
-getTable' cId ft o l order query =
+getTable' cId ft o l order query year =
   case ft of
-    (Just Docs)      -> runViewDocuments cId False o l order query
-    (Just Trash)     -> runViewDocuments cId True  o l order query
+    (Just Docs)      -> runViewDocuments cId False o l order query year 
+    (Just Trash)     -> runViewDocuments cId True  o l order query year
     (Just MoreFav)   -> moreLike cId o l order IsFav
     (Just MoreTrash) -> moreLike cId o l order IsTrash
     x     -> panic $ "not implemented in getTable: " <> (cs $ show x)

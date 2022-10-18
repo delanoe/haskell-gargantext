@@ -40,7 +40,7 @@ getDocumentsJSON :: UserId
 getDocumentsJSON uId pId = do
   mcId <- getClosestParentIdByType pId NodeCorpus
   let cId = maybe (panic "[G.A.N.D.Export] Node has no parent") identity mcId
-  docs <- runViewDocuments cId False Nothing Nothing Nothing Nothing
+  docs <- runViewDocuments cId False Nothing Nothing Nothing Nothing Nothing
   pure $ DocumentExport { _de_documents = mapFacetDoc <$> docs
                         , _de_garg_version = T.pack $ showVersion PG.version }
   where
