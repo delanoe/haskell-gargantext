@@ -26,7 +26,7 @@ import Gargantext.Core.Methods.Similarities (Similarity(..), measure)
 import Gargantext.Core.Methods.Similarities.Conditional (conditional)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
-import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness3, Partitions, ToComId(..))
+import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Bridgeness(..), Partitions, nodeId2comId)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
 import Gargantext.Core.Viz.Graph.Tools.Infomap (infomap)
@@ -55,6 +55,14 @@ instance FromJSON  PartitionMethod
 instance ToJSON    PartitionMethod
 instance ToSchema  PartitionMethod
 instance Arbitrary PartitionMethod where
+  arbitrary = elements [ minBound .. maxBound ]
+
+data BridgenessMethod = BridgenessMethod_Basic | BridgenessMethod_Advanced
+    deriving (Generic, Eq, Ord, Enum, Bounded, Show)
+instance FromJSON  BridgenessMethod
+instance ToJSON    BridgenessMethod
+instance ToSchema  BridgenessMethod
+instance Arbitrary BridgenessMethod where
   arbitrary = elements [ minBound .. maxBound ]
 
 
@@ -89,6 +97,7 @@ cooc2graph' distance threshold myCooc
 
 -- coocurrences graph computation
 cooc2graphWith :: PartitionMethod
+               -> BridgenessMethod
                -> MultiPartite
                -> Similarity
                -> Threshold
@@ -102,15 +111,15 @@ cooc2graphWith Infomap   = cooc2graphWith' (infomap "-v -N2")
                         -- TODO: change these options, or make them configurable in UI?
 
 
-cooc2graphWith' :: ToComId a
-               => Partitions a
-               -> MultiPartite
-               -> Similarity
-               -> Threshold
-               -> Strength
-               -> HashMap (NgramsTerm, NgramsTerm) Int
-               -> IO Graph
-cooc2graphWith' doPartitions multi similarity threshold strength myCooc = do
+cooc2graphWith' :: Partitions
+                -> BridgenessMethod
+                -> MultiPartite
+                -> Similarity
+                -> Threshold
+                -> Strength
+                -> HashMap (NgramsTerm, NgramsTerm) Int
+                -> IO Graph
+cooc2graphWith' doPartitions bridgenessMethod multi similarity threshold strength myCooc = do
   let (distanceMap, diag, ti) = doSimilarityMap similarity threshold strength myCooc
   distanceMap `seq` diag `seq` ti `seq` return ()
 
@@ -130,7 +139,9 @@ cooc2graphWith' doPartitions multi similarity threshold strength myCooc = do
 
   let
     !confluence' = BAC.computeConfluences 3 (Map.keys distanceMap) True
-    !bridgeness' = bridgeness3 similarity confluence' distanceMap
+    !bridgeness' = if bridgenessMethod == BridgenessMethod_Basic
+                      then bridgeness (Bridgeness_Basic partitions 1.0) distanceMap
+                      else bridgeness (Bridgeness_Advanced similarity confluence') distanceMap
 
   pure $ data2graph multi ti diag bridgeness' confluence' partitions
 
@@ -195,13 +206,12 @@ nodeTypeWith (MultiPartite (Partite s1 t1) (Partite _s2 t2)) t =
      else t2
 
 
-data2graph :: ToComId a
-           => MultiPartite
+data2graph :: MultiPartite
            -> Map NgramsTerm Int
            -> Map (Int, Int) Occurrences
            -> Map (Int, Int) Double
            -> Map (Int, Int) Double
-           -> [a]
+           -> [ClusterNode]
            -> Graph
 data2graph multi labels' occurences bridge conf partitions =
   Graph { _graph_nodes = nodes

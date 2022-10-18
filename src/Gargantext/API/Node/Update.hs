@@ -31,7 +31,7 @@ import Gargantext.Core.Methods.Similarities (GraphMetric(..))
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Viz.Graph (Strength)
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
-import Gargantext.Core.Viz.Graph.Tools (PartitionMethod(..))
+import Gargantext.Core.Viz.Graph.Tools (PartitionMethod(..), BridgenessMethod(..))
 import Gargantext.Core.Viz.Phylo (PhyloSubConfig(..), subConfig2config)
 import Gargantext.Core.Viz.Phylo.API.Tools (flowPhyloAPI)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
@@ -63,6 +63,7 @@ data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: !Method      }
 
                       | UpdateNodeParamsGraph { methodGraphMetric        :: !GraphMetric
                                               , methodGraphClustering    :: !PartitionMethod
+                                              , methodGraphBridgeness    :: !BridgenessMethod
                                               , methodGraphEdgesStrength :: !Strength
                                               , methodGraphNodeType1     :: !NgramsType
                                               , methodGraphNodeType2     :: !NgramsType
@@ -106,16 +107,16 @@ updateNode :: (HasSettings env, FlowCmdM env err m)
     -> UpdateNodeParams
     -> (JobLog -> m ())
     -> m JobLog
-updateNode uId nId (UpdateNodeParamsGraph metric method strength nt1 nt2) logStatus = do
+updateNode uId nId (UpdateNodeParamsGraph metric partitionMethod bridgeMethod strength nt1 nt2) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  printDebug "Computing graph: " method
-  _ <- recomputeGraph uId nId method (Just metric) (Just strength) nt1 nt2 True
-  printDebug "Graph computed: " method
+  -- printDebug "Computing graph: " method
+  _ <- recomputeGraph uId nId partitionMethod bridgeMethod (Just metric) (Just strength) nt1 nt2 True
+  -- printDebug "Graph computed: " method
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
@@ -275,7 +276,7 @@ instance ToSchema  UpdateNodeParams
 instance Arbitrary UpdateNodeParams where
   arbitrary = do
     l <- UpdateNodeParamsList  <$> arbitrary
-    g <- UpdateNodeParamsGraph <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+    g <- UpdateNodeParamsGraph <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
     t <- UpdateNodeParamsTexts <$> arbitrary
     b <- UpdateNodeParamsBoard <$> arbitrary
     elements [l,g,t,b]

@@ -7,10 +7,14 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Let be a graph with partitions (from Louvain algo), Bridgeness uniformly
+Let be a graph Bridgeness filters inter-communities links in two ways.
+If the partitions are known, filtering is uniform to expose the communities clearly for the beginners.
+But 
+
+
+uniformly
 filters inter-communities links.
 
-TODO rewrite Bridgeness with "equivalence structurale" metrics (Confluence)
 TODO use Map LouvainNodeId (Map LouvainNodeId)
 -}
 
@@ -20,44 +24,46 @@ module Gargantext.Core.Viz.Graph.Bridgeness -- (bridgeness)
   where
 
 import Gargantext.Core.Methods.Similarities (Similarity(..))
-import Data.IntMap (IntMap)
+-- import Data.IntMap (IntMap)
 import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
 import Data.Maybe (catMaybes)
 import Data.Ord (Down(..))
 import Debug.Trace (trace)
 import Gargantext.Prelude
 import Graph.Types (ClusterNode(..))
-import qualified Data.IntMap as IntMap
+-- import qualified Data.IntMap as IntMap
 import qualified Data.List   as List
 import qualified Data.Map    as Map
 import qualified Data.Set    as Set
 
 ----------------------------------------------------------------------
-type Partitions a = Map (Int, Int) Double -> IO [a]
+
+type Partitions = Map (Int, Int) Double -> IO [ClusterNode]
 ----------------------------------------------------------------------
-class ToComId a where
-  nodeId2comId :: a -> (NodeId,CommunityId)
+nodeId2comId :: ClusterNode -> (NodeId, CommunityId)
+nodeId2comId (ClusterNode i1 i2) = (i1, i2)
 
 type NodeId        = Int
 type CommunityId   = Int
 
 ----------------------------------------------------------------------
-instance ToComId ClusterNode where
-  nodeId2comId (ClusterNode i1 i2) = (i1, i2)
+----------------------------------------------------------------------
+data Bridgeness = Bridgeness_Basic { bridgeness_partitions :: [ClusterNode]
+                                   , bridgeness_filter     :: Double
+                                   }
+                | Bridgeness_Advanced { bridgeness_similarity :: Similarity
+                                      , bridgness_confluence  :: Confluence
+                                      }
 
-----------------------------------------------------------------------
-----------------------------------------------------------------------
-type Bridgeness = Double
 type Confluence = Map (NodeId, NodeId) Double
 
 
-bridgeness3 :: Similarity
-           -> Confluence
-           -> Map (NodeId, NodeId) Double
-           -> Map (NodeId, NodeId) Double
-bridgeness3 sim c m = Map.fromList
+bridgeness :: Bridgeness
+            -> Map (NodeId, NodeId) Double
+            -> Map (NodeId, NodeId) Double
+bridgeness (Bridgeness_Advanced sim c) m = Map.fromList
                 $ map (\(ks, (v1,_v2)) -> (ks,v1))
-                $ List.take (if sim == Conditional then 2*n else 4*n)
+                $ List.take (if sim == Conditional then 2*n else 3*n)
                 $ List.sortOn (Down . (snd . snd))
                 $ Map.toList
                 $ trace ("bridgeness3 m c" <> show (m,c)) $ Map.intersectionWithKey (\k v1 v2 -> trace ("intersectionWithKey " <> (show (k, v1, v2))) (v1, v2)) m c
@@ -73,41 +79,11 @@ bridgeness3 sim c m = Map.fromList
       where
         (as, bs) = List.unzip $ Map.keys m
 
-
-map2intMap :: Map (Int, Int) a -> IntMap (IntMap a)
-map2intMap m = IntMap.fromListWith (<>)
-             $ map (\((k1,k2), v) -> if k1 < k2
-                                   then (k1, IntMap.singleton k2 v)
-                                   else (k2, IntMap.singleton k1 v)
-                    )
-             $ Map.toList m
-
-look :: (Int,Int) -> IntMap (IntMap a) -> Maybe a
-look (k1,k2) m = if k1 < k2
-                    then case (IntMap.lookup k1 m) of
-                           Just m' -> IntMap.lookup k2 m'
-                           _       -> Nothing
-                    else look (k2,k1) m
-
-
-bridgeness :: ToComId a
-           => Confluence
-           -> [a]
-           -> Map (NodeId, NodeId) Double
-           -> Map (NodeId, NodeId) Double
-bridgeness = bridgenessWith nodeId2comId
-  where
-    bridgenessWith :: (a -> (Int, Int))
-               -> Confluence
-               -> [a]
-               -> Map (Int, Int) Double
-               -> Map (Int, Int) Double
-    bridgenessWith f b ns = Map.fromList
-                           . List.concat
-                           . Map.elems
-                           . filterComs b
-                           . groupEdges (Map.fromList $ map f ns)
-
+bridgeness (Bridgeness_Basic ns b) m = Map.fromList
+                                     $ List.concat
+                                     $ Map.elems
+                                     $ filterComs b
+                                     $ groupEdges (Map.fromList $ map nodeId2comId ns) m
 
 groupEdges :: (Ord a, Ord b1)
            => Map b1 a
@@ -142,13 +118,31 @@ filterComs _b m = Map.filter (\n -> length n > 0) $ mapWithKey filter' m
             t = fromIntegral $ length $ List.concat $ elems m
 
 --------------------------------------------------------------
-
+-- Utils
 {--
+map2intMap :: Map (Int, Int) a -> IntMap (IntMap a)
+map2intMap m = IntMap.fromListWith (<>)
+             $ map (\((k1,k2), v) -> if k1 < k2
+                                   then (k1, IntMap.singleton k2 v)
+                                   else (k2, IntMap.singleton k1 v)
+                    )
+             $ Map.toList m
+
+look :: (Int,Int) -> IntMap (IntMap a) -> Maybe a
+look (k1,k2) m = if k1 < k2
+                    then case (IntMap.lookup k1 m) of
+                           Just m' -> IntMap.lookup k2 m'
+                           _       -> Nothing
+                    else look (k2,k1) m
+
+
+{-
 Compute the median of a list
 From:  https://hackage.haskell.org/package/dsp-0.2.5.1/docs/src/Numeric.Statistics.Median.html
 Compute the center of the list in a more lazy manner
 and thus halves memory requirement.
 -}
+
 median :: (Ord a, Fractional a) => [a] -> a
 median [] = panic "medianFast: empty list has no median"
 median zs =
@@ -159,3 +153,4 @@ median zs =
           panic "median: this error cannot occur in the way 'recurse' is called"
    in  recurse zs zs
 
+-}

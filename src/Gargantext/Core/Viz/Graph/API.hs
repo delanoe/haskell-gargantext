@@ -107,7 +107,8 @@ getGraph _uId nId = do
         let defaultMetric          = Order1
         let defaultPartitionMethod = Spinglass
         let defaultEdgesStrength   = Strong
-        graph' <- computeGraph cId defaultPartitionMethod (withMetric defaultMetric) defaultEdgesStrength (NgramsTerms, NgramsTerms) repo
+        let defaultBridgenessMethod = BridgenessMethod_Basic
+        graph' <- computeGraph cId defaultPartitionMethod defaultBridgenessMethod (withMetric defaultMetric) defaultEdgesStrength (NgramsTerms, NgramsTerms) repo
         mt     <- defaultGraphMetadata cId "Title" repo defaultMetric defaultEdgesStrength
         let
           graph'' = set graph_metadata (Just mt) graph'
@@ -125,13 +126,14 @@ recomputeGraph :: FlowCmdM env err m
                => UserId
                -> NodeId
                -> PartitionMethod
+               -> BridgenessMethod
                -> Maybe GraphMetric
                -> Maybe Strength
                -> NgramsType
                -> NgramsType
                -> Bool
                -> m Graph
-recomputeGraph _uId nId method maybeSimilarity maybeStrength nt1 nt2 force = do
+recomputeGraph _uId nId partitionMethod bridgeMethod maybeSimilarity maybeStrength nt1 nt2 force = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
@@ -159,7 +161,7 @@ recomputeGraph _uId nId method maybeSimilarity maybeStrength nt1 nt2 force = do
   let v   = repo ^. unNodeStory . at listId . _Just . a_version
 
   let computeG mt = do
-        !g <- computeGraph cId method similarity strength (nt1,nt2) repo
+        !g <- computeGraph cId partitionMethod bridgeMethod similarity strength (nt1,nt2) repo
         let g' = set graph_metadata mt g
         _nentries <- updateHyperdata nId (HyperdataGraph (Just g') camera)
         pure g'
@@ -180,12 +182,13 @@ recomputeGraph _uId nId method maybeSimilarity maybeStrength nt1 nt2 force = do
 computeGraph :: FlowCmdM env err m
              => CorpusId
              -> PartitionMethod
+             -> BridgenessMethod
              -> Similarity
              -> Strength
              -> (NgramsType, NgramsType)
              -> NodeListStory
              -> m Graph
-computeGraph corpusId method similarity strength (nt1,nt2) repo = do
+computeGraph corpusId partitionMethod bridgeMethod similarity strength (nt1,nt2) repo = do
   -- Getting the Node parameters
   lId  <- defaultList corpusId
   lIds <- selectNodesWithUsername NodeList userMaster
@@ -214,7 +217,7 @@ computeGraph corpusId method similarity strength (nt1,nt2) repo = do
 
   -- TODO MultiPartite Here
   graph <- liftBase
-        $ cooc2graphWith method (MultiPartite (Partite (HashMap.keysSet m1) nt1)
+        $ cooc2graphWith partitionMethod bridgeMethod (MultiPartite (Partite (HashMap.keysSet m1) nt1)
                                               (Partite (HashMap.keysSet m2) nt2)
                                               )
                                 similarity 0 strength myCooc
@@ -276,7 +279,7 @@ graphRecompute u n logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _g <- recomputeGraph u n Spinglass Nothing Nothing NgramsTerms NgramsTerms False
+  _g <- recomputeGraph u n Spinglass BridgenessMethod_Basic Nothing Nothing NgramsTerms NgramsTerms False
   pure  JobLog { _scst_succeeded = Just 1
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
@@ -331,7 +334,7 @@ recomputeVersions :: FlowCmdM env err m
                   => UserId
                   -> NodeId
                   -> m Graph
-recomputeVersions uId nId = recomputeGraph uId nId Spinglass Nothing Nothing NgramsTerms NgramsTerms False
+recomputeVersions uId nId = recomputeGraph uId nId Spinglass BridgenessMethod_Basic Nothing Nothing NgramsTerms NgramsTerms False
 
 ------------------------------------------------------------
 graphClone :: UserId
