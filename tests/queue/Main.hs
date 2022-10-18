@@ -26,8 +26,8 @@ dec A cs = cs { countAs = countAs cs - 1 }
 dec B cs = cs { countBs = countBs cs - 1 }
 
 jobDuration, initialDelay :: Int
-jobDuration = 100000 -- 100ms
-initialDelay = 30000 -- 10ms
+jobDuration = 100000
+initialDelay = 20000
 
 testMaxRunners :: IO ()
 testMaxRunners = do
@@ -100,7 +100,7 @@ testExceptions = do
 testFairness :: IO ()
 testFairness = do
   k <- genSecret
-  let settings = defaultJobSettings k
+  let settings = defaultJobSettings 2 k
   st :: JobsState JobT [String] () <- newJobsState settings defaultPrios
   runningJs <- newTVarIO (Counts 0 0)
   let j jobt _inp _l = do
