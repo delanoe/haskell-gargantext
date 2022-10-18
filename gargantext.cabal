@@ -44,7 +44,6 @@ library
       Gargantext.API.Admin.Auth.Types
       Gargantext.API.Admin.Types
       Gargantext.API.Prelude
-      Gargantext.API.Client
       Gargantext.Core
       Gargantext.Core.NodeStory
       Gargantext.Core.Methods.Similarities
@@ -52,6 +51,13 @@ library
       Gargantext.Core.Types.Individu
       Gargantext.Core.Types.Main
       Gargantext.Core.Utils.Prefix
+      Gargantext.Utils.Jobs
+      Gargantext.Utils.Jobs.API
+      Gargantext.Utils.Jobs.Map
+      Gargantext.Utils.Jobs.Monad
+      Gargantext.Utils.Jobs.Queue
+      Gargantext.Utils.Jobs.Settings
+      Gargantext.Utils.Jobs.State
       Gargantext.Utils.SpacyNLP
       Gargantext.Database.Action.Flow
       Gargantext.Database.Action.Flow.Types
@@ -477,6 +483,7 @@ library
     , singletons
     , split
     , stemmer
+    , stm
     , swagger2
     , taggy-lens
     , tagsoup
@@ -608,55 +615,6 @@ executable gargantext-cli
     , text
     , unordered-containers
     , vector
-  default-language: Haskell2010
-
-executable gargantext-client
-  main-is: Main.hs
-  other-modules:
-      Auth
-      Core
-      Options
-      Script
-      Tracking
-      Paths_gargantext
-  hs-source-dirs:
-      bin/gargantext-client
-  default-extensions:
-      DataKinds
-      DeriveGeneric
-      FlexibleContexts
-      FlexibleInstances
-      GeneralizedNewtypeDeriving
-      MultiParamTypeClasses
-      NamedFieldPuns
-      NoImplicitPrelude
-      OverloadedStrings
-      RankNTypes
-      RecordWildCards
-      DataKinds
-      DeriveGeneric
-      FlexibleContexts
-      FlexibleInstances
-      GeneralizedNewtypeDeriving
-      MultiParamTypeClasses
-      NamedFieldPuns
-      NoImplicitPrelude
-      OverloadedStrings
-      RankNTypes
-      RecordWildCards
-  ghc-options: -Wall -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
-  build-depends:
-      base
-    , ekg-json
-    , exceptions
-    , extra
-    , gargantext
-    , http-client
-    , optparse-generic
-    , servant
-    , servant-auth-client
-    , servant-client
-    , text
   default-language: Haskell2010
 
 executable gargantext-import
@@ -900,4 +858,34 @@ test-suite garg-test
     , text
     , time
     , unordered-containers
+  default-language: Haskell2010
+
+test-suite jobqueue-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Paths_gargantext
+  hs-source-dirs:
+      tests/queue
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      async
+    , base
+    , extra
+    , gargantext
+    , hspec
+    , stm
+    , text
   default-language: Haskell2010

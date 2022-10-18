@@ -194,8 +194,6 @@ selectNgramsOccurrencesOnlyByContextUser_withSample' cId int nt =
                 , cId
                 , ngramsTypeId nt
                 )
-    where
-      fields = [QualifiedIdentifier Nothing "text"]
 
 queryNgramsOccurrencesOnlyByContextUser_withSample' :: DPS.Query
 queryNgramsOccurrencesOnlyByContextUser_withSample' = [sql|
