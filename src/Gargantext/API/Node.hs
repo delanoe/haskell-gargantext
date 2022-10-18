@@ -36,6 +36,7 @@ import Data.Text (Text())
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Auth (withAccess)
 import Gargantext.API.Admin.Auth.Types (PathId(..))
+import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableCorpus)
 import Gargantext.API.Ngrams.Types (TabType(..))
@@ -196,10 +197,10 @@ nodeAPI :: forall proxy a.
        ) => proxy a
          -> UserId
          -> NodeId
-         -> GargServer (NodeAPI a)
+         -> ServerT (NodeAPI a) (GargM Env GargError)
 nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id') nodeAPI'
   where
-    nodeAPI' :: GargServer (NodeAPI a)
+    nodeAPI' :: ServerT (NodeAPI a) (GargM Env GargError)
     nodeAPI' =  getNodeWith   id' p
            :<|> rename        id'
            :<|> postNode  uId id'

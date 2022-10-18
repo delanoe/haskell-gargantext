@@ -44,11 +44,11 @@ import Data.Validity
 import GHC.Base (Applicative)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Auth.Types (AuthContext)
+import Gargantext.API.Admin.EnvTypes (Env)
 import Gargantext.API.Admin.Settings (newEnv)
 import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, jwtSettings, settings)
 import Gargantext.API.EKG
 import Gargantext.API.Ngrams (saveNodeStoryImmediate)
-import Gargantext.API.Prelude
 import Gargantext.API.Routes
 import Gargantext.API.Server (server)
 import Gargantext.Core.NodeStory
@@ -207,7 +207,7 @@ serverGargAdminAPI =  roots
 --gargMock = mock apiGarg Proxy
 ---------------------------------------------------------------------
 
-makeApp :: (Typeable env, EnvC env) => env -> IO Application
+makeApp :: Env -> IO Application
 makeApp env = do
   serv <- server env
   (ekgStore, ekgMid) <- newEkgStore api

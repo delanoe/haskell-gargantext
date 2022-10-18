@@ -21,11 +21,12 @@ import Data.Aeson
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Swagger
 import GHC.Generics (Generic)
+import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Ngrams.List (reIndexWith)
 --import Gargantext.API.Ngrams.Types (TabType(..))
-import Gargantext.API.Prelude (GargServer, simuLogs)
+import Gargantext.API.Prelude (GargM, GargError, simuLogs)
 import Gargantext.Core.Methods.Distances (GraphMetric(..))
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Viz.Graph (Strength)
@@ -43,9 +44,9 @@ import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Ngrams (NgramsType(NgramsTerms))
 import Gargantext.Database.Schema.Node (node_parent_id)
 import Gargantext.Prelude (Bool(..), Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic, (<*>))
+import Gargantext.Utils.Jobs (serveJobsAPI)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import qualified Data.Set                    as Set
@@ -88,16 +89,14 @@ data Charts = Sources | Authors | Institutes | Ngrams | All
     deriving (Generic, Eq, Ord, Enum, Bounded)
 
 ------------------------------------------------------------------------
-api :: UserId -> NodeId -> GargServer API
+api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI $
-    JobFunction (\p log'' ->
+  serveJobsAPI UpdateNodeJob $ \p log'' ->
       let
         log' x = do
           printDebug "updateNode" x
           liftBase $ log'' x
       in updateNode uId nId p (liftBase . log')
-      )
 
 updateNode :: (HasSettings env, FlowCmdM env err m)
     => UserId

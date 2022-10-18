@@ -22,10 +22,11 @@ import Data.Aeson
 import Data.Either (Either(..), rights)
 import Data.Swagger
 import qualified Data.Text as T
+import Gargantext.API.Admin.EnvTypes (Env, GargJob(..))
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Job (jobLogSuccess, jobLogFailTotalWithMessage)
-import Gargantext.API.Prelude (GargServer)
+import Gargantext.API.Prelude (GargM, GargError)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text.Corpus.Parsers.FrameWrite
 import Gargantext.Core.Text.Terms (TermType(..))
@@ -39,9 +40,9 @@ import Gargantext.Database.Query.Table.Node (getChildrenByType, getClosestParent
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
+import Gargantext.Utils.Jobs (serveJobsAPI)
 import GHC.Generics (Generic)
 import Servant
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 
 ------------------------------------------------------------------------
 type API = Summary " Documents from Write nodes."
@@ -55,15 +56,13 @@ instance ToJSON Params where
   toJSON = genericToJSON defaultOptions
 instance ToSchema Params
 ------------------------------------------------------------------------
-api :: UserId -> NodeId -> GargServer API
+api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI $
-    JobFunction (\p log'' ->
+  serveJobsAPI DocumentFromWriteNodeJob $ \p log'' ->
       let
         log' x = do
           liftBase $ log'' x
       in documentsFromWriteNodes uId nId p (liftBase . log')
-      )
 
 documentsFromWriteNodes :: (HasSettings env, FlowCmdM env err m)
     => UserId

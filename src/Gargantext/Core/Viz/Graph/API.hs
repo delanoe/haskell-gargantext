@@ -23,6 +23,7 @@ import Data.Swagger
 import Data.Text hiding (head)
 import Debug.Trace (trace)
 import GHC.Generics (Generic)
+import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Prelude
@@ -46,8 +47,9 @@ import Gargantext.Database.Query.Table.Node.User (getNodeUser)
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Prelude
+import Gargantext.Utils.Jobs (serveJobsAPI)
 import Servant
-import Servant.Job.Async
+import Servant.Job.Async (AsyncJobsAPI)
 import Servant.XML
 import qualified Data.HashMap.Strict as HashMap
 
@@ -72,7 +74,7 @@ instance FromJSON GraphVersions
 instance ToJSON GraphVersions
 instance ToSchema GraphVersions
 
-graphAPI :: UserId -> NodeId -> GargServer GraphAPI
+graphAPI :: UserId -> NodeId -> ServerT GraphAPI (GargM Env GargError)
 graphAPI u n = getGraph         u n
           :<|> graphAsync       u n
           :<|> graphClone       u n
@@ -231,10 +233,10 @@ type GraphAsyncAPI = Summary "Recompute graph"
                      :> AsyncJobsAPI JobLog () JobLog
 
 
-graphAsync :: UserId -> NodeId -> GargServer GraphAsyncAPI
+graphAsync :: UserId -> NodeId -> ServerT GraphAsyncAPI (GargM Env GargError)
 graphAsync u n =
-  serveJobsAPI $
-    JobFunction (\_ log' -> graphRecompute u n (liftBase . log'))
+  serveJobsAPI RecomputeGraphJob $ \_ log' ->
+    graphRecompute u n (liftBase . log')
 
 
 --graphRecompute :: UserId

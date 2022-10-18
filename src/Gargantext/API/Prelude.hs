@@ -40,6 +40,7 @@ import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (NodeError(..), HasNodeError(..))
 import Gargantext.Database.Query.Tree
 import Gargantext.Prelude
+import qualified Gargantext.Utils.Jobs.Monad as Jobs
 import Servant
 import Servant.Job.Async
 import Servant.Job.Core (HasServerError(..), serverError)
@@ -108,6 +109,7 @@ data GargError
   | GargInvalidError Validation
   | GargJoseError    Jose.Error
   | GargServerError  ServerError
+  | GargJobError     Jobs.JobError
   deriving (Show, Typeable)
 
 makePrisms ''GargError
