@@ -31,9 +31,11 @@ newJobEnv
   -> IO (JobEnv t w a)
 newJobEnv js prios mgr = JobEnv js <$> newJobsState js prios <*> pure mgr
 
-defaultJobSettings :: SJ.SecretKey -> JobSettings
-defaultJobSettings k = JobSettings
-  { jsNumRunners = 2
+type NumRunners = Int
+
+defaultJobSettings :: NumRunners -> SJ.SecretKey -> JobSettings
+defaultJobSettings numRunners k = JobSettings
+  { jsNumRunners = numRunners
   , jsJobTimeout = 30 * 60 -- 30 minutes
   , jsIDTimeout  = 30 * 60 -- 30 minutes
   , jsGcPeriod   =  1 * 60 -- 1 minute

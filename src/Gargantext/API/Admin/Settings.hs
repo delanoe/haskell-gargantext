@@ -192,7 +192,7 @@ newEnv port file = do
   scrapers_env  <- newJobEnv defaultSettings manager_env
 
   secret        <- Jobs.genSecret
-  jobs_env      <- Jobs.newJobEnv (Jobs.defaultJobSettings secret) prios' manager_env
+  jobs_env      <- Jobs.newJobEnv (Jobs.defaultJobSettings 1 secret) prios' manager_env
   logger        <- newStderrLoggerSet defaultBufSize
   config_mail   <- Mail.readConfig file
 

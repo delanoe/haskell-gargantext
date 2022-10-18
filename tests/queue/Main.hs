@@ -31,7 +31,7 @@ dec B cs = cs { countBs = countBs cs - 1 }
 testMaxRunners = do
   -- max runners = 2 with default settings
   k <- genSecret
-  let settings = defaultJobSettings k
+  let settings = defaultJobSettings 2 k
   st :: JobsState JobT [String] () <- newJobsState settings defaultPrios
   runningJs <- newTVarIO []
   let j num _inp l = do
@@ -57,7 +57,7 @@ testMaxRunners = do
 
 testPrios = do
   k <- genSecret
-  let settings = defaultJobSettings k
+  let settings = defaultJobSettings 2 k
   st :: JobsState JobT [String] () <- newJobsState settings $
     applyPrios [(B, 10)] defaultPrios -- B has higher priority
   runningJs <- newTVarIO (Counts 0 0)
@@ -88,7 +88,7 @@ testPrios = do
 testExceptions = do
   -- max runners = 2 with default settings
   k <- genSecret
-  let settings = defaultJobSettings k
+  let settings = defaultJobSettings 2 k
   st :: JobsState JobT [String] () <- newJobsState settings defaultPrios
   jid <- pushJob A ()
     (\_inp _log -> readFile "/doesntexist.txt" >>= putStrLn)

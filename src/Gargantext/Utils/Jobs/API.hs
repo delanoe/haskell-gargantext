@@ -9,6 +9,7 @@ import Control.Monad
 import Control.Monad.Except
 import Data.Aeson (ToJSON)
 import Data.Monoid
+import Data.Kind (Type)
 import Prelude
 import Servant.API
 
@@ -38,7 +39,7 @@ serveJobsAPI getenv t joberr f
   :<|> serveJobAPI t joberr
 
 serveJobAPI
-  :: forall (m :: * -> *) e t event output.
+  :: forall (m :: Type -> Type) e t event output.
      (Ord t, MonadError e m, MonadJob m t (Dual [event]) output)
   => t
   -> (JobError -> e)
