@@ -24,7 +24,7 @@ import Gargantext.Core.Text.Terms.Multi.Group (group2)
 groupTokens :: [TokenTag] -> [TokenTag]
 groupTokens [] = []
 groupTokens ntags = group2 NP NP
-            $ group2 NP VB
+--             $ group2 NP VB
             -- group2 NP IN
             -- group2 IN DT
             $ group2 VB NP
