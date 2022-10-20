@@ -96,7 +96,8 @@ instance FromJSON POS where
       pos "DT"   = DT
       pos "DET"  = DT
       pos "IN"   = IN
-      pos "JJ"   = JJ
+      pos "JJ"    = JJ
+      pos "PROPN" = JJ
       pos "JJR"  = JJ
       pos "JJS"  = JJ
       pos "NC"   = NP

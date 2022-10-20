@@ -12,7 +12,7 @@ Multi-terms are ngrams where n > 1.
 -}
 
 
-module Gargantext.Core.Text.Terms.Multi (multiterms, multiterms_rake, tokenTagsWith)
+module Gargantext.Core.Text.Terms.Multi (multiterms, multiterms_rake, tokenTagsWith, tokenTags)
   where
 
 import Data.Text hiding (map, group, filter, concat)
