@@ -1,3 +1,7 @@
+## Version 0.0.6.8.1
+
+- [BACK][IMPROVEMENT] Ngrams Extraction without verbs and with better Parsing for French Pos.
+
 ## Version 0.0.6.8
 * [BACK][FEAT][Flexible job queue system](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/merge_requests/109)
 * [FRONT][FEAT][Doc View, Histogram click on bar -&gt; select documents by Date (#430)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/430)
