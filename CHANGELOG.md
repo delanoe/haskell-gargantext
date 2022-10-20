@@ -4,6 +4,10 @@
 * [BACK][OPTIM][Ngrams Table, queries optimization (#144)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/144)
 * [BACK][FIX] SQL error disconnection
 * [FRONT][UPGRADE][Upgrade PS to 0.15 (#395)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/395)
+* [FRONT][GRAPH][Filtering edge weight bring back new edges (#442)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/442)
+* [FRONT][GRAPH][Louvain clustering on filtered graph (#418)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/418)
+* [FRONT][GRAPH][GraphExplorer Node size slider (#215)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/215)
+* [FRONT][GRAPH][Graph Explorer : link filtering does not impact spatialization (#243)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/243)
 
 ## Version 0.0.6.7.1
 * [FRONT][FIX][[maplist upload] bugged modal after upload (#440)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/440)
