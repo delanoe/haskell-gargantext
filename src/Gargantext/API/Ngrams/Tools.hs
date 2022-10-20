@@ -187,14 +187,44 @@ getCoocByNgrams' f (Diagonal diag) m =
                                  <$> (fmap f $ HM.lookup t1 m)
                                  <*> (fmap f $ HM.lookup t2 m)
                )
-              | (t1,t2) <- if diag then
-                             [ (x,y) | x <- ks, y <- ks, x <= y] -- TODO if we keep a Data.Map here it might be
-                                                                 -- more efficient to enumerate all the y <= x.
-                           else
-                             listToCombi identity ks
+              | (t1,t2) <- if diag
+                              then [ (x,y) | x <- ks, y <- ks, x <= y]
+                                   -- TODO if we keep a Data.Map here it might be
+                                   -- more efficient to enumerate all the y <= x.
+                              else
+                                listToCombi identity ks
               ]
 
-  where ks = HM.keys m
+  where 
+    ks = HM.keys m
+
+-- TODO k could be either k1 or k2 here
+getCoocByNgrams'' :: (Hashable k, Ord k, Ord contexts)
+                  => Diagonal
+                  -> (contextA -> Set contexts, contextB -> Set contexts)
+                  -> (HashMap k contextA, HashMap k contextB)
+                  -> HashMap (k, k) Int
+getCoocByNgrams'' (Diagonal diag) (f1,f2) (m1,m2) =
+  HM.fromList [( (t1,t2)
+               , maybe 0 Set.size $ Set.intersection
+                                 <$> (fmap f1 $ HM.lookup t1 m1)
+                                 <*> (fmap f2 $ HM.lookup t2 m2)
+               )
+              | (t1,t2) <- if diag
+                              then
+                                [ (x,y) | x <- ks1, y <- ks2, x <= y]
+                                   -- TODO if we keep a Data.Map here it might be
+                                   -- more efficient to enumerate all the y <= x.
+                              else
+                                [ (x,y) | x <- ks1, y <- ks2, x < y]
+                                -- TODO check optim
+                                -- listToCombi identity ks1
+              ]
+  where 
+    ks1 = HM.keys m1
+    ks2 = HM.keys m2
+
+
 
 ------------------------------------------
 

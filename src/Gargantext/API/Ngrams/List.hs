@@ -23,13 +23,14 @@ import Data.Maybe (catMaybes, fromMaybe)
 import Data.Set (Set)
 import Data.Text (Text, concat, pack, splitOn)
 import Data.Vector (Vector)
+import Gargantext.API.Admin.EnvTypes (Env, GargJob(..))
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams (setListNgrams)
 import Gargantext.API.Ngrams.List.Types
 import Gargantext.API.Ngrams.Prelude (getNgramsList)
 import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.API.Ngrams.Types
-import Gargantext.API.Prelude (GargServer)
+import Gargantext.API.Prelude (GargServer, GargM, GargError)
 import Gargantext.API.Types
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Text.Terms (ExtractedNgrams(..))
@@ -46,8 +47,9 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node (_node_parent_id)
 import Gargantext.Database.Types (Indexed(..))
 import Gargantext.Prelude
+import Gargantext.Utils.Jobs (serveJobsAPI)
 import Servant
-import Servant.Job.Async
+-- import Servant.Job.Async
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Csv as Csv
 import qualified Data.HashMap.Strict as HashMap
@@ -75,7 +77,7 @@ type JSONAPI = Summary "Update List"
           :> "async"
             :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
 
-jsonApi :: GargServer JSONAPI
+jsonApi :: ServerT JSONAPI (GargM Env GargError)
 jsonApi = postAsync
 
 ----------------------
@@ -88,7 +90,7 @@ type CSVAPI = Summary "Update List (legacy v3 CSV)"
           :> "async"
             :> AsyncJobs JobLog '[FormUrlEncoded] WithTextFile JobLog
 
-csvApi :: GargServer CSVAPI
+csvApi :: ServerT CSVAPI (GargM Env GargError)
 csvApi = csvPostAsync
 
 ------------------------------------------------------------------------
@@ -188,15 +190,14 @@ type PostAPI = Summary "Update List"
         :> "async"
         :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
 
-postAsync :: GargServer JSONAPI
+postAsync :: ListId -> ServerT PostAPI (GargM Env GargError)
 postAsync lId =
-  serveJobsAPI $
-    JobFunction (\f log' ->
+  serveJobsAPI UpdateNgramsListJobJSON $ \f log' ->
       let
         log'' x = do
           -- printDebug "postAsync ListId" x
           liftBase $ log' x
-      in postAsync' lId f log'')
+      in postAsync' lId f log''
 
 postAsync' :: FlowCmdM env err m
           => ListId
@@ -291,10 +292,9 @@ csvPost l m  = do
   pure True
 
 ------------------------------------------------------------------------
-csvPostAsync :: GargServer CSVAPI
+csvPostAsync :: ServerT CSVAPI (GargM Env GargError)
 csvPostAsync lId =
-  serveJobsAPI $
-    JobFunction $ \f@(WithTextFile ft _ n) log' -> do
+  serveJobsAPI UpdateNgramsListJobCSV $ \f@(WithTextFile ft _ n) log' -> do
       let log'' x = do
             printDebug "[csvPostAsync] filetype" ft
             printDebug "[csvPostAsync] name" n

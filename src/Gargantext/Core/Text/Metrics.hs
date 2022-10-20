@@ -23,7 +23,7 @@ import Data.Map (Map)
 import Data.Monoid (Monoid, mempty)
 import Data.HashMap.Strict (HashMap)
 import Data.Semigroup (Semigroup)
-import Gargantext.Core.Methods.Distances.Accelerate.SpeGen
+import Gargantext.Core.Methods.Similarities.Accelerate.SpeGen
 import Gargantext.Core.Statistics (pcaReduceTo, Dimension(..))
 import Gargantext.Core.Viz.Graph.Index
 import Gargantext.Prelude

@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Methods.Distances.Accelerate.SpeGen
+Module      : Gargantext.Core.Methods.Similarities.Accelerate.SpeGen
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -20,7 +20,7 @@ See Gargantext.Core.Methods.Graph.Accelerate)
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns        #-}
 
-module Gargantext.Core.Methods.Distances.Accelerate.SpeGen
+module Gargantext.Core.Methods.Similarities.Accelerate.SpeGen
   where
 
 -- import qualified Data.Foldable as P (foldl1)

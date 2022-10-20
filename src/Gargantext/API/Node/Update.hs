@@ -21,16 +21,17 @@ import Data.Aeson
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Swagger
 import GHC.Generics (Generic)
+import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Ngrams.List (reIndexWith)
 --import Gargantext.API.Ngrams.Types (TabType(..))
-import Gargantext.API.Prelude (GargServer, simuLogs)
-import Gargantext.Core.Methods.Distances (GraphMetric(..))
+import Gargantext.API.Prelude (GargM, GargError, simuLogs)
+import Gargantext.Core.Methods.Similarities (GraphMetric(..))
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Viz.Graph (Strength)
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
-import Gargantext.Core.Viz.Graph.Tools (PartitionMethod(..))
+import Gargantext.Core.Viz.Graph.Tools (PartitionMethod(..), BridgenessMethod(..))
 import Gargantext.Core.Viz.Phylo (PhyloSubConfig(..), subConfig2config)
 import Gargantext.Core.Viz.Phylo.API.Tools (flowPhyloAPI)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
@@ -43,9 +44,9 @@ import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Ngrams (NgramsType(NgramsTerms))
 import Gargantext.Database.Schema.Node (node_parent_id)
 import Gargantext.Prelude (Bool(..), Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic, (<*>))
+import Gargantext.Utils.Jobs (serveJobsAPI)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import qualified Data.Set                    as Set
@@ -62,7 +63,10 @@ data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: !Method      }
 
                       | UpdateNodeParamsGraph { methodGraphMetric        :: !GraphMetric
                                               , methodGraphClustering    :: !PartitionMethod
+                                              , methodGraphBridgeness    :: !BridgenessMethod
                                               , methodGraphEdgesStrength :: !Strength
+                                              , methodGraphNodeType1     :: !NgramsType
+                                              , methodGraphNodeType2     :: !NgramsType
                                               }
 
                       | UpdateNodeParamsTexts { methodTexts :: !Granularity }
@@ -88,16 +92,14 @@ data Charts = Sources | Authors | Institutes | Ngrams | All
     deriving (Generic, Eq, Ord, Enum, Bounded)
 
 ------------------------------------------------------------------------
-api :: UserId -> NodeId -> GargServer API
+api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI $
-    JobFunction (\p log'' ->
+  serveJobsAPI UpdateNodeJob $ \p log'' ->
       let
         log' x = do
           printDebug "updateNode" x
           liftBase $ log'' x
       in updateNode uId nId p (liftBase . log')
-      )
 
 updateNode :: (HasSettings env, FlowCmdM env err m)
     => UserId
@@ -105,16 +107,16 @@ updateNode :: (HasSettings env, FlowCmdM env err m)
     -> UpdateNodeParams
     -> (JobLog -> m ())
     -> m JobLog
-updateNode uId nId (UpdateNodeParamsGraph metric method strength) logStatus = do
+updateNode uId nId (UpdateNodeParamsGraph metric partitionMethod bridgeMethod strength nt1 nt2) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  printDebug "Computing graph: " method
-  _ <- recomputeGraph uId nId method (Just metric) (Just strength) True
-  printDebug "Graph computed: " method
+  -- printDebug "Computing graph: " method
+  _ <- recomputeGraph uId nId partitionMethod bridgeMethod (Just metric) (Just strength) nt1 nt2 True
+  -- printDebug "Graph computed: " method
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
@@ -274,7 +276,7 @@ instance ToSchema  UpdateNodeParams
 instance Arbitrary UpdateNodeParams where
   arbitrary = do
     l <- UpdateNodeParamsList  <$> arbitrary
-    g <- UpdateNodeParamsGraph <$> arbitrary <*> arbitrary <*> arbitrary
+    g <- UpdateNodeParamsGraph <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
     t <- UpdateNodeParamsTexts <$> arbitrary
     b <- UpdateNodeParamsBoard <$> arbitrary
     elements [l,g,t,b]

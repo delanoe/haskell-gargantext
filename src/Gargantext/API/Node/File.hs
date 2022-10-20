@@ -11,7 +11,6 @@ import Data.Swagger
 import Data.Text
 import GHC.Generics (Generic)
 import Servant
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.MIME.Types as DMT
@@ -19,6 +18,7 @@ import qualified Gargantext.Database.GargDB as GargDB
 import qualified Network.HTTP.Media as M
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
+import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node.Types
 import Gargantext.API.Prelude
@@ -31,6 +31,7 @@ import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
+import Gargantext.Utils.Jobs (serveJobsAPI)
 import Data.Either
 
 data RESPONSE deriving Typeable
@@ -99,15 +100,14 @@ type FileAsyncApi = Summary "File Async Api"
                  :> "add"
                  :> AsyncJobs JobLog '[FormUrlEncoded] NewWithFile JobLog
 
-fileAsyncApi :: UserId -> NodeId -> GargServer FileAsyncApi
+fileAsyncApi :: UserId -> NodeId -> ServerT FileAsyncApi (GargM Env GargError)
 fileAsyncApi uId nId =
-  serveJobsAPI $
-    JobFunction (\i l ->
+  serveJobsAPI AddFileJob $ \i l ->
       let
         log' x = do
           printDebug "addWithFile" x
           liftBase $ l x
-      in addWithFile uId nId i log')
+      in addWithFile uId nId i log'
 
 
 addWithFile :: (HasSettings env, FlowCmdM env err m)

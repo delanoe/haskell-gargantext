@@ -6,7 +6,7 @@ name: gargantext
 #         | | | +-----  Layers * : New versions with API additions
 #         | | | | +---  Layers * : New versions without API breaking changes
 #         | | | | |
-version: '0.0.6.7'
+version: '0.0.6.8'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -68,14 +68,20 @@ library:
   - Gargantext.API.Admin.Auth.Types
   - Gargantext.API.Admin.Types
   - Gargantext.API.Prelude
-  - Gargantext.API.Client
   - Gargantext.Core
   - Gargantext.Core.NodeStory
-  - Gargantext.Core.Methods.Distances
+  - Gargantext.Core.Methods.Similarities
   - Gargantext.Core.Types
   - Gargantext.Core.Types.Individu
   - Gargantext.Core.Types.Main
   - Gargantext.Core.Utils.Prefix
+  - Gargantext.Utils.Jobs
+  - Gargantext.Utils.Jobs.API
+  - Gargantext.Utils.Jobs.Map
+  - Gargantext.Utils.Jobs.Monad
+  - Gargantext.Utils.Jobs.Queue
+  - Gargantext.Utils.Jobs.Settings
+  - Gargantext.Utils.Jobs.State
   - Gargantext.Utils.SpacyNLP
   - Gargantext.Database.Action.Flow
   - Gargantext.Database.Action.Flow.Types
@@ -262,6 +268,7 @@ library:
   - singletons # (IGraph)
   - split
   - stemmer
+  - stm
   - swagger2
   - taggy-lens
   - tagsoup
@@ -346,42 +353,6 @@ executables:
       - split
       - unordered-containers
       - full-text-search
-
-
-  gargantext-client:
-    main: Main.hs
-    source-dirs: bin/gargantext-client
-    ghc-options:
-    - -Wall
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -O2
-    - -Wmissing-signatures
-    default-extensions:
-    - DataKinds
-    - DeriveGeneric
-    - FlexibleContexts
-    - FlexibleInstances
-    - GeneralizedNewtypeDeriving
-    - MultiParamTypeClasses
-    - NamedFieldPuns
-    - NoImplicitPrelude
-    - OverloadedStrings
-    - RankNTypes
-    - RecordWildCards
-    dependencies:
-    - base
-    - extra
-    - servant
-    - text
-    - optparse-generic
-    - exceptions
-    - servant-client
-    - servant-auth-client
-    - gargantext
-    - ekg-json
-    - http-client
 
   gargantext-phylo:
     main: Main.hs
@@ -533,6 +504,19 @@ tests:
      - duckling
      - text
      - unordered-containers
+   jobqueue-test:
+     main: Main.hs
+     source-dirs: tests/queue
+     ghc-options:
+     - -threaded
+     - -rtsopts
+     - -with-rtsopts=-N
+     dependencies:
+     - base
+     - gargantext
+     - hspec
+     - async
+     - stm
 #  garg-doctest:
 #    main: Main.hs
 #    source-dirs: src-doctest

@@ -3,6 +3,9 @@
 # Main url serving the FrontEnd
 URL = http://localhost
 
+# The instance name
+BACKEND_NAME = localhost
+
 # Main API url serving the BackEnd
 URL_BACKEND_API = http://localhost:8008/api/v1.0
 

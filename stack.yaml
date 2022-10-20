@@ -33,7 +33,7 @@ ghc-options:
 
 extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-  commit: 08096a4913572cf22762fa77613340207ec6d9fd
+  commit: 03c3c381ba9df6da02a7a3c8d7b78cde9a380d04
 - git: https://gitlab.iscpif.fr/gargantext/gargantext-graph.git
   commit: 588e104fe7593210956610cab0041fd16584a4ce
   # Data Mining Libs
@@ -85,9 +85,8 @@ extra-deps:
 #- arxiv-0.0.3@sha256:02de1114091d11f1f3ab401d104d125ad4301260806feb7f63b3dcefc7db88cf,1588
 
   # NP libs
-  #- git: https://github.com/np/servant-job.git # waiting for PR
 - git: https://github.com/alpmestan/servant-job.git
-  commit: ceb251b91e8ec1804198422a3cdbdab08d843b79
+  commit: b4182487cfe479777c11ca19f3c0d47840b376f6
   #- git: https://github.com/np/patches-map
 - git: https://github.com/delanoe/patches-map
   commit: 76cae88f367976ff091e661ee69a5c3126b94694

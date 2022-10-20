@@ -22,14 +22,15 @@ import Data.Swagger hiding (items)
 import GHC.Float (sin, cos)
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
-import Gargantext.Core.Methods.Distances (Distance(..), measure)
-import Gargantext.Core.Methods.Distances.Conditional (conditional)
+import Gargantext.Core.Methods.Similarities (Similarity(..), measure)
+import Gargantext.Core.Methods.Similarities.Conditional (conditional)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
-import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
+import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Bridgeness(..), Partitions, nodeId2comId)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
 import Gargantext.Core.Viz.Graph.Tools.Infomap (infomap)
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Core.Viz.Graph.Utils (edgesFilter, nodesFilter)
 import Gargantext.Prelude
 import Graph.Types (ClusterNode)
@@ -40,6 +41,7 @@ import qualified Data.HashMap.Strict      as HashMap
 import qualified Data.List                as List
 import qualified Data.Map                 as Map
 import qualified Data.Set                 as Set
+import qualified Data.HashSet             as HashSet
 import qualified Data.Text                as Text
 import qualified Data.Vector.Storable     as Vec
 import qualified Graph.BAC.ProxemyOptim   as BAC
@@ -55,6 +57,14 @@ instance ToSchema  PartitionMethod
 instance Arbitrary PartitionMethod where
   arbitrary = elements [ minBound .. maxBound ]
 
+data BridgenessMethod = BridgenessMethod_Basic | BridgenessMethod_Advanced
+    deriving (Generic, Eq, Ord, Enum, Bounded, Show)
+instance FromJSON  BridgenessMethod
+instance ToJSON    BridgenessMethod
+instance ToSchema  BridgenessMethod
+instance Arbitrary BridgenessMethod where
+  arbitrary = elements [ minBound .. maxBound ]
+
 
 -------------------------------------------------------------
 defaultClustering :: Map (Int, Int) Double -> IO [ClusterNode]
@@ -65,7 +75,7 @@ defaultClustering x = spinglass 1 x
 type Threshold = Double
 
 
-cooc2graph' :: Ord t => Distance
+cooc2graph' :: Ord t => Similarity
                      -> Double
                      -> Map (t, t) Int
                      -> Map (Index, Index) Double
@@ -87,26 +97,30 @@ cooc2graph' distance threshold myCooc
 
 -- coocurrences graph computation
 cooc2graphWith :: PartitionMethod
-               -> Distance
+               -> BridgenessMethod
+               -> MultiPartite
+               -> Similarity
                -> Threshold
                -> Strength
                -> HashMap (NgramsTerm, NgramsTerm) Int
                -> IO Graph
 cooc2graphWith Spinglass = cooc2graphWith' (spinglass 1)
 cooc2graphWith Confluence= cooc2graphWith' (\x -> pure $ BAC.defaultClustering x)
-cooc2graphWith Infomap   = cooc2graphWith' (infomap "--silent --two-level -N2")
+cooc2graphWith Infomap   = cooc2graphWith' (infomap "-v -N2")
+--cooc2graphWith Infomap   = cooc2graphWith' (infomap "--silent --two-level -N2")
                         -- TODO: change these options, or make them configurable in UI?
 
 
-cooc2graphWith' :: ToComId a
-               => Partitions a
-               -> Distance
-               -> Threshold
-               -> Strength
-               -> HashMap (NgramsTerm, NgramsTerm) Int
-               -> IO Graph
-cooc2graphWith' doPartitions distance threshold strength myCooc = do
-  let (distanceMap, diag, ti) = doDistanceMap distance threshold strength myCooc
+cooc2graphWith' :: Partitions
+                -> BridgenessMethod
+                -> MultiPartite
+                -> Similarity
+                -> Threshold
+                -> Strength
+                -> HashMap (NgramsTerm, NgramsTerm) Int
+                -> IO Graph
+cooc2graphWith' doPartitions bridgenessMethod multi similarity threshold strength myCooc = do
+  let (distanceMap, diag, ti) = doSimilarityMap similarity threshold strength myCooc
   distanceMap `seq` diag `seq` ti `seq` return ()
 
 --{- -- Debug
@@ -122,19 +136,18 @@ cooc2graphWith' doPartitions distance threshold strength myCooc = do
                                 , "Tutorial: link todo"
                                 ]
   length partitions `seq` return ()
+
   let
-    nodesApprox :: Int
-    nodesApprox = n'
-      where
-        (as, bs) = List.unzip $ Map.keys distanceMap
-        n' = Set.size $ Set.fromList $ as <> bs
-    !bridgeness' = bridgeness (fromIntegral nodesApprox) partitions distanceMap
-    !confluence' = BAC.computeConfluences 3 (Map.keys bridgeness') True
-  pure $ data2graph ti diag bridgeness' confluence' partitions
+    !confluence' = BAC.computeConfluences 3 (Map.keys distanceMap) True
+    !bridgeness' = if bridgenessMethod == BridgenessMethod_Basic
+                      then bridgeness (Bridgeness_Basic partitions 1.0) distanceMap
+                      else bridgeness (Bridgeness_Advanced similarity confluence') distanceMap
+
+  pure $ data2graph multi ti diag bridgeness' confluence' partitions
 
 type Reverse = Bool
 
-doDistanceMap :: Distance
+doSimilarityMap :: Similarity
               -> Threshold
               -> Strength
               -> HashMap (NgramsTerm, NgramsTerm) Int
@@ -142,7 +155,7 @@ doDistanceMap :: Distance
                  , Map (Index, Index) Int
                  , Map NgramsTerm Index
                  )
-doDistanceMap Distributional threshold strength myCooc = (distanceMap, toIndex ti diag, ti)
+doSimilarityMap Distributional threshold strength myCooc = (distanceMap, toIndex ti diag, ti)
   where
     -- TODO remove below
     (diag, theMatrix) = Map.partitionWithKey (\(x,y) _ -> x == y)
@@ -168,11 +181,11 @@ doDistanceMap Distributional threshold strength myCooc = (distanceMap, toIndex t
                 $ (\m -> m `seq` Map.filter (> threshold) m)
                 $ similarities `seq` mat2map similarities
 
-doDistanceMap Conditional threshold strength myCooc = (distanceMap, toIndex ti myCooc', ti)
+doSimilarityMap Conditional threshold strength myCooc = (distanceMap, toIndex ti myCooc', ti)
   where
     myCooc' = Map.fromList $ HashMap.toList myCooc
     (ti, _it) = createIndices myCooc'
-    links = round (let n :: Double = fromIntegral (Map.size ti) in n * log n)
+    links = round (let n :: Double = fromIntegral (Map.size ti) in n * (log n)^(2::Int))
     distanceMap = toIndex ti
                 $ Map.fromList
                 $ List.take links
@@ -184,36 +197,45 @@ doDistanceMap Conditional threshold strength myCooc = (distanceMap, toIndex ti m
 
 ----------------------------------------------------------
 -- | From data to Graph
-
 type Occurrences      = Int
 
-data2graph :: ToComId a 
-           => Map NgramsTerm Int
+nodeTypeWith :: MultiPartite -> NgramsTerm -> NgramsType
+nodeTypeWith (MultiPartite (Partite s1 t1) (Partite _s2 t2)) t =
+  if HashSet.member t s1
+     then t1
+     else t2
+
+
+data2graph :: MultiPartite
+           -> Map NgramsTerm Int
            -> Map (Int, Int) Occurrences
            -> Map (Int, Int) Double
            -> Map (Int, Int) Double
-           -> [a]
+           -> [ClusterNode]
            -> Graph
-data2graph labels' occurences bridge conf partitions = Graph { _graph_nodes = nodes
-                                                             , _graph_edges = edges
-                                                             , _graph_metadata = Nothing
-                                                             }
-  where
+data2graph multi labels' occurences bridge conf partitions =
+  Graph { _graph_nodes = nodes
+        , _graph_edges = edges
+        , _graph_metadata = Nothing
+        }
+
+   where
 
     nodes = map (setCoord ForceAtlas labels bridge)
           [ (n, Node { node_size    = maybe 0 identity (Map.lookup (n,n) occurences)
-                     , node_type    = Terms -- or Unknown
-                     , node_id      = cs (show n)
-                     , node_label   = unNgramsTerm l
+                     , node_type    = nodeTypeWith multi label
+                     , node_id      = (cs . show) n
+                     , node_label   = unNgramsTerm label
                      , node_x_coord = 0
                      , node_y_coord = 0
-                     , node_attributes = Attributes { clust_default = fromMaybe 0
-                                                       (Map.lookup n community_id_by_node_id)
-                                                    }
+                     , node_attributes =
+                              Attributes { clust_default = fromMaybe 0
+                                                           (Map.lookup n community_id_by_node_id)
+                                         }
                      , node_children = []
                      }
                )
-            | (l, n) <- labels
+            | (label, n) <- labels
             , Set.member n toKeep
             ]
 
@@ -302,7 +324,7 @@ layout m n gen = maybe (panic "") identity $ Map.lookup n $ coord
 
 -----------------------------------------------------------------------------
 -- MISC Tools
-cooc2graph'' :: Ord t => Distance
+cooc2graph'' :: Ord t => Similarity
                       -> Double
                       -> Map (t, t) Int
                       -> Map (Index, Index) Double
