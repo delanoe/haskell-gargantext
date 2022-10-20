@@ -1,12 +1,12 @@
 ## Version 0.0.6.8.1
 
 - [BACK][IMPROVEMENT] Ngrams Extraction without verbs and with better Parsing for French Pos.
+* [BACK][FIX] SQL error disconnection, tested, the issue should be closed
 
 ## Version 0.0.6.8
 * [BACK][FEAT][Flexible job queue system](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/merge_requests/109)
 * [FRONT][FEAT][Doc View, Histogram click on bar -&gt; select documents by Date (#430)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/430)
 * [BACK][OPTIM][Ngrams Table, queries optimization (#144)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/144)
-* [BACK][FIX] SQL error disconnection
 * [FRONT][UPGRADE][Upgrade PS to 0.15 (#395)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/395)
 * [FRONT][GRAPH][Filtering edge weight bring back new edges (#442)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/442)
 * [FRONT][GRAPH][Louvain clustering on filtered graph (#418)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/418)
