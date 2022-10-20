@@ -454,8 +454,10 @@ insertArchiveList c nodeId a = do
   pure ()
   where
     query :: PGS.Query
-    query = [sql| INSERT INTO node_stories(node_id, version, ngrams_type_id, ngrams_id, ngrams_repo_element)
-                    SELECT * WHERE EXISTS (SELECT ?, ?, ?, ngrams.id, ? FROM ngrams WHERE terms = ?) |]
+    query = [sql| WITH s as (SELECT ? as sid, ? sversion, ? sngrams_type_id, ngrams.id as sngrams_id, ?::jsonb as srepo FROM ngrams WHERE terms = ?)
+                  INSERT INTO node_stories(node_id, version, ngrams_type_id, ngrams_id, ngrams_repo_element) 
+                  SELECT s.sid, s.sversion, s.sngrams_type_id, s.sngrams_id, s.srepo from s s join nodes n on s.sid = n.id
+            |]
 
 deleteArchiveList :: PGS.Connection -> NodeId -> ArchiveList -> IO ()
 deleteArchiveList c nodeId a = do
