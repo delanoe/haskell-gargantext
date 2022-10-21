@@ -1,6 +1,10 @@
+## Version 0.0.6.8.2
+
+* [FRONT][FIX][[Doc view] By default sort document from latest to oldest (#457)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/457)
+
 ## Version 0.0.6.8.1
 
-- [BACK][IMPROVEMENT] Ngrams Extraction without verbs and with better Parsing for French Pos.
+* [BACK][IMPROVEMENT] Ngrams Extraction without verbs and with better Parsing for French Pos.
 * [BACK][FIX] SQL error disconnection, tested, the issue should be closed
 
 ## Version 0.0.6.8
