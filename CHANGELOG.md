@@ -2,6 +2,8 @@
 
 * [FRONT][FIX][[Doc view] By default sort document from latest to oldest (#457)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/457)
 * [FRONT][FIX][Regression on Documents&#39; annotation (#456)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/456)
+* [FRONT][FIX][[layout] Move Cache CTA to topbar (#446)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/446)
+* [FRONT][FIX][Graph Explorer: node status change to either candidates or stop (#454)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/454)
 
 ## Version 0.0.6.8.1
 
