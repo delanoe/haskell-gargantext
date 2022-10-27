@@ -45,19 +45,22 @@ tokens2tokensTags :: [Token] -> [TokenTag]
 tokens2tokensTags ts = filter' $ map tokenTag ts
 ------------------------------------------------------------------------
 tokenTag :: Token -> TokenTag
-tokenTag (Token _ w _ l _ _ p n _ _) = TokenTag w' l' p n
+tokenTag (Token { .. }) = TokenTag { _my_token_word = w'
+                                   , _my_token_lemma = l'
+                                   , _my_token_pos = _tokenPos
+                                   , _my_token_ner = _tokenNer }
   where
-    w' = split w
-    l' = fromList (split l)
+    w' = split _tokenWord
+    l' = fromList (split _tokenLemma)
     split = splitOn (pack " ") . toLower
 
 filter' :: [TokenTag] -> [TokenTag]
 filter' xs = filter isNgrams xs
     where
-      isNgrams (TokenTag _ _ p n) = isJust p || isJust n
+      isNgrams (TokenTag { .. }) = isJust _my_token_pos || isJust _my_token_ner
 
 ------------------------------------------------------------------------
--- request = 
+-- request =
 -- "fr" : {
 --                 "tokenize.language" : "fr",
 --                 "pos.model" : "edu/stanford/nlp/models/pos-tagger/french/french.tagger",
@@ -66,9 +69,9 @@ filter' xs = filter isNgrams xs
 --                 "depparse.model" : "edu/stanford/nlp/models/parser/nndep/UD_French.gz",
 --                 "depparse.language" : "french",
 --                 "ner.model":  DATA_ROOT+"/eunews.fr.crf.gz",
---                 "ssplit.newlineIsSentenceBreak": "always" 
+--                 "ssplit.newlineIsSentenceBreak": "always"
 --             },
--- 
+--
 
 corenlp' :: ( FromJSON a
             , ConvertibleStrings p ByteString
@@ -80,6 +83,7 @@ corenlp' lang txt = do
             FR -> "{\"annotators\": \"tokenize,ssplit,pos,lemma,ner\", \"parse.model\":\"edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz\", \"pos.model\":\"edu/stanford/nlp/models/pos-tagger/french/french.tagger\", \"tokenize.language\":\"fr\", \"outputFormat\": \"json\"}"
             _  -> panic $ pack "not implemented yet"
     url <- parseRequest $ "POST http://localhost:9000/?properties=" <> properties
+    -- curl -XPOST 'http://localhost:9000/?properties=%7B%22annotators%22:%20%22tokenize,ssplit,pos,ner%22,%20%22outputFormat%22:%20%22json%22%7D' -d 'hello world, hello' | jq .
     let request = setRequestBodyLBS (cs txt) url
     httpJSON request
 

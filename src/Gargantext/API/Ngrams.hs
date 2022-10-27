@@ -184,9 +184,9 @@ saveNodeStory :: ( MonadReader env m, MonadBase IO m, HasNodeStorySaver env )
 saveNodeStory = do
   saver <- view hasNodeStorySaver
   liftBase $ do
-    Gargantext.Prelude.putStrLn "---- Running node story saver ----"
+    --Gargantext.Prelude.putStrLn "---- Running node story saver ----"
     saver
-    Gargantext.Prelude.putStrLn "---- Node story saver finished ----"
+    --Gargantext.Prelude.putStrLn "---- Node story saver finished ----"
 
 
 saveNodeStoryImmediate :: ( MonadReader env m, MonadBase IO m, HasNodeStoryImmediateSaver env )
@@ -194,9 +194,9 @@ saveNodeStoryImmediate :: ( MonadReader env m, MonadBase IO m, HasNodeStoryImmed
 saveNodeStoryImmediate = do
   saver <- view hasNodeStoryImmediateSaver
   liftBase $ do
-    Gargantext.Prelude.putStrLn "---- Running node story immediate saver ----"
+    --Gargantext.Prelude.putStrLn "---- Running node story immediate saver ----"
     saver
-    Gargantext.Prelude.putStrLn "---- Node story immediate saver finished ----"
+    --Gargantext.Prelude.putStrLn "---- Node story immediate saver finished ----"
 
 
 listTypeConflictResolution :: ListType -> ListType -> ListType

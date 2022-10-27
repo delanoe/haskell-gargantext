@@ -30,4 +30,3 @@ group2 p1 p2 (x@(TokenTag _ _ Nothing _):y) = (x: group2 p1 p2 y)
 group2 _ _ [x@(TokenTag _ _ (Just _) _)] = [x]
 group2 p1 p2 (x@(TokenTag _ _ (Just _) _):y@(TokenTag _ _ Nothing _):z) = (x:y: group2 p1 p2 (y:z))
 group2 _ _ [] = []
-

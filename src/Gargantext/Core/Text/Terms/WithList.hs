@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Core.Text.Terms.WithList
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -21,6 +21,8 @@ import Data.Text (Text, concat, unwords)
 import Gargantext.Prelude
 import Gargantext.Core.Text.Context
 import Gargantext.Core.Text.Terms.Mono (monoTextsBySentence)
+import Gargantext.Core.Types (TermsCount)
+import Gargantext.Core.Utils (groupWithCounts)
 import Prelude (error)
 import qualified Data.Algorithms.KMP as KMP
 import qualified Data.IntMap.Strict  as IntMap
@@ -72,8 +74,8 @@ buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern
 -- Utils
 type BlockText   = Text
 type MatchedText = Text
-termsInText :: Patterns -> BlockText -> [MatchedText]
-termsInText pats txt = List.nub
+termsInText :: Patterns -> BlockText -> [(MatchedText, TermsCount)]
+termsInText pats txt = groupWithCounts
                      $ List.concat
                      $ map (map unwords)
                      $ extractTermsWithList pats txt
@@ -96,7 +98,7 @@ extractTermsWithList' pats = map (concat . map concat . replaceTerms pats)
 {- | Not used
 filterWith :: TermList
            -> (a -> Text)
-           -> [a] 
+           -> [a]
            -> [(a, [Text])]
 filterWith termList f xs = filterWith' termList f zip xs
 
@@ -104,7 +106,7 @@ filterWith termList f xs = filterWith' termList f zip xs
 filterWith' :: TermList
            -> (a -> Text)
            -> ([a] -> [[Text]] -> [b])
-           -> [a] 
+           -> [a]
            -> [b]
 filterWith' termList f f' xs = f' xs
                             $ map (extractTermsWithList' pats)
