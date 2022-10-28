@@ -27,6 +27,7 @@ import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Context
 import Gargantext.Database.Query.Table.NodeContext
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Query.Table.NodeContext_NodeContext
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Context
@@ -50,6 +51,21 @@ searchDocInDatabase p t = runOpaQuery (queryDocInDatabase p t)
         restrict -< (_ns_search row)    @@ (sqlTSQuery (unpack q))
         restrict -< (_ns_typename row) .== (sqlInt4 $ toDBid NodeDocument)
         returnA  -< (_ns_id row, _ns_hyperdata row)
+
+------------------------------------------------------------------------
+
+searchInCorpusWithNgrams :: HasDBid NodeType
+               => CorpusId
+               -> ListId
+               -> IsTrash
+               -> NgramsType
+               -> [[Text]]
+               -> Maybe Offset
+               -> Maybe Limit
+               -> Maybe OrderBy
+               -> Cmd err [FacetDoc]
+searchInCorpusWithNgrams cId lId t ngt q o l order = undefined
+
 
 ------------------------------------------------------------------------
 -- | todo add limit and offset and order
