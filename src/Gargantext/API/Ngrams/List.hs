@@ -266,7 +266,7 @@ parseCsvData lst = Map.fromList $ conv <$> lst
                                              , _nre_children = MSet
                                                              $ Map.fromList
                                                              $ map (\form -> (NgramsTerm form, ()))
-                                                             $ filter (/= "")
+                                                             $ filter (\w -> w /= "" && w /= label)
                                                              $ splitOn "|&|" forms
                                              }
          )
