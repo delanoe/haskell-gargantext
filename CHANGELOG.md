@@ -1,10 +1,11 @@
-## Version 0.0.6.7.2
+## Version 0.0.6.8.3
 
 * [FRONT][SECU][Security Issue with Teams (#452)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/452)
 * [FRONT][FEAT][Graph Explorer: disable controls when ForceAtlas is running (#451)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/451)
 * [FRONT][FIX][[Doc date filter] Filter by multiple dates (#450)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/450)
 * [FRONT][ERGO][[layout] Description node block hide feature (#447)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/447)
 * [FRONT][ERGO][[layout] Node view additions (#448)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/448)
+* [BACK][FIX][Problem at list import (#148)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/148)
 
 ## Version 0.0.6.8.2
 
