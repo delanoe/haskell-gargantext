@@ -14,7 +14,10 @@ module Gargantext.Database.Action.Search where
 
 import Control.Arrow (returnA)
 import Control.Lens ((^.))
+import qualified Data.List as List
+import qualified Data.Map as Map
 import Data.Maybe
+import qualified Data.Set as Set
 import Data.Text (Text, unpack, intercalate)
 import Data.Time (UTCTime)
 import Gargantext.Core
@@ -26,9 +29,11 @@ import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Context
+import Gargantext.Database.Query.Table.ContextNodeNgrams (queryContextNodeNgramsTable)
 import Gargantext.Database.Query.Table.NodeContext
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Query.Table.NodeContext_NodeContext
+import Gargantext.Database.Schema.ContextNodeNgrams (ContextNodeNgramsPoly(..))
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Context
 import Gargantext.Prelude
@@ -44,7 +49,7 @@ searchDocInDatabase :: HasDBid NodeType
                     -> Cmd err [(NodeId, HyperdataDocument)]
 searchDocInDatabase p t = runOpaQuery (queryDocInDatabase p t)
   where
-    -- | Global search query where ParentId is Master Node Corpus Id 
+    -- | Global search query where ParentId is Master Node Corpus Id
     queryDocInDatabase :: ParentId -> Text -> O.Select (Column SqlInt4, Column SqlJsonb)
     queryDocInDatabase _p q = proc () -> do
         row <- queryNodeSearchTable -< ()
@@ -54,6 +59,8 @@ searchDocInDatabase p t = runOpaQuery (queryDocInDatabase p t)
 
 ------------------------------------------------------------------------
 
+-- | Search ngrams in documents, ranking them by TF-IDF. We narrow our
+-- search only to map/candidate terms.
 searchInCorpusWithNgrams :: HasDBid NodeType
                => CorpusId
                -> ListId
@@ -64,7 +71,59 @@ searchInCorpusWithNgrams :: HasDBid NodeType
                -> Maybe Limit
                -> Maybe OrderBy
                -> Cmd err [FacetDoc]
-searchInCorpusWithNgrams cId lId t ngt q o l order = undefined
+searchInCorpusWithNgrams _cId _lId _t _ngt _q _o _l _order = undefined
+
+-- | Compute TF-IDF for all 'ngramIds' in given 'CorpusId'. In this
+-- case only the "TF" part makes sense and so we only compute the
+-- ratio of "number of times our terms appear in given document" and
+-- "number of all terms in document" and return a sorted list of
+-- document ids
+tfidfAll :: CorpusId -> [Int] -> Cmd err [Int]
+tfidfAll cId ngramIds = do
+  let ngramIdsSet = Set.fromList ngramIds
+  docsWithNgrams <- runOpaQuery (queryCorpusWithNgrams cId ngramIds) :: Cmd err [(Int, Int, Int)]
+  -- NOTE The query returned docs with ANY ngramIds. We need to further
+  -- restrict to ALL ngramIds.
+  let docsNgramsM =
+        Map.fromListWith (Set.union)
+            [ (ctxId, Set.singleton ngrams_id)
+            | (ctxId, ngrams_id, _) <- docsWithNgrams]
+  let docsWithAllNgramsS = Set.fromList $ List.map fst $
+        List.filter (\(_, docNgrams) ->
+                        ngramIdsSet == Set.intersection ngramIdsSet docNgrams) $ Map.toList docsNgramsM
+  let docsWithAllNgrams =
+        List.filter (\(ctxId, _, _) ->
+                       Set.member ctxId docsWithAllNgramsS) docsWithNgrams
+  printDebug "[tfidfAll] docsWithAllNgrams" docsWithAllNgrams
+  let docsWithCounts = Map.fromListWith (+) [ (ctxId, doc_count)
+                                            | (ctxId, _, doc_count) <- docsWithAllNgrams]
+  printDebug "[tfidfAll] docsWithCounts" docsWithCounts
+  let totals = [ ( ctxId
+                 , ngrams_id
+                 , fromIntegral doc_count :: Double
+                 , fromIntegral (fromMaybe 0 $ Map.lookup ctxId docsWithCounts) :: Double)
+               | (ctxId, ngrams_id, doc_count) <- docsWithAllNgrams]
+  let tfidf_sorted = List.sortOn snd [(ctxId, doc_count/s)
+                                     | (ctxId, _, doc_count, s) <- totals]
+  pure $ List.map fst $ List.reverse tfidf_sorted
+
+-- | Query for searching the 'context_node_ngrams' table so that we
+-- find docs with ANY given 'ngramIds'.
+queryCorpusWithNgrams :: CorpusId -> [Int] -> Select (Column SqlInt4, Column SqlInt4, Column SqlInt4)
+queryCorpusWithNgrams cId ngramIds = proc () -> do
+  row <- queryContextNodeNgramsTable -< ()
+  restrict -< (_cnng_node_id row) .== (pgNodeId cId)
+  restrict -< in_ (sqlInt4 <$> ngramIds) (_cnng_ngrams_id row)
+  returnA -< ( _cnng_context_id row
+             , _cnng_ngrams_id row
+             , _cnng_doc_count row)
+  --returnA -< row
+  -- returnA -< ( _cnng_context_id row
+  --            , _cnng_node_id row
+  --            , _cnng_ngrams_id row
+  --            , _cnng_ngramsType row
+  --            , _cnng_weight row
+  --            , _cnng_doc_count row)
 
 
 ------------------------------------------------------------------------
@@ -225,4 +284,3 @@ queryContactViaDoc =
                   )
                 ) -> Column SqlBool
       cond45 (doc, (corpus, (_,(_,_)))) = doc^.cs_id .== corpus^.nc_context_id
-

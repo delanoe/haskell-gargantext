@@ -171,17 +171,10 @@ isSimpleNgrams _                = False
 -- 'MonoMulti' : mono and multi
 -- TODO : multi terms should exclude mono (intersection is not empty yet)
 terms :: TermType Lang -> Text -> IO [TermsWithCount]
-terms tt txt = do
-  printDebug "[terms] tt" tt
-  printDebug "[terms] txt" txt
-  out <- termsNoLog tt txt
-  printDebug "[terms] out" out
-  pure out
-termsNoLog :: TermType Lang -> Text -> IO [TermsWithCount]
-termsNoLog (Mono      lang) txt = pure $ monoTerms lang txt
-termsNoLog (Multi     lang) txt = multiterms lang txt
-termsNoLog (MonoMulti lang) txt = terms (Multi lang) txt
-termsNoLog (Unsupervised { .. }) txt = pure $ termsUnsupervised (Unsupervised { _tt_model = Just m', .. }) txt
+terms (Mono      lang) txt = pure $ monoTerms lang txt
+terms (Multi     lang) txt = multiterms lang txt
+terms (MonoMulti lang) txt = terms (Multi lang) txt
+terms (Unsupervised { .. }) txt = pure $ termsUnsupervised (Unsupervised { _tt_model = Just m', .. }) txt
   where
     m' = maybe (newTries _tt_ngramsSize txt) identity _tt_model
 -- terms (WithList  list) txt = pure . concat $ extractTermsWithList list txt

@@ -375,7 +375,7 @@ saveDocNgramsWith :: (FlowCmdM env err m)
                   -> HashMap ExtractedNgrams (Map NgramsType (Map NodeId (Int, TermsCount)))
                   -> m ()
 saveDocNgramsWith lId mapNgramsDocs' = do
-  printDebug "[saveDocNgramsWith] mapNgramsDocs'" mapNgramsDocs'
+  --printDebug "[saveDocNgramsWith] mapNgramsDocs'" mapNgramsDocs'
   let mapNgramsDocsNoCount = over (traverse . traverse . traverse) fst mapNgramsDocs'
   terms2id <- insertExtractedNgrams $ HashMap.keys mapNgramsDocsNoCount
 
@@ -524,8 +524,6 @@ instance ExtractNgramsT HyperdataDocument
           termsWithCounts' <- map (\(t, cnt) -> (enrichedTerms (lang' ^. tt_lang) CoreNLP NP t, cnt))
                               <$> concat
                               <$> liftBase (extractTerms lang' $ hasText doc)
-          printDebug "[extractNgramsT HyperdataDocument] termsWithCounts'" termsWithCounts'
-          printDebug "[extractNgramsT HyperdataDocument] termsWithLargerCounts" $ filter (\(_, cnt) -> cnt > 1) termsWithCounts'
 
           pure $ HashMap.fromList
                $  [(SimpleNgrams source, (Map.singleton Sources     1, 1))                    ]

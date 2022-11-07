@@ -70,7 +70,7 @@ api nId (SearchQuery q SearchContact) o l order = do
             <$> map (toRow aId)
             <$> searchInCorpusWithContacts nId aId (concat q) o l order
 
-api nId (SearchQuery q SearchDocWithNgrams) o l order = undefined
+api _nId (SearchQuery _q SearchDocWithNgrams) _o _l _order = undefined
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
@@ -135,7 +135,7 @@ instance FromJSON SearchResultTypes where
   parseJSON = genericParseJSON (defaultOptions { sumEncoding = defaultTaggedObject })
 instance ToJSON SearchResultTypes where
   toJSON = genericToJSON (defaultOptions { sumEncoding = defaultTaggedObject })
- 
+
 instance Arbitrary SearchResultTypes where
   arbitrary = do
     srd <- SearchResultDoc     <$> arbitrary
@@ -166,7 +166,7 @@ data Row =
   deriving (Generic)
 instance FromJSON  Row
   where
-    parseJSON = genericParseJSON 
+    parseJSON = genericParseJSON
                  ( defaultOptions { sumEncoding = defaultTaggedObject } )
 instance ToJSON  Row
   where
