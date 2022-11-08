@@ -7,6 +7,8 @@
 * [FRONT][ERGO][[layout] Node view additions (#448)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/448)
 * [BACK][FIX][Problem at list import (#148)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/148)
 * [FRONT][FIX][CSS in Graph Explorer toolbar (#460)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/460)
+* [BACK][FEAT] Bridgeness with more links
+
 
 ## Version 0.0.6.8.2
 
