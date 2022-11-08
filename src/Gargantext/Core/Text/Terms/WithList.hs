@@ -70,9 +70,8 @@ buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern
 
 --------------------------------------------------------------------------
 -- Utils
-type BlockText   = Text
 type MatchedText = Text
-termsInText :: Patterns -> BlockText -> [MatchedText]
+termsInText :: Patterns -> Text -> [MatchedText]
 termsInText pats txt = List.nub
                      $ List.concat
                      $ map (map unwords)

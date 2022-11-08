@@ -158,7 +158,7 @@ reIndexWith cId lId nt lts = do
   -- Checking Text documents where orphans match
   -- TODO Tests here
   let
-    ngramsByDoc = map (HashMap.fromList)
+    ngramsByDoc = map (HashMap.fromListWith (<>))
                 $ map (map (\(k,v) -> (SimpleNgrams (text2ngrams k), v)))
                 $ map (\doc -> List.zip
                                 (termsInText (buildPatterns $ map (\k -> (Text.splitOn " " $ unNgramsTerm k, [])) orphans)
