@@ -109,10 +109,10 @@ filterComs _b m = Map.filter (\n -> length n > 0) $ mapWithKey filter' m
     filter' (c1,c2) a
       | c1 == c2  = a
       -- TODO use n here
-      | otherwise = take 1 $ List.sortOn (Down . snd) a
+      | otherwise = take n $ List.sortOn (Down . snd) a
            where
-            _n :: Int
-            _n = round $ 100 * a' / t
+            n :: Int
+            n = round $ 100 * a' / t
             a'= fromIntegral $ length a
             t :: Double
             t = fromIntegral $ length $ List.concat $ elems m
