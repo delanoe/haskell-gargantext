@@ -6,6 +6,7 @@
 * [FRONT][ERGO][[layout] Description node block hide feature (#447)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/447)
 * [FRONT][ERGO][[layout] Node view additions (#448)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/448)
 * [BACK][FIX][Problem at list import (#148)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/148)
+* [FRONT][FIX][CSS in Graph Explorer toolbar (#460)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/460)
 
 ## Version 0.0.6.8.2
 
