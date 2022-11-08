@@ -1,3 +1,6 @@
+## Version 0.0.6.8.4
+* [BACK][FEAT] Fix reindexing functions
+
 ## Version 0.0.6.8.3
 
 * [FRONT][SECU][Security Issue with Teams (#452)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/452)
