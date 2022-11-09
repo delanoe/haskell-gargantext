@@ -70,7 +70,7 @@ testPrios = do
              ]
   _jids <- forM jobs $ \(t, f) -> do
     pushJob t () f settings st
-  threadDelay initialDelay
+  threadDelay (2*initialDelay)
   r1 <- readTVarIO runningJs
   r1 `shouldBe` (Counts 0 2)
   threadDelay jobDuration
