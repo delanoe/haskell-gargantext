@@ -557,57 +557,41 @@ getTableNgrams _nType nId tabType listId limit_ offset
     sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view ne_occurrences
 
     ---------------------------------------
+    -- | Filter the given `tableMap` with the search criteria.
     filteredNodes :: Map NgramsTerm NgramsElement -> [NgramsElement]
-    filteredNodes tableMap = roots <> inners
-    --  rootOf <$> list & filter selected_node
+    filteredNodes tableMap = roots
       where
         list = tableMap ^.. each
         selected_nodes = list & filter selected_node
         roots = rootOf tableMap <$> selected_nodes
+
+    -- | Appends subitems (selected from `tableMap`) for given `roots`.
+    withInners :: Map NgramsTerm NgramsElement -> [NgramsElement] -> [NgramsElement]
+    withInners tableMap roots = roots <> inners
+      where
+        list = tableMap ^.. each
         rootSet = Set.fromList (_ne_ngrams <$> roots)
         inners = list & filter (selected_inner rootSet)
 
-    ---------------------------------------
-    -- selectAndPaginate :: Map NgramsTerm NgramsElement -> [NgramsElement]
-    -- selectAndPaginate tableMap = roots <> inners
-    --   where
-    --     list = tableMap ^.. each
-    --     selected_nodes = list & take limit_
-    --                           . drop offset'
-    --                           . filter selected_node
-    --                           . sortOnOrder orderBy
-    --     roots = rootOf tableMap <$> selected_nodes
-    --     rootsSet = Set.fromList (_ne_ngrams <$> roots)
-    --     inners = list & filter (selected_inner rootsSet)
-
-    paginate :: [NgramsElement] -> [NgramsElement]
-    paginate = take limit_
-               . drop offset'
-               . sortOnOrder orderBy
+    -- | Paginate the results
+    sortAndPaginate :: [NgramsElement] -> [NgramsElement]
+    sortAndPaginate = take limit_
+                      . drop offset'
+                      . sortOnOrder orderBy
 
     ---------------------------------------
-
-  -- lists <- catMaybes <$> listsWith userMaster
-  -- trace (show lists) $
-  -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
-
 
   let scoresNeeded = needsScores orderBy
   t1 <- getTime
 
-  tableMap2 <- getNgramsTable' nId listId ngramsType orderBy
+  tableMap2 <- getNgramsTable' nId listId ngramsType :: m (Versioned (Map NgramsTerm NgramsElement))
 
-  fltr <- tableMap2 & v_data %%~ fmap NgramsTable
-          . (setNgramsTableScores nId listId ngramsType (not scoresNeeded))
-          . filteredNodes
-  printDebug "[getNgramsTable] fltr" fltr
+  let fltr = tableMap2 & v_data %~ NgramsTable . filteredNodes :: Versioned NgramsTable
 
   let fltrCount = length $ fltr ^. v_data . _NgramsTable
 
   t2 <- getTime
-  --tableMap3 <- tableMap2 & v_data %%~ fmapScores . selectAndPaginate :: m (Versioned NgramsTable)
-  --let tableMap3 = fltr & v_data . _NgramsTable . each %%~ selectAndPaginate' :: Versioned NgramsTable
-  let tableMap3 = over (v_data . _NgramsTable) paginate fltr
+  let tableMap3 = over (v_data . _NgramsTable) ((withInners (tableMap2 ^. v_data)) . sortAndPaginate) fltr
   t3 <- getTime
   liftBase $ do
     hprint stderr
@@ -623,6 +607,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
   pure $ toVersionedWithCount fltrCount tableMap3
 
 
+-- | Helper function to get the ngrams table with scores.
 getNgramsTable' :: forall env err m.
                    ( HasNodeStory env err m
                    , HasNodeError err
@@ -632,15 +617,13 @@ getNgramsTable' :: forall env err m.
                 => NodeId
                 -> ListId
                 -> TableNgrams.NgramsType
-                -> Maybe OrderBy
                 -> m (Versioned (Map.Map NgramsTerm NgramsElement))
-getNgramsTable' nId listId ngramsType orderBy = do
-  let scoresNeeded = needsScores orderBy
+getNgramsTable' nId listId ngramsType = do
   tableMap1 <- getNgramsTableMap listId ngramsType
-  tableMap1 & v_data %%~ (setNgramsTableScores nId listId ngramsType scoresNeeded)
+  tableMap1 & v_data %%~ (setNgramsTableScores nId listId ngramsType)
                        . Map.mapWithKey ngramsElementFromRepo
 
-    ---------------------------------------
+-- | Helper function to set scores on an `NgramsTable`.
 setNgramsTableScores :: forall env err m t.
                         ( Each t t NgramsElement NgramsElement
                         , HasNodeStory env err m
@@ -651,11 +634,9 @@ setNgramsTableScores :: forall env err m t.
                      => NodeId
                      -> ListId
                      -> TableNgrams.NgramsType
-                     -> Bool
                      -> t
                      -> m t
-setNgramsTableScores _ _ _ False table = pure table
-setNgramsTableScores nId listId ngramsType True  table = do
+setNgramsTableScores nId listId ngramsType  table = do
   let ngrams_terms = table ^.. each . ne_ngrams
   -- printDebug "ngrams_terms" ngrams_terms
   t1 <- getTime
@@ -678,7 +659,7 @@ scoresRecomputeTableNgrams :: forall env err m.
   => NodeId -> TabType -> ListId -> m Int
 scoresRecomputeTableNgrams nId tabType listId = do
   tableMap <- getNgramsTableMap listId ngramsType
-  _ <- tableMap & v_data %%~ (setNgramsTableScores nId listId ngramsType True)
+  _ <- tableMap & v_data %%~ (setNgramsTableScores nId listId ngramsType)
                            . Map.mapWithKey ngramsElementFromRepo
 
   pure $ 1
