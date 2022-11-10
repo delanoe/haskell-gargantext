@@ -83,7 +83,7 @@ module Gargantext.API.Ngrams
   where
 
 import Control.Concurrent
-import Control.Lens ((.~), view, (^.), (^..), (+~), (%~), (.~), sumOf, at, _Just, Each(..), (%%~), mapped, ifolded, withIndex)
+import Control.Lens ((.~), view, (^.), (^..), (+~), (%~), (.~), sumOf, at, _Just, Each(..), (%%~), mapped, ifolded, withIndex, over)
 import Control.Monad.Reader
 import Data.Aeson hiding ((.=))
 import Data.Either (Either(..))
@@ -535,6 +535,11 @@ getTableNgrams _nType nId tabType listId limit_ offset
     minSize'  = maybe (const True) (<=) minSize
     maxSize'  = maybe (const True) (>=) maxSize
 
+    rootOf tableMap ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
+                                    (tableMap ^. at r)
+                                  )
+                         (ne ^. ne_root)
+
     selected_node n = minSize'     s
                    && maxSize'     s
                    && searchQuery  (n ^. ne_ngrams)
@@ -553,30 +558,32 @@ getTableNgrams _nType nId tabType listId limit_ offset
 
     ---------------------------------------
     filteredNodes :: Map NgramsTerm NgramsElement -> [NgramsElement]
-    filteredNodes tableMap = rootOf <$> list & filter selected_node
+    filteredNodes tableMap = roots <> inners
+    --  rootOf <$> list & filter selected_node
       where
-        rootOf ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
-                                              (tableMap ^. at r)
-                             )
-                             (ne ^. ne_root)
         list = tableMap ^.. each
+        selected_nodes = list & filter selected_node
+        roots = rootOf tableMap <$> selected_nodes
+        rootSet = Set.fromList (_ne_ngrams <$> roots)
+        inners = list & filter (selected_inner rootSet)
 
     ---------------------------------------
-    selectAndPaginate :: Map NgramsTerm NgramsElement -> [NgramsElement]
-    selectAndPaginate tableMap = roots <> inners
-      where
-        list = tableMap ^.. each
-        rootOf ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
-                                              (tableMap ^. at r)
-                             )
-                             (ne ^. ne_root)
-        selected_nodes = list & take limit_
-                              . drop offset'
-                              . filter selected_node
-                              . sortOnOrder orderBy
-        roots = rootOf <$> selected_nodes
-        rootsSet = Set.fromList (_ne_ngrams <$> roots)
-        inners = list & filter (selected_inner rootsSet)
+    -- selectAndPaginate :: Map NgramsTerm NgramsElement -> [NgramsElement]
+    -- selectAndPaginate tableMap = roots <> inners
+    --   where
+    --     list = tableMap ^.. each
+    --     selected_nodes = list & take limit_
+    --                           . drop offset'
+    --                           . filter selected_node
+    --                           . sortOnOrder orderBy
+    --     roots = rootOf tableMap <$> selected_nodes
+    --     rootsSet = Set.fromList (_ne_ngrams <$> roots)
+    --     inners = list & filter (selected_inner rootsSet)
+
+    paginate :: [NgramsElement] -> [NgramsElement]
+    paginate = take limit_
+               . drop offset'
+               . sortOnOrder orderBy
 
     ---------------------------------------
 
@@ -590,16 +597,17 @@ getTableNgrams _nType nId tabType listId limit_ offset
 
   tableMap2 <- getNgramsTable' nId listId ngramsType orderBy
 
-  -- TODO Refactor: `fltr` and `tableMap3` use very similar functions
-  let fmapScores = fmap NgramsTable
-        . (setNgramsTableScores nId listId ngramsType (not scoresNeeded))
-
-  fltr <- tableMap2 & v_data %%~ fmapScores . filteredNodes
+  fltr <- tableMap2 & v_data %%~ fmap NgramsTable
+          . (setNgramsTableScores nId listId ngramsType (not scoresNeeded))
+          . filteredNodes
+  printDebug "[getNgramsTable] fltr" fltr
 
   let fltrCount = length $ fltr ^. v_data . _NgramsTable
 
   t2 <- getTime
-  tableMap3 <- tableMap2 & v_data %%~ fmapScores . selectAndPaginate
+  --tableMap3 <- tableMap2 & v_data %%~ fmapScores . selectAndPaginate :: m (Versioned NgramsTable)
+  --let tableMap3 = fltr & v_data . _NgramsTable . each %%~ selectAndPaginate' :: Versioned NgramsTable
+  let tableMap3 = over (v_data . _NgramsTable) paginate fltr
   t3 <- getTime
   liftBase $ do
     hprint stderr
