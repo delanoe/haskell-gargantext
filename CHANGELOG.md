@@ -1,5 +1,6 @@
 ## Version 0.0.6.8.4
 * [BACK][FEAT] Fix reindexing functions
+* [FRONT][FIX][FEEDBACK ON 0.0.6.8.2 (#459)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/459)
 
 ## Version 0.0.6.8.3
 
