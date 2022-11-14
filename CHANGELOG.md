@@ -1,4 +1,5 @@
 ## Version 0.0.6.8.5
+* [BACK][FIX][Ngrams Table, page sort / limit (#149)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/149)
 * [FRONT][FIX][Security Issue with Teams (#452)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/452)
 * [FRONT][FIX][Darkster Mode: when creating a node we miss informations (#461)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/461)
 
