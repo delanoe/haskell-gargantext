@@ -69,6 +69,9 @@ module Gargantext.API.Ngrams
   , tableNgramsPull
   , tableNgramsPut
 
+  , getNgramsTable'
+  , setNgramsTableScores
+
   , Version
   , Versioned(..)
   , VersionedWithCount(..)
@@ -80,7 +83,7 @@ module Gargantext.API.Ngrams
   where
 
 import Control.Concurrent
-import Control.Lens ((.~), view, (^.), (^..), (+~), (%~), (.~), sumOf, at, _Just, Each(..), (%%~), mapped, ifolded, withIndex)
+import Control.Lens ((.~), view, (^.), (^..), (+~), (%~), (.~), sumOf, at, _Just, Each(..), (%%~), mapped, ifolded, withIndex, over)
 import Control.Monad.Reader
 import Data.Aeson hiding ((.=))
 import Data.Either (Either(..))
@@ -532,6 +535,11 @@ getTableNgrams _nType nId tabType listId limit_ offset
     minSize'  = maybe (const True) (<=) minSize
     maxSize'  = maybe (const True) (>=) maxSize
 
+    rootOf tableMap ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
+                                    (tableMap ^. at r)
+                                  )
+                         (ne ^. ne_root)
+
     selected_node n = minSize'     s
                    && maxSize'     s
                    && searchQuery  (n ^. ne_ngrams)
@@ -549,84 +557,100 @@ getTableNgrams _nType nId tabType listId limit_ offset
     sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view ne_occurrences
 
     ---------------------------------------
+    -- | Filter the given `tableMap` with the search criteria.
     filteredNodes :: Map NgramsTerm NgramsElement -> [NgramsElement]
-    filteredNodes tableMap = rootOf <$> list & filter selected_node
-      where
-        rootOf ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
-                                              (tableMap ^. at r)
-                             )
-                             (ne ^. ne_root)
-        list = tableMap ^.. each
-
-    ---------------------------------------
-    selectAndPaginate :: Map NgramsTerm NgramsElement -> [NgramsElement]
-    selectAndPaginate tableMap = roots <> inners
+    filteredNodes tableMap = roots
       where
         list = tableMap ^.. each
-        rootOf ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
-                                              (tableMap ^. at r)
-                             )
-                             (ne ^. ne_root)
-        selected_nodes = list & take limit_
-                              . drop offset'
-                              . filter selected_node
-                              . sortOnOrder orderBy
-        roots = rootOf <$> selected_nodes
-        rootsSet = Set.fromList (_ne_ngrams <$> roots)
-        inners = list & filter (selected_inner rootsSet)
+        selected_nodes = list & filter selected_node
+        roots = rootOf tableMap <$> selected_nodes
+
+    -- | Appends subitems (selected from `tableMap`) for given `roots`.
+    withInners :: Map NgramsTerm NgramsElement -> [NgramsElement] -> [NgramsElement]
+    withInners tableMap roots = roots <> inners
+      where
+        list = tableMap ^.. each
+        rootSet = Set.fromList (_ne_ngrams <$> roots)
+        inners = list & filter (selected_inner rootSet)
+
+    -- | Paginate the results
+    sortAndPaginate :: [NgramsElement] -> [NgramsElement]
+    sortAndPaginate = take limit_
+                      . drop offset'
+                      . sortOnOrder orderBy
 
     ---------------------------------------
-    setScores :: forall t. Each t t NgramsElement NgramsElement => Bool -> t -> m t
-    setScores False table = pure table
-    setScores True  table = do
-      let ngrams_terms = table ^.. each . ne_ngrams
-      -- printDebug "ngrams_terms" ngrams_terms
-      t1 <- getTime
-      occurrences <- getOccByNgramsOnlyFast nId
-                                             listId
-                                            ngramsType
-      --printDebug "occurrences" occurrences
-      t2 <- getTime
-      liftBase $ hprint stderr
-        ("getTableNgrams/setScores #ngrams=" % int % " time=" % hasTime % "\n")
-        (length ngrams_terms) t1 t2
-      let
-        setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
-
-      pure $ table & each %~ setOcc
-    ---------------------------------------
-
-  -- lists <- catMaybes <$> listsWith userMaster
-  -- trace (show lists) $
-  -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
-
 
   let scoresNeeded = needsScores orderBy
-  tableMap1 <- getNgramsTableMap listId ngramsType
   t1 <- getTime
 
-  tableMap2 <- tableMap1 & v_data %%~ setScores scoresNeeded
-                                    . Map.mapWithKey ngramsElementFromRepo
+  tableMap2 <- getNgramsTable' nId listId ngramsType :: m (Versioned (Map NgramsTerm NgramsElement))
 
-  fltr <- tableMap2 & v_data %%~ fmap NgramsTable . setScores (not scoresNeeded)
-                                                  . filteredNodes
+  let fltr = tableMap2 & v_data %~ NgramsTable . filteredNodes :: Versioned NgramsTable
 
   let fltrCount = length $ fltr ^. v_data . _NgramsTable
 
   t2 <- getTime
-  tableMap3 <- tableMap2 & v_data %%~ fmap NgramsTable
-                                    . setScores (not scoresNeeded)
-                                    . selectAndPaginate
+  let tableMap3 = over (v_data . _NgramsTable) ((withInners (tableMap2 ^. v_data)) . sortAndPaginate) fltr
   t3 <- getTime
-  liftBase $ hprint stderr
-            ("getTableNgrams total=" % hasTime
-                          % " map1=" % hasTime
-                          % " map2=" % hasTime
-                          % " map3=" % hasTime
-                          % " sql="  % (if scoresNeeded then "map2" else "map3")
-                          % "\n"
-            ) t0 t3 t0 t1 t1 t2 t2 t3
+  liftBase $ do
+    hprint stderr
+      ("getTableNgrams total=" % hasTime
+        % " map1=" % hasTime
+        % " map2=" % hasTime
+        % " map3=" % hasTime
+        % " sql="  % (if scoresNeeded then "map2" else "map3")
+        % "\n"
+      ) t0 t3 t0 t1 t1 t2 t2 t3
+
+    -- printDebug "[getTableNgrams] tableMap3" $ show tableMap3
   pure $ toVersionedWithCount fltrCount tableMap3
+
+
+-- | Helper function to get the ngrams table with scores.
+getNgramsTable' :: forall env err m.
+                   ( HasNodeStory env err m
+                   , HasNodeError err
+                   , HasConnectionPool env
+                   , HasConfig env
+                   , HasMail env)
+                => NodeId
+                -> ListId
+                -> TableNgrams.NgramsType
+                -> m (Versioned (Map.Map NgramsTerm NgramsElement))
+getNgramsTable' nId listId ngramsType = do
+  tableMap1 <- getNgramsTableMap listId ngramsType
+  tableMap1 & v_data %%~ (setNgramsTableScores nId listId ngramsType)
+                       . Map.mapWithKey ngramsElementFromRepo
+
+-- | Helper function to set scores on an `NgramsTable`.
+setNgramsTableScores :: forall env err m t.
+                        ( Each t t NgramsElement NgramsElement
+                        , HasNodeStory env err m
+                        , HasNodeError err
+                        , HasConnectionPool env
+                        , HasConfig env
+                        , HasMail env)
+                     => NodeId
+                     -> ListId
+                     -> TableNgrams.NgramsType
+                     -> t
+                     -> m t
+setNgramsTableScores nId listId ngramsType  table = do
+  let ngrams_terms = table ^.. each . ne_ngrams
+  -- printDebug "ngrams_terms" ngrams_terms
+  t1 <- getTime
+  occurrences <- getOccByNgramsOnlyFast nId listId ngramsType
+  --printDebug "occurrences" occurrences
+  t2 <- getTime
+  liftBase $ hprint stderr
+    ("getTableNgrams/setScores #ngrams=" % int % " time=" % hasTime % "\n")
+    (length ngrams_terms) t1 t2
+  let
+    setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
+
+  pure $ table & each %~ setOcc
+
 
 
 
@@ -635,22 +659,12 @@ scoresRecomputeTableNgrams :: forall env err m.
   => NodeId -> TabType -> ListId -> m Int
 scoresRecomputeTableNgrams nId tabType listId = do
   tableMap <- getNgramsTableMap listId ngramsType
-  _ <- tableMap & v_data %%~ setScores
+  _ <- tableMap & v_data %%~ (setNgramsTableScores nId listId ngramsType)
                            . Map.mapWithKey ngramsElementFromRepo
 
   pure $ 1
   where
     ngramsType = ngramsTypeFromTabType tabType
-
-    setScores :: forall t. Each t t NgramsElement NgramsElement => t -> m t
-    setScores table = do
-      occurrences <- getOccByNgramsOnlyFast nId
-                                             listId
-                                            ngramsType
-      let
-        setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
-
-      pure $ table & each %~ setOcc
 
 
 -- APIs
