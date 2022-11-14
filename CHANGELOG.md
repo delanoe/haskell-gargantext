@@ -1,3 +1,7 @@
+## Version 0.0.6.8.5
+* [FRONT][FIX][Security Issue with Teams (#452)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/452)
+* [FRONT][FIX][Darkster Mode: when creating a node we miss informations (#461)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/461)
+
 ## Version 0.0.6.8.4
 * [BACK][FEAT] Fix reindexing functions
 * [FRONT][FIX][FEEDBACK ON 0.0.6.8.2 (#459)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/459)
