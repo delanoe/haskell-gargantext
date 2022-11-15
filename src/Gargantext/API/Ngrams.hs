@@ -327,8 +327,8 @@ commitStatePatch listId (Versioned _p_version p) = do
     assertValid $ transformable p q
     assertValid $ applicable p' (r ^. r_state)
     -}
-    printDebug "[commitStatePatch] a version" (a ^. a_version)
-    printDebug "[commitStatePatch] a' version" (a' ^. a_version)
+    -- printDebug "[commitStatePatch] a version" (a ^. a_version)
+    -- printDebug "[commitStatePatch] a' version" (a' ^. a_version)
     pure ( ns & unNodeStory . at listId .~ (Just a')
          , Versioned (a' ^. a_version) q'
          )
@@ -637,15 +637,16 @@ setNgramsTableScores :: forall env err m t.
                      -> t
                      -> m t
 setNgramsTableScores nId listId ngramsType  table = do
-  let ngrams_terms = table ^.. each . ne_ngrams
-  -- printDebug "ngrams_terms" ngrams_terms
   t1 <- getTime
   occurrences <- getOccByNgramsOnlyFast nId listId ngramsType
-  --printDebug "occurrences" occurrences
+  printDebug "[setNgramsTableScores] occurrences" occurrences
   t2 <- getTime
-  liftBase $ hprint stderr
-    ("getTableNgrams/setScores #ngrams=" % int % " time=" % hasTime % "\n")
-    (length ngrams_terms) t1 t2
+  liftBase $ do
+    let ngrams_terms = table ^.. each . ne_ngrams
+    -- printDebug "ngrams_terms" ngrams_terms
+    hprint stderr
+      ("getTableNgrams/setScores #ngrams=" % int % " time=" % hasTime % "\n")
+      (length ngrams_terms) t1 t2
   let
     setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 
