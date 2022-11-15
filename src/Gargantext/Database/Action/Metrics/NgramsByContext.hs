@@ -130,7 +130,7 @@ getOccByNgramsOnlyFast cId lId nt = do
               SELECT ng.terms
                  --  , ng.id
                      --, round(nng.weight)
-                     , ARRAY(SELECT DISTINCT context_node_ngrams.context_id FROM context_node_ngrams WHERE ng.id = context_id) AS context_ids
+                     , ARRAY(SELECT DISTINCT context_node_ngrams.context_id FROM context_node_ngrams WHERE ng.id = ngrams_id) AS context_ids
                  -- , ns.version
                  -- , nng.ngrams_type
                  -- , ns.ngrams_type_id
