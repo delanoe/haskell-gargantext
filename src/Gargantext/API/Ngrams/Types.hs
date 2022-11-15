@@ -34,6 +34,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..), ListId, NodeId, TODO)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
+import Gargantext.Database.Admin.Types.Node (ContextId)
 import Gargantext.Database.Prelude (fromField', HasConnectionPool, HasConfig, CmdM')
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (IsHashable(..))
@@ -170,7 +171,7 @@ data NgramsElement =
      NgramsElement { _ne_ngrams      :: NgramsTerm
                    , _ne_size        :: Int
                    , _ne_list        :: ListType
-                   , _ne_occurrences :: Int
+                   , _ne_occurrences :: [ContextId]
                    , _ne_root        :: Maybe NgramsTerm
                    , _ne_parent      :: Maybe NgramsTerm
                    , _ne_children    :: MSet  NgramsTerm
@@ -186,7 +187,7 @@ mkNgramsElement :: NgramsTerm
                 -> MSet NgramsTerm
                 -> NgramsElement
 mkNgramsElement ngrams list rp children =
-  NgramsElement ngrams (size (unNgramsTerm ngrams)) list 1 (_rp_root <$> rp) (_rp_parent <$> rp) children
+  NgramsElement ngrams (size (unNgramsTerm ngrams)) list [] (_rp_root <$> rp) (_rp_parent <$> rp) children
 
 newNgramsElement :: Maybe ListType -> NgramsTerm -> NgramsElement
 newNgramsElement mayList ngrams =
@@ -571,7 +572,7 @@ ngramsElementFromRepo
                 , _ne_parent      = p
                 , _ne_children    = c
                 , _ne_ngrams      = ngrams
-                , _ne_occurrences = 0 -- panic $ "API.Ngrams.Types._ne_occurrences"
+                , _ne_occurrences = [] -- panic $ "API.Ngrams.Types._ne_occurrences"
                 {-
                 -- Here we could use 0 if we want to avoid any `panic`.
                 -- It will not happen using getTableNgrams if
