@@ -72,9 +72,8 @@ buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern
 
 --------------------------------------------------------------------------
 -- Utils
-type BlockText   = Text
 type MatchedText = Text
-termsInText :: Patterns -> BlockText -> [(MatchedText, TermsCount)]
+termsInText :: Patterns -> Text -> [(MatchedText, TermsCount)]
 termsInText pats txt = groupWithCounts
                      $ List.concat
                      $ map (map unwords)

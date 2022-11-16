@@ -1,7 +1,30 @@
+## Version 0.0.6.8.5
+* [BACK][FIX][Ngrams Table, page sort / limit (#149)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/149)
+* [FRONT][FIX][Security Issue with Teams (#452)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/452)
+* [FRONT][FIX][Darkster Mode: when creating a node we miss informations (#461)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/461)
+
+## Version 0.0.6.8.4
+* [BACK][FEAT] Fix reindexing functions
+* [FRONT][FIX][FEEDBACK ON 0.0.6.8.2 (#459)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/459)
+
+## Version 0.0.6.8.3
+
+* [FRONT][SECU][Security Issue with Teams (#452)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/452)
+* [FRONT][FEAT][Graph Explorer: disable controls when ForceAtlas is running (#451)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/451)
+* [FRONT][FIX][[Doc date filter] Filter by multiple dates (#450)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/450)
+* [FRONT][ERGO][[layout] Description node block hide feature (#447)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/447)
+* [FRONT][ERGO][[layout] Node view additions (#448)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/448)
+* [BACK][FIX][Problem at list import (#148)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/148)
+* [FRONT][FIX][CSS in Graph Explorer toolbar (#460)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/460)
+* [BACK][FEAT] Bridgeness with more links
+
+
 ## Version 0.0.6.8.2
 
 * [FRONT][FIX][[Doc view] By default sort document from latest to oldest (#457)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/457)
 * [FRONT][FIX][Regression on Documents&#39; annotation (#456)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/456)
+* [FRONT][FIX][[layout] Move Cache CTA to topbar (#446)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/446)
+* [FRONT][FIX][Graph Explorer: node status change to either candidates or stop (#454)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/454)
 
 ## Version 0.0.6.8.1
 

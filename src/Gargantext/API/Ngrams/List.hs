@@ -158,6 +158,7 @@ reIndexWith cId lId nt lts = do
   -- Checking Text documents where orphans match
   -- TODO Tests here
   let
+    -- fromListWith (<>)
     ngramsByDoc = map (HashMap.fromList)
                   $ map (map (\((k, cnt), v) -> (SimpleNgrams (text2ngrams k), over (traverse . traverse) (\p -> (p, cnt)) v)))
                   $ map (\doc -> List.zip
@@ -266,7 +267,7 @@ parseCsvData lst = Map.fromList $ conv <$> lst
                                              , _nre_children = MSet
                                                              $ Map.fromList
                                                              $ map (\form -> (NgramsTerm form, ()))
-                                                             $ filter (/= "")
+                                                             $ filter (\w -> w /= "" && w /= label)
                                                              $ splitOn "|&|" forms
                                              }
          )
