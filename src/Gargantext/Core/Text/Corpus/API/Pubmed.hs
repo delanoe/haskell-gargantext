@@ -82,4 +82,3 @@ toDoc l (PubMedDoc.PubMed { pubmed_id
         abstract :: [Text] -> Maybe Text
         abstract [] = Nothing
         abstract as' = Just $ Text.intercalate ", " as'
-
