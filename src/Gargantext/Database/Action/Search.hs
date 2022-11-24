@@ -58,7 +58,6 @@ searchDocInDatabase p t = runOpaQuery (queryDocInDatabase p t)
         returnA  -< (_ns_id row, _ns_hyperdata row)
 
 ------------------------------------------------------------------------
-
 -- | Search ngrams in documents, ranking them by TF-IDF. We narrow our
 -- search only to map/candidate terms.
 searchInCorpusWithNgrams :: HasDBid NodeType
