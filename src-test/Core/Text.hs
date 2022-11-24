@@ -1,4 +1,3 @@
-
 {-|
 Module      : Graph.Clustering
 Description : Basic tests to avoid quick regression

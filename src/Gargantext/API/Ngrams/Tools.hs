@@ -195,7 +195,7 @@ getCoocByNgrams' f (Diagonal diag) m =
                                 listToCombi identity ks
               ]
 
-  where 
+  where
     ks = HM.keys m
 
 -- TODO k could be either k1 or k2 here
@@ -220,7 +220,7 @@ getCoocByNgrams'' (Diagonal diag) (f1,f2) (m1,m2) =
                                 -- TODO check optim
                                 -- listToCombi identity ks1
               ]
-  where 
+  where
     ks1 = HM.keys m1
     ks2 = HM.keys m2
 

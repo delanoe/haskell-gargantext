@@ -40,4 +40,3 @@ groupTokens ntags = group2 NP NP
 --groupNgrams ((x,_,"LOCATION"):(y,yy,"LOCATION"):xs)         = groupNgrams ((x <> " " <> y,yy,"LOCATION"):xs)
 --
 --groupNgrams (x:xs)                                          = (x:(groupNgrams xs))
-

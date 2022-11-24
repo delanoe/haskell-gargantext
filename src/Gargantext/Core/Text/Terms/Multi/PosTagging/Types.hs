@@ -52,4 +52,3 @@ data PosSentences = PosSentences { _sentences :: [Sentence]}
   deriving (Show, Generic)
 
 $(deriveJSON (unPrefix "_") ''PosSentences)
-

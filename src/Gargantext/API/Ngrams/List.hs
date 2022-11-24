@@ -158,16 +158,17 @@ reIndexWith cId lId nt lts = do
   -- Checking Text documents where orphans match
   -- TODO Tests here
   let
-    ngramsByDoc = map (HashMap.fromListWith (<>))
-                $ map (map (\(k,v) -> (SimpleNgrams (text2ngrams k), v)))
-                $ map (\doc -> List.zip
-                                (termsInText (buildPatterns $ map (\k -> (Text.splitOn " " $ unNgramsTerm k, [])) orphans)
-                                             $ Text.unlines $ catMaybes
-                                               [ doc ^. context_hyperdata . hd_title
-                                               , doc ^. context_hyperdata . hd_abstract
-                                               ]
+    -- fromListWith (<>)
+    ngramsByDoc = map (HashMap.fromList)
+                  $ map (map (\((k, cnt), v) -> (SimpleNgrams (text2ngrams k), over (traverse . traverse) (\p -> (p, cnt)) v)))
+                  $ map (\doc -> List.zip
+                                 (termsInText (buildPatterns $ map (\k -> (Text.splitOn " " $ unNgramsTerm k, [])) orphans)
+                                  $ Text.unlines $ catMaybes
+                                  [ doc ^. context_hyperdata . hd_title
+                                  , doc ^. context_hyperdata . hd_abstract
+                                  ]
                                  )
-                                (List.cycle [Map.fromList $ [(nt, Map.singleton (doc ^. context_id) 1 )]])
+                                 (List.cycle [Map.fromList $ [(nt, Map.singleton (doc ^. context_id) 1 )]])
                         ) docs
 
   -- printDebug "ngramsByDoc" ngramsByDoc

@@ -18,6 +18,7 @@ module Gargantext.API.Search
       where
 
 import Data.Aeson hiding (defaultTaggedObject)
+import Data.List (concat)
 import Data.Maybe (fromMaybe)
 import Data.Swagger hiding (fieldLabelModifier, Contact)
 import Data.Text (Text)
@@ -55,7 +56,7 @@ api :: NodeId -> GargServer (API SearchResult)
 api nId (SearchQuery q SearchDoc) o l order =
   SearchResult <$> SearchResultDoc
                <$> map (toRow nId)
-               <$> searchInCorpus nId False q o l order
+               <$> searchInCorpus nId False (concat q) o l order
 
 api nId (SearchQuery q SearchContact) o l order = do
   printDebug "isPairedWith" nId
@@ -67,13 +68,15 @@ api nId (SearchQuery q SearchContact) o l order = do
     Just aId -> SearchResult
             <$> SearchResultContact
             <$> map (toRow aId)
-            <$> searchInCorpusWithContacts nId aId q o l order
+            <$> searchInCorpusWithContacts nId aId (concat q) o l order
+
+api _nId (SearchQuery _q SearchDocWithNgrams) _o _l _order = undefined
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
 -- | Main Types
 -----------------------------------------------------------------------
-data SearchType = SearchDoc | SearchContact
+data SearchType = SearchDoc | SearchContact | SearchDocWithNgrams
   deriving (Generic)
 instance FromJSON SearchType where
   parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
@@ -85,7 +88,7 @@ instance Arbitrary SearchType where
 
 -----------------------------------------------------------------------
 data SearchQuery =
-  SearchQuery { query    :: ![Text]
+  SearchQuery { query    :: ![[Text]]
               , expected :: !SearchType
               }
     deriving (Generic)
@@ -100,7 +103,7 @@ instance ToSchema SearchQuery
 -}
 
 instance Arbitrary SearchQuery where
-  arbitrary = elements [SearchQuery ["electrodes"] SearchDoc]
+  arbitrary = elements [SearchQuery [["electrodes"]] SearchDoc]
   -- arbitrary = elements [SearchQuery "electrodes" 1 ] --SearchDoc]
 -----------------------------------------------------------------------
 data SearchResult =
@@ -132,7 +135,7 @@ instance FromJSON SearchResultTypes where
   parseJSON = genericParseJSON (defaultOptions { sumEncoding = defaultTaggedObject })
 instance ToJSON SearchResultTypes where
   toJSON = genericToJSON (defaultOptions { sumEncoding = defaultTaggedObject })
- 
+
 instance Arbitrary SearchResultTypes where
   arbitrary = do
     srd <- SearchResultDoc     <$> arbitrary
@@ -163,7 +166,7 @@ data Row =
   deriving (Generic)
 instance FromJSON  Row
   where
-    parseJSON = genericParseJSON 
+    parseJSON = genericParseJSON
                  ( defaultOptions { sumEncoding = defaultTaggedObject } )
 instance ToJSON  Row
   where

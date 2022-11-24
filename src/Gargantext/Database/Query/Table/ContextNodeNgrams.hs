@@ -36,12 +36,13 @@ queryContextNodeNgramsTable = selectTable contextNodeNgramsTable
 -- | Insert utils
 insertContextNodeNgrams :: [ContextNodeNgrams] -> Cmd err Int
 insertContextNodeNgrams = insertContextNodeNgramsW
-                     . map (\(ContextNodeNgrams c n ng nt w) ->
+                     . map (\(ContextNodeNgrams c n ng nt w dc) ->
                               ContextNodeNgrams (pgContextId c)
                                                 (pgNodeId n)
                                                 (sqlInt4  ng)
                                                 (pgNgramsTypeId nt)
                                                 (sqlDouble w)
+                                                (sqlInt4 dc)
                             )
 
 insertContextNodeNgramsW :: [ContextNodeNgramsWrite] -> Cmd err Int

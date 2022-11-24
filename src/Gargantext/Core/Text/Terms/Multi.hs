@@ -21,6 +21,7 @@ import Data.List (concat)
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
+import Gargantext.Core.Utils (groupWithCounts)
 
 import Gargantext.Core.Text.Terms.Multi.PosTagging
 import Gargantext.Core.Text.Terms.Multi.PosTagging.Types
@@ -37,14 +38,16 @@ import qualified Gargantext.Utils.SpacyNLP as SpacyNLP
 type NLP_API = Lang -> Text -> IO PosSentences
 
 -------------------------------------------------------------------
-multiterms :: Lang -> Text -> IO [Terms]
-multiterms = multiterms' tokenTag2terms
+multiterms :: Lang -> Text -> IO [TermsWithCount]
+multiterms l txt = do
+  ret <- multiterms' tokenTag2terms l txt
+  pure $ groupWithCounts ret
   where
     multiterms' :: (TokenTag -> a) -> Lang -> Text -> IO [a]
-    multiterms' f lang txt = concat
+    multiterms' f lang txt' = concat
                        <$> map (map f)
                        <$> map (filter (\t -> _my_token_pos t == Just NP))
-                       <$> tokenTags lang txt
+                       <$> tokenTags lang txt'
 
 -------------------------------------------------------------------
 tokenTag2terms :: TokenTag -> Terms
@@ -57,10 +60,10 @@ tokenTags l  _   = panic $ "[G.C.T.T.Multi] Lang NLP API not implemented yet " <
 
 tokenTagsWith :: Lang -> Text -> NLP_API -> IO [[TokenTag]]
 tokenTagsWith lang txt nlp = map (groupTokens lang)
-                          <$> map tokens2tokensTags
-                          <$> map _sentenceTokens
-                          <$> _sentences
-                          <$> nlp lang txt
+                         <$> map tokens2tokensTags
+                         <$> map _sentenceTokens
+                         <$> _sentences
+                         <$> nlp lang txt
 
 
 ---- | This function analyses and groups (or not) ngrams according to

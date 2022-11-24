@@ -1,4 +1,3 @@
-
 {-|
 Module      : Graph.Clustering
 Description : Basic tests to avoid quick regression
@@ -40,4 +39,3 @@ test = hspec $ do
       let
         result = List.length partitions > 1
       shouldBe True result
-

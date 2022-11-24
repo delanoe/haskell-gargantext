@@ -15,6 +15,7 @@ module Gargantext.Database.Action.Flow.Utils
 
 import Data.Map (Map)
 import Data.HashMap.Strict (HashMap)
+import Gargantext.Core.Types (TermsCount)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.ContextNodeNgrams
@@ -29,24 +30,24 @@ import qualified Data.HashMap.Strict as HashMap
 data DocumentIdWithNgrams a b =
      DocumentIdWithNgrams
      { documentWithId :: Indexed NodeId a
-     , documentNgrams :: HashMap b (Map NgramsType Int)
+     , documentNgrams :: HashMap b (Map NgramsType Int, TermsCount)
      } deriving (Show)
 
 insertDocNgrams :: ListId
-                -> HashMap (Indexed NgramsId Ngrams) (Map NgramsType (Map DocId Int))
+                -> HashMap (Indexed NgramsId Ngrams) (Map NgramsType (Map DocId (Int, TermsCount)))
                 -> Cmd err Int
-insertDocNgrams lId m = insertContextNodeNgrams ns
+insertDocNgrams lId m = do
+  printDebug "[insertDocNgrams] ns" ns
+  insertContextNodeNgrams ns
   where
     ns = [ ContextNodeNgrams docId lId (ng^.index)
                                    (ngramsTypeId t)
                                    (fromIntegral i)
+                                   cnt
          | (ng, t2n2i) <- HashMap.toList m
          , (t,  n2i)   <- DM.toList t2n2i
-         , (docId,  i)     <- DM.toList n2i
+         , (docId,  (i, cnt))     <- DM.toList n2i
          ]
 
-
-
-
-
-
+-- [(NodeId, {Ngrams: ({NgramsType: Int}, TermsCount)})]
+-- {Ngrams: {NgramsType: {NodeId: (Int, TermsCount)}}}

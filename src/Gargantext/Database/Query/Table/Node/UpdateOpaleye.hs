@@ -35,8 +35,9 @@ updateHyperdata i h = mkCmd $ \c -> putStrLn "before runUpdate_" >>
 updateHyperdataQuery :: ToJSON a => NodeId -> a -> Update Int64
 updateHyperdataQuery i h = seq h' $ trace "updateHyperdataQuery: encoded JSON" $ Update
    { uTable      = nodeTable
-   , uUpdateWith = updateEasy (\  (Node _ni _nh _nt _nu _np _nn _nd _h)
-                                -> trace "updating mate" $ Node _ni _nh _nt _nu _np _nn _nd h'
+   , uUpdateWith = updateEasy (\  (Node { .. })
+                                -> Node { _node_hyperdata = h', .. }
+                               -- -> trace "updating mate" $ Node _ni _nh _nt _nu _np _nn _nd h'
                               )
    , uWhere      = (\row -> {-trace "uWhere" $-} _node_id row .== pgNodeId i )
    , uReturning  = rCount
@@ -63,5 +64,3 @@ updateNodesWithType_ :: ( HasNodeError err
 updateNodesWithType_ nt h = do
   ns <- getNodesIdWithType nt
   mapM (\n -> updateHyperdata n h) ns
-
-
