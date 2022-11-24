@@ -164,7 +164,7 @@ CREATE TABLE public.context_node_ngrams (
     ngrams_id     INTEGER NOT NULL REFERENCES public.ngrams   (id) ON DELETE CASCADE,
     ngrams_type   INTEGER  ,
     weight double precision,
-    doc_count     INTEGER,
+    doc_count     INTEGER DEFAULT 0,
     PRIMARY KEY (context_id, node_id, ngrams_id, ngrams_type)
   );
 ALTER TABLE public.context_node_ngrams OWNER TO gargantua;
