@@ -36,6 +36,7 @@ import qualified Data.HashMap.Strict as HM
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Database.PostgreSQL.Simple as DPS
+import qualified Database.PostgreSQL.Simple.Types as DPST
 
 -- | fst is size of Supra Corpus
 --   snd is Texts and size of Occurrences (different docs)
@@ -108,15 +109,16 @@ getOccByNgramsOnlyFast_withSample cId int nt ngs =
 getOccByNgramsOnlyFast :: CorpusId
                        -> ListId
                        -> NgramsType
-                       -> Cmd err (HashMap NgramsTerm Int)
+                       -> Cmd err (HashMap NgramsTerm [ContextId])
 getOccByNgramsOnlyFast cId lId nt = do
-    HM.fromList <$> map (\(t,n) -> (NgramsTerm t, round n)) <$> run cId lId nt
+    --HM.fromList <$> map (\(t,n) -> (NgramsTerm t, round n)) <$> run cId lId nt
+    HM.fromList <$> map (\(t, ns) -> (NgramsTerm t, NodeId <$> DPST.fromPGArray ns)) <$> run cId lId nt
     where
 
       run :: CorpusId
            -> ListId
            -> NgramsType
-           -> Cmd err [(Text, Double)]
+           -> Cmd err [(Text, DPST.PGArray Int)]
       run cId' lId' nt' = runPGSQuery query
                 ( cId'
                 , lId'
@@ -127,7 +129,8 @@ getOccByNgramsOnlyFast cId lId nt = do
       query = [sql|
               SELECT ng.terms
                  --  , ng.id
-                     , round(nng.weight)
+                     --, round(nng.weight)
+                     , ARRAY(SELECT DISTINCT context_node_ngrams.context_id FROM context_node_ngrams WHERE ng.id = ngrams_id) AS context_ids
                  -- , ns.version
                  -- , nng.ngrams_type
                  -- , ns.ngrams_type_id
