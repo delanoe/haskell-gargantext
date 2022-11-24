@@ -130,7 +130,10 @@ deriveJSON (unPrefix "") 'ApiInfo
 instance ToSchema ApiInfo
 
 info :: FlowCmdM env err m => UserId -> m ApiInfo
-info _u = pure $ ApiInfo API.externalAPIs
+info _u = do
+  ext <- API.externalAPIs
+
+  pure $ ApiInfo ext
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -217,7 +220,8 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
       --      if cid is corpus -> add to corpus
       --      if cid is root   -> create corpus in Private
       printDebug "[G.A.N.C.New] getDataText with query" q
-      eTxts <- mapM (\db -> getDataText db (Multi l) q maybeLimit) [database2origin dbs]
+      databaseOrigin <- database2origin dbs
+      eTxts <- mapM (\db -> getDataText db (Multi l) q maybeLimit) [databaseOrigin]
 
       let lTxts = lefts eTxts
       printDebug "[G.A.N.C.New] lTxts" lTxts
@@ -242,7 +246,7 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
                       , _scst_remaining = Just 0
                       , _scst_events    = Just []
                       }
-        
+
         (err:_) -> do
           printDebug "Error: " err
           let jl = addEvent "ERROR" (T.pack $ show err) $
@@ -283,7 +287,7 @@ addToCorpusWithForm user cid (NewWithForm ft ff d l _n) logStatus jobLog = do
       CSV       -> Parser.parseFormatC Parser.CsvGargV3
       WOS       -> Parser.parseFormatC Parser.WOS
       PresseRIS -> Parser.parseFormatC Parser.RisPresse
-  
+
   -- TODO granularity of the logStatus
   let data' = case ff of
         Plain -> cs d
@@ -422,4 +426,3 @@ addToCorpusWithFile user cid nwf@(NewWithFile _d _l fName) logStatus = do
                 , _scst_remaining = Just 0
                 , _scst_events    = Just []
                 }
-

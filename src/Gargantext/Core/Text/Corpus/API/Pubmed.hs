@@ -26,6 +26,7 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 
 import qualified PUBMED as PubMed
 import qualified PUBMED.Parser as PubMedDoc
+import PUBMED.Types (Config(..))
 
 
 type Query = Text
@@ -34,9 +35,12 @@ type Limit = PubMed.Limit
 
 -- | TODO put default pubmed query in gargantext.ini
 -- by default: 10K docs
-get :: Query -> Maybe Limit -> IO (Either ClientError (Maybe Integer, ConduitT () HyperdataDocument IO ()))
-get q l = do
-  eRes <- PubMed.getMetadataWithC q l
+get :: Maybe Text
+    -> Query
+    -> Maybe Limit
+    -> IO (Either ClientError (Maybe Integer, ConduitT () HyperdataDocument IO ()))
+get mAPIKey q l = do
+  eRes <- PubMed.getMetadataWithC (Config { mAPIKey = mAPIKey }) q l
   pure $ (\(len, docsC) -> (len, docsC .| mapC (toDoc EN))) <$> eRes
   --either (\e -> panic $ "CRAWL: PubMed" <> e) (map (toDoc EN))
   --      <$> PubMed.getMetadataWithC q l

@@ -22,6 +22,7 @@ DATA_FILEPATH = FILEPATH_TO_CHANGE
 # Data path to local files (do not use quotes)
 REPO_FILEPATH = FILEPATH_TO_CHANGE
 
+PUBMED_API_KEY = ENTER_PUBMED_API_KEY
 
 
 # [external]
