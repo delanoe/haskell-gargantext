@@ -29,6 +29,7 @@ import Control.Monad.Reader (ReaderT)
 import Control.Monad.Error.Class (MonadError(..))
 import Crypto.JOSE.Error as Jose
 import Data.Aeson.Types
+import qualified Data.Text as Text
 import Data.Typeable
 import Data.Validity
 import Gargantext.API.Admin.Orchestrator.Types
@@ -115,7 +116,7 @@ data GargError
 makePrisms ''GargError
 
 instance ToJSON GargError where
-  toJSON _ = String "SomeGargErrorPleaseReport"
+  toJSON err = object [("error", String $ Text.pack $ show err)]
 
 instance Exception GargError
 
