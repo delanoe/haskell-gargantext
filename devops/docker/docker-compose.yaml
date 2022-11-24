@@ -21,6 +21,7 @@ services:
   postgres:
     #image: 'postgres:latest'
     image: 'postgres:14'
+    shm_size: 1g  # https://stackoverflow.com/a/56754077
     network_mode: host
     #command: ["postgres", "-c", "log_statement=all"]
     #ports:
