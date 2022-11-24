@@ -9,6 +9,7 @@
 
 ## Version 0.0.6.8.3
 
+* [INFO][UPGRADE] To upgrade use the 0.0.6.8.3.sql script
 * [FRONT][SECU][Security Issue with Teams (#452)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/452)
 * [FRONT][FEAT][Graph Explorer: disable controls when ForceAtlas is running (#451)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/451)
 * [FRONT][FIX][[Doc date filter] Filter by multiple dates (#450)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/450)
