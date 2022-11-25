@@ -130,26 +130,23 @@ reIndexWith :: ( HasNodeStory env err m
             -> Set ListType
             -> m ()
 reIndexWith cId lId nt lts = do
+  printDebug "(cId,lId,nt,lts)" (cId, lId, nt, lts)
+
   -- Getting [NgramsTerm]
   ts <- List.concat
      <$> map (\(k,vs) -> k:vs)
      <$> HashMap.toList
      <$> getTermsWith identity [lId] nt lts
 
-  -- printDebug "ts" ts
-
-  -- Taking the ngrams with 0 occurrences only (orphans)
-  -- occs <- getOccByNgramsOnlyFast' cId lId nt ts
-
-  -- printDebug "occs" occs
 
   let orphans = ts {- List.concat
               $ map (\t -> case HashMap.lookup t occs of
                        Nothing -> [t]
                        Just n  -> if n <= 1 then [t] else [ ]
                        ) ts
-        -}
-  -- printDebug "orphans" orphans
+                   -}
+
+  printDebug "orphans" orphans
 
   -- Get all documents of the corpus
   docs <- selectDocNodes cId
@@ -171,12 +168,12 @@ reIndexWith cId lId nt lts = do
                                  (List.cycle [Map.fromList $ [(nt, Map.singleton (doc ^. context_id) 1 )]])
                         ) docs
 
-  -- printDebug "ngramsByDoc" ngramsByDoc
+  printDebug "ngramsByDoc: " ngramsByDoc
 
   -- Saving the indexation in database
   _ <- mapM (saveDocNgramsWith lId) ngramsByDoc
 
-  pure () -- ngramsByDoc
+  pure ()
 
 toIndexedNgrams :: HashMap Text NgramsId -> Text -> Maybe (Indexed Int Ngrams)
 toIndexedNgrams m t = Indexed <$> i <*> n

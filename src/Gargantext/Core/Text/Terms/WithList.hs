@@ -37,8 +37,11 @@ data Pattern = Pattern
 type Patterns = [Pattern]
 
 ------------------------------------------------------------------------
-replaceTerms :: Patterns -> [Text] -> [[Text]]
-replaceTerms pats terms = go 0
+
+data ReplaceTerms = KeepAll | LongestOnly
+
+replaceTerms :: ReplaceTerms -> Patterns -> [Text] -> [[Text]]
+replaceTerms rplaceTerms pats terms = go 0
   where
     terms_len = length terms
 
@@ -49,14 +52,16 @@ replaceTerms pats terms = go 0
         Just (len, term) ->
           term : go (ix + len)
 
-
-    merge (len1, lab1) (len2, lab2) =
-      if len2 < len1 then (len1, lab1) else (len2, lab2)
-
-    m =
-      IntMap.fromListWith merge
+    m = toMap
         [ (ix, (len, term))
         | Pattern pat len term <- pats, ix <- KMP.match pat terms ]
+
+    toMap = case rplaceTerms of
+      KeepAll -> IntMap.fromList
+      LongestOnly -> IntMap.fromListWith merge
+        where
+          merge (len1, lab1) (len2, lab2) =
+            if len2 < len1 then (len1, lab1) else (len2, lab2)
 
 buildPatterns :: TermList -> Patterns
 buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern
@@ -82,14 +87,14 @@ termsInText pats txt = groupWithCounts
 --------------------------------------------------------------------------
 
 extractTermsWithList :: Patterns -> Text -> Corpus [Text]
-extractTermsWithList pats = map (replaceTerms pats) . monoTextsBySentence
+extractTermsWithList pats = map (replaceTerms KeepAll pats) . monoTextsBySentence
 
 -- | Extract terms
 -- >>> let termList = [(["chat blanc"], [["chat","blanc"]])] :: TermList
 -- extractTermsWithList' (buildPatterns termList) "Le chat blanc"["chat blanc"]
 -- ["chat blanc"]
 extractTermsWithList' :: Patterns -> Text -> [Text]
-extractTermsWithList' pats = map (concat . map concat . replaceTerms pats)
+extractTermsWithList' pats = map (concat . map concat . replaceTerms KeepAll pats)
                            . monoTextsBySentence
 
 --------------------------------------------------------------------------
