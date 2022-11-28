@@ -1,6 +1,17 @@
-{- NOTE This is legacy code. It keeps node stories in a directory
+{-|
+Module      : Gargantext.API.Ngrams.Types
+Description : Ngrams List Types
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+NOTE This is legacy code. It keeps node stories in a directory
  repo. We now have migrated to the DB. However this code is needed to
- make the migration (see  Gargantext.API.Ngrams.Tools) -}
+ make the migration (see  Gargantext.API.Ngrams.Tools)
+
+-}
 
 module Gargantext.Core.NodeStoryFile where
 

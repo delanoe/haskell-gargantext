@@ -1,3 +1,14 @@
+{-|
+Module      : Gargantext.API..Types
+Description : Ngrams List Types
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 {-# OPTIONS_GHC -fprint-potential-instances #-}
 
 module Gargantext.API.Types where

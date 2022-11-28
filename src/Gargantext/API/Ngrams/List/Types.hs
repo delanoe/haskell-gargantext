@@ -1,3 +1,15 @@
+{-|
+Module      : Gargantext.API.Ngrams.List.Types
+Description : Ngrams List Types
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+-}
+
+
 module Gargantext.API.Ngrams.List.Types where
 
 --{-# LANGUAGE TemplateHaskell   #-}

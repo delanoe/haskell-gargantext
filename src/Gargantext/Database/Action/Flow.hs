@@ -32,6 +32,7 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
 
   , flowCorpusFile
   , flowCorpus
+  , flowCorpusUser
   , flowAnnuaire
   , insertMasterDocs
   , saveDocNgramsWith
@@ -295,7 +296,7 @@ flowCorpusUser :: ( FlowCmdM env err m
                -> User
                -> Either CorpusName [CorpusId]
                -> Maybe c
-               -> [NodeId]
+               -> [ContextId]
                -> Maybe FlowSocialListWith
                -> m CorpusId
 flowCorpusUser l user corpusName ctype ids mfslw = do
