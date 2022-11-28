@@ -1,4 +1,12 @@
--- |
+{-|
+Module      : Gargantext.API.Ngrams.Types
+Description : Ngrams List Types
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+-}
 
 {-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
