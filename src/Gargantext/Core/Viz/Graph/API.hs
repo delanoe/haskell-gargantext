@@ -194,7 +194,7 @@ computeGraph corpusId partitionMethod bridgeMethod similarity strength (nt1,nt2)
   lIds <- selectNodesWithUsername NodeList userMaster
 
   -- Getting the Ngrams to compute with and grouping it according to the lists
-  let 
+  let
     groupedContextsByNgrams nt corpusId' (lists_master, lists_user) = do
       let
         ngs = filterListWithRoot [MapTerm] $ mapTermListRoot lists_user nt repo
@@ -205,7 +205,7 @@ computeGraph corpusId partitionMethod bridgeMethod similarity strength (nt1,nt2)
   (m1,m2) <- do
     m1 <- groupedContextsByNgrams nt1 corpusId (lIds, [lId])
     if nt1 == nt2
-      then 
+      then
         pure (m1,m1)
       else do
         m2 <- groupedContextsByNgrams nt2 corpusId (lIds, [lId])
@@ -369,4 +369,3 @@ getGraphGexf :: FlowCmdM env err m
 getGraphGexf uId nId = do
   HyperdataGraphAPI { _hyperdataAPIGraph = graph } <- getGraph uId nId
   pure $ addHeader "attachment; filename=graph.gexf" graph
-

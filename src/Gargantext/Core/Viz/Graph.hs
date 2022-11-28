@@ -105,7 +105,7 @@ instance ToSchema MultiPartite where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_multipartite_")
 makeLenses ''MultiPartite
 
-defaultMultipartite :: MultiPartite 
+defaultMultipartite :: MultiPartite
 defaultMultipartite = MultiPartite a a
   where
     a = Partite HashSet.empty NgramsTerms
@@ -203,7 +203,8 @@ data GraphV3 = GraphV3 { go_links :: [EdgeV3]
 $(deriveJSON (unPrefix "go_") ''GraphV3)
 
 -----------------------------------------------------------
-data Camera = Camera { _camera_ratio :: Double
+data Camera = Camera { _camera_angle :: Double
+                     , _camera_ratio :: Double
                      , _camera_x     :: Double
                      , _camera_y     :: Double }
   deriving (Show, Generic)
@@ -222,7 +223,7 @@ $(deriveJSON (unPrefix "_") ''HyperdataGraph)
 instance ToSchema HyperdataGraph where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
 
-defaultHyperdataGraph :: HyperdataGraph 
+defaultHyperdataGraph :: HyperdataGraph
 defaultHyperdataGraph = HyperdataGraph Nothing Nothing
 
 
