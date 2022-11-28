@@ -121,6 +121,7 @@ getOccByNgramsOnlyFast cId lId nt = do
            -> Cmd err [(Text, DPST.PGArray Int)]
       run cId' lId' nt' = runPGSQuery query
                 ( cId'
+                , cId'
                 , lId'
                 , ngramsTypeId nt'
                 )
@@ -130,7 +131,14 @@ getOccByNgramsOnlyFast cId lId nt = do
               SELECT ng.terms
                  --  , ng.id
                      --, round(nng.weight)
-                     , ARRAY(SELECT DISTINCT context_node_ngrams.context_id FROM context_node_ngrams WHERE ng.id = ngrams_id) AS context_ids
+                     , ARRAY(
+                         SELECT DISTINCT context_node_ngrams.context_id
+                         FROM context_node_ngrams
+                         JOIN nodes_contexts
+                           ON context_node_ngrams.context_id = nodes_contexts.context_id
+                         WHERE ng.id = context_node_ngrams.ngrams_id
+                         AND nodes_contexts.node_id = ?
+                         ) AS context_ids
                  -- , ns.version
                  -- , nng.ngrams_type
                  -- , ns.ngrams_type_id

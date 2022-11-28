@@ -1,3 +1,9 @@
+## Version 0.0.6.8.5.1
+
+* [BACK][FIX] Indexing issue: taking all terms instead of longest of terms in case of ngrams included in others
+* [FRONT][FIX][Disconnection of instance causes a blank page (#464)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/464)
+* [BACK][FIX] ArXiv search in Abstracts by default
+
 ## Version 0.0.6.8.5
 * [BACK][FIX][Ngrams Table, page sort / limit (#149)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/149)
 * [FRONT][FIX][Security Issue with Teams (#452)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/452)
@@ -9,6 +15,7 @@
 
 ## Version 0.0.6.8.3
 
+* [INFO][UPGRADE] To upgrade use the 0.0.6.8.3.sql script
 * [FRONT][SECU][Security Issue with Teams (#452)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/452)
 * [FRONT][FEAT][Graph Explorer: disable controls when ForceAtlas is running (#451)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/451)
 * [FRONT][FIX][[Doc date filter] Filter by multiple dates (#450)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/450)

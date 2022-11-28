@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Database.Schema.NodeNgrams
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -86,7 +86,7 @@ type NgramsClass  = Int
 type NgramsText   = Text
 
 -- Example of list Ngrams
--- type ListNgrams = NodeNgramsPoly (Maybe Int) ListType Text 
+-- type ListNgrams = NodeNgramsPoly (Maybe Int) ListType Text
 
 type NodeNgramsW =
   NodeNgramsPoly (Maybe NodeNgramsId) NodeId ListType NgramsText

@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Types
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -17,7 +17,7 @@ commentary with @some markup@.
 module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , module Gargantext.Database.Admin.Types.Node
                              , DebugMode(..), withDebugMode
-                             , Term, Terms(..)
+                             , Term, Terms(..), TermsCount, TermsWithCount
                              , TokenTag(..), POS(..), NER(..)
                              , Label, Stems
                              , HasInvalidError(..), assertValid
@@ -70,9 +70,12 @@ type Label = [Text]
 data Terms = Terms { _terms_label :: Label
                    , _terms_stem  :: Stems
                    } deriving (Ord, Show)
-
 instance Eq Terms where
   (==) (Terms _ s1) (Terms _ s2) = s1 == s2
+
+type TermsCount = Int
+
+type TermsWithCount = (Terms, TermsCount)
 
 ------------------------------------------------------------------------
 data Tag = POS | NER
@@ -208,5 +211,3 @@ data TODO = TODO
 instance ToSchema TODO where
 instance ToParamSchema TODO where
 ----------------------------------------------------------------------------
-
-

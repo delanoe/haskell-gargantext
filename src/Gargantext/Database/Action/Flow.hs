@@ -48,7 +48,7 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
     where
 
 import Conduit
-import Control.Lens ((^.), view, _Just, makeLenses)
+import Control.Lens ((^.), view, _Just, makeLenses, over, traverse)
 import Control.Monad.Reader (MonadReader)
 import Data.Aeson.TH (deriveJSON)
 import Data.Conduit.Internal (zipSources)
@@ -61,7 +61,6 @@ import Data.Maybe (catMaybes)
 import Data.Monoid
 import Data.Swagger
 import qualified Data.Text as T
-import Data.Traversable (traverse)
 import Data.Tuple.Extra (first, second)
 import GHC.Generics (Generic)
 import Servant.Client (ClientError)
@@ -84,9 +83,10 @@ import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(.
 import Gargantext.Core.Text.List.Social (FlowSocialListWith)
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
-import Gargantext.Core.Types (POS(NP))
+import Gargantext.Core.Types (POS(NP), TermsCount)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main
+import Gargantext.Core.Utils (addTuples)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow.List
 import Gargantext.Database.Action.Flow.Types
@@ -362,25 +362,27 @@ insertMasterDocs c lang hs  =  do
   -- this will enable global database monitoring
 
   -- maps :: IO Map Ngrams (Map NgramsType (Map NodeId Int))
-  mapNgramsDocs' :: HashMap ExtractedNgrams (Map NgramsType (Map NodeId Int))
+  mapNgramsDocs' :: HashMap ExtractedNgrams (Map NgramsType (Map NodeId (Int, TermsCount)))
                 <- mapNodeIdNgrams
                 <$> documentIdWithNgrams
-                    (extractNgramsT $ withLang lang documentsWithId)
-                    documentsWithId
+                      (extractNgramsT $ withLang lang documentsWithId)
+                      documentsWithId
 
   lId      <- getOrMkList masterCorpusId masterUserId
+  -- _ <- saveDocNgramsWith lId mapNgramsDocs'
   _ <- saveDocNgramsWith lId mapNgramsDocs'
 
   -- _cooc <- insertDefaultNode NodeListCooc lId masterUserId
   pure ids'
 
-saveDocNgramsWith :: ( FlowCmdM env err m)
+saveDocNgramsWith :: (FlowCmdM env err m)
                   => ListId
-                  -> HashMap ExtractedNgrams (Map NgramsType (Map NodeId Int))
+                  -> HashMap ExtractedNgrams (Map NgramsType (Map NodeId (Int, TermsCount)))
                   -> m ()
 saveDocNgramsWith lId mapNgramsDocs' = do
-  terms2id <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
-  --printDebug "terms2id" terms2id
+  --printDebug "[saveDocNgramsWith] mapNgramsDocs'" mapNgramsDocs'
+  let mapNgramsDocsNoCount = over (traverse . traverse . traverse) fst mapNgramsDocs'
+  terms2id <- insertExtractedNgrams $ HashMap.keys mapNgramsDocsNoCount
 
   let mapNgramsDocs = HashMap.mapKeys extracted2ngrams mapNgramsDocs'
 
@@ -397,7 +399,7 @@ saveDocNgramsWith lId mapNgramsDocs' = do
                                             <*> Just (fromIntegral w :: Double)
                        | (terms'', mapNgramsTypes)      <- HashMap.toList mapNgramsDocs
                        , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
-                       , (nId, w)                       <- Map.toList mapNodeIdWeight
+                       , (nId, (w, _cnt))                       <- Map.toList mapNodeIdWeight
                        ]
 
   -- to be removed
@@ -456,14 +458,14 @@ mergeData rs = catMaybes . map toDocumentWithId . Map.toList
 ------------------------------------------------------------------------
 documentIdWithNgrams :: HasNodeError err
                      => (a
-                     -> Cmd err (HashMap b (Map NgramsType Int)))
+                     -> Cmd err (HashMap b (Map NgramsType Int, TermsCount)))
                      -> [Indexed NodeId a]
                      -> Cmd err [DocumentIdWithNgrams a b]
 documentIdWithNgrams f = traverse toDocumentIdWithNgrams
   where
     toDocumentIdWithNgrams d = do
       e <- f $ _unIndex         d
-      pure   $ DocumentIdWithNgrams d e
+      pure $ DocumentIdWithNgrams d e
 
 
 -- | TODO check optimization
@@ -471,13 +473,17 @@ mapNodeIdNgrams :: (Ord b, Hashable b)
                 => [DocumentIdWithNgrams a b]
                 -> HashMap b
                        (Map NgramsType
-                            (Map NodeId Int)
+                            (Map NodeId (Int, TermsCount))
                        )
-mapNodeIdNgrams = HashMap.unionsWith (Map.unionWith (Map.unionWith (+))) . fmap f
+mapNodeIdNgrams = HashMap.unionsWith (Map.unionWith (Map.unionWith addTuples)) . fmap f
   where
+    -- | NOTE We are somehow multiplying 'TermsCount' here: If the
+    -- same ngrams term has different ngrams types, the 'TermsCount'
+    -- for it (which is the number of times the terms appears in a
+    -- document) is copied over to all its types.
     f :: DocumentIdWithNgrams a b
-      -> HashMap b (Map NgramsType (Map NodeId Int))
-    f d = fmap (fmap (Map.singleton nId)) $ documentNgrams d
+      -> HashMap b (Map NgramsType (Map NodeId (Int, TermsCount)))
+    f d = fmap (\(ngramsTypeMap, cnt) -> fmap (\i -> Map.singleton nId (i, cnt)) ngramsTypeMap) $ documentNgrams d
       where
         nId = _index $ documentWithId d
 
@@ -488,25 +494,25 @@ instance ExtractNgramsT HyperdataContact
     extractNgramsT l hc = HashMap.mapKeys (cleanExtractedNgrams 255) <$> extract l hc
       where
         extract :: TermType Lang -> HyperdataContact
-                -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
+                -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int, TermsCount))
         extract _l hc' = do
           let authors = map text2ngrams
                       $ maybe ["Nothing"] (\a -> [a])
                       $ view (hc_who . _Just . cw_lastName) hc'
 
-          pure $ HashMap.fromList $ [(SimpleNgrams a', Map.singleton Authors 1) | a' <- authors ]
+          pure $ HashMap.fromList $ [(SimpleNgrams a', (Map.singleton Authors 1, 1)) | a' <- authors ]
 
 
 instance ExtractNgramsT HyperdataDocument
   where
     extractNgramsT :: TermType Lang
                    -> HyperdataDocument
-                   -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
+                   -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int, TermsCount))
     extractNgramsT lang hd = HashMap.mapKeys (cleanExtractedNgrams 255) <$> extractNgramsT' lang hd
       where
         extractNgramsT' :: TermType Lang
                         -> HyperdataDocument
-                       -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
+                       -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int, TermsCount))
         extractNgramsT' lang' doc = do
           let source    = text2ngrams
                         $ maybe "Nothing" identity
@@ -520,23 +526,23 @@ instance ExtractNgramsT HyperdataDocument
                          $ maybe ["Nothing"] (T.splitOn ", ")
                          $ _hd_authors doc
 
-          terms' <- map (enrichedTerms (lang' ^. tt_lang) CoreNLP NP)
-                 <$> concat
-                 <$> liftBase (extractTerms lang' $ hasText doc)
+          termsWithCounts' <- map (\(t, cnt) -> (enrichedTerms (lang' ^. tt_lang) CoreNLP NP t, cnt))
+                              <$> concat
+                              <$> liftBase (extractTerms lang' $ hasText doc)
 
           pure $ HashMap.fromList
-               $  [(SimpleNgrams source, Map.singleton Sources     1)                    ]
-               <> [(SimpleNgrams     i', Map.singleton Institutes  1) | i' <- institutes ]
-               <> [(SimpleNgrams     a', Map.singleton Authors     1) | a' <- authors    ]
-               <> [(EnrichedNgrams   t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
+               $  [(SimpleNgrams source, (Map.singleton Sources     1, 1))                    ]
+               <> [(SimpleNgrams     i', (Map.singleton Institutes  1, 1)) | i' <- institutes ]
+               <> [(SimpleNgrams     a', (Map.singleton Authors     1, 1)) | a' <- authors    ]
+               <> [(EnrichedNgrams   t', (Map.singleton NgramsTerms 1, cnt')) | (t', cnt') <- termsWithCounts'     ]
 
 instance (ExtractNgramsT a, HasText a) => ExtractNgramsT (Node a)
   where
-    extractNgramsT l (Node _ _ _ _ _ _ _ h) = extractNgramsT l h
+    extractNgramsT l (Node { _node_hyperdata = h }) = extractNgramsT l h
 
 instance HasText a => HasText (Node a)
   where
-    hasText (Node _ _ _ _ _ _ _ h) = hasText h
+    hasText (Node { _node_hyperdata = h }) = hasText h
 
 
 

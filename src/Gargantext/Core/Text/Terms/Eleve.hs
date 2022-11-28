@@ -32,6 +32,7 @@ Notes for current implementation:
 
 -}
 {-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE StandaloneDeriving   #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
 
@@ -277,6 +278,8 @@ data Tries k e = Tries
   }
 
 makeLenses ''Tries
+
+deriving instance (Show k, Show e) => Show (Tries k e)
 
 buildTries :: Int -> [[Token]] -> Tries Token ()
 buildTries n sentences = Tries

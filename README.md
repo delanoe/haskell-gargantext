@@ -196,6 +196,8 @@ To build documentation, run:
 stack --docker build --haddock --no-haddock-deps --fast
 ```
 
+(in `.stack-work/dist/x86_64-linux-nix/Cabal-3.2.1.0/doc/html/gargantext`).
+
 ## GraphQL
 
 Some introspection information.

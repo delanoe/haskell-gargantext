@@ -103,7 +103,7 @@ data Facet id created title hyperdata category ngramCount score =
               , facetDoc_score      :: score
               } deriving (Show, Generic)
 {- | TODO after demo
-data Facet id date hyperdata score = 
+data Facet id date hyperdata score =
      FacetDoc { facetDoc_id        :: id
               , facetDoc_date      :: date
               , facetDoc_hyperdata :: hyperdata
@@ -163,7 +163,7 @@ type FacetPairedReadNull = FacetPaired (Column (Nullable SqlInt4)       )
                                        (Column (Nullable SqlInt4)       )
 
 type FacetPairedReadNullAgg = FacetPaired (Aggregator (Column (Nullable SqlInt4)       )
-                                                      (Column (Nullable SqlInt4)       ) 
+                                                      (Column (Nullable SqlInt4)       )
                                           )
                                           (Aggregator (Column (Nullable SqlTimestamptz))
                                                       (Column (Nullable SqlTimestamptz))

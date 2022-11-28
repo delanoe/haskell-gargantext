@@ -21,10 +21,11 @@ services:
   postgres:
     #image: 'postgres:latest'
     image: 'postgres:14'
+    shm_size: 1g  # https://stackoverflow.com/a/56754077
     network_mode: host
     #command: ["postgres", "-c", "log_statement=all"]
     #ports:
-      #- 5432:5432
+    #  - 5432:5432
     environment:
       POSTGRES_USER: gargantua
       POSTGRES_PASSWORD: C8kdcUrAQy66U

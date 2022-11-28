@@ -455,7 +455,7 @@ insertArchiveList c nodeId a = do
   where
     query :: PGS.Query
     query = [sql| WITH s as (SELECT ? as sid, ? sversion, ? sngrams_type_id, ngrams.id as sngrams_id, ?::jsonb as srepo FROM ngrams WHERE terms = ?)
-                  INSERT INTO node_stories(node_id, version, ngrams_type_id, ngrams_id, ngrams_repo_element) 
+                  INSERT INTO node_stories(node_id, version, ngrams_type_id, ngrams_id, ngrams_repo_element)
                   SELECT s.sid, s.sversion, s.sngrams_type_id, s.sngrams_id, s.srepo from s s join nodes n on s.sid = n.id
             |]
 
@@ -505,22 +505,22 @@ updateNodeStory c nodeId@(NodeId _nId) currentArchive newArchive = do
   --printDebug "[updateNodeStory] updates" $ Text.unlines $ (Text.pack . show) <$> updates
 
   -- 2. Perform inserts/deletes/updates
-  printDebug "[updateNodeStory] applying insert" ()
+  --printDebug "[updateNodeStory] applying insert" ()
   insertArchiveList c nodeId $ Archive { _a_version = newArchive ^. a_version
                                        , _a_history = []
                                        , _a_state = archiveStateFromList inserts }
-  printDebug "[updateNodeStory] insert applied" ()
+  --printDebug "[updateNodeStory] insert applied" ()
     --TODO Use currentArchive ^. a_version in delete and report error
   -- if entries with (node_id, ngrams_type_id, ngrams_id) but
   -- different version are found.
   deleteArchiveList c nodeId $ Archive { _a_version = newArchive ^. a_version
                                        , _a_history = []
                                        , _a_state = archiveStateFromList deletes }
-  printDebug "[updateNodeStory] delete applied" ()
+  --printDebug "[updateNodeStory] delete applied" ()
   updateArchiveList c nodeId $ Archive { _a_version = newArchive ^. a_version
                                        , _a_history = []
                                        , _a_state = archiveStateFromList updates }
-  printDebug "[updateNodeStory] update applied" ()
+  --printDebug "[updateNodeStory] update applied" ()
 
   pure ()
   -- where

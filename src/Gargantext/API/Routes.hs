@@ -289,7 +289,7 @@ addCorpusWithForm user cid =
   serveJobsAPI AddCorpusFormJob $ \i log' ->
       let
         log'' x = do
-          printDebug "[addToCorpusWithForm] " x
+          --printDebug "[addToCorpusWithForm] " x
           liftBase $ log' x
       in New.addToCorpusWithForm user cid i log'' (jobLogInit 3)
 

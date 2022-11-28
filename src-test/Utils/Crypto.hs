@@ -1,7 +1,6 @@
-
 {-|
 Module      : Utils.Crypto
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -43,4 +42,3 @@ test = hspec $ do
     let hash2 = hash (["b","a"] :: [Text])
     it "compare" $ do
       hash1 `shouldBe` hash2
-

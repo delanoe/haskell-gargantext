@@ -6,7 +6,7 @@ name: gargantext
 #         | | | +-----  Layers * : New versions with API additions
 #         | | | | +---  Layers * : New versions without API breaking changes
 #         | | | | |
-version: '0.0.6.8.5'
+version: '0.0.6.8.5.1'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -74,6 +74,7 @@ library:
   - Gargantext.Core.Types
   - Gargantext.Core.Types.Individu
   - Gargantext.Core.Types.Main
+  - Gargantext.Core.Utils
   - Gargantext.Core.Utils.Prefix
   - Gargantext.Utils.Jobs
   - Gargantext.Utils.Jobs.API
@@ -111,6 +112,7 @@ library:
   - Gargantext.Core.Text.Prepare
   - Gargantext.Core.Text.Search
   - Gargantext.Core.Text.Terms
+  - Gargantext.Core.Text.Terms.Eleve
   - Gargantext.Core.Text.Terms.Mono
   - Gargantext.Core.Text.Terms.Multi.Lang.En
   - Gargantext.Core.Text.Terms.Multi.Lang.Fr

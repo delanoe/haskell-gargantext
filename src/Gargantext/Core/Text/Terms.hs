@@ -28,8 +28,9 @@ compute graph
 
 -}
 
-{-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Core.Text.Terms
   where
@@ -47,6 +48,7 @@ import qualified Data.Set            as Set
 import qualified Data.Text           as Text
 import qualified Data.HashMap.Strict as HashMap
 import Gargantext.Core
+import Gargantext.Core.Utils (groupWithCounts)
 import Gargantext.Core.Text (sentences, HasText(..))
 import Gargantext.Core.Text.Terms.Eleve (mainEleveWith, Tries, Token, buildTries, toToken)
 import Gargantext.Core.Text.Terms.Mono  (monoTerms)
@@ -70,24 +72,23 @@ data TermType lang
                  , _tt_model      :: !(Maybe (Tries Token ()))
                  }
   deriving (Generic)
+deriving instance (Show lang) => Show (TermType lang)
 
 makeLenses ''TermType
 --group :: [Text] -> [Text]
 --group = undefined
 
 -- remove Stop Words
--- map (filter (\t -> not . elem t)) $ 
+-- map (filter (\t -> not . elem t)) $
 ------------------------------------------------------------------------
--- | Sugar to extract terms from text (hiddeng mapM from end user).
+-- | Sugar to extract terms from text (hidding 'mapM' from end user).
 --extractTerms :: Traversable t => TermType Lang -> t Text -> IO (t [Terms])
-extractTerms :: TermType Lang -> [Text] -> IO [[Terms]]
-
+extractTerms :: TermType Lang -> [Text] -> IO [[TermsWithCount]]
 extractTerms (Unsupervised {..}) xs = mapM (terms (Unsupervised { _tt_model = Just m', .. })) xs
   where
     m' = case _tt_model of
       Just m''-> m''
       Nothing -> newTries _tt_windowSize (Text.intercalate " " xs)
-
 extractTerms termTypeLang xs = mapM (terms termTypeLang) xs
 
 
@@ -116,12 +117,13 @@ data ExtractedNgrams = SimpleNgrams   { unSimpleNgrams   :: Ngrams       }
 
 instance Hashable ExtractedNgrams
 
+-- | A typeclass that represents extracting ngrams from an entity.
 class ExtractNgramsT h
   where
     extractNgramsT :: HasText h
                    => TermType Lang
                    -> h
-                   -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
+                   -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int, TermsCount))
 ------------------------------------------------------------------------
 enrichedTerms :: Lang -> PosTagAlgo -> POS -> Terms -> NgramsPostag
 enrichedTerms l pa po (Terms ng1 ng2) =
@@ -132,7 +134,7 @@ enrichedTerms l pa po (Terms ng1 ng2) =
 
 ------------------------------------------------------------------------
 cleanNgrams :: Int -> Ngrams -> Ngrams
-cleanNgrams s ng 
+cleanNgrams s ng
       | Text.length (ng ^. ngramsTerms) < s = ng
       | otherwise                           = text2ngrams (Text.take s (ng ^. ngramsTerms))
 
@@ -151,10 +153,10 @@ insertExtractedNgrams ngs = do
   let (s, e) = List.partition isSimpleNgrams ngs
   m1 <- insertNgrams       (map unSimpleNgrams   s)
   --printDebug "others" m1
-  
+
   m2 <- insertNgramsPostag (map unEnrichedNgrams e)
   --printDebug "terms" m2
- 
+
   let result = HashMap.union m1 m2
   pure result
 
@@ -163,41 +165,39 @@ isSimpleNgrams (SimpleNgrams _) = True
 isSimpleNgrams _                = False
 
 ------------------------------------------------------------------------
--- | Terms from Text
--- Mono : mono terms
--- Multi : multi terms
--- MonoMulti : mono and multi
+-- | Terms from 'Text'
+-- 'Mono' : mono terms
+-- 'Multi' : multi terms
+-- 'MonoMulti' : mono and multi
 -- TODO : multi terms should exclude mono (intersection is not empty yet)
-terms :: TermType Lang -> Text -> IO [Terms]
+terms :: TermType Lang -> Text -> IO [TermsWithCount]
 terms (Mono      lang) txt = pure $ monoTerms lang txt
 terms (Multi     lang) txt = multiterms lang txt
 terms (MonoMulti lang) txt = terms (Multi lang) txt
-terms (Unsupervised { .. }) txt = termsUnsupervised (Unsupervised { _tt_model = Just m', .. }) txt
+terms (Unsupervised { .. }) txt = pure $ termsUnsupervised (Unsupervised { _tt_model = Just m', .. }) txt
   where
     m' = maybe (newTries _tt_ngramsSize txt) identity _tt_model
 -- terms (WithList  list) txt = pure . concat $ extractTermsWithList list txt
 
 
 ------------------------------------------------------------------------
--- | Unsupervised ngrams extraction
--- language agnostic extraction
--- TODO: remove IO
--- TODO: newtype BlockText
-
 type WindowSize = Int
 type MinNgramSize = Int
 
-termsUnsupervised :: TermType Lang -> Text -> IO [Terms]
-termsUnsupervised (Unsupervised l n s m) =
-               pure
-             . map (text2term l)
-             . List.nub
-             . (List.filter (\l' -> List.length l' >= s))
+-- | Unsupervised ngrams extraction
+-- language agnostic extraction
+-- TODO: newtype BlockText
+termsUnsupervised :: TermType Lang -> Text -> [TermsWithCount]
+termsUnsupervised (Unsupervised { _tt_model = Nothing }) = panic "[termsUnsupervised] no model"
+termsUnsupervised (Unsupervised { _tt_model = Just _tt_model, .. }) =
+               map (\(t, cnt) -> (text2term _tt_lang t, cnt))
+             . groupWithCounts
+             -- . List.nub
+             . (List.filter (\l' -> List.length l' >= _tt_windowSize))
              . List.concat
-             . mainEleveWith (maybe (panic "no model") identity m) n
+             . mainEleveWith _tt_model _tt_ngramsSize
              . uniText
 termsUnsupervised _ = undefined
-
 
 
 newTries :: Int -> Text -> Tries Token ()
@@ -217,5 +217,3 @@ text2term lang txt = Terms txt (Set.fromList $ map (stem lang) txt)
 isPunctuation :: Text -> Bool
 isPunctuation x = List.elem x $  (Text.pack . pure)
                              <$> ("!?(),;.:" :: String)
-
-

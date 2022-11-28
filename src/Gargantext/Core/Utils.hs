@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Utils
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -12,16 +12,19 @@ commentary with @some markup@.
 -}
 
 
-module Gargantext.Core.Utils ( 
+module Gargantext.Core.Utils (
                            -- module Gargantext.Utils.Chronos
                              module Gargantext.Core.Utils.Prefix
                            , something
                            , alphanum
                            , choices
                            , randomString
+                           , groupWithCounts
+                           , addTuples
                           ) where
 
 import Data.Char (chr, ord)
+import qualified Data.List as List
 import Data.Maybe
 import Data.Monoid
 import Data.Text (Text, pack)
@@ -57,3 +60,17 @@ randomString :: Int -> IO Text
 randomString num = do
   str <- choices num alphanum
   pure $ pack str
+
+
+-- | Given a list of items of type 'a', return list with unique items
+-- (like List.nub) but tuple-d with their counts in the original list
+groupWithCounts :: (Ord a, Eq a) => [a] -> [(a, Int)]
+groupWithCounts = map f
+                . List.group
+                . List.sort
+  where
+    f [] = panic "[groupWithCounts] impossible"
+    f ts@(t:_) = (t, length ts)
+
+addTuples :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
+addTuples (a1, b1) (a2, b2) = (a1 + a2, b1 + b2)

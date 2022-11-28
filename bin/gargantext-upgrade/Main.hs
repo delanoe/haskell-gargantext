@@ -33,7 +33,6 @@ import Gargantext.Database.Admin.Trigger.Init
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataCorpus)
 import Gargantext.Database.Admin.Types.Node (NodeType(NodeDocument, NodeContact))
 import Gargantext.Database.Prelude (Cmd'', Cmd, execPGSQuery)
-import Gargantext.Database.Query.Table.Node (getOrMkList)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..), readConfig)
 import Prelude (getLine)
@@ -67,7 +66,7 @@ main = do
   _ok  <- getLine
 
   cfg       <- readConfig         iniPath
-  let secret = _gc_secretkey cfg
+  let _secret = _gc_secretkey cfg
 
   withDevEnv iniPath $ \env -> do
     -- First upgrade the Database Schema

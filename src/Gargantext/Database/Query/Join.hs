@@ -43,7 +43,7 @@ import Opaleye.Internal.Join (NullMaker(..))
 import qualified Opaleye.Internal.Unpackspec()
 
 
-keepWhen :: (a -> Field SqlBool) -> SelectArr a a  
+keepWhen :: (a -> Field SqlBool) -> SelectArr a a
 keepWhen p = proc a -> do
   restrict  -< p a
   returnA -< a
@@ -61,7 +61,7 @@ leftJoin2 = leftJoin
 ------------------------------------------------------------------------
 -- | LeftJoin3 in two ways to write it
 leftJoin3 :: Select columnsA -> Select columnsB -> Select columnsC
-      -> ((columnsA, columnsB, columnsC) -> Column SqlBool) 
+      -> ((columnsA, columnsB, columnsC) -> Column SqlBool)
       -> Select (columnsA, columnsB, columnsC)
 leftJoin3 q1 q2 q3 cond = ((,,) <$> q1 <*> q2 <*> q3) >>> keepWhen cond
 
@@ -82,7 +82,7 @@ leftJoin4' :: Select columnsA
            -> Select columnsB
            -> Select columnsC
            -> Select columnsD
-      -> ((columnsA, columnsB, columnsC, columnsD) -> Column SqlBool) 
+      -> ((columnsA, columnsB, columnsC, columnsD) -> Column SqlBool)
       -> Select (columnsA, columnsB, columnsC, columnsD)
 leftJoin4' q1 q2 q3 q4 cond = ((,,,) <$> q1 <*> q2 <*> q3 <*> q4) >>> keepWhen cond
 
@@ -375,4 +375,3 @@ leftJoin9   q1 q2    q3     q4     q5     q6      q7    q8     q9
                   ) cond67
                 ) cond78
               ) cond89
-
