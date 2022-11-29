@@ -25,7 +25,7 @@ import Data.Vector (Vector)
 import Debug.Trace (trace)
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.PhyloTools
-import Gargantext.Core.Viz.Phylo.TemporalMatching (filterDocs, filterDiago, reduceDiagos, toProximity, getNextPeriods)
+import Gargantext.Core.Viz.Phylo.TemporalMatching (filterDocs, filterDiago, reduceDiagos, toSimilarity, getNextPeriods)
 import Gargantext.Prelude hiding (scale)
 import Prelude (writeFile)
 import System.FilePath
@@ -288,9 +288,9 @@ exportToDot phylo export =
         {-  8) create the edges between the branches
         -- _ <- mapM (\(bId,bId') ->
         --         toDotEdge (branchIdToDotId bId) (branchIdToDotId bId')
-        --         (Text.pack $ show(branchIdsToProximity bId bId'
-        --                             (getThresholdInit $ phyloProximity $ getConfig phylo)
-        --                             (getThresholdStep $ phyloProximity $ getConfig phylo))) BranchToBranch
+        --         (Text.pack $ show(branchIdsToSimilarity bId bId'
+        --                             (getThresholdInit $ phyloSimilarity $ getConfig phylo)
+        --                             (getThresholdStep $ phyloSimilarity $ getConfig phylo))) BranchToBranch
         --     ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ map _branch_id $ export ^. export_branches
         -}
 
@@ -595,23 +595,23 @@ getGroupThr step g =
         breaks = (g ^. phylo_groupMeta) ! "breaks"
      in (last' "export" (take (round $ (last' "export" breaks) + 1) seaLvl)) - step
 
-toAncestor :: Double -> Map Int Double -> Proximity -> Double -> [PhyloGroup] -> PhyloGroup -> PhyloGroup
-toAncestor nbDocs diago proximity step candidates ego =
+toAncestor :: Double -> Map Int Double -> Similarity -> Double -> [PhyloGroup] -> PhyloGroup -> PhyloGroup
+toAncestor nbDocs diago similarity step candidates ego =
   let curr = ego ^. phylo_groupAncestors
    in ego & phylo_groupAncestors .~ (curr ++ (map (\(g,w) -> (getGroupId g,w))
          $ filter (\(g,w) -> (w > 0) && (w >= (min (getGroupThr step ego) (getGroupThr step g))))
-         $ map (\g -> (g, toProximity nbDocs diago proximity (ego ^. phylo_groupNgrams) (g ^. phylo_groupNgrams) (g ^. phylo_groupNgrams)))
+         $ map (\g -> (g, toSimilarity nbDocs diago similarity (ego ^. phylo_groupNgrams) (g ^. phylo_groupNgrams) (g ^. phylo_groupNgrams)))
          $ filter (\g -> g ^. phylo_groupBranchId /= ego ^. phylo_groupBranchId ) candidates))
 
 
-headsToAncestors :: Double -> Map Int Double -> Proximity -> Double -> [PhyloGroup] -> [PhyloGroup] -> [PhyloGroup]
-headsToAncestors nbDocs diago proximity step heads acc =
+headsToAncestors :: Double -> Map Int Double -> Similarity -> Double -> [PhyloGroup] -> [PhyloGroup] -> [PhyloGroup]
+headsToAncestors nbDocs diago similarity step heads acc =
   if (null heads)
     then acc
     else
       let ego    = head' "headsToAncestors" heads
           heads' = tail' "headsToAncestors" heads
-       in headsToAncestors nbDocs diago proximity step heads' (acc ++ [toAncestor nbDocs diago proximity step heads' ego])
+       in headsToAncestors nbDocs diago similarity step heads' (acc ++ [toAncestor nbDocs diago similarity step heads' ego])
 
 
 toHorizon :: Phylo -> Phylo
@@ -645,13 +645,13 @@ toHorizon phylo =
           noHeads = groups \\ heads
           nbDocs  = sum $ elems  $ filterDocs  (phylo ^. phylo_timeDocs) [prd]
           diago   = reduceDiagos $ filterDiago (phylo ^. phylo_timeCooc) [prd]
-          proximity = (phyloProximity $ getConfig phylo)
+          sim     = (similarity $ getConfig phylo)
           step = case getSeaElevation phylo of
             Constante  _ s -> s
             Adaptative _ -> 0
-       -- in headsToAncestors nbDocs diago proximity heads groups []
-       in map (\ego -> toAncestor nbDocs diago proximity step noHeads ego)
-        $ headsToAncestors nbDocs diago proximity step heads []
+       -- in headsToAncestors nbDocs diago Similarity heads groups []
+       in map (\ego -> toAncestor nbDocs diago sim step noHeads ego)
+        $ headsToAncestors nbDocs diago sim step heads []
       ) periods
     -- | 3) process this task concurrently
     newGroups :: [[PhyloGroup]]

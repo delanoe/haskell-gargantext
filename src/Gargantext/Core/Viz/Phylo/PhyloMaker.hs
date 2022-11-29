@@ -31,10 +31,11 @@ import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.PhyloExport (toHorizon)
 import Gargantext.Core.Viz.Phylo.PhyloTools
 import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
-import Gargantext.Core.Viz.Phylo.TemporalMatching (temporalMatching, getNextPeriods, filterDocs, filterDiago, reduceDiagos, toProximity)
+import Gargantext.Core.Viz.Phylo.TemporalMatching (temporalMatching, getNextPeriods, filterDocs, filterDiago, reduceDiagos, toSimilarity)
 import Gargantext.Prelude
 
 import qualified Data.Set as Set
+import qualified Data.List as List
 import qualified Data.Vector as Vector
 
 ------------------
@@ -79,6 +80,13 @@ toPhylo phylowithoutLink = trace ("# flatPhylo groups " <> show(length $ getGrou
 
 
 {- 
+-- create a square ladder
+-}
+squareLadder :: [Double] -> [Double]
+squareLadder ladder = List.map (\x -> x * x) ladder
+
+
+{- 
 -- create an adaptative diachronic 'sea elevation' ladder
 -}
 adaptDiachronicLadder :: Double -> Set Double -> Set Double -> [Double]
@@ -107,7 +115,7 @@ constDiachronicLadder curr step ladder =
 -}
 scanSimilarity :: Scale -> Phylo -> Phylo
 scanSimilarity lvl phylo = 
-  let proximity = phyloProximity $ getConfig phylo
+  let proximity = similarity $ getConfig phylo
       scanning  = foldlWithKey (\acc pId pds -> 
                       -- 1) process period by period
                       let egos = map (\g -> (getGroupId g, g ^. phylo_groupNgrams))
@@ -124,7 +132,7 @@ scanSimilarity lvl phylo =
                                         map (\(id',ngrams') -> 
                                             let nbDocs = (sum . elems) $ filterDocs docs    ([idToPrd id, idToPrd id'])
                                                 diago  = reduceDiagos  $ filterDiago diagos ([idToPrd id, idToPrd id'])
-                                             in ((id,id'),toProximity nbDocs diago proximity ngrams ngrams' ngrams')
+                                             in ((id,id'),toSimilarity nbDocs diago proximity ngrams ngrams' ngrams')
                                         ) $ filter (\(_,ngrams') -> (not . null) $ intersect ngrams ngrams') targets 
                                  ) egos
                           pairs' = pairs `using` parList rdeepseq
@@ -173,7 +181,7 @@ clusterToGroup fis pId pId' lvl idx coocs = PhyloGroup pId pId' lvl idx ""
 addTemporalLinksToPhylo :: Phylo -> Phylo
 addTemporalLinksToPhylo phylowithoutLink = case strategy of 
     Constante start gap -> temporalMatching (constDiachronicLadder start gap Set.empty) phylowithoutLink
-    Adaptative steps    -> temporalMatching (adaptDiachronicLadder steps (phylowithoutLink ^. phylo_diaSimScan) Set.empty) phylowithoutLink
+    Adaptative steps    -> temporalMatching (squareLadder $ adaptDiachronicLadder steps (phylowithoutLink ^. phylo_diaSimScan) Set.empty) phylowithoutLink
   where
     strategy :: SeaElevation
     strategy = getSeaElevation phylowithoutLink

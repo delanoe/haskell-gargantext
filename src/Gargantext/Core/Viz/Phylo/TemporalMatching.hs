@@ -119,9 +119,9 @@ weightedLogSim' sens nbDocs diago ego_ngrams target_ngrams
 {- 
 -- perform a seamilarity measure between a given group and a pair of targeted groups
 -}
-toProximity :: Double -> Map Int Double -> Proximity -> [Int] -> [Int] -> [Int] -> Double
-toProximity nbDocs diago proximity egoNgrams targetNgrams targetNgrams' =
-  case proximity of
+toSimilarity :: Double -> Map Int Double -> Similarity -> [Int] -> [Int] -> [Int] -> Double
+toSimilarity nbDocs diago similarity egoNgrams targetNgrams targetNgrams' =
+  case similarity of
     WeightedLogJaccard sens _ ->
       let pairNgrams = if targetNgrams == targetNgrams'
                           then targetNgrams
@@ -147,7 +147,7 @@ findLastPeriod fil periods = case fil of
     ToChildsMemory  -> undefined
     ToParentsMemory -> undefined
 
-removeOldPointers :: [Pointer] -> Filiation -> Double -> Proximity -> Period
+removeOldPointers :: [Pointer] -> Filiation -> Double -> Similarity -> Period
                   -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))]
                   -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))]
 removeOldPointers oldPointers fil thr prox prd pairs
@@ -166,11 +166,11 @@ removeOldPointers oldPointers fil thr prox prd pairs
                                || (((fst . fst . fst) id') > (fst lastMatchedPrd))) pairs
   | otherwise = []
 
-filterPointers :: Proximity -> Double -> [Pointer] -> [Pointer]
-filterPointers proxi thr pts = filter (\(_,w) -> filterProximity proxi thr w) pts
+filterPointers :: Similarity -> Double -> [Pointer] -> [Pointer]
+filterPointers proxi thr pts = filter (\(_,w) -> filterSimilarity proxi thr w) pts
 
-filterPointers' :: Proximity -> Double -> [(Pointer,[Int])] -> [(Pointer,[Int])]
-filterPointers' proxi thr pts = filter (\((_,w),_) -> filterProximity proxi thr w) pts
+filterPointers' :: Similarity -> Double -> [(Pointer,[Int])] -> [(Pointer,[Int])]
+filterPointers' proxi thr pts = filter (\((_,w),_) -> filterSimilarity proxi thr w) pts
 
 
 reduceDiagos :: Map Date Cooc -> Map Int Double
@@ -231,7 +231,7 @@ groupsToBranches groups =
 {- 
 -- find the best pair/singleton of parents/childs for a given group
 -}
-makePairs :: (PhyloGroupId,[Int]) -> [(PhyloGroupId,[Int])] -> [Period] -> [Pointer] -> Filiation -> Double -> Proximity
+makePairs :: (PhyloGroupId,[Int]) -> [(PhyloGroupId,[Int])] -> [Period] -> [Pointer] -> Filiation -> Double -> Similarity
            -> Map Date Double -> Map Date Cooc -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))]
 makePairs (egoId, egoNgrams) candidates periods oldPointers fil thr prox docs diagos =
     if (null periods)
@@ -248,7 +248,7 @@ makePairs (egoId, egoNgrams) candidates periods oldPointers fil thr prox docs di
                     $ filter (\(id,ngrams) ->
                           let nbDocs = (sum . elems) $ filterDocs docs    ([(fst . fst) egoId, (fst . fst) id])
                               diago  = reduceDiagos  $ filterDiago diagos ([(fst . fst) egoId, (fst . fst) id])
-                           in (toProximity nbDocs diago prox egoNgrams egoNgrams ngrams) >= thr
+                           in (toSimilarity nbDocs diago prox egoNgrams egoNgrams ngrams) >= thr
                       ) candidates
       --------------------------------------
       lastPrd :: Period
@@ -258,7 +258,7 @@ makePairs (egoId, egoNgrams) candidates periods oldPointers fil thr prox docs di
 {- 
 -- find the best temporal links between a given group and its parents/childs
 -}
-phyloGroupMatching :: [[(PhyloGroupId,[Int])]] -> Filiation -> Proximity -> Map Date Double -> Map Date Cooc
+phyloGroupMatching :: [[(PhyloGroupId,[Int])]] -> Filiation -> Similarity -> Map Date Double -> Map Date Cooc
                    -> Double -> [Pointer] -> (PhyloGroupId,[Int]) -> [Pointer]
 phyloGroupMatching candidates filiation proxi docs diagos thr oldPointers (id,ngrams) =
         if (null $ filterPointers proxi thr oldPointers)
@@ -266,10 +266,10 @@ phyloGroupMatching candidates filiation proxi docs diagos thr oldPointers (id,ng
           then if null nextPointers
             then []
             else filterPointersByPeriod filiation
-               -- 2) keep only the best set of pointers grouped by proximity
+               -- 2) keep only the best set of pointers grouped by Similarity
                $ head' "phyloGroupMatching"
                $ groupBy (\pt pt' -> (snd . fst) pt == (snd . fst) pt')
-               -- 1) find the first time frame where at leats one pointer satisfies the proximity threshold
+               -- 1) find the first time frame where at leats one pointer satisfies the Similarity threshold
                $ sortBy (comparing (Down . snd . fst)) $ head' "pointers" nextPointers
         else oldPointers
     where
@@ -277,29 +277,29 @@ phyloGroupMatching candidates filiation proxi docs diagos thr oldPointers (id,ng
         nextPointers = take 1
                  -- stop as soon as we find a time frame where at least one singleton / pair satisfies the threshold 
                  $ dropWhile (null)
-                 -- for each time frame, process the proximity on relevant pairs of targeted groups
+                 -- for each time frame, process the Similarity on relevant pairs of targeted groups
                  $ scanl (\acc targets ->
                             let periods = nub $ map (fst . fst . fst) targets
                                 lastPrd = findLastPeriod filiation periods
                                 nbdocs  = sum $ elems $ (filterDocs docs ([(fst . fst) id] ++ periods))
                                 diago   = reduceDiagos
                                         $ filterDiago diagos ([(fst . fst) id] ++ periods)
-                                singletons = processProximity nbdocs diago $ map (\g -> (g,g)) $ filter (\g -> (fst . fst . fst) g == lastPrd) targets
+                                singletons = processSimilarity nbdocs diago $ map (\g -> (g,g)) $ filter (\g -> (fst . fst . fst) g == lastPrd) targets
                                 pairs = makePairs (id,ngrams) targets periods oldPointers filiation thr proxi docs diagos
                             in 
                               if (null singletons) 
-                                then acc ++ ( processProximity nbdocs diago pairs )
+                                then acc ++ ( processSimilarity nbdocs diago pairs )
                                 else acc ++ singletons
                           ) [] $ map concat $ inits candidates -- groups from [[1900],[1900,1901],[1900,1901,1902],...] 
         -----------------------------
-        processProximity :: Double -> Map Int Double -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))] -> [(Pointer,[Int])]
-        processProximity nbdocs diago targets =  filterPointers' proxi thr
+        processSimilarity :: Double -> Map Int Double -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))] -> [(Pointer,[Int])]
+        processSimilarity nbdocs diago targets =  filterPointers' proxi thr
                                         $ concat
                                         $ map (\(c,c') ->
-                                            let proximity = toProximity nbdocs diago proxi ngrams (snd c) (snd c')
+                                            let similarity = toSimilarity nbdocs diago proxi ngrams (snd c) (snd c')
                                             in if ((c == c') || (snd c == snd c'))
-                                               then [((fst c,proximity),snd c)]
-                                               else [((fst c,proximity),snd c),((fst c',proximity),snd c')] ) targets    
+                                               then [((fst c,similarity),snd c)]
+                                               else [((fst c,similarity),snd c),((fst c',similarity),snd c')] ) targets    
 
 
 {- 
@@ -329,8 +329,8 @@ getCandidates minNgrams ego targets =
 {- 
 -- set up and start performing the upstream/downstream inter‐temporal matching period by period
 -}
-reconstructTemporalLinks :: Int -> [Period] -> Proximity -> Double -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
-reconstructTemporalLinks frame periods proximity thr docs coocs groups =
+reconstructTemporalLinks :: Int -> [Period] -> Similarity -> Double -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
+reconstructTemporalLinks frame periods similarity thr docs coocs groups =
   let groups' = groupByField _phylo_groupPeriod groups
    in foldl' (\acc prd ->
         let -- 1) find the parents/childs matching periods
@@ -347,9 +347,9 @@ reconstructTemporalLinks frame periods proximity thr docs coocs groups =
             diagoChi = filterDiago (map coocToDiago coocs) ([prd] ++ periodsPar)
             --  5) match in parallel all the groups (egos) to their possible candidates
             egos  = map (\ego ->
-                      let pointersPar = phyloGroupMatching (getCandidates (getMinSharedNgrams proximity) ego candidatesPar) ToParents proximity docsPar diagoPar
+                      let pointersPar = phyloGroupMatching (getCandidates (getMinSharedNgrams similarity) ego candidatesPar) ToParents similarity docsPar diagoPar
                                         thr (getPeriodPointers ToParents ego) (getGroupId ego, ego ^. phylo_groupNgrams)
-                          pointersChi = phyloGroupMatching (getCandidates (getMinSharedNgrams proximity) ego candidatesChi) ToChilds  proximity docsChi diagoChi
+                          pointersChi = phyloGroupMatching (getCandidates (getMinSharedNgrams similarity) ego candidatesChi) ToChilds  similarity docsChi diagoChi
                                         thr (getPeriodPointers ToChilds  ego) (getGroupId ego, ego ^. phylo_groupNgrams)
                        in addPointers ToChilds  TemporalPointer pointersChi
                         $ addPointers ToParents TemporalPointer pointersPar
@@ -364,7 +364,7 @@ reconstructTemporalLinks frame periods proximity thr docs coocs groups =
 {- 
 -- reconstruct a phylomemetic network from a list of groups and from a given threshold
 -}
-toPhylomemeticNetwork :: Int -> [Period] -> Proximity -> Double -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [Branch]
+toPhylomemeticNetwork :: Int -> [Period] -> Similarity -> Double -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [Branch]
 toPhylomemeticNetwork timescale periods similarity thr docs coocs groups = 
   groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
                    $ reconstructTemporalLinks timescale periods similarity thr docs coocs groups
@@ -523,7 +523,7 @@ thrToMeta thr branches =
 -- done = all the already separated branches
 -- rest = all the branches we still have to separate
 -}
-separateBranches :: Double -> Proximity -> Double -> Map Int Double -> Int -> Double -> Double
+separateBranches :: Double -> Similarity -> Double -> Map Int Double -> Int -> Double -> Double
               -> Int -> Map Date Double -> Map Date Cooc -> [Period] 
               -> [(Branch,ShouldTry)] -> (Branch,ShouldTry) -> [(Branch,ShouldTry)] 
               -> [(Branch,ShouldTry)]
@@ -578,13 +578,13 @@ separateBranches fdt similarity lambda frequency minBranch thr rise timescale do
 {- 
 -- perform the sea-level rise algorithm, browse the similarity ladder and check that we can try out the next step
 -}
-seaLevelRise :: Double -> Proximity -> Double -> Int -> Map Int Double 
+seaLevelRise :: Double -> Similarity -> Double -> Int -> Map Int Double 
              -> [Double] -> Double
              -> Int -> [Period] 
              -> Map Date Double -> Map Date Cooc 
              -> [(Branch,ShouldTry)] 
              -> ([(Branch,ShouldTry)],FinalQuality)
-seaLevelRise fdt proximity lambda minBranch frequency ladder rise frame periods docs coocs branches =
+seaLevelRise fdt similarity lambda minBranch frequency ladder rise frame periods docs coocs branches =
   -- if the ladder is empty or thr > 1 or there is no branch to break then stop
   if (null ladder) || ((List.head ladder) > 1) || (stopRise branches)
     then (branches, toPhyloQuality fdt lambda frequency (map fst branches))
@@ -596,9 +596,9 @@ seaLevelRise fdt proximity lambda minBranch frequency ladder rise frame periods 
                                              <> " ξ = " <> printf "%.5f" (globalAccuracy frequency (map fst branches))
                                              <> " ρ = " <> printf "%.5f" (globalRecall frequency (map fst branches))
                                              <> " branches = " <> show(length branches))
-                     $ separateBranches fdt proximity lambda frequency minBranch thr rise frame docs coocs periods
+                     $ separateBranches fdt similarity lambda frequency minBranch thr rise frame docs coocs periods
                                      [] (List.head branches)  (List.tail branches)
-       in seaLevelRise fdt proximity lambda minBranch frequency (List.tail ladder) (rise + 1) frame periods docs coocs branches'
+       in seaLevelRise fdt similarity lambda minBranch frequency (List.tail ladder) (rise + 1) frame periods docs coocs branches'
   where 
     --------
     stopRise :: [(Branch,ShouldTry)] -> Bool
@@ -624,7 +624,7 @@ temporalMatching ladder phylo = updatePhyloGroups 1
     ---  2) process the temporal matching by elevating the similarity ladder
     sea :: ([(Branch,ShouldTry)],FinalQuality)
     sea = seaLevelRise (fromIntegral $ Vector.length $ getRoots phylo)
-                                (phyloProximity $ getConfig phylo)
+                                (similarity $ getConfig phylo)
                                 (_qua_granularity $ phyloQuality $ getConfig phylo)
                                 (_qua_minBranch $ phyloQuality $ getConfig phylo)
                                 (phylo ^. phylo_termFreq)
@@ -641,7 +641,7 @@ temporalMatching ladder phylo = updatePhyloGroups 1
     seabed = map (\b -> (b,(length $ nub $ map _phylo_groupPeriod b) >= (_qua_minBranch $ phyloQuality $ getConfig phylo)))
            $ toPhylomemeticNetwork (getTimeFrame $ timeUnit $ getConfig phylo)
                          (getPeriodIds phylo)
-                         (phyloProximity $ getConfig phylo)
+                         (similarity $ getConfig phylo)
                          (List.head ladder)
                          (phylo ^. phylo_timeDocs)
                          (phylo ^. phylo_timeCooc)

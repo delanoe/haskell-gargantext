@@ -71,7 +71,7 @@ data SeaElevation =
 
 instance ToSchema SeaElevation
 
-data Proximity =
+data Similarity =
       WeightedLogJaccard
       { _wlj_sensibility     :: Double
       , _wlj_minSharedNgrams :: Int }
@@ -84,7 +84,7 @@ data Proximity =
 
     deriving (Show,Generic,Eq)
 
-instance ToSchema Proximity where
+instance ToSchema Similarity where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
 
@@ -179,7 +179,7 @@ data PhyloConfig =
             , listParser     :: ListParser
             , phyloName      :: Text
             , phyloScale     :: Int
-            , phyloProximity :: Proximity
+            , similarity     :: Similarity
             , seaElevation   :: SeaElevation
             , findAncestors  :: Bool
             , phyloSynchrony :: Synchrony
@@ -205,7 +205,7 @@ data PhyloSubConfig =
 
 
 subConfig2config :: PhyloSubConfig -> PhyloConfig
-subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard (_sc_phyloProximity subConfig) 1 
+subConfig2config subConfig = defaultConfig { similarity     = WeightedLogJaccard (_sc_phyloProximity subConfig) 1 
                                            , phyloSynchrony = ByProximityThreshold (_sc_phyloSynchrony subConfig) 0 AllBranches MergeAllGroups
                                            , phyloQuality   = Quality (_sc_phyloQuality   subConfig) 1
                                            , timeUnit       = _sc_timeUnit       subConfig
@@ -223,7 +223,7 @@ defaultConfig =
             , listParser     = V4
             , phyloName      = pack "Phylo Name"
             , phyloScale     = 2
-            , phyloProximity = WeightedLogJaccard 0.5 1
+            , similarity     = WeightedLogJaccard 0.5 1
             , seaElevation   = Constante 0.1 0.1
             , findAncestors  = False
             , phyloSynchrony = ByProximityThreshold 0.5 0 AllBranches MergeAllGroups
@@ -251,8 +251,8 @@ instance ToJSON CorpusParser
 instance FromJSON ListParser
 instance ToJSON ListParser
 
-instance FromJSON Proximity
-instance ToJSON Proximity
+instance FromJSON Similarity
+instance ToJSON Similarity
 
 instance FromJSON SeaElevation
 instance ToJSON SeaElevation
@@ -592,7 +592,7 @@ instance ToSchema PhyloExport where
 
 makeLenses ''PhyloConfig
 makeLenses ''PhyloSubConfig
-makeLenses ''Proximity
+makeLenses ''Similarity
 makeLenses ''SeaElevation
 makeLenses ''Quality
 makeLenses ''Cluster

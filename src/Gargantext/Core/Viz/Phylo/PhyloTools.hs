@@ -330,16 +330,16 @@ getPeriodPointers fil g =
         ToChildsMemory  -> undefined
         ToParentsMemory -> undefined
 
-filterProximity :: Proximity -> Double -> Double -> Bool
-filterProximity proximity thr local =
-    case proximity of
+filterSimilarity :: Similarity -> Double -> Double -> Bool
+filterSimilarity similarity thr local =
+    case similarity of
         WeightedLogJaccard _ _ -> local >= thr
         WeightedLogSim     _ _ -> local >= thr
         Hamming            _ _ -> undefined
 
-getProximityName :: Proximity -> String
-getProximityName proximity =
-    case proximity of
+getSimilarityName :: Similarity -> String
+getSimilarityName similarity =
+    case similarity of
         WeightedLogJaccard _ _ -> "WLJaccard"
         WeightedLogSim     _ _ -> "WeightedLogSim"
         Hamming            _ _ -> "Hamming"
@@ -578,16 +578,16 @@ traceSynchronyStart phylo =
 
 
 -------------------
--- | Proximity | --
+-- | Similarity | --
 -------------------
 
-getSensibility :: Proximity -> Double
+getSensibility :: Similarity -> Double
 getSensibility proxi = case proxi of
     WeightedLogJaccard s _ -> s
     WeightedLogSim     s _ -> s
     Hamming            _ _ -> undefined
 
-getMinSharedNgrams :: Proximity -> Int
+getMinSharedNgrams :: Similarity -> Int
 getMinSharedNgrams proxi = case proxi of
     WeightedLogJaccard _ m -> m
     WeightedLogSim     _ m -> m
@@ -605,8 +605,8 @@ intersectInit acc lst lst' =
          then intersectInit (acc ++ [head' "intersectInit" lst]) (tail lst) (tail lst')
          else acc
 
-branchIdsToProximity :: PhyloBranchId -> PhyloBranchId -> Double -> Double -> Double
-branchIdsToProximity id id' thrInit thrStep = thrInit + thrStep * (fromIntegral $ length $ intersectInit [] (snd id) (snd id'))
+branchIdsToSimilarity :: PhyloBranchId -> PhyloBranchId -> Double -> Double -> Double
+branchIdsToSimilarity id id' thrInit thrStep = thrInit + thrStep * (fromIntegral $ length $ intersectInit [] (snd id) (snd id'))
 
 ngramsInBranches :: [[PhyloGroup]] -> [Int]
 ngramsInBranches branches = nub $ foldl (\acc g -> acc ++ (g ^. phylo_groupNgrams)) [] $ concat branches
@@ -662,4 +662,4 @@ traceTemporalMatching groups =
 
 traceGroupsProxi :: [Double] -> [Double]
 traceGroupsProxi l =
-    trace ( "\n" <> "-- | " <> show(List.length l) <> " computed pairs of groups proximity" <> "\n") l
+    trace ( "\n" <> "-- | " <> show(List.length l) <> " computed pairs of groups Similarity" <> "\n") l
