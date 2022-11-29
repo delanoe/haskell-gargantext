@@ -152,7 +152,7 @@ seaToLabel config = case (seaElevation config) of
 
 
 sensToLabel :: PhyloConfig -> [Char]
-sensToLabel config = case (phyloProximity config) of
+sensToLabel config = case (similarity config) of
       Hamming _ _ -> undefined
       WeightedLogJaccard s _ -> ("WeightedLogJaccard_"  <> show s)
       WeightedLogSim s _ -> ( "WeightedLogSim-sens_"  <> show s)

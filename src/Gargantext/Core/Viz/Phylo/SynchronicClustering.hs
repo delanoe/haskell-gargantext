@@ -124,7 +124,7 @@ toDiamonds groups = foldl' (\acc groups' ->
                   $ foldl' (\acc g -> acc ++ (map (\(id,_) -> (id,[g]) ) $ g ^. phylo_groupPeriodParents)  ) [] groups
 
 
-groupsToEdges :: Proximity -> Synchrony -> Double -> Map Int Double -> [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)]
+groupsToEdges :: Similarity -> Synchrony -> Double -> Map Int Double -> [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)]
 groupsToEdges prox sync nbDocs diago groups =
     case sync of
         ByProximityThreshold  thr sens _ strat ->
@@ -153,7 +153,7 @@ toParentId :: PhyloGroup -> PhyloGroupId
 toParentId child = ((child ^. phylo_groupPeriod, child ^. phylo_groupScale + 1), child ^. phylo_groupIndex) 
 
 
-reduceGroups :: Proximity -> Synchrony -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
+reduceGroups :: Similarity -> Synchrony -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
 reduceGroups prox sync docs diagos branch =
     --  1) reduce a branch as a set of periods & groups
     let periods = fromListWith (++)
@@ -197,7 +197,7 @@ levelUpAncestors groups =
 
 synchronicClustering :: Phylo -> Phylo
 synchronicClustering phylo =
-    let prox = phyloProximity $ getConfig phylo
+    let prox = similarity $ getConfig phylo
         sync = phyloSynchrony $ getConfig phylo
         docs = phylo ^. phylo_timeDocs
         diagos = map coocToDiago $ phylo ^. phylo_timeCooc
