@@ -1,3 +1,8 @@
+## Version 0.0.6.8.5.2
+
+* [FRONT][FIX][Graph Explorer Blank Page (#465)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/465)
+* [FRONT][FIX][NgramsTable: user orderBy parameter (#468)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/468)
+
 ## Version 0.0.6.8.5.1
 
 * [BACK][FIX] Indexing issue: taking all terms instead of longest of terms in case of ngrams included in others
