@@ -141,7 +141,7 @@ updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
           -- The userLight_email is more important: it is used for login and sending mail.
           -- Therefore we update ui_cwTouchMail and userLight_email.
           -- ui_cwTouchMail is to be removed in the future.
-          let u' = UserLight { userLight_email = fromMaybe userLight_email $ view ui_cwTouchMailL u_hyperdata
+          let u' = UserLight { userLight_email = fromMaybe userLight_email $ view ui_cwTouchMailL u_hyperdata'
                              , .. }
           -- lift $ printDebug "[updateUserInfo] with firstName" u_hyperdata'
           _ <- lift $ updateHyperdata (node_u ^. node_id) u_hyperdata'
