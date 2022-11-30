@@ -115,7 +115,7 @@ toFilePath fp1 fp2 = fp1 <> "/" <> fp2
 
 -- | Disk operations
 -- | For example, this write file with a random filepath
--- better use a hash of json of Type used to parameter as input 
+-- better use a hash of json of Type used to parameter as input
 -- the functions
 writeFile :: ( MonadReader env m
              , HasConfig   env
@@ -139,7 +139,7 @@ writeFile a = do
 
 ---
 
--- | Example to read a file with Type 
+-- | Example to read a file with Type
 readGargFile :: ( MonadReader  env m
             , HasConfig    env
             , MonadBase IO     m
@@ -205,4 +205,3 @@ onDisk_2 action fp1 fp2 = do
         | isDoesNotExistError e = return ()
         | otherwise = throwIO e
 ------------------------------------------------------------------------
-

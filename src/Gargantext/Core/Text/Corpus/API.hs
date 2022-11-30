@@ -38,7 +38,7 @@ get :: ExternalAPIs
     -> Maybe Limit
     -- -> IO [HyperdataDocument]
     -> IO (Either ClientError (Maybe Integer, ConduitT () HyperdataDocument IO ()))
-get PubMed  _la q limit = PUBMED.get q limit
+get PubMed { mAPIKey = mAPIKey }  _la q limit = PUBMED.get mAPIKey q limit
   --docs <- PUBMED.get   q default_limit -- EN only by default
   --pure (Just $ fromIntegral $ length docs, yieldMany docs)
 get Arxiv    la q limit = Arxiv.get la q (fromIntegral <$> limit)

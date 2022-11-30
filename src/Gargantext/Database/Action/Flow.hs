@@ -50,6 +50,7 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
 
 import Conduit
 import Control.Lens ((^.), view, _Just, makeLenses, over, traverse)
+import Control.Monad.Reader (MonadReader)
 import Data.Aeson.TH (deriveJSON)
 import Data.Conduit.Internal (zipSources)
 import Data.Either
@@ -129,9 +130,13 @@ deriveJSON (unPrefix "_do_") ''DataOrigin
 instance ToSchema DataOrigin where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_do_")
 
-allDataOrigins :: [DataOrigin]
-allDataOrigins = map InternalOrigin API.externalAPIs
-              <> map ExternalOrigin API.externalAPIs
+allDataOrigins :: ( MonadReader env m
+                  , HasConfig env) => m [DataOrigin]
+allDataOrigins = do
+  ext <- API.externalAPIs
+
+  pure $ map InternalOrigin ext
+      <> map ExternalOrigin ext
 
 ---------------
 data DataText = DataOld ![NodeId]
