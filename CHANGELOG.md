@@ -1,5 +1,12 @@
+## Version 0.0.6.8.5.3
+
+* [BACK][FIX][Pubmed parser (#151)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/151)
+
 ## Version 0.0.6.8.5.2
 
+* [BACK][CI][jobqueue test: tweak delay for more stable CI
+  results?](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/merge_requests/112)
+* [FRONT][FIX][User email change doesn&#39;t work (#469)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/469)
 * [FRONT][FIX][Graph Explorer Blank Page (#465)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/465)
 * [FRONT][FIX][NgramsTable: user orderBy parameter (#468)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/468)
 
