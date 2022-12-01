@@ -11,6 +11,7 @@ Portability : POSIX
 
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE BangPatterns        #-}
 
 module Gargantext.Core.Text.List
   where
@@ -22,6 +23,7 @@ import Data.Map (Map)
 import Data.Monoid (mempty)
 import Data.Ord (Down(..))
 import Data.Set (Set)
+import Data.Text (Text)
 import Data.Tuple.Extra (both)
 import Gargantext.API.Ngrams.Types (NgramsElement, NgramsTerm(..))
 import Gargantext.Core.NodeStory
@@ -138,7 +140,7 @@ getGroupParams :: ( HasNodeError err
                   )
                => GroupParams -> HashSet Ngrams -> m GroupParams
 getGroupParams gp@(GroupWithPosTag l a _m) ng = do
-  hashMap <- HashMap.fromList <$> selectLems l a (HashSet.toList ng)
+  !hashMap <- HashMap.fromList <$> selectLems l a (HashSet.toList ng)
   -- printDebug "hashMap" hashMap
   pure $ over gwl_map (\x -> x <> hashMap) gp
 getGroupParams gp _ = pure gp
@@ -162,12 +164,14 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
 -- Filter 0 With Double
 -- Computing global speGen score
   printDebug "[buildNgramsTermsList: Sample List] / start" nt
-  allTerms :: HashMap NgramsTerm Double <- getTficf_withSample uCid mCid nt
+  !(allTerms :: HashMap NgramsTerm Double) <- getTficf_withSample uCid mCid nt
+
   printDebug "[buildNgramsTermsList: Sample List / end]" (nt, HashMap.size allTerms)
 
   printDebug "[buildNgramsTermsList: Flow Social List / start]" nt
+
   -- PrivateFirst for first developments since Public NodeMode is not implemented yet
-  socialLists :: FlowCont NgramsTerm FlowListScores
+  !(socialLists :: FlowCont NgramsTerm FlowListScores)
     <- flowSocialList mfslw user nt ( FlowCont HashMap.empty
                                                       $ HashMap.fromList
                                                       $ List.zip (HashMap.keys   allTerms)
@@ -175,64 +179,70 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
                                     )
   printDebug "[buildNgramsTermsList: Flow Social List / end]" nt
 
-  let ngramsKeys = HashMap.keysSet allTerms
+  let !ngramsKeys = HashSet.fromList $ List.take 1000 $ HashSet.toList $ HashMap.keysSet allTerms
 
-  groupParams' <- getGroupParams groupParams (HashSet.map (text2ngrams . unNgramsTerm) ngramsKeys)
+  printDebug "[buildNgramsTermsList: ngramsKeys]" (HashSet.size ngramsKeys)
+
+  !groupParams' <- getGroupParams groupParams (HashSet.map (text2ngrams . unNgramsTerm) ngramsKeys)
+
+  printDebug "[buildNgramsTermsList: groupParams']" (""::Text)
 
   let
-    socialLists_Stemmed = addScoreStem groupParams' ngramsKeys socialLists
+    !socialLists_Stemmed = addScoreStem groupParams' ngramsKeys socialLists
   --printDebug "socialLists_Stemmed" socialLists_Stemmed
-    groupedWithList = toGroupedTree socialLists_Stemmed allTerms
-    (stopTerms, candidateTerms) = HashMap.partition ((== Just StopTerm) . viewListType)
+    !groupedWithList = toGroupedTree socialLists_Stemmed allTerms
+    !(stopTerms, candidateTerms) = HashMap.partition ((== Just StopTerm) . viewListType)
                                 $ HashMap.filter (\g -> (view gts'_score g) > 1)
                                 $ view flc_scores groupedWithList
 
-    (groupedMono, groupedMult)  = HashMap.partitionWithKey (\(NgramsTerm t) _v -> size t < 2) candidateTerms
+    !(groupedMono, groupedMult)  = HashMap.partitionWithKey (\(NgramsTerm t) _v -> size t < 2) candidateTerms
 
-  -- printDebug "stopTerms" stopTerms
+  printDebug "[buildNgramsTermsList] stopTerms" stopTerms
 
   -- splitting monterms and multiterms to take proportional candidates
     -- use % of list if to big, or Int if too small
-    listSizeGlobal = 2000 :: Double
-    monoSize = 0.4  :: Double
-    multSize = 1 - monoSize
+  let
+    !listSizeGlobal = 2000 :: Double
+    !monoSize = 0.4  :: Double
+    !multSize = 1 - monoSize
 
     splitAt n' ns = both (HashMap.fromListWith (<>))
-                  $ List.splitAt (round $ n' * listSizeGlobal)
-                  $ List.sortOn (viewScore . snd)
-                  $ HashMap.toList ns
+                     $ List.splitAt (round $ n' * listSizeGlobal)
+                     $ List.sortOn (viewScore . snd)
+                     $ HashMap.toList ns
 
-    (groupedMonoHead, _groupedMonoTail) = splitAt monoSize groupedMono
-    (groupedMultHead, groupedMultTail)  = splitAt multSize groupedMult
+    !(groupedMonoHead, _groupedMonoTail) = splitAt monoSize groupedMono
+    !(groupedMultHead, groupedMultTail)  = splitAt multSize groupedMult
 
 -------------------------
 -- Filter 1 With Set NodeId and SpeGen
-    selectedTerms = Set.toList $ hasTerms (groupedMonoHead <> groupedMultHead)
+    !selectedTerms = Set.toList $ hasTerms (groupedMonoHead <> groupedMultHead)
  
+  printDebug "[buildNgramsTermsList: selectedTerms]" selectedTerms
 
  -- TODO remove (and remove HasNodeError instance)
-  userListId    <- defaultList uCid
-  masterListId  <- defaultList mCid
+  !userListId    <- defaultList uCid
+  !masterListId  <- defaultList mCid
 
-  mapTextDocIds <- getContextsByNgramsOnlyUser uCid
+  !mapTextDocIds <- getContextsByNgramsOnlyUser uCid
                                             [userListId, masterListId]
                                             nt
                                             selectedTerms
 
 
-  -- printDebug "mapTextDocIds" mapTextDocIds
+  printDebug "[buildNgramsTermsList: mapTextDocIds]" mapTextDocIds
 
   let
     groupedTreeScores_SetNodeId :: HashMap NgramsTerm (GroupedTreeScores (Set NodeId))
-    groupedTreeScores_SetNodeId = HashMap.filter (\g -> Set.size (view gts'_score g) > 1) -- removing hapax
+    !groupedTreeScores_SetNodeId = HashMap.filter (\g -> Set.size (view gts'_score g) > 1) -- removing hapax
                                 $ setScoresWithMap mapTextDocIds (groupedMonoHead <> groupedMultHead)
 
 
-  --printDebug "groupedTreeScores_SetNodeId" groupedTreeScores_SetNodeId
+  printDebug "[buildNgramsTermsList: groupedTreeScores_SetNodeId]" groupedTreeScores_SetNodeId
 
   -- Coocurrences computation
   --, t1 >= t2 -- permute byAxis diag  -- since matrix symmetric
-  let mapCooc = HashMap.filter (>1) -- removing cooc of 1
+  let !mapCooc = HashMap.filter (>1) -- removing cooc of 1
               $ HashMap.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
                            | (t1, s1) <- mapStemNodeIds
                            , (t2, s2) <- mapStemNodeIds
@@ -253,77 +263,77 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
 
   let
     groupedTreeScores_SpeGen :: HashMap NgramsTerm (GroupedTreeScores (Scored NgramsTerm))
-    groupedTreeScores_SpeGen = setScoresWithMap (mapScores identity) groupedTreeScores_SetNodeId
+    !groupedTreeScores_SpeGen = setScoresWithMap (mapScores identity) groupedTreeScores_SetNodeId
 
   let
     -- sort / partition / split
     -- filter mono/multi again
-    (monoScored, multScored) = HashMap.partitionWithKey (\(NgramsTerm t) _v -> size t < 2) groupedTreeScores_SpeGen
+    !(monoScored, multScored) = HashMap.partitionWithKey (\(NgramsTerm t) _v -> size t < 2) groupedTreeScores_SpeGen
 
       -- filter with max score
     partitionWithMaxScore = HashMap.partition (\g -> (view scored_genInc $ view gts'_score g)
                                                    > (view scored_speExc $ view gts'_score g)
                                               )
 
-    (monoScoredIncl, monoScoredExcl) = partitionWithMaxScore monoScored
-    (multScoredIncl, multScoredExcl) = partitionWithMaxScore multScored
+    !(monoScoredIncl, monoScoredExcl) = partitionWithMaxScore monoScored
+    !(multScoredIncl, multScoredExcl) = partitionWithMaxScore multScored
 
   -- splitAt
   let
     -- use % of list if to big, or Int if to small
-    mapSize = 1000 :: Double
-    canSize = mapSize * 2 :: Double
+    !mapSize = 1000 :: Double
+    !canSize = mapSize * 2 :: Double
  
-    inclSize = 0.4  :: Double
-    exclSize = 1 - inclSize
+    !inclSize = 0.4  :: Double
+    !exclSize = 1 - inclSize
 
     splitAt' max' n' = (both (HashMap.fromList)) . (List.splitAt (round $ n' * max'))
-    sortOn   f  = (List.sortOn (Down . (view (gts'_score . f)) . snd)) . HashMap.toList
+    sortOn   f       = (List.sortOn (Down . (view (gts'_score . f)) . snd)) . HashMap.toList
 
     monoInc_size n = splitAt' n $ monoSize * inclSize / 2
     multExc_size n = splitAt' n $ multSize * exclSize / 2
 
 
-    (mapMonoScoredInclHead, monoScoredInclTail) = monoInc_size mapSize $ (sortOn scored_genInc) monoScoredIncl
-    (mapMonoScoredExclHead, monoScoredExclTail) = monoInc_size mapSize $ (sortOn scored_speExc) monoScoredExcl
+    !(mapMonoScoredInclHead, monoScoredInclTail) = monoInc_size mapSize $ (sortOn scored_genInc) monoScoredIncl
+    !(mapMonoScoredExclHead, monoScoredExclTail) = monoInc_size mapSize $ (sortOn scored_speExc) monoScoredExcl
 
-    (mapMultScoredInclHead, multScoredInclTail) = multExc_size mapSize $ (sortOn scored_genInc) multScoredIncl
-    (mapMultScoredExclHead, multScoredExclTail) = multExc_size mapSize $ (sortOn scored_speExc) multScoredExcl
+    !(mapMultScoredInclHead, multScoredInclTail) = multExc_size mapSize $ (sortOn scored_genInc) multScoredIncl
+    !(mapMultScoredExclHead, multScoredExclTail) = multExc_size mapSize $ (sortOn scored_speExc) multScoredExcl
 
 
-    (canMonoScoredIncHead , _) = monoInc_size canSize $ (sortOn scored_genInc) monoScoredInclTail
-    (canMonoScoredExclHead, _) = monoInc_size canSize $ (sortOn scored_speExc) monoScoredExclTail
+    !(canMonoScoredIncHead , _) = monoInc_size canSize $ (sortOn scored_genInc) monoScoredInclTail
+    !(canMonoScoredExclHead, _) = monoInc_size canSize $ (sortOn scored_speExc) monoScoredExclTail
 
-    (canMulScoredInclHead, _)  = multExc_size canSize $ (sortOn scored_genInc) multScoredInclTail
-    (canMultScoredExclHead, _) = multExc_size canSize $ (sortOn scored_speExc) multScoredExclTail
+    !(canMulScoredInclHead, _)  = multExc_size canSize $ (sortOn scored_genInc) multScoredInclTail
+    !(canMultScoredExclHead, _) = multExc_size canSize $ (sortOn scored_speExc) multScoredExclTail
 
 ------------------------------------------------------------
     -- Final Step building the Typed list
     -- Candidates Terms need to be filtered
   let
-    maps = setListType (Just MapTerm)
+    !maps = setListType (Just MapTerm)
         $  mapMonoScoredInclHead
         <> mapMonoScoredExclHead
         <> mapMultScoredInclHead
         <> mapMultScoredExclHead
 
     -- An original way to filter to start with
-    cands = setListType (Just CandidateTerm) 
+    !cands = setListType (Just CandidateTerm) 
           $ canMonoScoredIncHead
           <> canMonoScoredExclHead
           <> canMulScoredInclHead
           <> canMultScoredExclHead
 
   -- TODO count it too
-    cands' = setListType (Just CandidateTerm)
+    !cands' = setListType (Just CandidateTerm)
           {-\$  groupedMonoTail
           <>-} groupedMultTail
 
     -- Quick FIX
-    candNgramsElement = List.take 1000
+    !candNgramsElement = List.take 1000
                       $ toNgramsElement cands <> toNgramsElement cands'
 
-    result = Map.unionsWith (<>)
+    !result = Map.unionsWith (<>)
        [ Map.fromList [( nt, toNgramsElement maps
                           <> toNgramsElement stopTerms
                           <> candNgramsElement
