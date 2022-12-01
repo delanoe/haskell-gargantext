@@ -1,5 +1,6 @@
 ## Version 0.0.6.8.5.3
 
+* [BACK][FIX] FIX Ngrams List building
 * [BACK][FIX][Pubmed parser (#151)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/151)
 
 ## Version 0.0.6.8.5.2
