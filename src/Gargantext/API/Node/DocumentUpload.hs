@@ -37,6 +37,7 @@ data DocumentUpload = DocumentUpload
   , _du_sources  :: T.Text
   , _du_title    :: T.Text
   , _du_date     :: T.Text
+  , _du_language :: T.Text
   }
   deriving (Generic)
 
@@ -121,7 +122,7 @@ documentUpload nId doc = do
                              , _hd_publication_hour   = Nothing
                              , _hd_publication_minute = Nothing
                              , _hd_publication_second = Nothing
-                             , _hd_language_iso2 = Just $ T.pack $ show EN }
+                             , _hd_language_iso2 = Just $ view du_language doc }
 
   docIds <- insertMasterDocs (Nothing :: Maybe HyperdataCorpus) (Multi EN) [hd]
   _ <- Doc.add cId docIds
