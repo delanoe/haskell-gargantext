@@ -1,3 +1,7 @@
+## Version 0.0.6.8.5.5
+
+* [FRONT][FEAT][Adding unary document: Language option (#445)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/445)
+
 ## Version 0.0.6.8.5.4
 * [BACK][FIX] FIX Ngrams List building
 
