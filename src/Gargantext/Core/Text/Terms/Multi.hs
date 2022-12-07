@@ -55,7 +55,11 @@ tokenTag2terms (TokenTag ws t _ _) =  Terms ws t
 
 tokenTags :: Lang -> Text -> IO [[TokenTag]]
 tokenTags EN txt = tokenTagsWith EN txt corenlp
-tokenTags FR txt = tokenTagsWith FR txt SpacyNLP.nlp
+tokenTags FR txt = do
+  -- printDebug "[Spacy Debug]" txt
+  if txt == ""
+     then pure [[]]
+     else tokenTagsWith FR txt SpacyNLP.nlp
 tokenTags l  _   = panic $ "[G.C.T.T.Multi] Lang NLP API not implemented yet " <> (cs $ show l)
 
 tokenTagsWith :: Lang -> Text -> NLP_API -> IO [[TokenTag]]
