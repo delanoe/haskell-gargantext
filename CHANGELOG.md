@@ -1,3 +1,7 @@
+## Version 0.0.6.8.5.6
+
+* [BACK][FIX][Group breaks List with Backend (#156)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/156)
+
 ## Version 0.0.6.8.5.5
 
 * [FRONT][FEAT][Adding unary document: Language option (#445)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/445)
