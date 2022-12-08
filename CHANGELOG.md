@@ -1,3 +1,7 @@
+## Version 0.0.6.8.5.7
+
+* [FRONT][FIX][Graph Explorer Blank Page (#465)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/465)
+
 ## Version 0.0.6.8.5.6
 
 * [BACK][FIX][Group breaks List with Backend (#156)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/156)
