@@ -77,12 +77,12 @@ parse lang s = do
   --printDebug "Date: " s
   dateStr' <- pure $ dateFlow (DucklingFailure s) -- parseRawSafe lang s
   --printDebug "Date': " dateStr'
-  case dateFlow dateStr' of
+  case (dateFlow dateStr') of
     DateFlowSuccess ok -> pure ok
-    _                  -> withDebugMode (DebugMode True)
+    DateFlowFailure    -> (withDebugMode (DebugMode True)
                                         "[G.C.T.P.T.Date parse]" (lang,s)
-                                        $ getCurrentTime
-
+                                        $ getCurrentTime)
+    _                   -> panic "[G.C.T.C.Parsers.Date] parse: Should not happen"
 
 defaultDate :: Text
 defaultDate = "0-0-0T0:0:0"
@@ -124,15 +124,6 @@ readDate txt = do
   --let format = cs $ iso8601DateFormat (Just "%F %H:%M:%S")
   let format = cs $ iso8601DateFormat Nothing
   parseTimeM True defaultTimeLocale (unpack format) (cs txt)
-
-readDate' :: Text -> Maybe UTCTime
-readDate' txt = do
-  --let format = cs $ iso8601DateFormat (Just "%F %H:%M:%S")
-  --let format = cs $ iso8601DateFormat Nothing
-  let format = cs $ iso8601DateFormat (Just "%0Y")
-  parseTimeM True defaultTimeLocale (unpack format) (cs txt)
-
-
 
 
 -- TODO add Paris at Duckling.Locale Region datatype
