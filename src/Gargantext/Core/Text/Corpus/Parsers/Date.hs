@@ -20,30 +20,31 @@ module Gargantext.Core.Text.Corpus.Parsers.Date
 {-(parse, parseRaw, dateSplit, Year, Month, Day)-}
   where
 
-import System.Environment (getEnv)
+--import qualified Control.Exception as CE
 import Data.Aeson (toJSON, Value)
 import Data.Either (Either(..))
 import Data.HashMap.Strict as HM hiding (map)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text, unpack, splitOn, replace)
 import Data.Time (defaultTimeLocale, iso8601DateFormat, parseTimeM, toGregorian)
-import qualified Data.Time.Calendar as DTC
-import Data.Time.Clock (UTCTime(..), getCurrentTime)
 import Data.Time.Clock ( secondsToDiffTime)
+import Data.Time.Clock (UTCTime(..), getCurrentTime)
 import Data.Time.LocalTime (utc)
 import Data.Time.LocalTime.TimeZone.Series (zonedTimeToZoneSeriesTime)
 import Duckling.Api (analyze)
 import Duckling.Core (makeLocale, Dimension(Time))
-import Duckling.Types (Seal(..))
 import Duckling.Resolve (fromUTC, Context(Context, referenceTime, locale), DucklingTime(DucklingTime), Options(..))
 import Duckling.Types (ResolvedToken(..), ResolvedVal(..))
+import Duckling.Types (Seal(..))
 import Gargantext.Core (Lang(FR,EN))
 import Gargantext.Core.Types (DebugMode(..), withDebugMode)
 import Gargantext.Prelude
---import qualified Control.Exception as CE
+import System.Environment (getEnv)
 import qualified Data.Aeson        as Json
 import qualified Data.HashSet      as HashSet
+import qualified Data.Time.Calendar as DTC
 import qualified Duckling.Core     as DC
-
+import qualified Data.List         as List
 ------------------------------------------------------------------------
 -- | Parse date to Ints
 -- TODO add hours, minutes and seconds
@@ -105,13 +106,14 @@ dateFlow (DucklingSuccess res) = case (head $ splitOn "." res)  of
                              Just re -> case readDate res of
                                 Nothing -> dateFlow (ReadFailure1 re)
                                 Just ok -> DateFlowSuccess ok
-dateFlow (DucklingFailure txt) = case readDate $ replace " " "T" txt of
+--dateFlow (DucklingFailure txt) = case readDate $ replace " " "T" txt of
+dateFlow (DucklingFailure txt) = case readDate  (fromMaybe "" $ headMay $ List.filter (/= "") $ splitOn " " txt) of
                              Nothing -> dateFlow (ReadFailure1 txt)
                              Just ok -> DateFlowSuccess ok
 dateFlow (ReadFailure1 txt) = case readDate txt of
                           Nothing -> dateFlow $ ReadFailure2 txt
                           Just ok -> DateFlowSuccess ok
-dateFlow (ReadFailure2 txt) = case readDate $ replace " " "" txt <> "-01-01T00:00:00" of
+dateFlow (ReadFailure2 txt) = case readDate $ replace " " "" txt <> "-01-01" of
                           Nothing -> DateFlowFailure
                           Just ok -> DateFlowSuccess ok
 dateFlow _ = DateFlowFailure
@@ -119,8 +121,18 @@ dateFlow _ = DateFlowFailure
 
 readDate :: Text -> Maybe UTCTime
 readDate txt = do
-  let format = cs $ iso8601DateFormat (Just "%H:%M:%S")
+  --let format = cs $ iso8601DateFormat (Just "%F %H:%M:%S")
+  let format = cs $ iso8601DateFormat Nothing
   parseTimeM True defaultTimeLocale (unpack format) (cs txt)
+
+readDate' :: Text -> Maybe UTCTime
+readDate' txt = do
+  --let format = cs $ iso8601DateFormat (Just "%F %H:%M:%S")
+  --let format = cs $ iso8601DateFormat Nothing
+  let format = cs $ iso8601DateFormat (Just "%0Y")
+  parseTimeM True defaultTimeLocale (unpack format) (cs txt)
+
+
 
 
 -- TODO add Paris at Duckling.Locale Region datatype
