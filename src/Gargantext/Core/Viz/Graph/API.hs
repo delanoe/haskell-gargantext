@@ -212,8 +212,8 @@ computeGraph corpusId partitionMethod bridgeMethod similarity strength (nt1,nt2)
         pure (m1,m2)
 
             -- Removing the hapax (ngrams with 1 cooc)
-  let !myCooc = HashMap.filter (>1)
-              $ getCoocByNgrams'' (Diagonal True) (identity, identity) (m1,m2)
+  let !myCooc = {- HashMap.filter (>0)
+              $ -} getCoocByNgrams'' (Diagonal True) (identity, identity) (m1,m2)
 
   -- TODO MultiPartite Here
   graph <- liftBase
