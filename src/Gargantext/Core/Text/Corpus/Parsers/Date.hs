@@ -74,10 +74,10 @@ type Day   = Int
 -- 1900-04-01 00:00:00 UTC
 parse :: Lang -> Text -> IO UTCTime
 parse lang s = do
-  --printDebug "Date: " s
-  dateStr' <- pure $ dateFlow (DucklingFailure s) -- parseRawSafe lang s
+  printDebug "Date: " s
+  let result = dateFlow (DucklingFailure s)
   --printDebug "Date': " dateStr'
-  case (dateFlow dateStr') of
+  case result of
     DateFlowSuccess ok -> pure ok
     DateFlowFailure    -> (withDebugMode (DebugMode True)
                                         "[G.C.T.P.T.Date parse]" (lang,s)
