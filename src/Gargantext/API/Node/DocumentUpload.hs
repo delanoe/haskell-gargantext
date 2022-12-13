@@ -110,7 +110,7 @@ documentUpload nId doc = do
                              , _hd_uniqId = Nothing
                              , _hd_uniqIdBdd = Nothing
                              , _hd_page = Nothing
-                             , _hd_title = Just $ view du_title doc
+                             , _hd_title = Just $ if view du_title doc == "" then T.take 50 (view du_abstract doc) else view du_title doc
                              , _hd_authors = Just $ view du_authors doc
                              , _hd_institutes = Nothing
                              , _hd_source             = Just $ view du_sources doc
