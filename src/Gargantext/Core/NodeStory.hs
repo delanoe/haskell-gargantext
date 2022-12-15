@@ -398,6 +398,12 @@ getNodeStory c nId@(NodeId nodeId) = do
                       Archive { _a_version = version
                               , _a_history = []
                               , _a_state   = Map.singleton ngramsType $ Map.singleton ngrams ngrams_repo_element }) res
+  -- NOTE Sanity check: all versions in the DB should be the same
+  let versionsS = Set.fromList $ map (\(version, _, _, _) -> version) res
+  if Set.size versionsS > 1 then
+    panic $ Text.pack $ "[getNodeStory] versions for " <> show nodeId <> " differ! " <> show versionsS
+  else
+    pure ()
   -- NOTE When concatenating, check that the same version is for all states
   pure $ NodeStory $ Map.singleton nId $ foldl combine mempty dbData
   --pure $ NodeStory $ Map.fromListWith (<>) $ (\(NodeStoryDB nId a) -> (nId, a)) <$> res
@@ -560,7 +566,21 @@ upsertNodeStories c nodeId@(NodeId nId) newArchive = do
         _ <- updateNodeStory c nodeId currentArchive newArchive
         pure ()
 
+    -- 3. Now we need to set versions of all node state to be the same
+    fixNodeStoryVersion c nodeId newArchive
+
     printDebug "[upsertNodeStories] STOP nId" nId
+
+fixNodeStoryVersion :: PGS.Connection -> NodeId -> ArchiveList -> IO ()
+fixNodeStoryVersion c nodeId newArchive = do
+  let params = (newArchive ^. a_version, nodeId)
+  _ <-runPGSExecute c query params
+  pure ()
+  where
+    query :: PGS.Query
+    query = [sql|UPDATE node_stories
+                SET version = ?
+                WHERE node_id = ?|]
 
 writeNodeStories :: PGS.Connection -> NodeListStory -> IO ()
 writeNodeStories c (NodeStory nls) = do
