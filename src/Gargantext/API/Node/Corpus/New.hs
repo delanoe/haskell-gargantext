@@ -236,7 +236,7 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
                              }
 
           cids <- mapM (\txt -> do
-                           flowDataText user txt (Multi l) cid Nothing logStatus) txts
+                           flowDataText user txt (Multi l) cid (Just flw) logStatus) txts
           printDebug "corpus id" cids
           printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
           sendMail user
@@ -274,7 +274,7 @@ addToCorpusWithForm :: (FlowCmdM env err m)
                     -> (JobLog -> m ())
                     -> JobLog
                     -> m JobLog
-addToCorpusWithForm user cid (NewWithForm ft ff d l _n) logStatus jobLog = do
+addToCorpusWithForm user cid (NewWithForm ft ff d l _n sel) logStatus jobLog = do
   printDebug "[addToCorpusWithForm] Parsing corpus: " cid
   printDebug "[addToCorpusWithForm] fileType" ft
   printDebug "[addToCorpusWithForm] fileFormat" ff
@@ -325,7 +325,7 @@ addToCorpusWithForm user cid (NewWithForm ft ff d l _n) logStatus jobLog = do
       _cid' <- flowCorpus user
                           (Right [cid])
                           (Multi $ fromMaybe EN l)
-                          Nothing
+                          (Just sel)
                           --(Just $ fromIntegral $ length docs, docsC')
                           (mCount, transPipe liftBase docsC') -- TODO fix number of docs
                           --(map (map toHyperdataDocument) docs)

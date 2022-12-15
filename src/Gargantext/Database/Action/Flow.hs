@@ -81,7 +81,7 @@ import Gargantext.Core.Text
 import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat, FileType)
 import Gargantext.Core.Text.List (buildNgramsLists)
 import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
-import Gargantext.Core.Text.List.Social (FlowSocialListWith)
+import Gargantext.Core.Text.List.Social (FlowSocialListWith(..))
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Types (POS(NP), TermsCount)
@@ -325,13 +325,19 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
 
   --let gp = (GroupParams l 2 3 (StopSize 3))
   -- Here the PosTagAlgo should be chosen according to the Lang
-  let gp = GroupWithPosTag l CoreNLP HashMap.empty
-  ngs    <- buildNgramsLists user userCorpusId masterCorpusId mfslw gp
+  _ <- case mfslw of 
+         (Just (NoList _)) -> do
+           printDebug "Do not build list" mfslw
+           pure ()
+         _ -> do
+           ngs  <- buildNgramsLists user userCorpusId masterCorpusId mfslw
+                     $ GroupWithPosTag l CoreNLP HashMap.empty
 
-  -- printDebug "flowCorpusUser:ngs" ngs
+         -- printDebug "flowCorpusUser:ngs" ngs
 
-  _userListId <- flowList_DbRepo listId ngs
-  _mastListId <- getOrMkList masterCorpusId masterUserId
+           _userListId <- flowList_DbRepo listId ngs
+           _mastListId <- getOrMkList masterCorpusId masterUserId
+           pure ()
   -- _ <- insertOccsUpdates userCorpusId mastListId
   -- printDebug "userListId" userListId
   -- User Graph Flow

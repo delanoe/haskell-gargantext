@@ -24,6 +24,7 @@ import Gargantext.API.Node.Corpus.New.Types (FileFormat(..), FileType(..))
 import Gargantext.API.Node.Types (NewWithForm(..))
 import Gargantext.API.Prelude
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Core.Text.List.Social (FlowSocialListWith(..), FlowSocialListPriority(..))
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Admin.Types.Hyperdata.Frame
 import Gargantext.Database.Admin.Types.Node
@@ -87,6 +88,6 @@ frameCalcUploadAsync uId nId _f logStatus jobLog = do
   jobLog2 <- case mCId of
     Nothing -> pure $ jobLogFail jobLog
     Just cId ->
-      addToCorpusWithForm (RootId (NodeId uId)) cId (NewWithForm CSV Plain body Nothing "calc-upload.csv") logStatus jobLog
+      addToCorpusWithForm (RootId (NodeId uId)) cId (NewWithForm CSV Plain body Nothing "calc-upload.csv" (FlowSocialListWithPriority MySelfFirst)) logStatus jobLog
 
   pure $ jobLogSuccess jobLog2

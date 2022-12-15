@@ -20,6 +20,8 @@ import Data.Map (Map)
 import Data.Monoid (mconcat)
 import Data.Swagger
 import GHC.Generics
+
+import Web.Internal.HttpApiData (ToHttpApiData, FromHttpApiData, parseUrlPiece, toUrlPiece)
 import qualified Data.Scientific as Scientific
 import qualified Data.Text       as T
 import qualified Data.Vector     as V
@@ -50,37 +52,49 @@ import qualified Prelude
 
 data FlowSocialListWith = FlowSocialListWithPriority { fslw_priority :: FlowSocialListPriority }
                         | FlowSocialListWithLists    { fslw_lists :: [ListId] }
-  deriving (Show, Generic)
+                        | NoList { makeList :: Bool }
+
+  deriving (Eq, Show, Generic)
 instance FromJSON FlowSocialListWith where
   parseJSON (Object v) = do
     typ :: T.Text <- v .: "type"
     value <- v .:? "value" .!= []
     case typ of
-      "MyListsFirst" -> pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
-      "OtherListsFirst" -> pure $ FlowSocialListWithPriority { fslw_priority = OthersFirst }
-      "SelectedLists" -> pure $ FlowSocialListWithLists { fslw_lists = value }
-      _ -> pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
+      "MyListsFirst"     -> pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
+      "OtherListsFirst"  -> pure $ FlowSocialListWithPriority { fslw_priority = OthersFirst }
+      "SelectedLists"    -> pure $ FlowSocialListWithLists { fslw_lists = value }
+      "NoList"           -> pure $ NoList True
+      _                  -> pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
   parseJSON _ = mzero
 instance ToJSON FlowSocialListWith where
-  toJSON (FlowSocialListWithPriority { fslw_priority = MySelfFirst }) =
-    object [ ("type", String "MyListsFirst") ]
-  toJSON (FlowSocialListWithPriority { fslw_priority = OthersFirst }) =
-    object [ ("type", String "ListsFirst") ]
-  toJSON (FlowSocialListWithLists { fslw_lists = ids }) =
-    object [ ("type", String "SelectedLists")
-           , ("value", Array $ V.fromList $ (map (\(NodeId id) -> Number $ Scientific.scientific (Prelude.toInteger id) 1) ids)) ]
+  toJSON (FlowSocialListWithPriority { fslw_priority = MySelfFirst }) = object [ ("type", String "MyListsFirst") ]
+  toJSON (FlowSocialListWithPriority { fslw_priority = OthersFirst }) = object [ ("type", String "ListsFirst") ]
+  toJSON (NoList _) = object [ ("type", String "NoList") ]
+  toJSON (FlowSocialListWithLists { fslw_lists = ids }) = object [ ("type", String "SelectedLists")
+                                                                 , ("value", Array $ V.fromList $ (map (\(NodeId id) -> Number $ Scientific.scientific (Prelude.toInteger id) 1) ids)) ]
 instance ToSchema FlowSocialListWith where
   declareNamedSchema = genericDeclareNamedSchema defaultSchemaOptions
+instance FromHttpApiData FlowSocialListWith
+  where
+    parseUrlPiece "MyListsFirst"    = pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
+    parseUrlPiece "OtherListsFirst" = pure $ FlowSocialListWithPriority { fslw_priority = OthersFirst }
+    parseUrlPiece "NoList"          = pure $ NoList True
+    parseUrlPiece _                 = panic "[G.C.T.L.Social] TODO FromHttpApiData FlowSocialListWith"
+
+instance ToHttpApiData   FlowSocialListWith where
+    toUrlPiece (FlowSocialListWithPriority  MySelfFirst) = "MySelfFirst"
+    toUrlPiece (FlowSocialListWithPriority  OthersFirst) = "OtherListsFirst"
+    toUrlPiece (NoList _) = "NoList" 
+    toUrlPiece (FlowSocialListWithLists _)  = panic "[G.C.T.L.Social] TODO ToHttpApiData FlowSocialListWith"
 
 data FlowSocialListPriority = MySelfFirst | OthersFirst
-  deriving (Show, Generic)
+  deriving (Eq, Show, Generic)
 instance ToSchema FlowSocialListPriority where
   declareNamedSchema = genericDeclareNamedSchema defaultSchemaOptions
 
 flowSocialListPriority :: FlowSocialListPriority -> [NodeMode]
 flowSocialListPriority MySelfFirst = [Private{-, Shared, Public -}]
 flowSocialListPriority OthersFirst = reverse $ flowSocialListPriority MySelfFirst
-
 {-
 -- | We keep the parents for all ngrams but terms
 keepAllParents :: NgramsType -> KeepAllParents
@@ -102,6 +116,7 @@ flowSocialList :: ( HasNodeStory env err m
 flowSocialList Nothing u = flowSocialList' MySelfFirst u
 flowSocialList (Just (FlowSocialListWithPriority p)) u = flowSocialList' p u
 flowSocialList (Just (FlowSocialListWithLists    ls)) _ = getHistoryScores ls History_User
+flowSocialList (Just (NoList _)) _u = panic "[G.C.T.L.Social] Should not be executed"
 
 flowSocialList' :: ( HasNodeStory env err m
                    , CmdM     env err m
