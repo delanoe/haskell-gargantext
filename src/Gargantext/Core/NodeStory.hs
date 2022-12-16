@@ -386,7 +386,9 @@ insertNodeArchiveHistory c nodeId version (h:hs) = do
   where
 
     query :: PGS.Query
-    query = [sql| INSERT INTO node_story_archive_history(node_id, ngrams_type_id, ngrams_id, patch, version) VALUES (?, ?, ?, ?, ?) |]
+
+    query = [sql| INSERT INTO node_story_archive_history(node_id, ngrams_type_id, ngrams_id, patch, version)
+                VALUES (?, ?, ?, ?, ?) |]
 
 getNodeStory :: PGS.Connection -> NodeId -> IO NodeListStory
 getNodeStory c nId@(NodeId nodeId) = do
@@ -399,7 +401,7 @@ getNodeStory c nId@(NodeId nodeId) = do
                               , _a_history = []
                               , _a_state   = Map.singleton ngramsType $ Map.singleton ngrams ngrams_repo_element }) res
   -- NOTE Sanity check: all versions in the DB should be the same
-  let versionsS = Set.fromList $ map (\(version, _, _, _) -> version) res
+  let versionsS = Set.fromList $ map (\a -> a ^. a_version) dbData
   if Set.size versionsS > 1 then
     panic $ Text.pack $ "[getNodeStory] versions for " <> show nodeId <> " differ! " <> show versionsS
   else
@@ -573,14 +575,15 @@ upsertNodeStories c nodeId@(NodeId nId) newArchive = do
 
 fixNodeStoryVersion :: PGS.Connection -> NodeId -> ArchiveList -> IO ()
 fixNodeStoryVersion c nodeId newArchive = do
-  let params = (newArchive ^. a_version, nodeId)
-  _ <-runPGSExecute c query params
+  let ngramsTypes = Map.keys $ newArchive ^. a_state
+  _ <- mapM_ (\nt -> runPGSExecute c query (newArchive ^. a_version, nodeId, nt)) ngramsTypes
   pure ()
   where
     query :: PGS.Query
     query = [sql|UPDATE node_stories
                 SET version = ?
-                WHERE node_id = ?|]
+                WHERE node_id = ?
+                AND ngrams_type_id IN ?|]
 
 writeNodeStories :: PGS.Connection -> NodeListStory -> IO ()
 writeNodeStories c (NodeStory nls) = do
@@ -619,12 +622,12 @@ nodeStoryIncs c Nothing (ni:ns) = do
 readNodeStoryEnv :: Pool PGS.Connection -> IO NodeStoryEnv
 readNodeStoryEnv pool = do
   mvar <- nodeStoryVar pool Nothing []
-  saver <- mkNodeStorySaver pool mvar
   let saver_immediate = modifyMVar_ mvar $ \ns -> do
         withResource pool $ \c -> do
           --printDebug "[mkNodeStorySaver] will call writeNodeStories, ns" ns
           writeNodeStories c ns
           pure $ clearHistory ns
+  saver <- mkNodeStorySaver saver_immediate
   -- let saver = modifyMVar_ mvar $ \mv -> do
   --       writeNodeStories pool mv
   --       printDebug "[readNodeStoryEnv] saver" mv
@@ -652,22 +655,25 @@ nodeStoryVar pool (Just mv) nIds = do
 
 -- Debounce is useful since it could delay the saving to some later
 -- time, asynchronously and we keep operating on memory only.
-mkNodeStorySaver :: Pool PGS.Connection -> MVar NodeListStory -> IO (IO ())
-mkNodeStorySaver pool mvns = mkDebounce settings
+-- mkNodeStorySaver :: Pool PGS.Connection -> MVar NodeListStory -> IO (IO ())
+-- mkNodeStorySaver pool mvns = do
+mkNodeStorySaver :: IO () -> IO (IO ())
+mkNodeStorySaver saver = mkDebounce settings
   where
     settings = defaultDebounceSettings
-                 { debounceAction = do
-                     -- NOTE: Lock MVar first, then use resource pool.
-                     -- Otherwise we could wait for MVar, while
-                     -- blocking the pool connection.
-                     modifyMVar_ mvns $ \ns -> do
-                       withResource pool $ \c -> do
-                         --printDebug "[mkNodeStorySaver] will call writeNodeStories, ns" ns
-                         writeNodeStories c ns
-                         pure $ clearHistory ns
+               { debounceAction = saver
+                   -- do
+                   --   -- NOTE: Lock MVar first, then use resource pool.
+                   --   -- Otherwise we could wait for MVar, while
+                   --   -- blocking the pool connection.
+                   --   modifyMVar_ mvns $ \ns -> do
+                   --     withResource pool $ \c -> do
+                   --       --printDebug "[mkNodeStorySaver] will call writeNodeStories, ns" ns
+                   --       writeNodeStories c ns
+                   --       pure $ clearHistory ns
                      --withMVar mvns (\ns -> printDebug "[mkNodeStorySaver] debounce nodestory" ns)
-                 , debounceFreq = 1*minute
-                 }
+               , debounceFreq = 1*minute
+               }
     minute = 60*second
     second = 10^(6 :: Int)
 
