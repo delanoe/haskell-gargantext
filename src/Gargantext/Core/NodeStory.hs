@@ -583,7 +583,7 @@ fixNodeStoryVersion c nodeId newArchive = do
     query = [sql|UPDATE node_stories
                 SET version = ?
                 WHERE node_id = ?
-                AND ngrams_type_id IN ?|]
+                AND ngrams_type_id = ?|]
 
 writeNodeStories :: PGS.Connection -> NodeListStory -> IO ()
 writeNodeStories c (NodeStory nls) = do
