@@ -82,6 +82,9 @@ instance HasNodeStorySaver Env where
 instance HasNodeStoryImmediateSaver Env where
   hasNodeStoryImmediateSaver = hasNodeStory . nse_saver_immediate
 
+instance HasNodeArchiveStoryImmediateSaver Env where
+  hasNodeArchiveStoryImmediateSaver = hasNodeStory . nse_archive_saver_immediate
+
 instance HasSettings Env where
   settings = env_settings
 
@@ -137,6 +140,9 @@ instance HasNodeStorySaver DevEnv where
 
 instance HasNodeStoryImmediateSaver DevEnv where
   hasNodeStoryImmediateSaver = hasNodeStory . nse_saver_immediate
+
+instance HasNodeArchiveStoryImmediateSaver DevEnv where
+  hasNodeArchiveStoryImmediateSaver = hasNodeStory . nse_archive_saver_immediate
 
 instance HasMail DevEnv where
   mailSettings = dev_env_mail
