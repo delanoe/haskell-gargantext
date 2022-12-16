@@ -340,7 +340,13 @@ commitStatePatch listId (Versioned _p_version p) = do
     -- have the handle to the MVar and we need to save its exact
     -- snapshot. Node Story archive is a linear table, so it's only
     -- couple of inserts, it shouldn't take long...
-    --newNs' <- saveNodeArchiveStoryImmediate $ fst newNs
+
+    -- If we postponed saving the archive to the debounce action, we
+    -- would have issues like
+    -- https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/476
+    -- where the `q` computation from above (which uses the archive)
+    -- would cause incorrect patch application (before the previous
+    -- archive was saved and applied)
     newNs' <- archiveSaver $ fst newNs
 
     pure (newNs', snd newNs)
