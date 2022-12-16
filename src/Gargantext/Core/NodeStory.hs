@@ -26,7 +26,7 @@ columns: `node_id`, `ngrams_type_id`, `patch`. This is because each
 history item is in fact a map from `NgramsType` to `NgramsTablePatch`
 (see the `NgramsStatePatch'` type).
 
-Moreover, since in ~G.A.Ngrams.commitStatePatch~ we use current state
+Moreover, since in `G.A.Ngrams.commitStatePatch` we use current state
 only, with only recent history items, I concluded that it is not
 necessary to load whole history into memory. Instead, it is kept in DB
 (history is immutable) and only recent changes are added to
@@ -406,9 +406,8 @@ getNodeStory c nId@(NodeId nodeId) = do
     panic $ Text.pack $ "[getNodeStory] versions for " <> show nodeId <> " differ! " <> show versionsS
   else
     pure ()
-  -- NOTE When concatenating, check that the same version is for all states
+
   pure $ NodeStory $ Map.singleton nId $ foldl combine mempty dbData
-  --pure $ NodeStory $ Map.fromListWith (<>) $ (\(NodeStoryDB nId a) -> (nId, a)) <$> res
   where
     -- NOTE (<>) for Archive doesn't concatenate states, so we have to use `combine`
     combine a1 a2 = a1 & a_state %~ combineState (a2 ^. a_state)
@@ -421,14 +420,22 @@ nodeStoriesQuery = [sql| SELECT version, ngrams_type_id, terms, ngrams_repo_elem
                            WHERE node_id = ? |]
 
 type ArchiveStateList = [(TableNgrams.NgramsType, NgramsTerm, NgramsRepoElement)]
+type ArchiveStateSet = Set.Set (TableNgrams.NgramsType, NgramsTerm)
 
--- Functions to convert archive state (which is a Map NgramsType (Map
--- NgramsTerm NgramsRepoElement)) to/from a flat list
+-- |Functions to convert archive state (which is a `Map NgramsType
+--  (Map NgramsTerm NgramsRepoElement`)) to/from a flat list
 archiveStateAsList :: NgramsState' -> ArchiveStateList
 archiveStateAsList s = mconcat $ (\(nt, ntm) -> (\(n, nre) -> (nt, n, nre)) <$> Map.toList ntm) <$> Map.toList s
 
 archiveStateFromList :: ArchiveStateList -> NgramsState'
 archiveStateFromList l = Map.fromListWith (<>) $ (\(nt, t, nre) -> (nt, Map.singleton t nre)) <$> l
+
+archiveStateSet :: ArchiveStateList -> ArchiveStateSet
+archiveStateSet lst = Set.fromList $ (\(nt, term, _) -> (nt, term)) <$> lst
+
+archiveStateListFilterFromSet :: ArchiveStateSet -> ArchiveStateList -> ArchiveStateList
+archiveStateListFilterFromSet set =
+  filter (\(nt, term, _) -> Set.member (nt, term) set)
 
 -- | This function inserts whole new node story and archive for given node_id.
 insertNodeStory :: PGS.Connection -> NodeId -> ArchiveList -> IO ()
@@ -500,17 +507,23 @@ updateNodeStory c nodeId@(NodeId _nId) currentArchive newArchive = do
   -- 1. Find differences (inserts/updates/deletes)
   let currentList = archiveStateAsList $ currentArchive ^. a_state
   let newList = archiveStateAsList $ newArchive ^. a_state
-  let currentSet = Set.fromList $ (\(nt, n, _) -> (nt, n)) <$> currentList
-  let newSet = Set.fromList $ (\(nt, n, _) -> (nt, n)) <$> newList
+  let currentSet = archiveStateSet currentList
+  let newSet = archiveStateSet newList
 
-  let inserts = filter (\(nt, n, _) -> Set.member (nt, n) $ Set.difference newSet currentSet) newList
-  --printDebug "[updateNodeStory] inserts" inserts
-  let deletes = filter (\(nt, n, _) -> Set.member (nt, n) $ Set.difference currentSet newSet) currentList
-  --printDebug "[updateNodeStory] deletes" deletes
+  printDebug "[updateNodeStory] new - current = " $ Set.difference newSet currentSet
+  let inserts = archiveStateListFilterFromSet (Set.difference newSet currentSet) newList
+  printDebug "[updateNodeStory] inserts" inserts
+
+  printDebug "[updateNodeStory] current - new" $ Set.difference currentSet newSet
+  let deletes = archiveStateListFilterFromSet (Set.difference currentSet newSet) currentList
+  printDebug "[updateNodeStory] deletes" deletes
 
   -- updates are the things that are in new but not in current
-  let updates = Set.toList $ Set.difference (Set.fromList newList) (Set.fromList currentList)
-  --printDebug "[updateNodeStory] updates" $ Text.unlines $ (Text.pack . show) <$> updates
+  let commonSet = Set.intersection currentSet newSet
+  let commonNewList = archiveStateListFilterFromSet commonSet newList
+  let commonCurrentList = archiveStateListFilterFromSet commonSet currentList
+  let updates = Set.toList $ Set.difference (Set.fromList commonNewList) (Set.fromList commonCurrentList)
+  printDebug "[updateNodeStory] updates" $ Text.unlines $ (Text.pack . show) <$> updates
 
   -- 2. Perform inserts/deletes/updates
   --printDebug "[updateNodeStory] applying insert" ()
@@ -602,10 +615,10 @@ nodeStoryInc c (Just ns@(NodeStory nls)) nId = do
 
 nodeStoryIncs :: PGS.Connection -> Maybe NodeListStory -> [NodeId] -> IO NodeListStory
 nodeStoryIncs _ Nothing [] = pure $ NodeStory $ Map.empty
-nodeStoryIncs c (Just nls) ns = foldM (\m n -> nodeStoryInc c (Just m) n) nls ns
 nodeStoryIncs c Nothing (ni:ns) = do
   m <- getNodeStory c ni
   nodeStoryIncs c (Just m) ns
+nodeStoryIncs c (Just nls) ns = foldM (\m n -> nodeStoryInc c (Just m) n) nls ns
 
 -- nodeStoryDec :: Pool PGS.Connection -> NodeListStory -> NodeId -> IO NodeListStory
 -- nodeStoryDec pool ns@(NodeStory nls) ni = do
