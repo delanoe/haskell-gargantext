@@ -201,7 +201,6 @@ saveNodeStoryImmediate = do
     saver
     --Gargantext.Prelude.putStrLn "---- Node story immediate saver finished ----"
 
-
 listTypeConflictResolution :: ListType -> ListType -> ListType
 listTypeConflictResolution _ _ = undefined -- TODO Use Map User ListType
 
@@ -293,13 +292,17 @@ newNgramsFromNgramsStatePatch p =
 
 
 
-commitStatePatch :: (HasNodeStory env err m, HasMail env)
+commitStatePatch :: ( HasNodeStory env err m
+                    , HasNodeStoryImmediateSaver env
+                    , HasNodeArchiveStoryImmediateSaver env
+                    , HasMail env)
                  => ListId
                  ->    Versioned NgramsStatePatch'
                  -> m (Versioned NgramsStatePatch')
 commitStatePatch listId (Versioned _p_version p) = do
   -- printDebug "[commitStatePatch]" listId
   var <- getNodeStoryVar [listId]
+  archiveSaver <- view hasNodeArchiveStoryImmediateSaver
   vq' <- liftBase $ modifyMVar var $ \ns -> do
     let
       a = ns ^. unNodeStory . at listId . _Just
@@ -329,10 +332,28 @@ commitStatePatch listId (Versioned _p_version p) = do
     -}
     -- printDebug "[commitStatePatch] a version" (a ^. a_version)
     -- printDebug "[commitStatePatch] a' version" (a' ^. a_version)
-    pure ( ns & unNodeStory . at listId .~ (Just a')
+    let newNs = ( ns & unNodeStory . at listId .~ (Just a')
          , Versioned (a' ^. a_version) q'
          )
+
+    -- NOTE Now is the only good time to save the archive history. We
+    -- have the handle to the MVar and we need to save its exact
+    -- snapshot. Node Story archive is a linear table, so it's only
+    -- couple of inserts, it shouldn't take long...
+
+    -- If we postponed saving the archive to the debounce action, we
+    -- would have issues like
+    -- https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/476
+    -- where the `q` computation from above (which uses the archive)
+    -- would cause incorrect patch application (before the previous
+    -- archive was saved and applied)
+    newNs' <- archiveSaver $ fst newNs
+
+    pure (newNs', snd newNs)
+
+  -- NOTE State (i.e. `NodeStory` can be saved asynchronously, i.e. with debounce)
   saveNodeStory
+  --saveNodeStoryImmediate
   -- Save new ngrams
   _ <- insertNgrams (newNgramsFromNgramsStatePatch p)
 
@@ -366,6 +387,8 @@ tableNgramsPull listId ngramsType p_version = do
 -- client.
 -- TODO-ACCESS check
 tableNgramsPut :: ( HasNodeStory    env err m
+                  , HasNodeStoryImmediateSaver env
+                  , HasNodeArchiveStoryImmediateSaver env
                   , HasInvalidError     err
                   , HasSettings     env
                   , HasMail         env
