@@ -88,7 +88,8 @@ module Gargantext.Core.NodeStory
   , nodeStoriesQuery
   , currentVersion
   , archiveStateFromList
-  , archiveStateToList )
+  , archiveStateToList
+  , fixNodeStoryVersions )
 where
 
 -- import Debug.Trace (traceShow)
@@ -722,3 +723,45 @@ currentVersion listId = do
 
 
 -----------------------------------------
+
+fixNodeStoryVersions :: (HasNodeStory env err m) => m ()
+fixNodeStoryVersions = do
+  pool <- view connPool
+  _ <- withResource pool $ \c -> liftBase $ PGS.withTransaction c $ do
+    nIds <- runPGSQuery c [sql| SELECT id FROM nodes WHERE ? |] (PGS.Only True) :: IO [PGS.Only Int64]
+    printDebug "[fixNodeStoryVersions] nIds" nIds
+    _ <- mapM_ (\(PGS.Only nId) -> do
+                   printDebug "[fixNodeStoryVersions] nId" nId
+                   updateVer c TableNgrams.Authors nId
+
+                   updateVer c TableNgrams.Institutes nId
+
+                   updateVer c TableNgrams.Sources nId
+
+                   updateVer c TableNgrams.NgramsTerms nId
+
+                   pure ()
+                   ) nIds
+    pure ()
+  pure ()
+  where
+    maxVerQuery :: PGS.Query
+    maxVerQuery = [sql| SELECT max(version)
+                      FROM node_stories
+                      WHERE node_id = ?
+                        AND ngrams_type_id = ? |]
+    updateVerQuery :: PGS.Query
+    updateVerQuery = [sql| UPDATE node_stories
+                         SET version = ?
+                         WHERE node_id = ?
+                           AND ngrams_type_id = ? |]
+    updateVer :: PGS.Connection -> TableNgrams.NgramsType -> Int64 -> IO ()
+    updateVer c ngramsType nId = do
+      maxVer <- runPGSQuery c maxVerQuery (nId, ngramsType) :: IO [PGS.Only (Maybe Int64)]
+      case maxVer of
+        [] -> pure ()
+        [PGS.Only Nothing] -> pure ()
+        [PGS.Only (Just maxVersion)] -> do
+          _ <- runPGSExecute c updateVerQuery (maxVersion, nId, ngramsType)
+          pure ()
+        _ -> panic "Should get only 1 result!"

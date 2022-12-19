@@ -78,7 +78,7 @@ main = do
     _ <- if fun == "corpusCsvHal"
           then runCmdDev env corpusCsvHal
           else pure 0 --(cs "false")
- 
+
     _ <- if fun == "annuaire"
             then runCmdDev env annuaire
             else pure 0
