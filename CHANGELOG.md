@@ -1,11 +1,11 @@
 ## Version 0.0.6.8.5.9
 
 * [ALL][FEAT] Text Flow with NoList built as option
+* [FRONT][FIX][Adding 3th ngrams in document view breaks ngrams Table (#476)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/476)
 
 ## Version 0.0.6.8.5.8
 
 * [FRONT][FIX][Graph Explorer Nodes (#471)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/471)
-* [FRONT][FIX][Adding 3th ngrams in document view breaks ngrams Table (#476)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/476)
 * [FRONT][FIX][[docs] Backend improvements (#443)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/443)
 
 ## Version 0.0.6.8.5.7

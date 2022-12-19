@@ -412,10 +412,12 @@ getNodeStory c nId@(NodeId nodeId) = do
    -- `node_stories_ngrams` without the `version` colum? Then we would
    -- have `version` in only one place.
   let versionsS = Set.fromList $ map (\a -> a ^. a_version) dbData
+{-
   if Set.size versionsS > 1 then
     panic $ Text.pack $ "[getNodeStory] versions for " <> show nodeId <> " differ! " <> show versionsS
   else
     pure ()
+-}
 
   pure $ NodeStory $ Map.singleton nId $ foldl combine mempty dbData
   where
