@@ -1,6 +1,6 @@
 ## Version 0.0.6.8.5.9.1
 
-* [BACK][159][](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/FIX)
+* [BACK][FIX][fix to current db to update versions (#159)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/159)
 
 ## Version 0.0.6.8.5.9
 
