@@ -1,3 +1,7 @@
+## Version 0.0.6.8.5.9.1
+
+* [BACK][159][](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/FIX)
+
 ## Version 0.0.6.8.5.9
 
 * [ALL][FEAT] Text Flow with NoList built as option
