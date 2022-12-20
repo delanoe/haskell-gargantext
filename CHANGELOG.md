@@ -1,3 +1,7 @@
+## Version 0.0.6.8.5.9.2
+
+* [BACK][FIX] Incorrect count in HAL
+
 ## Version 0.0.6.8.5.9.1
 
 * [BACK][FIX][fix to current db to update versions (#159)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/159)
