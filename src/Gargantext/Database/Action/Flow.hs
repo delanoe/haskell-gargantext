@@ -325,7 +325,7 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
 
   --let gp = (GroupParams l 2 3 (StopSize 3))
   -- Here the PosTagAlgo should be chosen according to the Lang
-  _ <- case mfslw of 
+  _ <- case mfslw of
          (Just (NoList _)) -> do
            printDebug "Do not build list" mfslw
            pure ()

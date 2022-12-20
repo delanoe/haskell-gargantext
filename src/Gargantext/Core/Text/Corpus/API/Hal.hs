@@ -63,4 +63,3 @@ toDoc' la (HAL.Corpus i t ab d s aus affs struct_id) = do
                          , _hd_publication_minute = Nothing
                          , _hd_publication_second = Nothing
                          , _hd_language_iso2 = Just $ (pack . show) la }
-

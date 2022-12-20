@@ -159,7 +159,7 @@ buildNgramsTermsList :: ( HasNodeError err
                      -> GroupParams
                      -> (NgramsType, MapListSize)
                      -> m (Map NgramsType [NgramsElement])
-buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
+buildNgramsTermsList user uCid mCid mfslw groupParams (nt, MapListSize mapListSize)= do
 
 -- Filter 0 With Double
 -- Computing global speGen score
@@ -179,13 +179,13 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
                                     )
   printDebug "[buildNgramsTermsList: Flow Social List / end]" nt
 
-  let !ngramsKeys = HashSet.fromList $ List.take 1000 $ HashSet.toList $ HashMap.keysSet allTerms
+  let !ngramsKeys = HashSet.fromList $ List.take mapListSize $ HashSet.toList $ HashMap.keysSet allTerms
 
   printDebug "[buildNgramsTermsList: ngramsKeys]" (HashSet.size ngramsKeys)
 
   !groupParams' <- getGroupParams groupParams (HashSet.map (text2ngrams . unNgramsTerm) ngramsKeys)
 
-  printDebug "[buildNgramsTermsList: groupParams']" (""::Text)
+  printDebug "[buildNgramsTermsList: groupParams']" ("" :: Text)
 
   let
     !socialLists_Stemmed = addScoreStem groupParams' ngramsKeys socialLists
@@ -217,7 +217,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
 -------------------------
 -- Filter 1 With Set NodeId and SpeGen
     !selectedTerms = Set.toList $ hasTerms (groupedMonoHead <> groupedMultHead)
- 
+
   printDebug "[buildNgramsTermsList: selectedTerms]" selectedTerms
 
  -- TODO remove (and remove HasNodeError instance)
@@ -283,7 +283,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
     -- use % of list if to big, or Int if to small
     !mapSize = 1000 :: Double
     !canSize = mapSize * 2 :: Double
- 
+
     !inclSize = 0.4  :: Double
     !exclSize = 1 - inclSize
 
@@ -318,7 +318,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, _mapListSize)= do
         <> mapMultScoredExclHead
 
     -- An original way to filter to start with
-    !cands = setListType (Just CandidateTerm) 
+    !cands = setListType (Just CandidateTerm)
           $ canMonoScoredIncHead
           <> canMonoScoredExclHead
           <> canMulScoredInclHead
