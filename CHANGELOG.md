@@ -1,6 +1,7 @@
 ## Version 0.0.6.8.5.9.2
 
 * [BACK][FIX] Incorrect count in HAL
+* [FRONT][FEAT] Node Move Settings (Just a type and it changes everything)
 
 ## Version 0.0.6.8.5.9.1
 
