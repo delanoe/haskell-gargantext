@@ -53,6 +53,7 @@ import Control.Lens ((^.), view, _Just, makeLenses, over, traverse)
 import Control.Monad.Reader (MonadReader)
 import Data.Aeson.TH (deriveJSON)
 import Data.Conduit.Internal (zipSources)
+import qualified Data.Conduit.List as CList
 import Data.Either
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
@@ -111,7 +112,7 @@ import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
 import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
-import qualified Prelude
+--import qualified Prelude
 
 ------------------------------------------------------------------------
 -- Imports for upgrade function
@@ -264,7 +265,9 @@ flow :: forall env err m a c.
 flow c u cn la mfslw (mLength, docsC) logStatus = do
   -- TODO if public insertMasterDocs else insertUserDocs
   ids <- runConduit $ zipSources (yieldMany [1..]) docsC
-                   .| mapMC insertDoc
+                   .| CList.chunksOf 100
+                   .| mapMC insertDocs'
+                   .| CList.concat
                    .| sinkList
 --  ids <- traverse (\(idx, doc) -> do
 --                      id <- insertMasterDocs c la doc
@@ -278,18 +281,21 @@ flow c u cn la mfslw (mLength, docsC) logStatus = do
   flowCorpusUser (la ^. tt_lang) u cn c ids mfslw
 
   where
-    insertDoc :: (Integer, a) -> m NodeId
-    insertDoc (idx, doc) = do
-      id <- insertMasterDocs c la [doc]
+    insertDocs' :: [(Integer, a)] -> m [NodeId]
+    insertDocs' [] = pure []
+    insertDocs' docs = do
+      printDebug "[flow] calling insertDoc, ([idx], mLength) = " (fst <$> docs, mLength)
+      ids <- insertMasterDocs c la (snd <$> docs)
+      let maxIdx = maximum (fst <$> docs)
       case mLength of
         Nothing -> pure ()
         Just len -> do
-          logStatus JobLog { _scst_succeeded = Just $ fromIntegral $ 1 + idx
+          logStatus JobLog { _scst_succeeded = Just $ fromIntegral $ 1 + maxIdx
                            , _scst_failed    = Just 0
-                           , _scst_remaining = Just $ fromIntegral $ len - idx
+                           , _scst_remaining = Just $ fromIntegral $ len - maxIdx
                            , _scst_events    = Just []
                            }
-      pure $ Prelude.head id
+      pure ids
 
 
 
