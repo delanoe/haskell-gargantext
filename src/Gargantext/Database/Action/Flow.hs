@@ -194,7 +194,10 @@ flowDataText :: forall env err m.
                 -> Maybe FlowSocialListWith
                 -> (JobLog -> m ())
                 -> m CorpusId
-flowDataText u (DataOld ids) tt cid mfslw _ = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids mfslw
+flowDataText u (DataOld ids) tt cid mfslw _ = do
+  (_userId, userCorpusId, listId) <- createNodes u (Right [cid]) corpusType
+  _ <- Doc.add userCorpusId ids
+  flowCorpusUser (_tt_lang tt) u userCorpusId listId corpusType mfslw
   where
     corpusType = (Nothing :: Maybe HyperdataCorpus)
 flowDataText u (DataNew (mLen, txtC)) tt cid mfslw logStatus =
@@ -263,12 +266,18 @@ flow :: forall env err m a c.
         -> (JobLog -> m ())
         -> m CorpusId
 flow c u cn la mfslw (mLength, docsC) logStatus = do
+  (_userId, userCorpusId, listId) <- createNodes u cn c
   -- TODO if public insertMasterDocs else insertUserDocs
-  ids <- runConduit $ zipSources (yieldMany [1..]) docsC
-                   .| CList.chunksOf 100
-                   .| mapMC insertDocs'
-                   .| CList.concat
-                   .| sinkList
+  _ <- runConduit $ zipSources (yieldMany [1..]) docsC
+                 .| CList.chunksOf 100
+                 .| mapMC insertDocs'
+                 .| mapM_C (\ids' -> do
+                               _ <- Doc.add userCorpusId ids'
+                               pure ())
+                 .| sinkList
+
+  _ <- flowCorpusUser (la ^. tt_lang) u userCorpusId listId c mfslw
+
 --  ids <- traverse (\(idx, doc) -> do
 --                      id <- insertMasterDocs c la doc
 --                      logStatus JobLog { _scst_succeeded = Just $ 1 + idx
@@ -278,7 +287,9 @@ flow c u cn la mfslw (mLength, docsC) logStatus = do
 --                                       }
 --                      pure id
 --                  ) (zip [1..] docs)
-  flowCorpusUser (la ^. tt_lang) u cn c ids mfslw
+  --printDebug "[flow] calling flowCorpusUser" (0 :: Int)
+  pure userCorpusId
+  --flowCorpusUser (la ^. tt_lang) u cn c ids mfslw
 
   where
     insertDocs' :: [(Integer, a)] -> m [NodeId]
@@ -300,17 +311,14 @@ flow c u cn la mfslw (mLength, docsC) logStatus = do
 
 
 ------------------------------------------------------------------------
-flowCorpusUser :: ( FlowCmdM env err m
-                  , MkCorpus c
-                  )
-               => Lang
-               -> User
-               -> Either CorpusName [CorpusId]
-               -> Maybe c
-               -> [ContextId]
-               -> Maybe FlowSocialListWith
-               -> m CorpusId
-flowCorpusUser l user corpusName ctype ids mfslw = do
+createNodes :: ( FlowCmdM env err m
+               , MkCorpus c
+               )
+            => User
+            -> Either CorpusName [CorpusId]
+            -> Maybe c
+            -> m (UserId, CorpusId, ListId)
+createNodes user corpusName ctype = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus user corpusName ctype
   -- NodeTexts is first
@@ -319,12 +327,25 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
 
   -- NodeList is second
   listId <- getOrMkList userCorpusId userId
-  -- _cooc  <- insertDefaultNode NodeListCooc listId userId
-  -- TODO: check if present already, ignore
-  _ <- Doc.add userCorpusId ids
 
-  -- printDebug "Node Text Ids:" tId
+  -- User Graph Flow
+  _ <- insertDefaultNodeIfNotExists NodeGraph     userCorpusId userId
+  _ <- insertDefaultNodeIfNotExists NodeDashboard userCorpusId userId
 
+  pure (userId, userCorpusId, listId)
+
+
+flowCorpusUser :: ( FlowCmdM env err m
+                  , MkCorpus c
+                  )
+               => Lang
+               -> User
+               -> CorpusId
+               -> ListId
+               -> Maybe c
+               -> Maybe FlowSocialListWith
+               -> m CorpusId
+flowCorpusUser l user userCorpusId listId ctype mfslw = do
   -- User List Flow
   (masterUserId, _masterRootId, masterCorpusId)
     <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
@@ -346,9 +367,6 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
            pure ()
   -- _ <- insertOccsUpdates userCorpusId mastListId
   -- printDebug "userListId" userListId
-  -- User Graph Flow
-  _ <- insertDefaultNodeIfNotExists NodeGraph     userCorpusId userId
-  _ <- insertDefaultNodeIfNotExists NodeDashboard userCorpusId userId
   --_ <- mkPhylo  userCorpusId userId
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId
