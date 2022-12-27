@@ -40,6 +40,10 @@ FRAME_ISTEX_URL  = URL_TO_CHANGE
 MAX_DOCS_PARSERS = 1000000
 MAX_DOCS_SCRAPERS = 10000
 
+# in seconds
+JS_JOB_TIMEOUT = 1800
+JS_ID_TIMEOUT = 1800
+
 [server]
 # Server config (TODO connect in ReaderMonad)
 ALLOWED_ORIGIN = http://localhost

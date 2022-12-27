@@ -1,5 +1,8 @@
+{-# LANGUAGE TemplateHaskell     #-}
+
 module Gargantext.Utils.Jobs.Settings where
 
+import Control.Lens
 import Prelude
 
 import qualified Servant.Job.Core as SJ
@@ -12,3 +15,6 @@ data JobSettings = JobSettings
   , jsGcPeriod   :: Int -- in seconds, how long between each GC
   , jsSecretKey  :: SJ.SecretKey
   }
+
+makeLensesFor [ ("jsJobTimeout", "l_jsJobTimeout")
+              , ("jsIDTimeout", "l_jsIDTimeout")] ''JobSettings
