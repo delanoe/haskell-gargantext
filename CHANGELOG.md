@@ -1,3 +1,13 @@
+## Version 0.0.6.8.5.9.3
+
+* [BACK][FIX][Conduit insert with batch of documents in db (#161)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/161)
+* [BACK][FIX][Not Found</title>](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/441)
+
+## Version 0.0.6.8.5.9.2
+
+* [BACK][FIX] Incorrect count in HAL
+* [FRONT][FEAT] Node Move Settings (Just a type and it changes everything)
+
 ## Version 0.0.6.8.5.9.1
 
 * [BACK][FIX][fix to current db to update versions (#159)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/159)
