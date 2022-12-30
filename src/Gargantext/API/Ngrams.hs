@@ -576,8 +576,8 @@ getTableNgrams _nType nId tabType listId limit_ offset
     sortOnOrder Nothing          = sortOnOrder (Just ScoreDesc)
     sortOnOrder (Just TermAsc)   = List.sortOn $ view ne_ngrams
     sortOnOrder (Just TermDesc)  = List.sortOn $ Down . view ne_ngrams
-    sortOnOrder (Just ScoreAsc)  = List.sortOn $ view (ne_occurrences . to length)
-    sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view (ne_occurrences . to length)
+    sortOnOrder (Just ScoreAsc)  = List.sortOn $ view (ne_occurrences . to List.nub . to length)
+    sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view (ne_occurrences . to List.nub . to length)
 
     ---------------------------------------
     -- | Filter the given `tableMap` with the search criteria.
