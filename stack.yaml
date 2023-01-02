@@ -32,10 +32,9 @@ ghc-options:
 #  "$everything": -haddock
 
 extra-deps:
-#- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-#  commit: 7bcd5fc5bad511892c4fd337cf2d4d23c1ec051b
-- git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude
+- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
   commit: 791c2a7046a3760f8ae5fabdbd708f61caa63741
+  #- git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude
 - git: https://gitlab.iscpif.fr/gargantext/gargantext-graph.git
   commit: 588e104fe7593210956610cab0041fd16584a4ce
   # Data Mining Libs
