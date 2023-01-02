@@ -76,15 +76,15 @@ instance ToSchema FlowSocialListWith where
   declareNamedSchema = genericDeclareNamedSchema defaultSchemaOptions
 instance FromHttpApiData FlowSocialListWith
   where
-    parseUrlPiece "MyListsFirst"    = pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
-    parseUrlPiece "OtherListsFirst" = pure $ FlowSocialListWithPriority { fslw_priority = OthersFirst }
+    parseUrlPiece "My lists first"    = pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
+    parseUrlPiece "Others lists first" = pure $ FlowSocialListWithPriority { fslw_priority = OthersFirst }
     parseUrlPiece "NoList"          = pure $ NoList True
-    parseUrlPiece _                 = panic "[G.C.T.L.Social] TODO FromHttpApiData FlowSocialListWith"
+    parseUrlPiece x                 = panic $ "[G.C.T.L.Social] TODO FromHttpApiData FlowSocialListWith error: " <> (cs $ show x)
 
 instance ToHttpApiData   FlowSocialListWith where
     toUrlPiece (FlowSocialListWithPriority  MySelfFirst) = "MySelfFirst"
     toUrlPiece (FlowSocialListWithPriority  OthersFirst) = "OtherListsFirst"
-    toUrlPiece (NoList _) = "NoList" 
+    toUrlPiece (NoList _) = "NoList"
     toUrlPiece (FlowSocialListWithLists _)  = panic "[G.C.T.L.Social] TODO ToHttpApiData FlowSocialListWith"
 
 data FlowSocialListPriority = MySelfFirst | OthersFirst
