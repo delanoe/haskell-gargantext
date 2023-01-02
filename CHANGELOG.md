@@ -1,3 +1,9 @@
+## Version 0.0.6.8.5.9.4
+
+* [FRONT][FIX][Editor codtype change (#145)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/145)
+* [BACK][FIX][Conduit insert with batch of documents in db (#161)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/161)
+* [BACK][FIX] API: HAL, PUBMED
+
 ## Version 0.0.6.8.5.9.3
 
 * [BACK][FIX][Conduit insert with batch of documents in db (#161)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/161)
