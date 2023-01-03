@@ -71,10 +71,10 @@ toTermList lt nt nl = toTermList' lt <$> Map.lookup nt nl
 
         children' = catMaybes
                   $ map (\(t,nre) -> (,) <$> view nre_root nre
-                                         <*> Just (map toTerm $ [t] 
+                                         <*> Just (map toTerm $ [t]
                                                              <> (unMSet $ view nre_children nre)
                                                   )
-                        ) children 
+                        ) children
 
 ------------------------------------------
 patchMSet_toList :: (Ord a, Hashable a) => PatchMSet a -> [(a,AddRem)]

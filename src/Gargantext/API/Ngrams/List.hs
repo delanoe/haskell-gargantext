@@ -58,13 +58,15 @@ import qualified Data.Map            as Map
 import qualified Data.Set            as Set
 import qualified Data.Text           as Text
 import qualified Data.Vector         as Vec
+import qualified Gargantext.Utils.Servant as GUS
 import qualified Prelude
 import qualified Protolude           as P
 ------------------------------------------------------------------------
 type GETAPI = Summary "Get List"
             :> "lists"
               :> Capture "listId" ListId
-            :> Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
+              :> Capture "fileType" Text
+            :> Get '[JSON, GUS.CSV, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
 getApi :: GargServer GETAPI
 getApi = get
 
@@ -95,8 +97,8 @@ csvApi = csvPostAsync
 
 ------------------------------------------------------------------------
 get :: HasNodeStory env err m =>
-       ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
-get lId = do
+       ListId -> Text -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
+get lId "JSON" = do
   lst <- getNgramsList lId
   let (NodeId id') = lId
   return $ addHeader (concat [ "attachment; filename=GarganText_NgramsList-"
@@ -104,6 +106,15 @@ get lId = do
                              , ".json"
                              ]
                      ) lst
+get lId "CSV" = do
+  lst <- getNgramsList lId
+  let (NodeId id') = lId
+  return $ addHeader (concat [ "attachment; filename=GarganText_NgramsList-"
+                             , pack $ show id'
+                             , ".csv"
+                             ]
+                     ) lst
+get lId _ = get lId "JSON"
 
 ------------------------------------------------------------------------
 -- TODO : purge list
