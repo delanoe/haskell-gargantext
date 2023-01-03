@@ -170,7 +170,6 @@ extra-deps:
 
 - servant-ekg-0.3.1@sha256:19bd9dc3943983da8e79d6f607614c68faea4054fb889d508c8a2b67b6bdd448,2203
 
-
 # For the graph clustering
 ghc-options:
   hmatrix: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
