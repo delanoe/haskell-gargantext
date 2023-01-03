@@ -58,6 +58,7 @@ import qualified Data.Map            as Map
 import qualified Data.Set            as Set
 import qualified Data.Text           as Text
 import qualified Data.Vector         as Vec
+import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import qualified Gargantext.Utils.Servant as GUS
 import qualified Prelude
 import qualified Protolude           as P
@@ -65,10 +66,14 @@ import qualified Protolude           as P
 type GETAPI = Summary "Get List"
             :> "lists"
               :> Capture "listId" ListId
-              :> Capture "fileType" Text
-            :> Get '[JSON, GUS.CSV, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
+              :> "json"
+              :> Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
+            :<|> "lists"
+              :> Capture "listId" ListId
+              :> "csv"
+              :> Get '[GUS.CSV] (Headers '[Header "Content-Disposition" Text] NgramsTableMap)
 getApi :: GargServer GETAPI
-getApi = get
+getApi = getJson :<|> getCsv
 
 ----------------------
 type JSONAPI = Summary "Update List"
@@ -96,9 +101,9 @@ csvApi :: ServerT CSVAPI (GargM Env GargError)
 csvApi = csvPostAsync
 
 ------------------------------------------------------------------------
-get :: HasNodeStory env err m =>
-       ListId -> Text -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
-get lId "JSON" = do
+getJson :: HasNodeStory env err m =>
+       ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
+getJson lId = do
   lst <- getNgramsList lId
   let (NodeId id') = lId
   return $ addHeader (concat [ "attachment; filename=GarganText_NgramsList-"
@@ -106,15 +111,20 @@ get lId "JSON" = do
                              , ".json"
                              ]
                      ) lst
-get lId "CSV" = do
+
+getCsv :: HasNodeStory env err m =>
+       ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsTableMap)
+getCsv lId = do
   lst <- getNgramsList lId
   let (NodeId id') = lId
-  return $ addHeader (concat [ "attachment; filename=GarganText_NgramsList-"
-                             , pack $ show id'
-                             , ".csv"
-                             ]
-                     ) lst
-get lId _ = get lId "JSON"
+  return $ case Map.lookup TableNgrams.NgramsTerms lst of
+    Nothing -> noHeader Map.empty
+    Just (Versioned { _v_data }) ->
+      addHeader (concat [ "attachment; filename=GarganText_NgramsList-"
+                        , pack $ show id'
+                        , ".csv"
+                        ]
+                ) _v_data
 
 ------------------------------------------------------------------------
 -- TODO : purge list
