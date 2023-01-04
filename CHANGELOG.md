@@ -1,3 +1,7 @@
+## Version 0.0.6.8.6
+
+* [BACK][FIX][Export List as CSV (#155)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/155)
+
 ## Version 0.0.6.8.5.9.4
 
 * [FRONT][FIX][Editor codtype change (#145)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/145)
