@@ -1,5 +1,6 @@
 ## Version 0.0.6.8.6
 
+* [BACK][FIX][New Corpus, Ngrams Table Repo (#163)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/163)
 * [BACK][FIX][Export List as CSV (#155)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/155)
 
 ## Version 0.0.6.8.5.9.4
