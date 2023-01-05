@@ -93,8 +93,10 @@ extra-deps:
 - git: https://github.com/delanoe/patches-map
   commit: 76cae88f367976ff091e661ee69a5c3126b94694
   #- git: https://gitlab.com/npouillard/patches-class.git  
-- git: https://gitlab.iscpif.fr/gargantext/patches-class.git
-  commit: d3e971d4e78d1dfcc853f2fb86bde1995faf22ae
+#- git: https://gitlab.iscpif.fr/gargantext/patches-class.git
+#  commit: d3e971d4e78d1dfcc853f2fb86bde1995faf22ae
+- git: https://gitlab.iscpif.fr/cgenie/patches-class.git
+  commit: 125c7cb90ab8f0cd6ac4a526dbdf302d10c945e9
 
   # Graph libs
 #- git: https://github.com/kaizhang/haskell-igraph.git

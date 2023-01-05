@@ -212,7 +212,7 @@ ngramsStatePatchConflictResolution
 ngramsStatePatchConflictResolution _ngramsType _ngramsTerm
    = (ours, (const ours, ours), (False, False))
                              -- (False, False) mean here that Mod has always priority.
---  = (ours, (const ours, ours), (True, False))
+ -- = (ours, (const ours, ours), (True, False))
                              -- (True, False) <- would mean priority to the left (same as ours).
   -- undefined {- TODO think this through -}, listTypeConflictResolution)
 
@@ -311,7 +311,11 @@ commitStatePatch listId (Versioned _p_version p) = do
       --q = mconcat $ take (a ^. a_version - p_version) (a ^. a_history)
       q = mconcat $ a ^. a_history
 
-    printDebug "transformWith" (p,q)
+    --printDebug "[commitStatePatch] transformWith" (p,q)
+    -- let tws s = case s of
+    --       (Mod p) -> "Mod"
+    --       _ -> "Rpl"
+    -- printDebug "[commitStatePatch] transformWith" (tws $ p ^. _NgramsPatch, tws $ q ^. _NgramsPatch)
 
     let
       (p', q') = transformWith ngramsStatePatchConflictResolution p q
