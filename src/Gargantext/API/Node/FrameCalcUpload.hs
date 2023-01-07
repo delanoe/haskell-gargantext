@@ -24,7 +24,7 @@ import Gargantext.API.Node.Corpus.New.Types (FileFormat(..), FileType(..))
 import Gargantext.API.Node.Types (NewWithForm(..))
 import Gargantext.API.Prelude
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Core.Text.List.Social (FlowSocialListWith(..), FlowSocialListPriority(..))
+import Gargantext.Core.Text.List.Social (FlowSocialListWith(..))
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Admin.Types.Hyperdata.Frame
 import Gargantext.Database.Admin.Types.Node
@@ -33,8 +33,12 @@ import Gargantext.Database.Query.Table.Node (getClosestParentIdByType, getNodeWi
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
 import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Core (Lang)
 
-data FrameCalcUpload = FrameCalcUpload ()
+data FrameCalcUpload = FrameCalcUpload {
+  _wf_lang      :: !(Maybe Lang)
+, _wf_selection :: !FlowSocialListWith
+}
   deriving (Generic)
 
 instance FromForm FrameCalcUpload
@@ -62,7 +66,7 @@ frameCalcUploadAsync :: (HasConfig env, FlowCmdM env err m)
                      -> (JobLog -> m ())
                      -> JobLog
                      -> m JobLog
-frameCalcUploadAsync uId nId _f logStatus jobLog = do
+frameCalcUploadAsync uId nId (FrameCalcUpload _wf_lang _wf_selection) logStatus jobLog = do
   logStatus jobLog
 
   -- printDebug "[frameCalcUploadAsync] uId" uId
@@ -88,6 +92,6 @@ frameCalcUploadAsync uId nId _f logStatus jobLog = do
   jobLog2 <- case mCId of
     Nothing -> pure $ jobLogFail jobLog
     Just cId ->
-      addToCorpusWithForm (RootId (NodeId uId)) cId (NewWithForm CSV Plain body Nothing "calc-upload.csv" (FlowSocialListWithPriority MySelfFirst)) logStatus jobLog
+      addToCorpusWithForm (RootId (NodeId uId)) cId (NewWithForm CSV Plain body _wf_lang "calc-upload.csv" _wf_selection) logStatus jobLog
 
   pure $ jobLogSuccess jobLog2
