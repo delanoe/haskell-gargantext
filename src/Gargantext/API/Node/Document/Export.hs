@@ -36,16 +36,19 @@ api uid dId = getDocumentsJSON uid dId
 -- | Hashes are ordered by Set
 getDocumentsJSON :: UserId
                  -> DocId
-                 -> GargNoServer DocumentExport
+                 -> GargNoServer (Headers '[Header "Content-Disposition" T.Text] DocumentExport)
 getDocumentsJSON uId pId = do
   mcId <- getClosestParentIdByType pId NodeCorpus
   let cId = maybe (panic "[G.A.N.D.Export] Node has no parent") identity mcId
   docs <- runViewDocuments cId False Nothing Nothing Nothing Nothing Nothing
-  pure $ DocumentExport { _de_documents = mapFacetDoc <$> docs
+  pure $ addHeader (T.concat [ "attachment; filename=GarganText_DocsList-"
+                             , T.pack $ show pId
+                             , ".json"])
+    DocumentExport { _de_documents = mapFacetDoc <$> docs
                         , _de_garg_version = T.pack $ showVersion PG.version }
   where
     mapFacetDoc (FacetDoc { .. }) =
-      Document { _d_document = 
+      Document { _d_document =
                  Node { _node_id = facetDoc_id
                       , _node_hash_id = Nothing
                       , _node_typename = toDBid NodeDocument
@@ -64,10 +67,13 @@ getDocumentsJSON uId pId = do
 
 getDocumentsCSV :: UserId
                 -> DocId
-                -> GargNoServer T.Text -- [Document]
+                -> GargNoServer (Headers '[Header "Content-Disposition" T.Text] T.Text) -- [Document]
 getDocumentsCSV uId pId = do
-  DocumentExport { _de_documents } <- getDocumentsJSON uId pId
+  dJSON <- getDocumentsJSON uId pId
+  let DocumentExport { _de_documents } = getResponse dJSON
   let ret = TE.decodeUtf8 $ BSC.toStrict $ encodeDefaultOrderedByName _de_documents
 
-  pure ret
-  
+  pure $ addHeader (T.concat [ "attachment; filename=GarganText_DocsList-"
+                             , T.pack $ show pId
+                             , ".csv"])
+    ret
