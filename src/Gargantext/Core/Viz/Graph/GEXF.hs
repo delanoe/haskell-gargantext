@@ -36,8 +36,11 @@ instance Xmlbf.ToXml Graph where
       root gn ge =
         Xmlbf.element "gexf" params $ meta <> (graph gn ge)
         where
-          params = HashMap.fromList [ ("xmlns", "http://www.gexf.net/1.2draft")
-                                    , ("version", "1.2") ]
+          params = HashMap.fromList [ ("xmlns", "http://www.gexf.net/1.3")
+                                    , ("xmlns:viz", "http://gexf.net/1.3/viz")
+                                    , ("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+                                    , ("xsi:schemaLocation", "http://gexf.net/1.3 http://gexf.net/1.3/gexf.xsd")
+                                    , ("version", "1.3") ]
       meta = Xmlbf.element "meta" params $ creator <> desc
         where
           params = HashMap.fromList [ ("lastmodifieddate", "2020-03-13") ]
@@ -53,20 +56,24 @@ instance Xmlbf.ToXml Graph where
 
       node' :: G.Node -> [Xmlbf.Node]
       node' (G.Node { node_id = nId, node_label = l, node_size = w}) =
-        Xmlbf.element "node" params []
+        Xmlbf.element "node" params (Xmlbf.element "viz:size" sizeParams [])
         where
           params = HashMap.fromList [ ("id", nId)
-                                    , ("label", l) 
-                                    , ("size", (cs . show) w)]
+                                    , ("label", l) ]
+          sizeParams = HashMap.fromList [ ("value", (cs . show) w) ]
       edges :: [G.Edge] -> [Xmlbf.Node]
       edges gn = Xmlbf.element "edges" HashMap.empty $ P.concatMap edge gn
       edge :: G.Edge -> [Xmlbf.Node]
-      edge (G.Edge { edge_id = eId, edge_source = es, edge_target = et }) =
+      edge (G.Edge { edge_id = eId
+                   , edge_source = es
+                   , edge_target = et
+                   , edge_weight = ew }) =
         Xmlbf.element "edge" params []
         where
           params = HashMap.fromList [ ("id", eId)
                                     , ("source", es)
-                                    , ("target", et) ]
+                                    , ("target", et)
+                                    , ("weight", (cs . show) ew)]
 
 -- just to be able to derive a client for the entire gargantext API,
 -- we however want to avoid sollicitating this instance
