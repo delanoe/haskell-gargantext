@@ -217,6 +217,7 @@ data OrderBy =  DateAsc   | DateDesc
              | TitleAsc   | TitleDesc
              | ScoreDesc  | ScoreAsc
              | SourceAsc  | SourceDesc
+             | TagAsc     | TagDesc
              deriving (Generic, Enum, Bounded, Read, Show)
 
 instance FromHttpApiData OrderBy
@@ -229,6 +230,8 @@ instance FromHttpApiData OrderBy
     parseUrlPiece "ScoreDesc"  = pure ScoreDesc
     parseUrlPiece "SourceAsc"  = pure SourceAsc
     parseUrlPiece "SourceDesc" = pure SourceDesc
+    parseUrlPiece "TagAsc"     = pure TagAsc
+    parseUrlPiece "TagDesc"    = pure TagDesc
     parseUrlPiece _            = Left "Unexpected value of OrderBy"
 instance ToHttpApiData OrderBy where
   toUrlPiece = T.pack . show
@@ -391,6 +394,9 @@ orderWith (Just ScoreDesc) = descNullsLast facetDoc_score
 
 orderWith (Just SourceAsc)  = asc  facetDoc_source
 orderWith (Just SourceDesc) = desc facetDoc_source
+
+orderWith (Just TagAsc)     = asc  facetDoc_category
+orderWith (Just TagDesc)    = desc facetDoc_category
 
 orderWith _                = asc facetDoc_created
 
