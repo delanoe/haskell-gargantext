@@ -94,7 +94,26 @@ curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/dev/devops/
 ``` sh
 ./devops/install-corenlp
 ```
+### Launch Gargantext (It should have been initialized first)
+Run
+haskell-gargantext/devops/docker$ docker-compose up
 
+Then 
+``` sh
+stack --nix install
+~/.local/bin/gargantext-init "gargantext.ini"
+```
+Or for Docker env, first create the appropriate image:
+
+``` sh
+cd devops/docker
+docker build -t cgenie/stack-build:lts-18.12-garg .
+```
+
+then run:
+
+``` sh
+stack --docker exec gargantext-init -- gargantext.ini
 
 ### Initialization
 
@@ -116,7 +135,7 @@ Initialization schema should be loaded automatically (from `devops/postgres/sche
 Change the passwords in gargantext.ini_toModify then move it:
 
 ``` sh
-mv gargantext.ini_toModify gargantext.ini
+cp gargantext.ini_toModify gargantext.ini
 ```
 (`.gitignore` avoids adding this file to the repository by mistake)
 
@@ -126,7 +145,7 @@ mv gargantext.ini_toModify gargantext.ini
 Users have to be created first (`user1` is created as instance):
 
 ``` sh
-stack install
+stack --nix install
 ~/.local/bin/gargantext-init "gargantext.ini"
 ```
 
