@@ -19,8 +19,8 @@ import Control.Lens
 import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.List (sortOn, nub, sort)
 import Data.Map (Map)
+import Data.Vector (Vector)
 import Data.Text (Text, toLower)
-import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Terms.Mono (monoTexts)
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.PhyloExport
@@ -31,6 +31,7 @@ import Gargantext.Core.Viz.Phylo.TemporalMatching (temporalMatching)
 import Gargantext.Prelude
 import qualified Data.Vector as Vector
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 
 ---------------------------------
 -- | STEP 5 | -- Export the phylo
@@ -62,6 +63,7 @@ flatPhylo = case (getSeaElevation emptyPhylo) of
 
 emptyPhylo' :: Phylo
 emptyPhylo' = scanSimilarity 1
+            $ joinRootsToGroups
             $ appendGroups clusterToGroup 1 seriesOfClustering emptyPhylo
 
 ---------------------------------------------
@@ -83,7 +85,7 @@ docsByPeriods = groupDocsByPeriod date periods docs
 
 
 emptyPhylo :: Phylo
-emptyPhylo = initPhylo docs mapList config
+emptyPhylo = initPhylo docs config
 
 
 phyloCooc :: Map Date Cooc
@@ -120,7 +122,11 @@ docs = map (\(d,t)
 
 
 foundations :: PhyloFoundations
-foundations = PhyloFoundations (Vector.fromList $ map toLower actants) mapList 
+foundations = PhyloFoundations roots Map.empty
+
+
+roots :: Vector Ngrams
+roots = Vector.fromList $ map toLower actants
 
 
 --------------------------------------------
@@ -128,8 +134,8 @@ foundations = PhyloFoundations (Vector.fromList $ map toLower actants) mapList
 --------------------------------------------
 
 
-mapList :: TermList
-mapList = map (\a -> ([toLower a],[])) actants
+-- mapList :: TermList
+-- mapList = map (\a -> ([toLower a],[])) actants
 
 
 actants :: [Ngrams]

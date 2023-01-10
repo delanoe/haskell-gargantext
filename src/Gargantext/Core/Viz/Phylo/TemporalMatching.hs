@@ -15,7 +15,7 @@ import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
 import Data.Ord
 import Data.List (concat, splitAt, tail, sortOn, sortBy, (++), intersect, null, inits, groupBy, scanl, nub, nubBy, union, dropWhile, partition, or)
-import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, findWithDefault, keys, (!), empty, mapKeys, adjust)
+import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, findWithDefault, keys, (!), empty, mapKeys, adjust, filterWithKey)
 import Debug.Trace (trace)
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.PhyloTools
@@ -362,12 +362,81 @@ reconstructTemporalLinks frame periods similarity thr docs coocs groups =
 
 
 {- 
+-- find all the groups matching a list of ngrams
+-}
+findIdsFromNgrams :: [Int] -> Map Int [PhyloGroupId] -> [PhyloGroupId]
+findIdsFromNgrams ngrams roots = nub $ concat $ elems $ filterWithKey (\k _ -> elem k ngrams) roots
+
+formatCandidates :: Filiation -> [PhyloGroup] -> [[(PhyloGroupId,[Int])]]
+formatCandidates fil groups = case fil of
+  ToChilds  -> map (\groups' -> map (\g -> (getGroupId g, getGroupNgrams g)) groups')
+             $ elems
+             $ groupByField _phylo_groupPeriod groups
+  ToParents -> reverse
+             $ map (\groups' -> map (\g -> (getGroupId g, getGroupNgrams g)) groups')
+             $ elems
+             $ groupByField _phylo_groupPeriod groups
+  ToChildsMemory  -> undefined
+  ToParentsMemory -> undefined
+
+filterByIds :: PhyloGroupId -> [PhyloGroupId] -> [PhyloGroup] -> [PhyloGroup]
+filterByIds egoId ids groups = filter (\g -> ((getGroupId g) /= egoId) && (elem (getGroupId g) ids)) groups
+
+filterByPeriods :: [Period] -> [PhyloGroup] -> [PhyloGroup]
+filterByPeriods periods groups = filter (\g -> elem (g ^. phylo_groupPeriod) periods) groups 
+
+filterByNgrams :: Int -> [Int] -> [PhyloGroup] -> [PhyloGroup]
+filterByNgrams inf ngrams groups = 
+  if (length ngrams) > 1
+    then 
+      filter (\g -> (> inf) $ length $ intersect (ngrams) (getGroupNgrams g)) groups
+    else
+      filter (\g -> (not . null) $ intersect (ngrams) (getGroupNgrams g)) groups
+
+{- 
+-- perform the upstream/downstream inter‐temporal matching process group by group
+-}
+reconstructTemporalLinks' :: Int -> [Period] -> Similarity -> Double -> Map Date Double -> Map Date Cooc -> Map Int [PhyloGroupId] -> [PhyloGroup] -> [PhyloGroup]
+reconstructTemporalLinks' frame periods similarity thr docs coocs roots groups = 
+  let egos = map (\ego ->
+                let -- 1) find the parents/childs matching periods
+                    periodsPar = getNextPeriods ToParents frame (ego ^. phylo_groupPeriod) periods
+                    periodsChi = getNextPeriods ToChilds  frame (ego ^. phylo_groupPeriod) periods
+                    --  2) find the parents/childs matching candidates
+                    candidatesPar = formatCandidates ToParents
+                                  $ filterByNgrams (getMinSharedNgrams similarity) (getGroupNgrams ego)
+                                  $ filterByPeriods periodsPar
+                                  $ filterByIds (getGroupId ego) (findIdsFromNgrams (getGroupNgrams ego) roots) groups
+                    candidatesChi = formatCandidates ToChilds
+                                  $ filterByNgrams (getMinSharedNgrams similarity) (getGroupNgrams ego)
+                                  $ filterByPeriods periodsChi
+                                  $ filterByIds (getGroupId ego) (findIdsFromNgrams (getGroupNgrams ego) roots) groups
+                    --  3) find the parents/childs number of docs by years
+                    docsPar = filterDocs docs ([(ego ^. phylo_groupPeriod)] ++ periodsPar)
+                    docsChi = filterDocs docs ([(ego ^. phylo_groupPeriod)] ++ periodsChi)
+                    --  4) find the parents/child diago by years
+                    diagoPar = filterDiago (map coocToDiago coocs) ([(ego ^. phylo_groupPeriod)] ++ periodsPar)
+                    diagoChi = filterDiago (map coocToDiago coocs) ([(ego ^. phylo_groupPeriod)] ++ periodsPar)
+                    --  5) match ego to their candidates through time
+                    pointersPar = phyloGroupMatching candidatesPar ToParents similarity docsPar diagoPar thr (getPeriodPointers ToParents ego) (getGroupId ego, ego ^. phylo_groupNgrams)
+                    pointersChi = phyloGroupMatching candidatesChi ToParents similarity docsChi diagoChi thr (getPeriodPointers ToChilds ego)  (getGroupId ego, ego ^. phylo_groupNgrams)                                                                                        
+                in addPointers ToChilds  TemporalPointer pointersChi
+                 $ addPointers ToParents TemporalPointer pointersPar
+                 $ addMemoryPointers ToChildsMemory  TemporalPointer thr pointersChi
+                 $ addMemoryPointers ToParentsMemory TemporalPointer thr pointersPar ego      
+              ) groups
+  in egos `using` parList rdeepseq
+
+
+
+{- 
 -- reconstruct a phylomemetic network from a list of groups and from a given threshold
 -}
-toPhylomemeticNetwork :: Int -> [Period] -> Similarity -> Double -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [Branch]
-toPhylomemeticNetwork timescale periods similarity thr docs coocs groups = 
+toPhylomemeticNetwork :: Int -> [Period] -> Similarity -> Double -> Map Date Double -> Map Date Cooc -> Map Int [PhyloGroupId] -> [PhyloGroup] -> [Branch]
+toPhylomemeticNetwork timescale periods similarity thr docs coocs roots groups = 
   groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
-                   $ reconstructTemporalLinks timescale periods similarity thr docs coocs groups
+                   -- $ reconstructTemporalLinks timescale periods similarity thr docs coocs groups
+                   $ reconstructTemporalLinks' timescale periods similarity thr docs coocs roots groups
 
 
 ----------------------------
@@ -524,10 +593,10 @@ thrToMeta thr branches =
 -- rest = all the branches we still have to separate
 -}
 separateBranches :: Double -> Similarity -> Double -> Map Int Double -> Int -> Double -> Double
-              -> Int -> Map Date Double -> Map Date Cooc -> [Period] 
+              -> Int -> Map Date Double -> Map Date Cooc -> Map Int [PhyloGroupId] -> [Period] 
               -> [(Branch,ShouldTry)] -> (Branch,ShouldTry) -> [(Branch,ShouldTry)] 
               -> [(Branch,ShouldTry)]
-separateBranches fdt similarity lambda frequency minBranch thr rise timescale docs coocs periods done currentBranch rest =
+separateBranches fdt similarity lambda frequency minBranch thr rise timescale docs coocs roots periods done currentBranch rest =
   let done' = done ++ (if snd currentBranch
                         then
                             (if ((null (fst branches')) || (quality > quality'))
@@ -551,7 +620,7 @@ separateBranches fdt similarity lambda frequency minBranch thr rise timescale do
     --  6) if there is no more branch to separate tne return [done'] else continue with [rest]
     if null rest
       then done'
-      else separateBranches fdt similarity lambda frequency minBranch thr rise timescale docs coocs periods
+      else separateBranches fdt similarity lambda frequency minBranch thr rise timescale docs coocs roots periods
                        done' (List.head rest) (List.tail rest)
   where
     ------- 1) compute the quality before splitting any branch 
@@ -560,7 +629,7 @@ separateBranches fdt similarity lambda frequency minBranch thr rise timescale do
 
     ------------------- 2) split the current branch and create a new phylomemetic network
     phylomemeticNetwork :: [Branch]
-    phylomemeticNetwork = toPhylomemeticNetwork timescale periods similarity thr docs coocs (fst currentBranch)
+    phylomemeticNetwork = toPhylomemeticNetwork timescale periods similarity thr docs coocs roots (fst currentBranch)
     
     --------- 3) change the new phylomemetic network into a tuple of new branches
     ---------    on the left : the long branches, on the right : the small ones 
@@ -582,9 +651,10 @@ seaLevelRise :: Double -> Similarity -> Double -> Int -> Map Int Double
              -> [Double] -> Double
              -> Int -> [Period] 
              -> Map Date Double -> Map Date Cooc 
+             -> Map Int [PhyloGroupId]
              -> [(Branch,ShouldTry)] 
              -> ([(Branch,ShouldTry)],FinalQuality)
-seaLevelRise fdt similarity lambda minBranch frequency ladder rise frame periods docs coocs branches =
+seaLevelRise fdt similarity lambda minBranch frequency ladder rise frame periods docs coocs roots branches =
   -- if the ladder is empty or thr > 1 or there is no branch to break then stop
   if (null ladder) || ((List.head ladder) > 1) || (stopRise branches)
     then (branches, toPhyloQuality fdt lambda frequency (map fst branches))
@@ -596,9 +666,9 @@ seaLevelRise fdt similarity lambda minBranch frequency ladder rise frame periods
                                              <> " ξ = " <> printf "%.5f" (globalAccuracy frequency (map fst branches))
                                              <> " ρ = " <> printf "%.5f" (globalRecall frequency (map fst branches))
                                              <> " branches = " <> show(length branches))
-                     $ separateBranches fdt similarity lambda frequency minBranch thr rise frame docs coocs periods
+                     $ separateBranches fdt similarity lambda frequency minBranch thr rise frame docs coocs roots periods
                                      [] (List.head branches)  (List.tail branches)
-       in seaLevelRise fdt similarity lambda minBranch frequency (List.tail ladder) (rise + 1) frame periods docs coocs branches'
+       in seaLevelRise fdt similarity lambda minBranch frequency (List.tail ladder) (rise + 1) frame periods docs coocs roots branches'
   where 
     --------
     stopRise :: [(Branch,ShouldTry)] -> Bool
@@ -633,6 +703,7 @@ temporalMatching ladder phylo = updatePhyloGroups 1
                                 (getPeriodIds phylo)
                                 (phylo ^. phylo_timeDocs)
                                 (phylo ^. phylo_timeCooc)
+                                ((phylo ^. phylo_foundations) ^. foundations_rootsInGroups)
                                 (reverse $ sortOn (length . fst) seabed)
     
     ------  1) for each group, process an initial temporal Matching and create a 'seabed'
@@ -645,4 +716,5 @@ temporalMatching ladder phylo = updatePhyloGroups 1
                          (List.head ladder)
                          (phylo ^. phylo_timeDocs)
                          (phylo ^. phylo_timeCooc)
+                         ((phylo ^. phylo_foundations) ^. foundations_rootsInGroups)
                          (traceTemporalMatching $ getGroupsFromScale 1 phylo)

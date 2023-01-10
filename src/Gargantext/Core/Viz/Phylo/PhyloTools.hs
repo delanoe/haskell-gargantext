@@ -316,6 +316,9 @@ ngramsToCooc ngrams coocs =
 getGroupId :: PhyloGroup -> PhyloGroupId
 getGroupId g = ((g ^. phylo_groupPeriod, g ^. phylo_groupScale), g ^. phylo_groupIndex)
 
+getGroupNgrams :: PhyloGroup -> [Int]
+getGroupNgrams g = g ^. phylo_groupNgrams
+
 idToPrd :: PhyloGroupId -> Period
 idToPrd id = (fst . fst) id
 
@@ -426,6 +429,9 @@ setConfig config phylo = phylo
 
 getRoots :: Phylo -> Vector Ngrams
 getRoots phylo = (phylo ^. phylo_foundations) ^. foundations_roots
+
+getRootsInGroups :: Phylo -> Map Int [PhyloGroupId]
+getRootsInGroups phylo = (phylo ^. phylo_foundations) ^. foundations_rootsInGroups
 
 getSources :: Phylo -> Vector Text
 getSources phylo = _sources (phylo ^. phylo_sources)
