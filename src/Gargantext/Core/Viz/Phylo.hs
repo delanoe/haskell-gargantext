@@ -37,7 +37,6 @@ import Data.Text   (Text, pack)
 import Data.Vector (Vector)
 import GHC.Generics
 import GHC.IO (FilePath)
-import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Prelude
@@ -362,8 +361,8 @@ data Document = Document
 
 -- | The Foundations of a Phylo created from a given TermList
 data PhyloFoundations = PhyloFoundations
-      { _foundations_roots   :: !(Vector Ngrams)
-      , _foundations_mapList :: TermList
+      { _foundations_roots    :: (Vector Ngrams)
+      , _foundations_rootsInGroups :: Map Int [PhyloGroupId] -- map of roots associated to groups
       } deriving (Generic, Show, Eq)
 
 instance ToSchema PhyloFoundations where

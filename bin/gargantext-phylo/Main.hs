@@ -278,7 +278,7 @@ main = do
                               pure $ toPhylo (setConfig config phyloWithoutLink)
                             else do
                               printIOMsg "Reconstruct the phylo from scratch"
-                              phyloWithoutLink <- pure $ toPhyloWithoutLink corpus mapList config
+                              phyloWithoutLink <- pure $ toPhyloWithoutLink corpus config
                               writePhylo backupPhyloWithoutLink phyloWithoutLink
                               pure $ toPhylo (setConfig config phyloWithoutLink)
 

@@ -25,7 +25,6 @@ import Prelude (floor)
 
 import Gargantext.Core.Methods.Distances (Distance(Conditional))
 import Gargantext.Core.Methods.Graph.MaxClique (getMaxCliques)
-import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, fisWithSizePolyMap', Size(..))
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.PhyloExport (toHorizon)
@@ -203,13 +202,28 @@ indexDates' m = map (\docs ->
    in (f,l)) m
 
 
+-- create a map of roots and group ids
+joinRootsToGroups :: Phylo -> Phylo
+joinRootsToGroups phylo = set (phylo_foundations . foundations_rootsInGroups) rootsMap phylo
+  where
+    --------------------------------------
+    rootsMap :: Map Int [PhyloGroupId]
+    rootsMap = fromListWith (++)
+             $ concat -- flatten
+             $ map (\g -> 
+                        map (\n -> (n,[getGroupId g])) $ _phylo_groupNgrams g) 
+             $ getGroupsFromScale 1 phylo
+
+
 -- To build the first phylo step from docs and terms
 -- QL: backend entre phyloBase et Clustering
 -- tophylowithoutLink
-toPhyloWithoutLink :: [Document] -> TermList -> PhyloConfig -> Phylo
-toPhyloWithoutLink docs lst conf = case (getSeaElevation phyloBase) of 
-    Constante  _ _ -> appendGroups clusterToGroup 1 seriesOfClustering (updatePeriods (indexDates' docs') phyloBase)
-    Adaptative _   -> scanSimilarity 1 
+toPhyloWithoutLink :: [Document] -> PhyloConfig -> Phylo
+toPhyloWithoutLink docs conf = case (getSeaElevation phyloBase) of 
+    Constante  _ _ -> joinRootsToGroups
+                    $ appendGroups clusterToGroup 1 seriesOfClustering (updatePeriods (indexDates' docs') phyloBase)
+    Adaptative _   -> joinRootsToGroups
+                    $ scanSimilarity 1 
                     $ appendGroups clusterToGroup 1 seriesOfClustering (updatePeriods (indexDates' docs') phyloBase)
     where
         --------------------------------------
@@ -221,7 +235,7 @@ toPhyloWithoutLink docs lst conf = case (getSeaElevation phyloBase) of
         docs' =  groupDocsByPeriodRec date (getPeriodIds phyloBase) (sortOn date docs) empty
         --------------------------------------
         phyloBase :: Phylo
-        phyloBase = initPhylo docs lst conf
+        phyloBase = initPhylo docs conf
         --------------------------------------
 
 ---------------------------
@@ -409,9 +423,10 @@ initPhyloScales lvlMax pId =
 
 --  Init the basic elements of a Phylo
 --
-initPhylo :: [Document] -> TermList -> PhyloConfig -> Phylo
-initPhylo docs lst conf = 
-    let foundations  = PhyloFoundations (Vector.fromList $ nub $ concat $ map text docs) lst
+initPhylo :: [Document] -> PhyloConfig -> Phylo
+initPhylo docs conf = 
+    let roots = Vector.fromList $ nub $ concat $ map text docs
+        foundations  = PhyloFoundations roots empty
         docsSources  = PhyloSources     (Vector.fromList $ nub $ concat $ map sources docs)
         params = defaultPhyloParam { _phyloParam_config = conf }
         periods = toPeriods (sort $ nub $ map date docs) (getTimePeriod $ timeUnit conf) (getTimeStep $ timeUnit conf)
