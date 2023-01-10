@@ -94,7 +94,26 @@ curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/dev/devops/
 ``` sh
 ./devops/install-corenlp
 ```
+### Launch Gargantext (It should have been initialized first)
+Run
+haskell-gargantext/devops/docker$ docker-compose up
 
+Then 
+``` sh
+stack --nix install
+~/.local/bin/gargantext-init "gargantext.ini"
+```
+Or for Docker env, first create the appropriate image:
+
+``` sh
+cd devops/docker
+docker build -t cgenie/stack-build:lts-18.12-garg .
+```
+
+then run:
+
+``` sh
+stack --docker exec gargantext-init -- gargantext.ini
 
 ### Initialization
 
