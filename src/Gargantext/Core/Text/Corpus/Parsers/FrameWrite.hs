@@ -1,14 +1,29 @@
-module Gargantext.Core.Text.Corpus.Parsers.FrameWrite where
+{-|
+Module      : Gargantext.Core.Text.Corpus.Parsers.FrameWrite
+Description : 
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+-}
+
+module Gargantext.Core.Text.Corpus.Parsers.FrameWrite
+  where
 
 import Control.Applicative ((*>))
 import Control.Monad (void)
 import Data.Either
 import Data.Maybe
 import Data.Text hiding (foldl)
+import Gargantext.Core.Text (sentences)
 import Gargantext.Prelude
 import Prelude ((++), read)
 import Text.Parsec hiding (Line)
 import Text.Parsec.String
+import qualified Data.Text as DT
+import qualified Data.List as List
 
 
 -- https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/331
@@ -26,11 +41,11 @@ sample :: Text
 sample =
   unlines
     [ "title1"
-    , "title2"
-    , "=="
-    , "^@@authors: FirstName1, LastName1; FirstName2, LastName2"
-    , "^@@date: 2021-09-10"
-    , "^@@source: someSource"
+--    , "title2"
+--    , "=="
+--     , "^@@authors: FirstName1, LastName1; FirstName2, LastName2"
+    , "date: 2021-09-10"
+    , "source: someSource"
     , "document contents 1"
     , "document contents 2"
     ]
@@ -42,9 +57,9 @@ sampleUnordered =
     , "title2"
     , "=="
     , "document contents 1"
-    , "^@@date: 2021-09-10"
-    , "^@@authors: FirstName1, LastName1; FirstName2, LastName2"
-    , "^@@source: someSource"
+    , "date: 2021-09-10"
+    , "authors: FirstName1, LastName1; FirstName2, LastName2"
+    , "source: someSource"
     , "document contents 2"
     ]
 
@@ -150,14 +165,14 @@ contentsLineP = do
 titleDelimiterP :: Parser ()
 titleDelimiterP = do
   _ <- newline
-  _ <- string "=="
-  tokenEnd
+  -- _ <- try (string "==")
+  pure ()
 titleP :: Parser [Char]
 titleP = manyTill anyChar (try titleDelimiterP)
 
 authorsPrefixP :: Parser [Char]
 authorsPrefixP = do
-  _ <- string "^@@authors:"
+  _ <- string "authors:"
   many (char ' ')
 authorsP :: Parser [Author]
 authorsP = try authorsPrefixP *> sepBy authorP (char ';')
@@ -173,7 +188,7 @@ authorP = do
 
 datePrefixP :: Parser [Char]
 datePrefixP = do
-  _ <- string "^@@date:"
+  _ <- string "date:"
   many (char ' ')
 dateP :: Parser Date
 dateP = try datePrefixP
@@ -195,7 +210,7 @@ dateISOP = do
 
 sourcePrefixP :: Parser [Char]
 sourcePrefixP = do
-  _ <- string "^@@source:"
+  _ <- string "source:"
   many (char ' ')
 sourceP :: Parser [Char]
 sourceP = try sourcePrefixP
@@ -206,3 +221,15 @@ sourceP = try sourcePrefixP
 
 tokenEnd :: Parser ()
 tokenEnd = void (char '\n') <|> eof
+
+--- MISC Tools
+
+text2paragraphs :: Int -> Text -> [Text]
+text2paragraphs n = List.map DT.concat
+                  . splitEvery n . List.map clean
+                  . sentences . DT.concat . DT.lines
+
+clean :: Text -> Text
+clean = DT.unwords . List.filter (\w -> DT.length w < 25) . DT.words
+
+
