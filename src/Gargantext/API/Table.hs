@@ -178,4 +178,3 @@ getPair cId ft o l order =
     (Just Docs)  -> runViewAuthorsDoc cId False o l order
     (Just Trash) -> runViewAuthorsDoc cId True  o l order
     _     -> panic $ "not implemented: get Pairing" <> (cs $ show ft)
-

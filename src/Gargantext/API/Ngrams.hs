@@ -94,7 +94,7 @@ import Data.Monoid
 import Data.Ord (Down(..))
 import Data.Patch.Class (Action(act), Transformable(..), ours)
 import Data.Swagger hiding (version, patch)
-import Data.Text (Text, isInfixOf, unpack, pack)
+import Data.Text (Text, isInfixOf, toLower, unpack, pack)
 import Data.Text.Lazy.IO as DTL
 import Formatting (hprint, int, (%))
 import GHC.Generics (Generic)
@@ -783,7 +783,7 @@ getTableNgramsCorpus :: (HasNodeStory env err m, HasNodeError err, HasConnection
 getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy mt =
   getTableNgrams NodeCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
     where
-      searchQuery (NgramsTerm nt) = maybe (const True) isInfixOf mt nt
+      searchQuery (NgramsTerm nt) = maybe (const True) isInfixOf (toLower <$> mt) (toLower nt)
 
 
 
