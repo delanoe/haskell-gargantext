@@ -1,5 +1,6 @@
 ## Version 0.0.6.9.0
 
+* [FRONT][FIX] Ngrams Table, removing useless columns
 * [BACK][FIX] Duplicates
 * [FRONT][FIX] Node Selection Indicator
 * [FRONT][FIX] Just a little warning specifying a bug on <ReactTooltip>
