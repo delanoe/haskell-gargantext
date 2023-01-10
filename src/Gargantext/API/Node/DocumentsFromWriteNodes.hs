@@ -38,6 +38,7 @@ import Gargantext.Database.Admin.Types.Hyperdata.Frame
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getChildrenByType, getClosestParentIdByType', getNodeWith)
 import Gargantext.Database.Schema.Node (node_hyperdata)
+import qualified Data.List as List
 import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
 import Gargantext.Utils.Jobs (serveJobsAPI)
@@ -97,18 +98,19 @@ documentsFromWriteNodes uId nId _p logStatus = do
              pure (node, contents)
          ) frameWrites
 
-  let parsedE = (\(node, contents) -> hyperdataDocumentFromFrameWrite (node ^. node_hyperdata, contents)) <$> frameWritesWithContents
-  let parsed = rights parsedE
+  let parsedE = (\(node, contents) -> hyperdataDocumentFromFrameWrite 7 (node ^. node_hyperdata, contents)) <$> frameWritesWithContents
+                                              -- TODO hard coded param should be take
+  let parsed = List.concat $ rights parsedE
 
   _ <- flowDataText (RootId (NodeId uId)) (DataNew (Just $ fromIntegral $ length parsed, yieldMany parsed)) (Multi EN) cId Nothing logStatus
 
   pure $ jobLogSuccess jobLog
 ------------------------------------------------------------------------
-hyperdataDocumentFromFrameWrite :: (HyperdataFrame, T.Text) -> Either T.Text HyperdataDocument
-hyperdataDocumentFromFrameWrite (HyperdataFrame { _hf_base, _hf_frame_id }, contents) =
+hyperdataDocumentFromFrameWrite :: Int -> (HyperdataFrame, T.Text) -> Either T.Text [HyperdataDocument]
+hyperdataDocumentFromFrameWrite paragraphSize (HyperdataFrame { _hf_base, _hf_frame_id }, contents) =
   case parseLines contents of
     Left _ -> Left "Error parsing node"
-    Right (Parsed { authors, contents = c, date, source, title = t }) ->
+    Right (Parsed { authors, contents = ctxts, date, source, title = t }) ->
       let authorJoinSingle (Author { firstName, lastName }) = T.concat [ lastName, ", ", firstName ]
           authors' = T.concat $ authorJoinSingle <$> authors 
           date' = (\(Date { year, month, day }) -> T.concat [ T.pack $ show year, "-"
@@ -117,7 +119,7 @@ hyperdataDocumentFromFrameWrite (HyperdataFrame { _hf_base, _hf_frame_id }, cont
           year' = fromIntegral $ maybe Defaults.year (\(Date { year }) -> year) date
           month' = maybe Defaults.month (\(Date { month }) -> fromIntegral month) date
           day' = maybe Defaults.day (\(Date { day }) -> fromIntegral day) date in
-      Right HyperdataDocument { _hd_bdd = Just "FrameWrite"
+      Right (List.map (\ctxt ->  HyperdataDocument { _hd_bdd = Just "FrameWrite"
                               , _hd_doi = Nothing
                               , _hd_url = Nothing
                               , _hd_uniqId = Nothing
@@ -127,7 +129,7 @@ hyperdataDocumentFromFrameWrite (HyperdataFrame { _hf_base, _hf_frame_id }, cont
                               , _hd_authors = Just authors'
                               , _hd_institutes = Nothing
                               , _hd_source = source
-                              , _hd_abstract = Just c
+                              , _hd_abstract = Just ctxt
                               , _hd_publication_date = date'
                               , _hd_publication_year = Just year'
                               , _hd_publication_month = Just month'
@@ -136,3 +138,5 @@ hyperdataDocumentFromFrameWrite (HyperdataFrame { _hf_base, _hf_frame_id }, cont
                               , _hd_publication_minute = Nothing
                               , _hd_publication_second = Nothing
                               , _hd_language_iso2 = Just $ T.pack $ show EN }
+                      ) (text2paragraphs paragraphSize ctxts)
+                  )
