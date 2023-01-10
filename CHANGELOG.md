@@ -1,3 +1,10 @@
+## Version 0.0.6.9.0
+
+* [FRONT][FEAT] Graph Explorer fixes (labels, Sigma JS parameters)
+* [FRONT][layout] Close CTA button on graph/phylo sidebar
+* [BACK][NodeWrite] Corpus easier to make with NodeWrite Frames
+
+
 ## Version 0.0.6.8.6
 
 * [BACK][FIX][New Corpus, Ngrams Table Repo (#163)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/163)
