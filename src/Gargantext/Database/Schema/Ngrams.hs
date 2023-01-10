@@ -89,11 +89,12 @@ data NgramsType = Authors | Institutes | Sources | NgramsTerms
 instance Serialise NgramsType
 instance FromJSON NgramsType
   where
-    parseJSON (String "Authors")    = pure Authors
-    parseJSON (String "Institutes") = pure Institutes
-    parseJSON (String "Sources")    = pure Sources
-    parseJSON (String "Terms")      = pure NgramsTerms
-    parseJSON _                     = mzero
+    parseJSON (String "Authors")     = pure Authors
+    parseJSON (String "Institutes")  = pure Institutes
+    parseJSON (String "Sources")     = pure Sources
+    parseJSON (String "Terms")       = pure NgramsTerms
+    parseJSON (String "NgramsTerms") = pure NgramsTerms
+    parseJSON _                      = mzero
 
 instance FromJSONKey NgramsType where
    fromJSONKey = FromJSONKeyTextParser (parseJSON . String)

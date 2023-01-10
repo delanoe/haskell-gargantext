@@ -82,10 +82,10 @@ type JSONAPI = Summary "Update List"
           :> "add"
           :> "form"
           :> "async"
-            :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
+            :> AsyncJobs JobLog '[FormUrlEncoded] WithJsonFile JobLog
 
 jsonApi :: ServerT JSONAPI (GargM Env GargError)
-jsonApi = postAsync
+jsonApi = jsonPostAsync
 
 ----------------------
 type CSVAPI = Summary "Update List (legacy v3 CSV)"
@@ -203,14 +203,8 @@ toIndexedNgrams m t = Indexed <$> i <*> n
     n = Just (text2ngrams t)
 
 ------------------------------------------------------------------------
-type PostAPI = Summary "Update List"
-        :> "add"
-        :> "form"
-        :> "async"
-        :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
-
-postAsync :: ListId -> ServerT PostAPI (GargM Env GargError)
-postAsync lId =
+jsonPostAsync :: ServerT JSONAPI (GargM Env GargError)
+jsonPostAsync lId =
   serveJobsAPI UpdateNgramsListJobJSON $ \f log' ->
       let
         log'' x = do
@@ -220,10 +214,10 @@ postAsync lId =
 
 postAsync' :: FlowCmdM env err m
           => ListId
-          -> WithFile
+          -> WithJsonFile
           -> (JobLog -> m ())
           -> m JobLog
-postAsync' l (WithFile _ m _) logStatus = do
+postAsync' l (WithJsonFile m _) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
@@ -235,10 +229,10 @@ postAsync' l (WithFile _ m _) logStatus = do
   -- printDebug "Done" r
 
   logStatus JobLog { _scst_succeeded = Just 1
-              , _scst_failed    = Just 0
-              , _scst_remaining = Just 1
-              , _scst_events    = Just []
-              }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
 
 
   corpus_node <- getNode l -- (Proxy :: Proxy HyperdataList)
@@ -253,12 +247,6 @@ postAsync' l (WithFile _ m _) logStatus = do
 
 
 ------------------------------------------------------------------------
-type CSVPostAPI = Summary "Update List (legacy v3 CSV)"
-        :> "csv"
-        :> "add"
-        :> "form"
-        :> "async"
-        :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
 
 readCsvText :: Text -> [(Text, Text, Text)]
 readCsvText t = case eDec of

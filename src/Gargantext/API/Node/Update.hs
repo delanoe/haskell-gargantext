@@ -271,7 +271,7 @@ instance FromJSON  UpdateNodeParams where
 
 instance ToJSON    UpdateNodeParams where
   toJSON = genericToJSON (defaultOptions { sumEncoding = GUA.defaultTaggedObject })
-  
+
 instance ToSchema  UpdateNodeParams
 instance Arbitrary UpdateNodeParams where
   arbitrary = do

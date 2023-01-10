@@ -175,7 +175,7 @@ triggerSearxSearch user cId q l logStatus = do
       listId <- getOrMkList cId uId
       pure listId
     Just listId -> pure listId
-    
+
   printDebug "[triggerSearxSearch] listId" listId
 
   manager <- liftBase $ newManager tlsManagerSettings
@@ -220,4 +220,3 @@ hyperdataDocumentFromSearxResult l (SearxResult { _sr_content, _sr_engine, _sr_p
                           , _hd_publication_minute = Nothing
                           , _hd_publication_second = Nothing
                           , _hd_language_iso2 = Just $ T.pack $ show l }
-

@@ -173,7 +173,7 @@ type ForgotPasswordAPI = Summary "Forgot password POST API"
                            :> QueryParam "uuid" Text
                            :> Get '[JSON] ForgotPasswordGet
 
-  
+
 forgotPassword :: GargServer ForgotPasswordAPI
      -- => ForgotPasswordRequest -> Cmd' env err ForgotPasswordResponse
 forgotPassword = forgotPasswordPost :<|> forgotPasswordGet
@@ -211,18 +211,18 @@ forgotPasswordGetUser :: (HasSettings env, HasConnectionPool env, HasJoseError e
 forgotPasswordGetUser (UserLight { .. }) = do
   -- pick some random password
   password <- liftBase gargPass
-  
+
   -- set it as user's password
   hashed <- liftBase $ Auth.hashPassword $ Auth.mkPassword password
   let hashed' = Auth.unPasswordHash hashed
   let userPassword = UserLight { userLight_password = GargPassword hashed', .. }
   _ <- updateUserPassword userPassword
-  
+
   -- display this briefly in the html
-  
+
   -- clear the uuid so that the page can't be refreshed
   _ <- updateUserForgotPasswordUUID $ UserLight { userLight_forgot_password_uuid = Nothing, .. }
-    
+
   pure $ ForgotPasswordGet password
 
 forgotUserPassword :: (HasConnectionPool env, HasConfig env, HasMail env)
