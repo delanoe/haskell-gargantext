@@ -41,6 +41,7 @@ type FlowCmdM env err m =
 
 type FlowCorpus a = ( AddUniqId      a
                     , UniqId         a
+                    , UniqParameters a
                     , InsertDb       a
                     , ExtractNgramsT a
                     , HasText        a
@@ -50,5 +51,6 @@ type FlowCorpus a = ( AddUniqId      a
 
 type FlowInsertDB a = ( AddUniqId a
                       , UniqId    a
+                      , UniqParameters a
                       , InsertDb  a
                       )

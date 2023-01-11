@@ -57,7 +57,7 @@ module Gargantext.Database.Query.Table.Node.Document.Insert
 import Control.Lens (set, view)
 import Control.Lens.Cons
 import Control.Lens.Prism
-import Data.Aeson (toJSON, encode, ToJSON)
+import Data.Aeson (toJSON, ToJSON)
 import Data.Char (isAlpha)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
@@ -111,7 +111,7 @@ instance InsertDb HyperdataDocument
                       , toField p
                       , toField $ maybe "No Title" (DT.take 255)  (_hd_title h)
                       , toField $ _hd_publication_date h -- TODO USE UTCTime
-                      , (toField . toJSON) h
+                      , (toField . toJSON) (addUniqId h)
                       ]
 
 instance InsertDb HyperdataContact
@@ -122,7 +122,7 @@ instance InsertDb HyperdataContact
                       , toField p
                       , toField $ maybe "Contact" (DT.take 255) (Just "Name") -- (_hc_name h)
                       , toField $ jour 0 1 1 -- TODO put default date
-                      , (toField . toJSON) h
+                      , (toField . toJSON) (addUniqId h)
                       ]
 
 instance ToJSON a => InsertDb (Node a)
@@ -197,6 +197,10 @@ class AddUniqId a
   where
     addUniqId :: a -> a
 
+class UniqParameters a
+  where
+    uniqParameters :: ParentId -> a -> Text
+
 instance AddUniqId HyperdataDocument
   where
     addUniqId = addUniqIdsDoc
@@ -208,46 +212,36 @@ instance AddUniqId HyperdataDocument
             shaUni = hash $ DT.concat $ map ($ doc) shaParametersDoc
             shaBdd = hash $ DT.concat $ map ($ doc) ([(\d -> maybeText (_hd_bdd d))] <> shaParametersDoc)
 
-        shaParametersDoc :: [(HyperdataDocument -> Text)]
-        shaParametersDoc = [ \d -> filterText $ maybeText (_hd_title            d)
-                           , \d -> filterText $ maybeText (_hd_abstract         d)
-                           , \d -> filterText $ maybeText (_hd_source           d)
-                           , \d -> maybeText (_hd_publication_date d)
-                           ]
+            shaParametersDoc :: [(HyperdataDocument -> Text)]
+            shaParametersDoc = [ \d -> filterText $ maybeText (_hd_title            d)
+                               , \d -> filterText $ maybeText (_hd_abstract         d)
+                               , \d -> filterText $ maybeText (_hd_source           d)
+                        --       , \d -> maybeText (_hd_publication_date d)
+                               ]
+
+instance UniqParameters HyperdataDocument
+  where
+    uniqParameters _ h = filterText $  DT.concat $ map maybeText $ [_hd_title h, _hd_abstract h, _hd_source h]
+
+instance UniqParameters HyperdataContact
+  where
+    uniqParameters _ _ = ""
+
+instance UniqParameters (Node a)
+  where
+    uniqParameters _ _ = undefined
+
 
 filterText :: Text -> Text
 filterText = DT.toLower . (DT.filter isAlpha)
 
--- TODO put this elsewhere (fix bin/gargantext-init/Main.hs too)
-secret :: Text
-secret = "Database secret to change"
 
-
-instance (AddUniqId a, ToJSON a, HasDBid NodeType) => AddUniqId (Node a)
+instance (UniqParameters a, ToJSON a, HasDBid NodeType) => AddUniqId (Node a)
   where
-    addUniqId (Node nid _ t u p n d h) = Node nid hashId t u p n d h
-                              where
-                                hashId = Just $ "\\x" <> (hash $ DT.concat params)
-                                params = [ secret
-                                         , cs $ show $ toDBid NodeDocument
-                                         , n
-                                         , cs $ show p
-                                         , cs $ encode h
-                                         ]
-    {-
-    addUniqId n@(Node nid _ t u p n d h)  =
-      case n of
-        Node HyperdataDocument -> Node nid hashId t u p n d h
-                              where
-                                hashId = "\\x" <> (hash $ DT.concat params)
-                                params = [ secret
-                                         , cs $ show $ toDBid NodeDocument
-                                         , n
-                                         , cs $ show p
-                                         , cs $ encode h
-                                         ]
-       _ -> undefined
--}
+    addUniqId (Node nid _ t u p n d h)  = Node nid (Just newHash) t u p n d h
+      where
+        newHash = "\\x" <> (hash $ uniqParameters (fromMaybe 0 p) h)
+
 
     ---------------------------------------------------------------------------
 -- * Uniqueness of document definition

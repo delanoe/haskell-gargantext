@@ -28,7 +28,6 @@ import qualified Data.List as List
 
 -- https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/331
 
--- title : everything above the first ==
 -- Authors : default : anonymous ; except if the following line is encountered ^@@authors: FirstName1, LastName1 ; FirstName2, LastName2 ; etc.
 -- date : default : date of last change except if the following line is encountered  ^@@date: 2021-09-10
 -- source: Name of the root node except if the following line is encountered ^@@source:
