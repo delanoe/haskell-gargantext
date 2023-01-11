@@ -34,7 +34,7 @@ import Graph.Types (ClusterNode(..))
 -- import qualified Data.IntMap as IntMap
 import qualified Data.List   as List
 import qualified Data.Map    as Map
-import qualified Data.Set    as Set
+-- import qualified Data.Set    as Set
 
 ----------------------------------------------------------------------
 
@@ -61,13 +61,15 @@ type Confluence = Map (NodeId, NodeId) Double
 bridgeness :: Bridgeness
             -> Map (NodeId, NodeId) Double
             -> Map (NodeId, NodeId) Double
-bridgeness (Bridgeness_Advanced sim c) m = Map.fromList
+bridgeness (Bridgeness_Advanced _sim c) m = Map.fromList
                 $ map (\(ks, (v1,_v2)) -> (ks,v1))
                 -- $ List.take (if sim == Conditional then 2*n else 3*n)
                 $ List.sortOn (Down . (snd . snd))
                 $ Map.toList
                 $ trace ("bridgeness3 m c" <> show (m,c)) $ Map.intersectionWithKey (\k v1 v2 -> trace ("intersectionWithKey " <> (show (k, v1, v2))) (v1, v2)) m c
-  where
+
+{-
+ where
     !m' = Map.toList m
     n :: Int
     !n = trace ("bridgeness m size: " <> (show $ List.length m'))
@@ -78,6 +80,8 @@ bridgeness (Bridgeness_Advanced sim c) m = Map.fromList
     nodesNumber = Set.size $ Set.fromList $ as <> bs
       where
         (as, bs) = List.unzip $ Map.keys m
+-}
+
 
 bridgeness (Bridgeness_Basic ns b) m = Map.fromList
                                      $ List.concat
