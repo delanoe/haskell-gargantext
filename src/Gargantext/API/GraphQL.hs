@@ -80,8 +80,9 @@ data Query m
 
 data Mutation m
   = Mutation
-    { update_user_info        :: GQLUserInfo.UserInfoMArgs -> m Int
+    { update_user_info       :: GQLUserInfo.UserInfoMArgs -> m Int
     , delete_team_membership :: GQLTeam.TeamDeleteMArgs -> m [Int]
+    , update_node_context_category :: GQLCTX.NodeContextCategoryMArgs -> m [Int]
     } deriving (Generic, GQLType)
 
 -- | Possible GraphQL Events, i.e. here we describe how we will
@@ -117,7 +118,8 @@ rootResolver =
                             , tree              = GQLTree.resolveTree
                             , team              = GQLTeam.resolveTeam }
     , mutationResolver = Mutation { update_user_info       = GQLUserInfo.updateUserInfo
-                                  , delete_team_membership = GQLTeam.deleteTeamMembership }
+                                  , delete_team_membership = GQLTeam.deleteTeamMembership
+                                  , update_node_context_category = GQLCTX.updateNodeContextCategory }
     , subscriptionResolver = Undefined }
 
 -- | Main GraphQL "app".

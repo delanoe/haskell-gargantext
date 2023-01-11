@@ -8,14 +8,17 @@ module Gargantext.API.GraphQL.Context where
 import Data.Morpheus.Types
   ( GQLType
   , Resolver
+  , ResolverM
   , QUERY
   , lift
   )
+import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Prelude (GargM, GargError)
 import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Database.Admin.Types.Node (NodeId(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.NodeContext (getNodeContext)
+import qualified Gargantext.Database.Query.Table.NodeContext as DNC
 import Gargantext.Database.Schema.NodeContext (NodeContext, NodeContextPoly(..))
 import Gargantext.Prelude
 import GHC.Generics (Generic)
@@ -36,7 +39,14 @@ data NodeContextArgs
     , node_id    :: Int
     } deriving (Generic, GQLType)
 
+data NodeContextCategoryMArgs = NodeContextCategoryMArgs
+  { context_id :: Int
+  , node_id    :: Int
+  , category   :: Int
+  } deriving (Generic, GQLType)
+
 type GqlM e env = Resolver QUERY e (GargM env GargError)
+type GqlM' e env a = ResolverM e (GargM env GargError) a
 
 -- | Function to resolve context from a query.
 resolveNodeContext
@@ -65,3 +75,10 @@ toNodeContextGQL (NodeContext { _nc_node_id = NodeId nc_node_id
                  , nc_context_id
                  , nc_score = _nc_score
                  , nc_category = _nc_category }
+
+updateNodeContextCategory :: (HasConnectionPool env, HasConfig env, HasMail env, HasSettings env) =>
+                             NodeContextCategoryMArgs -> GqlM' e env [Int]
+updateNodeContextCategory NodeContextCategoryMArgs { context_id, node_id, category } = do
+  _ <- lift $ DNC.updateNodeContextCategory (NodeId context_id) (NodeId node_id) category
+
+  pure [1]

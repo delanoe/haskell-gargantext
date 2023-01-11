@@ -28,6 +28,7 @@ module Gargantext.Database.Query.Table.NodeContext
   , nodeContextsScore
   , getNodeContexts
   , getNodeContext
+  , updateNodeContextCategory
   , insertNodeContext
   , deleteNodeContext
   , selectPublicContexts
@@ -87,6 +88,16 @@ getNodeContext c n = do
       restrict -< _nc_context_id ns .== c'
       restrict -< _nc_node_id ns .== n'
       returnA -< ns
+
+updateNodeContextCategory :: ContextId -> NodeId -> Int -> Cmd err Int64
+updateNodeContextCategory cId nId cat = do
+  execPGSQuery upScore (cat, cId, nId)
+  where
+    upScore :: PGS.Query
+    upScore = [sql| UPDATE nodes_contexts
+                      SET category = ?
+                      WHERE context_id = ?
+                      AND node_id = ? |]
 
 ------------------------------------------------------------------------
 insertNodeContext :: [NodeContext] -> Cmd err Int
