@@ -26,6 +26,7 @@ module Gargantext.Database.Query.Table.NodeContext
   , selectDocs
   , nodeContextsCategory
   , nodeContextsScore
+  , getNodeContexts
   , getNodeContext
   , insertNodeContext
   , deleteNodeContext
@@ -47,6 +48,7 @@ import qualified Opaleye as O
 import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError, NodeError(DoesNotExist), nodeError)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Context
 import Gargantext.Database.Schema.Node
@@ -62,12 +64,27 @@ _nodesContexts = runOpaQuery queryNodeContextTable
 
 ------------------------------------------------------------------------
 -- | Basic NodeContext tools
-getNodeContext :: NodeId -> Cmd err [NodeContext]
-getNodeContext n = runOpaQuery (selectNodeContext $ pgNodeId n)
+getNodeContexts :: NodeId -> Cmd err [NodeContext]
+getNodeContexts n = runOpaQuery (selectNodeContexts $ pgNodeId n)
   where
-    selectNodeContext :: Column SqlInt4 -> Select NodeContextRead
-    selectNodeContext n' = proc () -> do
+    selectNodeContexts :: Column SqlInt4 -> Select NodeContextRead
+    selectNodeContexts n' = proc () -> do
       ns <- queryNodeContextTable -< ()
+      restrict -< _nc_node_id ns .== n'
+      returnA -< ns
+
+
+getNodeContext :: HasNodeError err => ContextId -> NodeId -> Cmd err NodeContext
+getNodeContext c n = do
+  maybeNodeContext <- headMay <$>  runOpaQuery (selectNodeContext (pgNodeId c) (pgNodeId n))
+  case maybeNodeContext of
+    Nothing -> nodeError (DoesNotExist c)
+    Just  r -> pure r
+  where
+    selectNodeContext :: Column SqlInt4 -> Column SqlInt4 -> Select NodeContextRead
+    selectNodeContext c' n' = proc () -> do
+      ns <- queryNodeContextTable -< ()
+      restrict -< _nc_context_id ns .== c'
       restrict -< _nc_node_id ns .== n'
       returnA -< ns
 

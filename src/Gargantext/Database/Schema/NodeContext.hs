@@ -61,7 +61,7 @@ nodeContextTable :: Table NodeContextWrite NodeContextRead
 nodeContextTable  =
   Table "nodes_contexts"
          ( pNodeContext
-           NodeContext { _nc_id         = optionalTableField "id" 
+           NodeContext { _nc_id         = optionalTableField "id"
                        , _nc_node_id    = requiredTableField "node_id"
                        , _nc_context_id = requiredTableField "context_id"
                        , _nc_score      = optionalTableField "score"

@@ -159,7 +159,7 @@ buildNgramsTermsList :: ( HasNodeError err
                      -> GroupParams
                      -> (NgramsType, MapListSize)
                      -> m (Map NgramsType [NgramsElement])
-buildNgramsTermsList user uCid mCid mfslw groupParams (nt, MapListSize mapListSize)= do
+buildNgramsTermsList user uCid mCid mfslw groupParams (nt, MapListSize mapListSize) = do
 
 -- Filter 0 With Double
 -- Computing global speGen score

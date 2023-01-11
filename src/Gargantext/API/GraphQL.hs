@@ -36,6 +36,7 @@ import Gargantext.API.Admin.Orchestrator.Types (JobLog)
 import Gargantext.API.Prelude (HasJobEnv')
 import qualified Gargantext.API.GraphQL.Annuaire as GQLA
 import qualified Gargantext.API.GraphQL.AsyncTask as GQLAT
+import qualified Gargantext.API.GraphQL.Context as GQLCTX
 import qualified Gargantext.API.GraphQL.IMT as GQLIMT
 import qualified Gargantext.API.GraphQL.Node as GQLNode
 import qualified Gargantext.API.GraphQL.User as GQLUser
@@ -66,6 +67,7 @@ import Gargantext.API.Admin.Types (HasSettings)
 data Query m
   = Query
     { annuaire_contacts :: GQLA.AnnuaireContactArgs -> m [GQLA.AnnuaireContact]
+    , contexts    :: GQLCTX.NodeContextArgs -> m [GQLCTX.NodeContextGQL]
     , imt_schools :: GQLIMT.SchoolsArgs -> m [GQLIMT.School]
     , job_logs    :: GQLAT.JobLogArgs -> m (Map Int JobLog)
     , nodes       :: GQLNode.NodeArgs -> m [GQLNode.Node]
@@ -78,8 +80,8 @@ data Query m
 
 data Mutation m
   = Mutation
-    { update_user_info        :: GQLUserInfo.UserInfoMArgs -> m Int 
-    , delete_team_membership :: GQLTeam.TeamDeleteMArgs -> m [Int] 
+    { update_user_info        :: GQLUserInfo.UserInfoMArgs -> m Int
+    , delete_team_membership :: GQLTeam.TeamDeleteMArgs -> m [Int]
     } deriving (Generic, GQLType)
 
 -- | Possible GraphQL Events, i.e. here we describe how we will
@@ -105,6 +107,7 @@ rootResolver
 rootResolver =
   RootResolver
     { queryResolver = Query { annuaire_contacts = GQLA.resolveAnnuaireContacts
+                            , contexts          = GQLCTX.resolveNodeContext
                             , imt_schools       = GQLIMT.resolveSchools
                             , job_logs          = GQLAT.resolveJobLogs
                             , nodes             = GQLNode.resolveNodes
@@ -113,7 +116,7 @@ rootResolver =
                             , users             = GQLUser.resolveUsers
                             , tree              = GQLTree.resolveTree
                             , team              = GQLTeam.resolveTeam }
-    , mutationResolver = Mutation { update_user_info       = GQLUserInfo.updateUserInfo 
+    , mutationResolver = Mutation { update_user_info       = GQLUserInfo.updateUserInfo
                                   , delete_team_membership = GQLTeam.deleteTeamMembership }
     , subscriptionResolver = Undefined }
 
@@ -149,7 +152,7 @@ gqapi = Proxy
 --   App e IO ->
 --   Server (API name)
 -- serveEndpoint publish app' = (liftIO . httpPubApp publish app') :<|> withSchema app' :<|> pure httpPlayground
--- 
+--
 -- withSchema :: (Applicative f) => App e m -> f Text
 -- withSchema = pure . LT.toStrict . decodeUtf8 . render
 
