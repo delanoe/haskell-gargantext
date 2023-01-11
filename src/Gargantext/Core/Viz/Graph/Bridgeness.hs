@@ -63,7 +63,7 @@ bridgeness :: Bridgeness
             -> Map (NodeId, NodeId) Double
 bridgeness (Bridgeness_Advanced sim c) m = Map.fromList
                 $ map (\(ks, (v1,_v2)) -> (ks,v1))
-                $ List.take (if sim == Conditional then 2*n else 3*n)
+                -- $ List.take (if sim == Conditional then 2*n else 3*n)
                 $ List.sortOn (Down . (snd . snd))
                 $ Map.toList
                 $ trace ("bridgeness3 m c" <> show (m,c)) $ Map.intersectionWithKey (\k v1 v2 -> trace ("intersectionWithKey " <> (show (k, v1, v2))) (v1, v2)) m c
