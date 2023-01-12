@@ -1,5 +1,6 @@
 ## Version 0.0.6.9.0
 
+* [FRONT][FEAT] Ratings in Document each
 * [FRONT][FIX] Ngrams Table, removing useless columns
 * [BACK][FIX] Duplicates
 * [FRONT][FIX] Node Selection Indicator
