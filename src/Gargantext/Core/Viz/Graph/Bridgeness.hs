@@ -61,12 +61,15 @@ type Confluence = Map (NodeId, NodeId) Double
 bridgeness :: Bridgeness
             -> Map (NodeId, NodeId) Double
             -> Map (NodeId, NodeId) Double
-bridgeness (Bridgeness_Advanced _sim c) m = Map.fromList
+bridgeness (Bridgeness_Advanced sim c) m = Map.fromList
+                $ List.filter (\x -> if sim == Conditional then snd x > 0.2 else snd x > 0.02)
                 $ map (\(ks, (v1,_v2)) -> (ks,v1))
                 -- $ List.take (if sim == Conditional then 2*n else 3*n)
-                $ List.sortOn (Down . (snd . snd))
+                -- $ List.sortOn (Down . (snd . snd))
                 $ Map.toList
-                $ trace ("bridgeness3 m c" <> show (m,c)) $ Map.intersectionWithKey (\k v1 v2 -> trace ("intersectionWithKey " <> (show (k, v1, v2))) (v1, v2)) m c
+                $ trace ("bridgeness3 m c" <> show (m,c))
+                $ Map.intersectionWithKey 
+                      (\k v1 v2 -> trace ("intersectionWithKey " <> (show (k, v1, v2))) (v1, v2)) m c
 
 {-
  where
