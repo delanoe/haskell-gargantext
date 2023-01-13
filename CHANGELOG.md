@@ -1,3 +1,7 @@
+## Version 0.0.6.9.1
+
+* [FRONT][FIX][terms] resolve flickering issue on children
+
 ## Version 0.0.6.9.0
 
 * [BACK][FIX] Advanced Bridgeness fix
