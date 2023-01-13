@@ -1,6 +1,7 @@
 ## Version 0.0.6.9.1
 
 * [FRONT][FIX][terms] resolve flickering issue on children
+* [FRONT][FIX] [layout] Close CTA button on graph/phylo sidebar 
 
 ## Version 0.0.6.9.0
 
