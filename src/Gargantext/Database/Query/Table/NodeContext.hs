@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Query.Table.NodeNode
+Module      : Gargantext.Database.Query.Table.NodeContext
 Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -29,6 +29,7 @@ module Gargantext.Database.Query.Table.NodeContext
   , getNodeContexts
   , getNodeContext
   , updateNodeContextCategory
+  , getContextsForNgrams
   , insertNodeContext
   , deleteNodeContext
   , selectPublicContexts
@@ -39,18 +40,21 @@ module Gargantext.Database.Query.Table.NodeContext
 import Control.Arrow (returnA)
 import Control.Lens (view, (^.))
 import Data.Maybe (catMaybes)
+import Data.Time (UTCTime)
 import Data.Text (Text, splitOn)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Opaleye
-import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
+import qualified Database.PostgreSQL.Simple as PGS (In(..), Query, Only(..))
 import qualified Opaleye as O
 
 import Gargantext.Core
 import Gargantext.Core.Types
+-- import Gargantext.Core.Types.Search (HyperdataRow(..), toHyperdataRow)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError, NodeError(DoesNotExist), nodeError)
 import Gargantext.Database.Prelude
+import Gargantext.Prelude.Crypto.Hash (Hash)
 import Gargantext.Database.Schema.Context
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeContext
@@ -77,7 +81,7 @@ getNodeContexts n = runOpaQuery (selectNodeContexts $ pgNodeId n)
 
 getNodeContext :: HasNodeError err => ContextId -> NodeId -> Cmd err NodeContext
 getNodeContext c n = do
-  maybeNodeContext <- headMay <$>  runOpaQuery (selectNodeContext (pgNodeId c) (pgNodeId n))
+  maybeNodeContext <- headMay <$> runOpaQuery (selectNodeContext (pgNodeId c) (pgNodeId n))
   case maybeNodeContext of
     Nothing -> nodeError (DoesNotExist c)
     Just  r -> pure r
@@ -98,6 +102,17 @@ updateNodeContextCategory cId nId cat = do
                       SET category = ?
                       WHERE context_id = ?
                       AND node_id = ? |]
+
+getContextsForNgrams :: HasNodeError err => NodeId -> [Int] -> Cmd err [(NodeId, Maybe Hash, NodeTypeId, UserId, Maybe ParentId, ContextTitle, UTCTime, HyperdataDocument)]
+getContextsForNgrams cId ngramsIds = runPGSQuery query (cId, PGS.In ngramsIds)
+  where
+    query :: PGS.Query
+    query = [sql| SELECT contexts.id, hash_id, typename, user_id, parent_id, name, date, hyperdata
+                  FROM contexts
+                  JOIN context_node_ngrams ON contexts.id = context_node_ngrams.context_id
+                  JOIN nodes_contexts ON contexts.id = nodes_contexts.context_id
+                  WHERE nodes_contexts.node_id = ?
+                   AND context_node_ngrams.ngrams_id IN ? |]
 
 ------------------------------------------------------------------------
 insertNodeContext :: [NodeContext] -> Cmd err Int
