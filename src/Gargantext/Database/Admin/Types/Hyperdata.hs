@@ -45,5 +45,3 @@ import Gargantext.Database.Admin.Types.Hyperdata.Texts
 import Gargantext.Database.Admin.Types.Hyperdata.Phylo
 import Gargantext.Database.Admin.Types.Hyperdata.User
 import Gargantext.Core.Viz.Graph (HyperdataGraph(..), defaultHyperdataGraph)
-
-

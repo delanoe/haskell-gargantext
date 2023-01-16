@@ -66,16 +66,17 @@ import Gargantext.API.Admin.Types (HasSettings)
 -- | Represents possible GraphQL queries.
 data Query m
   = Query
-    { annuaire_contacts :: GQLA.AnnuaireContactArgs -> m [GQLA.AnnuaireContact]
-    , contexts    :: GQLCTX.NodeContextArgs -> m [GQLCTX.NodeContextGQL]
-    , imt_schools :: GQLIMT.SchoolsArgs -> m [GQLIMT.School]
-    , job_logs    :: GQLAT.JobLogArgs -> m (Map Int JobLog)
-    , nodes       :: GQLNode.NodeArgs -> m [GQLNode.Node]
-    , node_parent :: GQLNode.NodeParentArgs -> m [GQLNode.Node]
-    , user_infos  :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
-    , users       :: GQLUser.UserArgs -> m [GQLUser.User m]
-    , tree        :: GQLTree.TreeArgs -> m (GQLTree.TreeFirstLevel m)
-    , team        :: GQLTeam.TeamArgs -> m GQLTeam.Team
+    { annuaire_contacts   :: GQLA.AnnuaireContactArgs -> m [GQLA.AnnuaireContact]
+    , contexts            :: GQLCTX.NodeContextArgs -> m [GQLCTX.NodeContextGQL]
+    , contexts_for_ngrams :: GQLCTX.ContextsForNgramsArgs -> m [GQLCTX.ContextGQL]
+    , imt_schools         :: GQLIMT.SchoolsArgs -> m [GQLIMT.School]
+    , job_logs            :: GQLAT.JobLogArgs -> m (Map Int JobLog)
+    , nodes               :: GQLNode.NodeArgs -> m [GQLNode.Node]
+    , node_parent         :: GQLNode.NodeParentArgs -> m [GQLNode.Node]
+    , user_infos          :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
+    , users               :: GQLUser.UserArgs -> m [GQLUser.User m]
+    , tree                :: GQLTree.TreeArgs -> m (GQLTree.TreeFirstLevel m)
+    , team                :: GQLTeam.TeamArgs -> m GQLTeam.Team
     } deriving (Generic, GQLType)
 
 data Mutation m
@@ -107,16 +108,17 @@ rootResolver
   => RootResolver (GargM env GargError) e Query Mutation Undefined
 rootResolver =
   RootResolver
-    { queryResolver = Query { annuaire_contacts = GQLA.resolveAnnuaireContacts
-                            , contexts          = GQLCTX.resolveNodeContext
-                            , imt_schools       = GQLIMT.resolveSchools
-                            , job_logs          = GQLAT.resolveJobLogs
-                            , nodes             = GQLNode.resolveNodes
-                            , node_parent       = GQLNode.resolveNodeParent
-                            , user_infos        = GQLUserInfo.resolveUserInfos
-                            , users             = GQLUser.resolveUsers
-                            , tree              = GQLTree.resolveTree
-                            , team              = GQLTeam.resolveTeam }
+    { queryResolver = Query { annuaire_contacts   = GQLA.resolveAnnuaireContacts
+                            , contexts            = GQLCTX.resolveNodeContext
+                            , contexts_for_ngrams = GQLCTX.resolveContextsForNgrams
+                            , imt_schools         = GQLIMT.resolveSchools
+                            , job_logs            = GQLAT.resolveJobLogs
+                            , nodes               = GQLNode.resolveNodes
+                            , node_parent         = GQLNode.resolveNodeParent
+                            , user_infos          = GQLUserInfo.resolveUserInfos
+                            , users               = GQLUser.resolveUsers
+                            , tree                = GQLTree.resolveTree
+                            , team                = GQLTeam.resolveTeam }
     , mutationResolver = Mutation { update_user_info       = GQLUserInfo.updateUserInfo
                                   , delete_team_membership = GQLTeam.deleteTeamMembership
                                   , update_node_context_category = GQLCTX.updateNodeContextCategory }

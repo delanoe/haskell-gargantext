@@ -151,7 +151,7 @@ $(makeLenses ''HyperdataDocumentV3)
 instance FromJSON HyperdataDocument
   where
     parseJSON = genericParseJSON
-            ( defaultOptions { sumEncoding = ObjectWithSingleField 
+            ( defaultOptions { sumEncoding = ObjectWithSingleField
                             , fieldLabelModifier = unCapitalize . dropPrefix "_hd_"
                             , omitNothingFields = True
                             }
@@ -160,7 +160,7 @@ instance FromJSON HyperdataDocument
 instance ToJSON HyperdataDocument
   where
     toJSON = genericToJSON
-           ( defaultOptions { sumEncoding = ObjectWithSingleField 
+           ( defaultOptions { sumEncoding = ObjectWithSingleField
                             , fieldLabelModifier = unCapitalize . dropPrefix "_hd_"
                             , omitNothingFields = True
                             }

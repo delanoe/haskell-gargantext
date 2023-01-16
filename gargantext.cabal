@@ -223,6 +223,7 @@ library
       Gargantext.Core.Text.Terms.Multi.PosTagging
       Gargantext.Core.Text.Terms.Multi.PosTagging.Types
       Gargantext.Core.Types.Phylo
+      Gargantext.Core.Types.Search
       Gargantext.Core.Utils.DateUtils
       Gargantext.Core.Viz
       Gargantext.Core.Viz.Chart
@@ -282,6 +283,7 @@ library
       Gargantext.Database.GargDB
       Gargantext.Database.Query
       Gargantext.Database.Query.Facet
+      Gargantext.Database.Query.Facet.Types
       Gargantext.Database.Query.Filter
       Gargantext.Database.Query.Join
       Gargantext.Database.Query.Prelude
