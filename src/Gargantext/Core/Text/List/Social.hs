@@ -26,19 +26,19 @@ import qualified Data.Scientific as Scientific
 import qualified Data.Text       as T
 import qualified Data.Vector     as V
 
-import Gargantext.API.Ngrams.Tools
-import Gargantext.API.Ngrams.Types
-import Gargantext.Core.NodeStory
-import Gargantext.Core.Text.List.Social.Find
-import Gargantext.Core.Text.List.Social.History
-import Gargantext.Core.Text.List.Social.Patch
-import Gargantext.Core.Text.List.Social.Prelude
-import Gargantext.Core.Types.Individu
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Prelude
-import Gargantext.Database.Query.Table.Node.Error
-import Gargantext.Database.Query.Tree
-import Gargantext.Database.Schema.Ngrams
+import Gargantext.API.Ngrams.Tools (getRepo)
+import Gargantext.API.Ngrams.Types (NgramsTerm, NgramsPatch)
+import Gargantext.Core.NodeStory (HasNodeStory)
+import Gargantext.Core.Text.List.Social.Find (findListsId)
+import Gargantext.Core.Text.List.Social.History (History(..), history)
+import Gargantext.Core.Text.List.Social.Patch (addScorePatches)
+import Gargantext.Core.Text.List.Social.Prelude (FlowCont, FlowListScores)
+import Gargantext.Core.Types.Individu (User)
+import Gargantext.Database.Admin.Types.Node (ListId, NodeId(..))
+import Gargantext.Database.Prelude (CmdM)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
+import Gargantext.Database.Query.Tree (NodeMode(Private), HasTreeError)
+import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
 import qualified Prelude
 
@@ -184,4 +184,3 @@ getHistory :: ( HasNodeStory env err m
            -> m (Map ListId (Map NgramsType [HashMap NgramsTerm NgramsPatch]))
 getHistory hist nt listes =
   history hist [nt] listes  <$> getRepo listes
-
