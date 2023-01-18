@@ -1,5 +1,11 @@
+## Version 0.0.6.9.1
+
+* [FRONT][FIX][terms] resolve flickering issue on children
+
 ## Version 0.0.6.9.0
 
+* [BACK][FIX] Advanced Bridgeness fix
+* [FRONT][FEAT] Ratings in Document each
 * [FRONT][FIX] Ngrams Table, removing useless columns
 * [BACK][FIX] Duplicates
 * [FRONT][FIX] Node Selection Indicator
