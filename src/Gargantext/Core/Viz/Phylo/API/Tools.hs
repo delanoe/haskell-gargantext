@@ -187,5 +187,3 @@ readPhylo path = do
 -- | To read and decode a Json file
 readJson :: FilePath -> IO Lazy.ByteString
 readJson path = Lazy.readFile path
-
-
