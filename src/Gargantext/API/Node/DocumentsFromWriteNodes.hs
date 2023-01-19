@@ -44,12 +44,21 @@ import Gargantext.Prelude
 import Gargantext.Utils.Jobs (serveJobsAPI)
 import GHC.Generics (Generic)
 import Servant
+import Data.Text (Text)
+import Gargantext.Core.Text.List.Social (FlowSocialListWith)
+import Text.Read (readMaybe)
+import Data.Maybe (fromMaybe)
 
 ------------------------------------------------------------------------
 type API = Summary " Documents from Write nodes."
          :> AsyncJobs JobLog '[JSON] Params JobLog
 ------------------------------------------------------------------------
-newtype Params = Params { id :: Int }
+data Params = Params 
+  { id         :: Int 
+  , paragraphs :: Text
+  , lang       :: Lang
+  , selection  :: FlowSocialListWith
+  }
   deriving (Generic, Show)
 instance FromJSON Params where
   parseJSON = genericParseJSON defaultOptions
@@ -71,7 +80,7 @@ documentsFromWriteNodes :: (HasSettings env, FlowCmdM env err m)
     -> Params
     -> (JobLog -> m ())
     -> m JobLog
-documentsFromWriteNodes uId nId _p logStatus = do
+documentsFromWriteNodes uId nId Params { selection, lang, paragraphs } logStatus = do
   let jobLog = JobLog { _scst_succeeded = Just 1
                       , _scst_failed    = Just 0
                       , _scst_remaining = Just 1
@@ -97,12 +106,14 @@ documentsFromWriteNodes uId nId _p logStatus = do
              contents <- getHyperdataFrameContents (node ^. node_hyperdata)
              pure (node, contents)
          ) frameWrites
+  
+  let paragraphs' = readMaybe $ T.unpack paragraphs :: Maybe Int
 
-  let parsedE = (\(node, contents) -> hyperdataDocumentFromFrameWrite 7 (node ^. node_hyperdata, contents)) <$> frameWritesWithContents
+  let parsedE = (\(node, contents) -> hyperdataDocumentFromFrameWrite (fromMaybe 7 paragraphs') (node ^. node_hyperdata, contents)) <$> frameWritesWithContents
                                               -- TODO hard coded param should be take
   let parsed = List.concat $ rights parsedE
 
-  _ <- flowDataText (RootId (NodeId uId)) (DataNew (Just $ fromIntegral $ length parsed, yieldMany parsed)) (Multi EN) cId Nothing logStatus
+  _ <- flowDataText (RootId (NodeId uId)) (DataNew (Just $ fromIntegral $ length parsed, yieldMany parsed)) (Multi lang) cId (Just selection) logStatus
 
   pure $ jobLogSuccess jobLog
 ------------------------------------------------------------------------
