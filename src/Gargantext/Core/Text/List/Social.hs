@@ -35,7 +35,7 @@ import Gargantext.Database.Query.Tree (NodeMode(Private), HasTreeError)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
 import Web.Internal.HttpApiData (ToHttpApiData, FromHttpApiData, parseUrlPiece, toUrlPiece)
-import qualified Data.List as List
+import qualified Data.List       as List
 import qualified Data.Map        as Map
 import qualified Data.Scientific as Scientific
 import qualified Data.Text       as T
@@ -50,8 +50,8 @@ import qualified Prelude
 -- This parameter depends on the user choice
 
 data FlowSocialListWith = FlowSocialListWithPriority { fslw_priority :: FlowSocialListPriority }
-                        | FlowSocialListWithLists    { fslw_lists :: [ListId] }
-                        | NoList { makeList :: Bool }
+                        | FlowSocialListWithLists    { fslw_lists    :: [ListId]               }
+                        | NoList                     { makeList      :: Bool                   }
 
   deriving (Eq, Show, Generic)
 instance FromJSON FlowSocialListWith where
@@ -61,7 +61,7 @@ instance FromJSON FlowSocialListWith where
     case typ of
       "MyListsFirst"     -> pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
       "OtherListsFirst"  -> pure $ FlowSocialListWithPriority { fslw_priority = OthersFirst }
-      "SelectedLists"    -> pure $ FlowSocialListWithLists { fslw_lists = value }
+      "SelectedLists"    -> pure $ FlowSocialListWithLists    { fslw_lists    = value       }
       "NoList"           -> pure $ NoList True
       _                  -> pure $ FlowSocialListWithPriority { fslw_priority = MySelfFirst }
   parseJSON _ = mzero
@@ -113,9 +113,9 @@ flowSocialList :: ( HasNodeStory env err m
                   -> FlowCont NgramsTerm FlowListScores
                   -> m (FlowCont NgramsTerm FlowListScores)
 flowSocialList Nothing u = flowSocialList' MySelfFirst u
-flowSocialList (Just (FlowSocialListWithPriority p)) u = flowSocialList' p u
+flowSocialList (Just (FlowSocialListWithPriority p))  u = flowSocialList' p u
 flowSocialList (Just (FlowSocialListWithLists    ls)) _ = getHistoryScores ls
-flowSocialList (Just (NoList _)) _u = panic "[G.C.T.L.Social] Should not be executed"
+flowSocialList (Just (NoList _))                     _u = panic "[G.C.T.L.Social] Should not be executed"
 
 flowSocialList' :: ( HasNodeStory env err m
                    , CmdM     env err m
@@ -182,7 +182,7 @@ getHistory :: ( HasNodeStory env err m
          -> m (Map ListId (Map NgramsType [HashMap NgramsTerm NgramsPatch]))
 getHistory types listsId = do
   pool <- view connPool
-  nsp <- liftBase $ withResource pool $ \c -> getNodesArchiveHistory c listsId
+  nsp  <- liftBase $ withResource pool $ \c -> getNodesArchiveHistory c listsId
   pure $ Map.map (Map.filterWithKey (\k _ -> List.elem k types))
        $ Map.filterWithKey (\k _ -> List.elem k listsId)
        $ Map.fromListWith (Map.unionWith (<>)) nsp
