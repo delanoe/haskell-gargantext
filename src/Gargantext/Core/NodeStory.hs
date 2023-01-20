@@ -71,6 +71,7 @@ module Gargantext.Core.NodeStory
   , nse_var
   , unNodeStory
   , getNodeArchiveHistory
+  , getNodesArchiveHistory
   , Archive(..)
   , initArchive
   , a_history
@@ -111,6 +112,9 @@ import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.FromField (FromField(fromField), fromJSONField)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import GHC.Generics (Generic)
+import Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as HashMap
+import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListId, NodeId(..), NodeType)
 import Gargantext.Core.Utils.Prefix (unPrefix)
@@ -119,6 +123,7 @@ import Gargantext.Database.Prelude (CmdM', HasConnectionPool(..), HasConfig)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Prelude
 import Opaleye (DefaultFromField(..), SqlJsonb, fromPGSFromField)
+import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import System.IO (stderr)
 import qualified Data.Map.Strict                        as Map
 import qualified Data.Map.Strict.Patch                  as PM
@@ -372,6 +377,27 @@ getNodeArchiveHistory c nodeId = do
                     JOIN ngrams ON ngrams.id = ngrams_id
                     WHERE node_id = ?
                     ORDER BY (version, node_story_archive_history.id) DESC |]
+
+-- getNodesArchiveHistory :: PGS.Connection -> [NodeId] -> IO [(Int, NgramsStatePatch')]
+getNodesArchiveHistory :: PGS.Connection -> [NodeId] -> IO [(NodeId, (Map NgramsType [HashMap NgramsTerm NgramsPatch]))]
+getNodesArchiveHistory c nodesId = do
+  as <- runPGSQuery c query (PGS.Only $ Values fields nodesId) :: IO [(Int, TableNgrams.NgramsType, NgramsTerm, NgramsPatch)]
+  pure $ map (\(nId, ngramsType, terms, patch) -> (NodeId nId, Map.singleton ngramsType [HashMap.singleton terms patch])) as
+  where
+
+    fields = [QualifiedIdentifier Nothing "int4"]
+    query :: PGS.Query
+    query = [sql| WITH nodes_id(nid) as (?)
+                    SELECT node_id, ngrams_type_id, terms, patch
+                    FROM node_story_archive_history
+                    JOIN ngrams ON ngrams.id = ngrams_id
+                    JOIN nodes_id n ON node_id = n.nid
+                    WHERE version > 5
+                    ORDER BY (version, node_story_archive_history.id) DESC
+            |]
+
+-- Version > 5 is hard coded because by default
+-- first version of history of manual change is 6
 
 ngramsIdQuery :: PGS.Query
 ngramsIdQuery = [sql| SELECT id FROM ngrams WHERE terms = ? |]

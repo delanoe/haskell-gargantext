@@ -42,7 +42,7 @@ addScoreStem :: GroupParams
              -> HashSet NgramsTerm
              -> FlowCont NgramsTerm FlowListScores
              -> FlowCont NgramsTerm FlowListScores
-addScoreStem groupParams ngrams fl = foldl' addScorePatch fl 
+addScoreStem groupParams ngrams fl = foldl' addScorePatch fl
                                    $ stemPatches groupParams ngrams
 
 ------------------------------------------------------------------------
