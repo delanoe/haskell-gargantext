@@ -1,3 +1,7 @@
+## Version 0.0.6.9.2
+
+* [BACK][FIX] List Learning is back
+
 ## Version 0.0.6.9.1
 
 * [FRONT][FIX][terms] resolve flickering issue on children
