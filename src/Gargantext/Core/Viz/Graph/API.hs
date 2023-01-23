@@ -30,9 +30,9 @@ import Gargantext.API.Prelude
 import Gargantext.Core.Methods.Similarities (Similarity(..), GraphMetric(..), withMetric)
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Types.Main
-import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.GEXF ()
 import Gargantext.Core.Viz.Graph.Tools -- (cooc2graph)
+import Gargantext.Core.Viz.Graph.Types
 import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOnlyUser)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Node (mkNodeWithParent)

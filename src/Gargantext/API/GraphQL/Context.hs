@@ -184,7 +184,7 @@ toHyperdataRowDocumentGQL hyperdata =
                                      , hrd_uniqId             = _hr_uniqId
                                      , hrd_uniqIdBdd          = _hr_uniqIdBdd
                                      }
-    HyperdataRowContact _ _ _ -> Nothing
+    HyperdataRowContact { } -> Nothing
 
 updateNodeContextCategory :: (HasConnectionPool env, HasConfig env, HasMail env, HasSettings env) =>
                              NodeContextCategoryMArgs -> GqlM' e env [Int]
