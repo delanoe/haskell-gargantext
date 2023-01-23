@@ -70,7 +70,7 @@ module Gargantext.Core.NodeStory
   , nse_archive_saver_immediate
   , nse_var
   , unNodeStory
-  , getNodeArchiveHistory
+  , getNodesArchiveHistory
   , Archive(..)
   , initArchive
   , a_history
@@ -93,23 +93,25 @@ module Gargantext.Core.NodeStory
 where
 
 -- import Debug.Trace (traceShow)
-import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Codec.Serialise.Class
 import Control.Concurrent (MVar(), newMVar, modifyMVar_)
+import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Control.Exception (catch, throw, SomeException(..))
 import Control.Lens (makeLenses, Getter, (^.), (.~), (%~), _Just, at, traverse, view)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Aeson hiding ((.=), decode)
 import Data.ByteString.Char8 (hPutStrLn)
+import Data.HashMap.Strict (HashMap)
 import Data.Map.Strict (Map)
 import Data.Maybe (catMaybes)
 import Data.Monoid
 import Data.Pool (Pool, withResource)
-import Data.Semigroup
-import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Database.PostgreSQL.Simple.FromField (FromField(fromField), fromJSONField)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Data.Semigroup
+import Database.PostgreSQL.Simple.FromField (FromField(fromField), fromJSONField)
+import Database.PostgreSQL.Simple.SqlQQ (sql)
+import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListId, NodeId(..), NodeType)
@@ -117,14 +119,16 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Prelude (CmdM', HasConnectionPool(..), HasConfig)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
+import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
 import Opaleye (DefaultFromField(..), SqlJsonb, fromPGSFromField)
 import System.IO (stderr)
+import qualified Data.HashMap.Strict                    as HashMap
 import qualified Data.Map.Strict                        as Map
 import qualified Data.Map.Strict.Patch                  as PM
-import qualified Data.Set as Set
-import qualified Data.Text as Text
-import qualified Database.PostgreSQL.Simple as PGS
+import qualified Data.Set                               as Set
+import qualified Data.Text                              as Text
+import qualified Database.PostgreSQL.Simple             as PGS
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 ------------------------------------------------------------------------
@@ -253,8 +257,6 @@ initNodeListStoryMock = NodeStory $ Map.singleton nodeListId archive
                    ]
 
 ------------------------------------------------------------------------
-
-
 ------------------------------------------------------------------------
 -- | Lenses at the bottom of the file because Template Haskell would reorder order of execution in others cases
 makeLenses ''NodeStoryEnv
@@ -288,7 +290,8 @@ type ArchiveList = Archive NgramsState' NgramsStatePatch'
 
 -- DB stuff
 
-runPGSExecute :: (PGS.ToRow q) => PGS.Connection -> PGS.Query -> q -> IO Int64
+runPGSExecute :: (PGS.ToRow q)
+              => PGS.Connection -> PGS.Query -> q -> IO Int64
 runPGSExecute c qs a = catch (PGS.execute c qs a) printError
   where
     printError (SomeException e) = do
@@ -296,7 +299,8 @@ runPGSExecute c qs a = catch (PGS.execute c qs a) printError
       _ <- panic $ Text.pack $ show e
       throw (SomeException e)
 
-runPGSExecuteMany :: (PGS.ToRow q) => PGS.Connection -> PGS.Query -> [q] -> IO Int64
+runPGSExecuteMany :: (PGS.ToRow q)
+                  => PGS.Connection -> PGS.Query -> [q] -> IO Int64
 runPGSExecuteMany c qs a = catch (PGS.executeMany c qs a) printError
   where
     printError (SomeException e) = do
@@ -304,7 +308,8 @@ runPGSExecuteMany c qs a = catch (PGS.executeMany c qs a) printError
       _ <- panic $ Text.pack $ show e
       throw (SomeException e)
 
-runPGSQuery :: (PGS.FromRow r, PGS.ToRow q) => PGS.Connection -> PGS.Query -> q -> IO [r]
+runPGSQuery :: (PGS.FromRow r, PGS.ToRow q)
+            => PGS.Connection -> PGS.Query -> q -> IO [r]
 runPGSQuery c q a = catch (PGS.query c q a) printError
   where
     printError (SomeException e) = do
@@ -314,22 +319,26 @@ runPGSQuery c q a = catch (PGS.query c q a) printError
 
 runPGSAdvisoryLock :: PGS.Connection -> Int -> IO ()
 runPGSAdvisoryLock c id = do
-  _ <- runPGSQuery c [sql| SELECT pg_advisory_lock(?) |] (PGS.Only id) :: IO [PGS.Only ()]
+  _ <- runPGSQuery c [sql| SELECT pg_advisory_lock(?) |]
+                     (PGS.Only id) :: IO [PGS.Only ()]
   pure ()
 
 runPGSAdvisoryUnlock :: PGS.Connection -> Int -> IO ()
 runPGSAdvisoryUnlock c id = do
-  _ <- runPGSQuery c [sql| SELECT pg_advisory_unlock(?) |] (PGS.Only id) :: IO [PGS.Only Bool]
+  _ <- runPGSQuery c [sql| SELECT pg_advisory_unlock(?) |]
+                     (PGS.Only id) :: IO [PGS.Only Bool]
   pure ()
 
 runPGSAdvisoryXactLock :: PGS.Connection -> Int -> IO ()
 runPGSAdvisoryXactLock c id = do
-  _ <- runPGSQuery c [sql| SELECT pg_advisory_xact_lock(?) |] (PGS.Only id) :: IO [PGS.Only ()]
+  _ <- runPGSQuery c [sql| SELECT pg_advisory_xact_lock(?) |]
+                     (PGS.Only id) :: IO [PGS.Only ()]
   pure ()
 
 nodeExists :: PGS.Connection -> NodeId -> IO Bool
 nodeExists c nId = (== [PGS.Only True])
-  <$> runPGSQuery c [sql| SELECT true FROM nodes WHERE id = ? LIMIT 1 |] (PGS.Only nId)
+  <$> runPGSQuery c [sql| SELECT true FROM nodes WHERE id = ? LIMIT 1 |]
+                    (PGS.Only nId)
 
 getNodesIdWithType :: PGS.Connection -> NodeType -> IO [NodeId]
 getNodesIdWithType c nt = do
@@ -340,38 +349,34 @@ getNodesIdWithType c nt = do
     query = [sql| SELECT id FROM nodes WHERE typename = ? |]
 
 
+-- /!\ This function is using an hard coded parameter
+-- which depends on the Ngrams List Flow
+-- Version > 5 is hard coded because by default
+-- first version of history of manual change is 6
+getNodesArchiveHistory :: PGS.Connection
+                       -> [NodeId]
+                       -> IO [(NodeId, (Map NgramsType [HashMap NgramsTerm NgramsPatch]))]
+getNodesArchiveHistory c nodesId = do
+  as <- runPGSQuery c query (PGS.Only $ Values fields nodesId)
+                            :: IO [(Int, TableNgrams.NgramsType, NgramsTerm, NgramsPatch)]
 
--- nodeStoryTable :: Table NodeStoryRead NodeStoryWrite
--- nodeStoryTable =
---   Table "node_stories"
---     ( pNodeStory NodeStoryDB { node_id             = tableField "node_id"
---                              , version             = tableField "version"
---                              , ngrams_type_id      = tableField "ngrams_type_id"
---                              , ngrams_id           = tableField "ngrams_id"
---                              , ngrams_repo_element = tableField "ngrams_repo_element"
---                              } )
-
--- nodeStoryArchiveTable :: Table NodeStoryArchiveRead NodeStoryArchiveWrite
--- nodeStoryArchiveTable =
---   Table "node_story_archive_history"
---     ( pNodeArchiveStory NodeStoryArchiveDB { a_node_id = tableField "node_id"
---                                            , archive   = tableField "archive" } )
-
--- nodeStorySelect :: Select NodeStoryRead
--- nodeStorySelect = selectTable nodeStoryTable
-
--- NOTE "first patch in the _a_history list is the most recent"
-getNodeArchiveHistory :: PGS.Connection -> NodeId -> IO [NgramsStatePatch']
-getNodeArchiveHistory c nodeId = do
-  as <- runPGSQuery c query (PGS.Only nodeId) :: IO [(TableNgrams.NgramsType, NgramsTerm, NgramsPatch)]
-  pure $ (\(ngramsType, terms, patch) -> fst $ PM.singleton ngramsType (NgramsTablePatch $ fst $ PM.singleton terms patch)) <$> as
+  pure $ map (\(nId, ngramsType, terms, patch)
+               -> ( NodeId nId
+                  , Map.singleton ngramsType [HashMap.singleton terms patch]
+                  )
+             ) as
   where
+
+    fields = [QualifiedIdentifier Nothing "int4"]
     query :: PGS.Query
-    query = [sql| SELECT ngrams_type_id, terms, patch
+    query = [sql| WITH nodes_id(nid) as (?)
+                    SELECT node_id, ngrams_type_id, terms, patch
                     FROM node_story_archive_history
                     JOIN ngrams ON ngrams.id = ngrams_id
-                    WHERE node_id = ?
-                    ORDER BY (version, node_story_archive_history.id) DESC |]
+                    JOIN nodes_id n ON node_id = n.nid
+                    WHERE version > 5
+                    ORDER BY (version, node_story_archive_history.id) DESC
+            |]
 
 ngramsIdQuery :: PGS.Query
 ngramsIdQuery = [sql| SELECT id FROM ngrams WHERE terms = ? |]

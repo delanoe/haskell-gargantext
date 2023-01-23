@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-version:        0.0.6.9.1
+version:        0.0.6.9.2
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
@@ -203,7 +203,6 @@ library
       Gargantext.Core.Text.List.Merge
       Gargantext.Core.Text.List.Social
       Gargantext.Core.Text.List.Social.Find
-      Gargantext.Core.Text.List.Social.History
       Gargantext.Core.Text.List.Social.Patch
       Gargantext.Core.Text.List.Social.Prelude
       Gargantext.Core.Text.Metrics.FrequentItemSet

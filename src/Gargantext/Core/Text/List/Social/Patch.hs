@@ -37,7 +37,6 @@ addScorePatches nt listes fl repo =
 
 
 addScorePatchesList :: NgramsType
-                   -- -> Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])
                    -> Map ListId (Map NgramsType [HashMap NgramsTerm NgramsPatch])
                    -> FlowCont NgramsTerm FlowListScores
                    -> ListId
