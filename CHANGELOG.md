@@ -1,5 +1,6 @@
 ## Version 0.0.6.9.2
 
+* [BACK][FIX] NodeWrite simple parsing
 * [BACK][FIX] List Learning is back
 * [BACK][FIX][Document rating in Doc Table is broken (#174)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/174)
 * [FRONT][FIX][Document supression do not work (#495)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/495)
