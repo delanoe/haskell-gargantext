@@ -28,7 +28,8 @@ import qualified Data.List as List
 
 -- https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/331
 
--- Authors : default : anonymous ; except if the following line is encountered ^@@authors: FirstName1, LastName1 ; FirstName2, LastName2 ; etc.
+-- Authors : default : anonymous ; except if the following line is encountered 
+-- ^authors: FirstName1, LastName1 ; FirstName2, LastName2 ; etc.
 -- date : default : date of last change except if the following line is encountered  ^@@date: 2021-09-10
 -- source: Name of the root node except if the following line is encountered ^@@source:
 -- By default, 1 framawrite node = 1 document.  Option for further developments: allow to give a level at generation for the split within framawrite node : :

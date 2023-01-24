@@ -20,8 +20,9 @@ import Conduit
 import Control.Lens ((^.))
 import Data.Aeson
 import Data.Either (Either(..), rights)
+-- import Data.Maybe (fromMaybe)
 import Data.Swagger
-import qualified Data.Text as T
+import GHC.Generics (Generic)
 import Gargantext.API.Admin.EnvTypes (Env, GargJob(..))
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
@@ -38,12 +39,12 @@ import Gargantext.Database.Admin.Types.Hyperdata.Frame
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getChildrenByType, getClosestParentIdByType', getNodeWith)
 import Gargantext.Database.Schema.Node (node_hyperdata)
-import qualified Data.List as List
-import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
 import Gargantext.Utils.Jobs (serveJobsAPI)
-import GHC.Generics (Generic)
 import Servant
+import qualified Data.List           as List
+import qualified Data.Text           as T
+import qualified Gargantext.Defaults as Defaults
 
 ------------------------------------------------------------------------
 type API = Summary " Documents from Write nodes."
@@ -99,12 +100,35 @@ documentsFromWriteNodes uId nId _p logStatus = do
          ) frameWrites
 
   let parsedE = (\(node, contents) -> hyperdataDocumentFromFrameWrite 7 (node ^. node_hyperdata, contents)) <$> frameWritesWithContents
-                                              -- TODO hard coded param should be take
+                                              -- TODO hard coded param should be taken from user
   let parsed = List.concat $ rights parsedE
 
-  _ <- flowDataText (RootId (NodeId uId)) (DataNew (Just $ fromIntegral $ length parsed, yieldMany parsed)) (Multi EN) cId Nothing logStatus
+  _ <- flowDataText (RootId (NodeId uId))
+                    (DataNew (Just $ fromIntegral $ length parsed, yieldMany parsed))
+                    (Multi EN) cId Nothing logStatus
 
   pure $ jobLogSuccess jobLog
+------------------------------------------------------------------------
+
+{-
+-- extractFrameWrites :: (HasSettings env, FlowCmdM env err m) => NodeId -> m [Node T.Text]
+extractFrameWrites nId = do
+  mcId <- getClosestParentIdByType' nId NodeCorpus
+  frameWriteIds <- getChildrenByType (fromMaybe (panic "[G.A.N.DocumentsFromWriteNodes] No parent found") mcId) NodeFrameWrite
+
+  -- https://write.frame.gargantext.org/<frame_id>/download
+  frameWrites <- mapM (\id -> getNodeWith id (Proxy :: Proxy HyperdataFrame)) frameWriteIds
+
+  frameWritesWithContents <- liftBase $
+    mapM (\node -> do
+             contents <- getHyperdataFrameContents (node ^. node_hyperdata)
+             pure (node, contents)
+         ) frameWrites
+
+  let parsedE = (\(node, contents) -> hyperdataDocumentFromFrameWrite 7 (node ^. node_hyperdata, contents)) <$> frameWritesWithContents
+  let parsed = List.concat $ rights parsedE
+  pure parsed
+-}
 ------------------------------------------------------------------------
 hyperdataDocumentFromFrameWrite :: Int -> (HyperdataFrame, T.Text) -> Either T.Text [HyperdataDocument]
 hyperdataDocumentFromFrameWrite paragraphSize (HyperdataFrame { _hf_base, _hf_frame_id }, contents) =
