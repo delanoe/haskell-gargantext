@@ -19,7 +19,7 @@ module Gargantext.Core.Text.List.Merge
   where
 
 import Control.Lens (view)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Gargantext.API.Ngrams
 import Gargantext.API.Ngrams.Types
 import Gargantext.Prelude

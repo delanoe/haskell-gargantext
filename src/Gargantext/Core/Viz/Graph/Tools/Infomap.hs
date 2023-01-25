@@ -1,6 +1,6 @@
 module Gargantext.Core.Viz.Graph.Tools.Infomap where
 
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Graph.Types
 import Prelude
 

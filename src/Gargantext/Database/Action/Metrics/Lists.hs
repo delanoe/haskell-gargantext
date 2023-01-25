@@ -26,7 +26,7 @@ import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Prelude hiding (sum, head)
 import Prelude hiding (null, id, map, sum)
 import qualified Data.HashMap.Strict as HashMap
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Vector as Vec
 import qualified Gargantext.Database.Action.Metrics as Metrics
 {-
@@ -36,7 +36,7 @@ trainModel u = do
   rootId <- _node_id <$> getRoot u
   (id:ids)   <- getCorporaWithParentId rootId
   (s,_model) <- case length ids >0 of
-        True  ->  grid 100 150 (getMetrics 
+        True  ->  grid 100 150 (getMetrics
         False -> panic "Gargantext.Database.Lists.trainModel : not enough corpora"
   --}
 
@@ -51,9 +51,8 @@ getMetrics' cId maybeListId tabType maybeLimit = do
     metrics      = map (\(Scored t s1 s2) -> (listType t ngs', [Vec.fromList [s1,s2]])) scores
     listType t m = maybe (panic errorMsg) fst $ HashMap.lookup t m
     errorMsg     = "API.Node.metrics: key absent"
-  
+
   {-
   _ <- Learn.grid 100 110 metrics' metrics'
   --}
   pure $ Map.fromListWith (<>) $ Vec.toList metrics
-

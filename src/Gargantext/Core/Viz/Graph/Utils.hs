@@ -18,7 +18,7 @@ module Gargantext.Core.Viz.Graph.Utils
   where
 
 import Data.List (unzip)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Matrix hiding (identity)
 import Data.Maybe (catMaybes)
 import Data.Set (Set)
@@ -26,7 +26,7 @@ import Data.Vector (Vector)
 import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
 import Gargantext.Prelude
 import qualified Data.List    as List
-import qualified Data.Map     as Map
+import qualified Data.Map.Strict     as Map
 import qualified Data.Set     as Set
 import qualified Data.Vector  as Vector
 

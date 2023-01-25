@@ -25,7 +25,7 @@ module Gargantext.Core.Viz.Graph.Index
   where
 
 import Data.Array.Accelerate (Matrix, Elt, Shape, (:.)(..), Z(..))
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Set (Set)
 import Gargantext.Prelude

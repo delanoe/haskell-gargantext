@@ -16,8 +16,8 @@ module Gargantext.Core.Viz.Graph.Legend
 {-
 import Data.Ord (Down(..))
 import Gargantext.Prelude
-import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
-import qualified Data.Map as DM
+import Data.Map.Strict (Map, fromListWith, lookup, toList, mapWithKey, elems)
+import qualified Data.Map.Strict as DM
 import Data.Maybe (catMaybes)
 import Data.List (concat, sortOn)
 import Gargantext.Core.Viz.Graph.Louvain (LouvainNodeId, CommunityId, comId2nodeId)
@@ -30,7 +30,7 @@ sort by length LouvainNodeIds
 
 
 Cooc -> DGI.Graph
-sort [LouvainNodeId] 
+sort [LouvainNodeId]
 
 subgraph with [LouvainNodeId]
 -> prendre le noeud le mieux connecté (degree to start with)

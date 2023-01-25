@@ -19,8 +19,8 @@ module Gargantext.Core.Methods.Graph.BAC.Proxemy
 
 --import Debug.SimpleReflect
 import Gargantext.Prelude
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import qualified Data.List as List
 --import Gargantext.Core.Viz.Graph.IGraph
 import Gargantext.Core.Viz.Graph.FGL

@@ -16,7 +16,7 @@ module Gargantext.Core.Viz.Graph.Tools
 
 import Data.Aeson
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe)
 import Data.Swagger hiding (items)
 import GHC.Float (sin, cos)
@@ -39,7 +39,7 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import qualified Data.HashMap.Strict      as HashMap
 import qualified Data.List                as List
-import qualified Data.Map                 as Map
+import qualified Data.Map.Strict          as Map
 import qualified Data.Set                 as Set
 import qualified Data.HashSet             as HashSet
 import qualified Data.Text                as Text

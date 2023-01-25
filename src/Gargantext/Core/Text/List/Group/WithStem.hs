@@ -20,7 +20,7 @@ module Gargantext.Core.Text.List.Group.WithStem
 import Control.Lens (makeLenses)
 import Data.HashMap.Strict (HashMap)
 import Data.HashSet (HashSet)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Maybe (catMaybes)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core (Lang(..), PosTagAlgo(..), Form, Lem)
@@ -32,7 +32,7 @@ import Gargantext.Prelude
 import qualified Data.HashMap.Strict   as HashMap
 import qualified Data.HashSet          as Set
 import qualified Data.List             as List
-import qualified Data.Map              as Map
+import qualified Data.Map.Strict       as Map
 import qualified Data.Map.Strict.Patch as PatchMap
 import qualified Data.Patch.Class      as Patch (Replace(..))
 import qualified Data.Text             as Text

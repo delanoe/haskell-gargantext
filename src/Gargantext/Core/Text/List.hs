@@ -19,7 +19,7 @@ module Gargantext.Core.Text.List
 import Control.Lens hiding (both) -- ((^.), view, over, set, (_1), (_2))
 import Data.HashMap.Strict (HashMap)
 import Data.HashSet (HashSet)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Monoid (mempty)
 import Data.Ord (Down(..))
 import Data.Set (Set)
@@ -50,7 +50,7 @@ import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.HashSet as HashSet
 import qualified Data.List    as List
-import qualified Data.Map     as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Set     as Set
 import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
 

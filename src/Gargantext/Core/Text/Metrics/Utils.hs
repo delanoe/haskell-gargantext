@@ -13,19 +13,20 @@ Portability : POSIX
 module Gargantext.Core.Text.Metrics.Utils where
 
 import Gargantext.Prelude
-import Data.Map (empty, Map, insertWith, toList)
+import Data.Map.Strict (Map, toList)
 import qualified Data.List as L
+import qualified Data.Map.Strict as DM
 
-countElem :: (Ord k) => Data.Map.Map k Int -> k -> Data.Map.Map k Int
-countElem m e = Data.Map.insertWith (+) e 1 m
+countElem :: (Ord k) => DM.Map k Int -> k -> DM.Map k Int
+countElem m e = DM.insertWith (+) e 1 m
 
-freq :: (Ord k) => [k] -> Data.Map.Map k Int
-freq = foldl countElem Data.Map.empty
+freq :: (Ord k) => [k] -> DM.Map k Int
+freq = foldl countElem DM.empty
 
 getMaxFromMap :: Ord a => Map a1 a -> [a1]
 getMaxFromMap m = go [] Nothing (toList m)
   where
-    go ks _        []           = ks 
+    go ks _        []           = ks
     go ks Nothing  ((k,v):rest) = go (k:ks) (Just v) rest
     go ks (Just u) ((k,v):rest)
         | v < u     = go ks     (Just u) rest

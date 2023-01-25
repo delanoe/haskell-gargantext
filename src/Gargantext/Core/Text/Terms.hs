@@ -38,7 +38,7 @@ module Gargantext.Core.Text.Terms
 import Control.Lens
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Text (Text)
 import Data.Traversable
 import GHC.Base (String)

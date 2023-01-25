@@ -54,8 +54,8 @@ module Gargantext.Core.Methods.Graph.MaxClique
 
 import Data.Maybe (catMaybes)
 import Gargantext.Prelude
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.List (sortOn, nub, concat)
 import Data.Set (Set)
 import Data.Set (fromList, toList, isSubsetOf)

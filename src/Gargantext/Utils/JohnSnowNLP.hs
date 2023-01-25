@@ -19,8 +19,8 @@ import Data.Aeson (encode, ToJSON, toJSON, FromJSON, parseJSON, Value(..), (.:),
 import Data.Aeson.Types (prependFailure, typeMismatch)
 import Data.Aeson.TH (deriveJSON)
 import qualified Data.List.Safe as LS
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Data.Text hiding (map, group, filter, concat, zip)
 import Network.HTTP.Simple (parseRequest, httpJSON, setRequestBodyLBS, getResponseBody, Response)

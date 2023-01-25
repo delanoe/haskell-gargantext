@@ -6,7 +6,7 @@ License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
-Reference   : Chavalarias, D., Lobbé, Q. & Delanoë, A. Draw me Science. Scientometrics 127, 545–575 (2022). https://doi.org/10.1007/s11192-021-04186-5 
+Reference   : Chavalarias, D., Lobbé, Q. & Delanoë, A. Draw me Science. Scientometrics 127, 545–575 (2022). https://doi.org/10.1007/s11192-021-04186-5
 -}
 
 module Gargantext.Core.Viz.Phylo.TemporalMatching where
@@ -15,14 +15,14 @@ import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
 import Data.Ord
 import Data.List (concat, splitAt, tail, sortOn, sortBy, (++), intersect, null, inits, groupBy, scanl, nub, nubBy, union, dropWhile, partition, or)
-import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, findWithDefault, keys, (!), empty, mapKeys, adjust)
+import Data.Map.Strict  (Map, fromList, elems, restrictKeys, unionWith, findWithDefault, keys, (!), empty, mapKeys, adjust)
 import Debug.Trace (trace)
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.PhyloTools
 import Gargantext.Prelude
 import Prelude (tan,pi)
 import Text.Printf
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.List as List
 import qualified Data.Set as Set
 import qualified Data.Vector as Vector
@@ -38,28 +38,28 @@ type ShouldTry = Bool
 ----------------------------
 
 
-{- 
+{-
 -- compute a jaccard similarity between two lists
 -}
 jaccard :: [Int] -> [Int] -> Double
 jaccard inter' union' = ((fromIntegral . length) $ inter') / ((fromIntegral . length) $ union')
 
 
-{- 
+{-
 -- process the inverse sumLog
 -}
 sumInvLog' :: Double -> Double -> [Double] -> Double
 sumInvLog' s nb diago = foldl (\mem occ -> mem + (1 / (log (occ + 1/ tan (s * pi / 2)) / log (nb + 1/ tan (s * pi / 2))))) 0 diago
 
 
-{- 
+{-
 -- process the sumLog
 -}
 sumLog' :: Double -> Double -> [Double] -> Double
 sumLog' s nb diago = foldl (\mem occ -> mem + (log (occ + 1/ tan (s * pi / 2)) / log (nb + 1/ tan (s * pi / 2)))) 0 diago
 
 
-{- 
+{-
 -- compute the weightedLogJaccard
 -}
 weightedLogJaccard' :: Double -> Double -> Map Int Double -> [Int] -> [Int] -> Double
@@ -85,7 +85,7 @@ weightedLogJaccard' sens nbDocs diago ngrams ngrams'
     --------------------------------------
 
 
-{- 
+{-
 -- compute the weightedLogSim
 -- Adapted from Wang, X., Cheng, Q., Lu, W., 2014. Analyzing evolution of research topics with NEViewer: a new method based on dynamic co-word networks. Scientometrics 101, 1253–1271. https://doi.org/10.1007/s11192-014-1347-y (log added in the formula + pair comparison)
 -- tests not conclusive
@@ -116,7 +116,7 @@ weightedLogSim' sens nbDocs diago ego_ngrams target_ngrams
     --------------------------------------
 
 
-{- 
+{-
 -- perform a seamilarity measure between a given group and a pair of targeted groups
 -}
 toProximity :: Double -> Map Int Double -> Proximity -> [Int] -> [Int] -> [Int] -> Double
@@ -203,7 +203,7 @@ filterDiago diago pds = restrictKeys diago $ periodsToYears pds
 ---------------------------------
 
 
-{- 
+{-
 -- perform the related component algorithm, construct the resulting branch id and update the corresponding group's branch id
 -}
 groupsToBranches :: Map PhyloGroupId PhyloGroup -> [Branch]
@@ -224,11 +224,11 @@ groupsToBranches groups =
     in map (\(bId,branch) ->
                 let groups'  = map (\group -> group & phylo_groupBranchId %~ (\(lvl,lst) -> (lvl,lst ++ [bId])))
                                     $ elems $ restrictKeys groups (Set.fromList branch)
-                 in groups' `using` parList rdeepseq 
-            ) branches `using` parList rdeepseq 
+                 in groups' `using` parList rdeepseq
+            ) branches `using` parList rdeepseq
 
 
-{- 
+{-
 -- find the best pair/singleton of parents/childs for a given group
 -}
 makePairs :: (PhyloGroupId,[Int]) -> [(PhyloGroupId,[Int])] -> [Period] -> [Pointer] -> Filiation -> Double -> Proximity
@@ -239,7 +239,7 @@ makePairs (egoId, egoNgrams) candidates periods oldPointers fil thr prox docs di
         else removeOldPointers oldPointers fil thr prox lastPrd
            {- at least on of the pair candidates should be from the last added period -}
            $ filter (\((id,_),(id',_)) -> ((fst . fst) id == lastPrd) || ((fst . fst) id' == lastPrd))
-           $ filter (\((id,_),(id',_)) -> (elem id inPairs) || (elem id' inPairs)) 
+           $ filter (\((id,_),(id',_)) -> (elem id inPairs) || (elem id' inPairs))
            $ listToCombi' candidates
     where
       --------------------------------------
@@ -255,7 +255,7 @@ makePairs (egoId, egoNgrams) candidates periods oldPointers fil thr prox docs di
       lastPrd = findLastPeriod fil periods
       --------------------------------------
 
-{- 
+{-
 -- find the best temporal links between a given group and its parents/childs
 -}
 phyloGroupMatching :: [[(PhyloGroupId,[Int])]] -> Filiation -> Proximity -> Map Date Double -> Map Date Cooc
@@ -275,7 +275,7 @@ phyloGroupMatching candidates filiation proxi docs diagos thr oldPointers (id,ng
     where
         nextPointers :: [[(Pointer,[Int])]]
         nextPointers = take 1
-                 -- stop as soon as we find a time frame where at least one singleton / pair satisfies the threshold 
+                 -- stop as soon as we find a time frame where at least one singleton / pair satisfies the threshold
                  $ dropWhile (null)
                  -- for each time frame, process the proximity on relevant pairs of targeted groups
                  $ scanl (\acc targets ->
@@ -286,11 +286,11 @@ phyloGroupMatching candidates filiation proxi docs diagos thr oldPointers (id,ng
                                         $ filterDiago diagos ([(fst . fst) id] ++ periods)
                                 singletons = processProximity nbdocs diago $ map (\g -> (g,g)) $ filter (\g -> (fst . fst . fst) g == lastPrd) targets
                                 pairs = makePairs (id,ngrams) targets periods oldPointers filiation thr proxi docs diagos
-                            in 
-                              if (null singletons) 
+                            in
+                              if (null singletons)
                                 then acc ++ ( processProximity nbdocs diago pairs )
                                 else acc ++ singletons
-                          ) [] $ map concat $ inits candidates -- groups from [[1900],[1900,1901],[1900,1901,1902],...] 
+                          ) [] $ map concat $ inits candidates -- groups from [[1900],[1900,1901],[1900,1901,1902],...]
         -----------------------------
         processProximity :: Double -> Map Int Double -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))] -> [(Pointer,[Int])]
         processProximity nbdocs diago targets =  filterPointers' proxi thr
@@ -299,10 +299,10 @@ phyloGroupMatching candidates filiation proxi docs diagos thr oldPointers (id,ng
                                             let proximity = toProximity nbdocs diago proxi ngrams (snd c) (snd c')
                                             in if ((c == c') || (snd c == snd c'))
                                                then [((fst c,proximity),snd c)]
-                                               else [((fst c,proximity),snd c),((fst c',proximity),snd c')] ) targets    
+                                               else [((fst c,proximity),snd c),((fst c',proximity),snd c')] ) targets
 
 
-{- 
+{-
 -- get the upstream/downstream timescale of a given period
 -}
 getNextPeriods :: Filiation -> Int -> Period -> [Period] -> [Period]
@@ -314,19 +314,19 @@ getNextPeriods fil max' pId pIds =
         ToParentsMemory -> undefined
 
 
-{- 
+{-
 -- find all the candidates parents/childs of ego
 -}
 getCandidates :: Int -> PhyloGroup -> [[(PhyloGroupId,[Int])]] -> [[(PhyloGroupId,[Int])]]
-getCandidates minNgrams ego targets = 
+getCandidates minNgrams ego targets =
   if (length (ego ^. phylo_groupNgrams)) > 1
-    then  
+    then
       map (\groups' -> filter (\g' -> (> minNgrams) $ length $ intersect (ego ^. phylo_groupNgrams) (snd g')) groups') targets
-    else 
+    else
       map (\groups' -> filter (\g' -> (not . null) $ intersect (ego ^. phylo_groupNgrams) (snd g')) groups') targets
 
 
-{- 
+{-
 -- set up and start performing the upstream/downstream inter‐temporal matching period by period
 -}
 reconstructTemporalLinks :: Int -> [Period] -> Proximity -> Double -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
@@ -361,11 +361,11 @@ reconstructTemporalLinks frame periods proximity thr docs coocs groups =
     ) [] periods
 
 
-{- 
+{-
 -- reconstruct a phylomemetic network from a list of groups and from a given threshold
 -}
 toPhylomemeticNetwork :: Int -> [Period] -> Proximity -> Double -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [Branch]
-toPhylomemeticNetwork timescale periods similarity thr docs coocs groups = 
+toPhylomemeticNetwork timescale periods similarity thr docs coocs groups =
   groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
                    $ reconstructTemporalLinks timescale periods similarity thr docs coocs groups
 
@@ -375,7 +375,7 @@ toPhylomemeticNetwork timescale periods similarity thr docs coocs groups =
 ----------------------------
 
 
-{- 
+{-
 -- filter the branches containing x
 -}
 relevantBranches :: Int -> [Branch] -> [Branch]
@@ -383,7 +383,7 @@ relevantBranches x branches =
     filter (\groups -> (any (\group -> elem x $ group ^. phylo_groupNgrams) groups)) branches
 
 
-{- 
+{-
 -- compute the accuracy ξ
 -- the accuracy of a branch relatively to a root x is computed only over the periods where clusters mentionning x in the phylo do exist
 -}
@@ -395,7 +395,7 @@ accuracy x periods bk  = ((fromIntegral $ length $ filter (\g -> elem x $ g ^. p
     bk' = filter (\g -> elem (g ^. phylo_groupPeriod) periods) bk
 
 
-{- 
+{-
 -- compute the recall ρ
 -}
 recall :: Int -> Branch -> [Branch] -> Double
@@ -403,7 +403,7 @@ recall x bk bx = ((fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_gro
                /  (fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) $ concat bx))
 
 
-{- 
+{-
 -- compute the F-score function
 -}
 fScore :: Double -> Int -> [(Date,Date)] -> [PhyloGroup] -> [[PhyloGroup]] -> Double
@@ -414,14 +414,14 @@ fScore lambda x periods bk bx =
     / (((lambda ** 2) * acc  + rec))
 
 
-{- 
+{-
 -- compute the number of groups
 -}
 wk :: [PhyloGroup] -> Double
 wk bk = fromIntegral $ length bk
 
 
-{- 
+{-
 -- compute the recall ρ for all the branches
 -}
 globalRecall :: Map Int Double -> [Branch] -> Double
@@ -440,7 +440,7 @@ globalRecall freq branches =
       pys = sum (elems freq)
 
 
-{- 
+{-
 -- compute the accuracy ξ for all the branches
 -}
 globalAccuracy :: Map Int Double -> [Branch] -> Double
@@ -461,7 +461,7 @@ globalAccuracy freq branches =
       pys = sum (elems freq)
 
 
-{- 
+{-
 -- compute the quality score F(λ)
 -}
 toPhyloQuality :: Double -> Double -> Map Int Double -> [[PhyloGroup]] -> Double
@@ -489,8 +489,8 @@ toPhyloQuality fdt lambda freq branches =
 -------------------------
 
 
-{- 
--- attach a rise value to branches & groups metadata  
+{-
+-- attach a rise value to branches & groups metadata
 -}
 riseToMeta :: Double -> [Branch] -> [Branch]
 riseToMeta rise branches =
@@ -501,8 +501,8 @@ riseToMeta rise branches =
                    else g) b) branches
 
 
-{- 
--- attach a thr value to branches & groups metadata  
+{-
+-- attach a thr value to branches & groups metadata
 -}
 thrToMeta :: Double -> [Branch] -> [Branch]
 thrToMeta thr branches =
@@ -510,28 +510,28 @@ thrToMeta thr branches =
     map (\g -> g & phylo_groupMeta .~ (adjust (\lst -> lst ++ [thr]) "seaLevels" (g ^. phylo_groupMeta))) b) branches
 
 
-{- 
+{-
 -- TODO
 -- 1) try the zipper structure https://wiki.haskell.org/Zipper to performe the sea-level rise algorithme
 -- 2) investigate how the branches order influences the 'separateBranches' function
 -}
 
 
-{- 
+{-
 -- sequentially separate each branch for a given threshold and check if it locally increases the quality score
 -- sequence = [done] | currentBranch | [rest]
 -- done = all the already separated branches
 -- rest = all the branches we still have to separate
 -}
 separateBranches :: Double -> Proximity -> Double -> Map Int Double -> Int -> Double -> Double
-              -> Int -> Map Date Double -> Map Date Cooc -> [Period] 
-              -> [(Branch,ShouldTry)] -> (Branch,ShouldTry) -> [(Branch,ShouldTry)] 
+              -> Int -> Map Date Double -> Map Date Cooc -> [Period]
+              -> [(Branch,ShouldTry)] -> (Branch,ShouldTry) -> [(Branch,ShouldTry)]
               -> [(Branch,ShouldTry)]
 separateBranches fdt similarity lambda frequency minBranch thr rise timescale docs coocs periods done currentBranch rest =
   let done' = done ++ (if snd currentBranch
                         then
                             (if ((null (fst branches')) || (quality > quality'))
-                               ----  5) if the quality is not increased by the new branches or if the new branches are all small 
+                               ----  5) if the quality is not increased by the new branches or if the new branches are all small
                                ----     then undo the separation and localy stop the sea rise
                                ----     else validate the separation and authorise next sea rise in the long new branches
                                then
@@ -554,35 +554,35 @@ separateBranches fdt similarity lambda frequency minBranch thr rise timescale do
       else separateBranches fdt similarity lambda frequency minBranch thr rise timescale docs coocs periods
                        done' (List.head rest) (List.tail rest)
   where
-    ------- 1) compute the quality before splitting any branch 
+    ------- 1) compute the quality before splitting any branch
     quality :: LocalQuality
     quality = toPhyloQuality fdt lambda frequency ((map fst done) ++ [fst currentBranch] ++ (map fst rest))
 
     ------------------- 2) split the current branch and create a new phylomemetic network
     phylomemeticNetwork :: [Branch]
     phylomemeticNetwork = toPhylomemeticNetwork timescale periods similarity thr docs coocs (fst currentBranch)
-    
+
     --------- 3) change the new phylomemetic network into a tuple of new branches
-    ---------    on the left : the long branches, on the right : the small ones 
+    ---------    on the left : the long branches, on the right : the small ones
     branches' :: ([Branch],[Branch])
     branches' = partition (\b -> (length $ nub $ map _phylo_groupPeriod b) >= minBranch)
               $ thrToMeta thr
               $ riseToMeta rise phylomemeticNetwork
-    
+
     -------- 4) compute again the quality by considering the new branches
     quality' :: LocalQuality
     quality' = toPhyloQuality fdt lambda frequency
                ((map fst done) ++ (fst branches') ++ (snd branches') ++ (map fst rest))
 
 
-{- 
+{-
 -- perform the sea-level rise algorithm, browse the similarity ladder and check that we can try out the next step
 -}
-seaLevelRise :: Double -> Proximity -> Double -> Int -> Map Int Double 
+seaLevelRise :: Double -> Proximity -> Double -> Int -> Map Int Double
              -> [Double] -> Double
-             -> Int -> [Period] 
-             -> Map Date Double -> Map Date Cooc 
-             -> [(Branch,ShouldTry)] 
+             -> Int -> [Period]
+             -> Map Date Double -> Map Date Cooc
+             -> [(Branch,ShouldTry)]
              -> ([(Branch,ShouldTry)],FinalQuality)
 seaLevelRise fdt proximity lambda minBranch frequency ladder rise frame periods docs coocs branches =
   -- if the ladder is empty or thr > 1 or there is no branch to break then stop
@@ -599,13 +599,13 @@ seaLevelRise fdt proximity lambda minBranch frequency ladder rise frame periods 
                      $ separateBranches fdt proximity lambda frequency minBranch thr rise frame docs coocs periods
                                      [] (List.head branches)  (List.tail branches)
        in seaLevelRise fdt proximity lambda minBranch frequency (List.tail ladder) (rise + 1) frame periods docs coocs branches'
-  where 
+  where
     --------
     stopRise :: [(Branch,ShouldTry)] -> Bool
     stopRise bs = ((not . or) $ map snd bs)
 
 
-{- 
+{-
 -- start the temporal matching process up, recover the resulting branches and update the groups (at scale 1) consequently
 -}
 temporalMatching :: [Double] -> Phylo -> Phylo
@@ -620,7 +620,7 @@ temporalMatching ladder phylo = updatePhyloGroups 1
     --------
     branches :: [Branch]
     branches = map fst $ fst sea
-    
+
     ---  2) process the temporal matching by elevating the similarity ladder
     sea :: ([(Branch,ShouldTry)],FinalQuality)
     sea = seaLevelRise (fromIntegral $ Vector.length $ getRoots phylo)
@@ -634,7 +634,7 @@ temporalMatching ladder phylo = updatePhyloGroups 1
                                 (phylo ^. phylo_timeDocs)
                                 (phylo ^. phylo_timeCooc)
                                 (reverse $ sortOn (length . fst) seabed)
-    
+
     ------  1) for each group, process an initial temporal Matching and create a 'seabed'
     ------  ShouldTry determines if you should apply the seaLevelRise function again within each branch
     seabed :: [(Branch,ShouldTry)]

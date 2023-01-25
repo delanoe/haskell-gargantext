@@ -14,13 +14,13 @@ Portability : POSIX
 module Gargantext.Core.Ext.IMT where
 
 import Data.Either (Either(..))
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Text (Text, splitOn)
 
 import qualified Data.Set    as S
 import qualified Data.List   as DL
 import qualified Data.Vector as DV
-import qualified Data.Map    as M
+import qualified Data.Map.Strict    as M
 import qualified Prelude
 
 import Data.Morpheus.Types (GQLType)

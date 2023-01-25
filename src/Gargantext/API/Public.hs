@@ -28,7 +28,7 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
 import qualified Data.List as List
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 
 import Gargantext.API.Prelude
