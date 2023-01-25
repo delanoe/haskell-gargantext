@@ -30,6 +30,9 @@ module Gargantext.Database.Query.Table.NodeContext
   , getNodeContext
   , updateNodeContextCategory
   , getContextsForNgrams
+  , ContextForNgrams(..)
+  , getContextsForNgramsTerms
+  , ContextForNgramsTerms(..)
   , insertNodeContext
   , deleteNodeContext
   , selectPublicContexts
@@ -103,8 +106,27 @@ updateNodeContextCategory cId nId cat = do
                       WHERE context_id = ?
                       AND node_id = ? |]
 
-getContextsForNgrams :: HasNodeError err => NodeId -> [Int] -> Cmd err [(NodeId, Maybe Hash, NodeTypeId, UserId, Maybe ParentId, ContextTitle, UTCTime, HyperdataDocument)]
-getContextsForNgrams cId ngramsIds = runPGSQuery query (cId, PGS.In ngramsIds)
+data ContextForNgrams =
+  ContextForNgrams { _cfn_nodeId    :: NodeId
+                   , _cfn_hash      :: Maybe Hash
+                   , _cfn_userId    :: UserId
+                   , _cfn_parentId  :: Maybe ParentId
+                   , _cfn_c_title   :: ContextTitle
+                   , _cfn_date      :: UTCTime
+                   , _cfn_hyperdata :: HyperdataDocument }
+getContextsForNgrams :: HasNodeError err
+                     => NodeId
+                     -> [Int]
+                     -> Cmd err [ContextForNgrams]
+getContextsForNgrams cId ngramsIds = do
+  res <- runPGSQuery query (cId, PGS.In ngramsIds)
+  pure $ (\( _cfn_nodeId
+           , _cfn_hash
+           , _cfn_userId
+           , _cfn_parentId
+           , _cfn_c_title
+           , _cfn_date
+           , _cfn_hyperdata) -> ContextForNgrams { .. }) <$> res
   where
     query :: PGS.Query
     query = [sql| SELECT contexts.id, hash_id, typename, user_id, parent_id, name, date, hyperdata
@@ -113,6 +135,46 @@ getContextsForNgrams cId ngramsIds = runPGSQuery query (cId, PGS.In ngramsIds)
                   JOIN nodes_contexts ON contexts.id = nodes_contexts.context_id
                   WHERE nodes_contexts.node_id = ?
                    AND context_node_ngrams.ngrams_id IN ? |]
+
+data ContextForNgramsTerms =
+  ContextForNgramsTerms { _cfnt_nodeId     :: NodeId
+                        , _cfnt_hash       :: Maybe Hash
+                        , _cfnt_nodeTypeId :: NodeTypeId
+                        , _cfnt_userId     :: UserId
+                        , _cfnt_parentId   :: Maybe ParentId
+                        , _cfnt_c_title    :: ContextTitle
+                        , _cfnt_date       :: UTCTime
+                        , _cfnt_hyperdata  :: HyperdataDocument
+                        , _cfnt_score      :: Maybe Double
+                        , _cfnt_category   :: Maybe Int }
+getContextsForNgramsTerms :: HasNodeError err
+                          => NodeId
+                          -> [Text]
+                          -> Cmd err [ContextForNgramsTerms]
+getContextsForNgramsTerms cId ngramsTerms = do
+  res <- runPGSQuery query (cId, PGS.In ngramsTerms)
+  pure $ (\( _cfnt_nodeId
+           , _cfnt_hash
+           , _cfnt_nodeTypeId
+           , _cfnt_userId
+           , _cfnt_parentId
+           , _cfnt_c_title
+           , _cfnt_date
+           , _cfnt_hyperdata
+           , _cfnt_score
+           , _cfnt_category) -> ContextForNgramsTerms { .. }) <$> res
+  where
+    query :: PGS.Query
+    query = [sql| SELECT t.id, t.hash_id, t.typename, t.user_id, t.parent_id, t.name, t.date, t.hyperdata, t.score, t.category
+                FROM (
+                  SELECT DISTINCT ON (contexts.id) contexts.id AS id, hash_id, typename, user_id, parent_id, name, date, hyperdata, nodes_contexts.score AS score, nodes_contexts.category AS category,context_node_ngrams.doc_count AS doc_count
+                    FROM contexts
+                    JOIN context_node_ngrams ON contexts.id = context_node_ngrams.context_id
+                    JOIN nodes_contexts ON contexts.id = nodes_contexts.context_id
+                    JOIN ngrams ON context_node_ngrams.ngrams_id = ngrams.id
+                    WHERE nodes_contexts.node_id = ?
+                     AND ngrams.terms IN ?) t
+                   ORDER BY t.doc_count DESC |]
 
 ------------------------------------------------------------------------
 insertNodeContext :: [NodeContext] -> Cmd err Int

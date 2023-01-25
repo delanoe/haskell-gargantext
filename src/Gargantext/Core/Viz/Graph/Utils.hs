@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Core.Viz.Graph.Utils
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -86,7 +86,7 @@ edgesFilter m = Map.fromList $ catMaybes results
     (x,y)   = unzip $ Map.keys m
 
 nodesFilter :: (Show a, Show b, Ord a, Ord b, Num b) => (b -> Bool) -> Map (a,a) b -> (Map (a,a) b, Set a)
-nodesFilter f m = (m', toKeep) 
+nodesFilter f m = (m', toKeep)
   where
     m' = Map.filterWithKey (\(a,b) _ -> Set.member a toKeep && Set.member b toKeep) m
     toKeep = Set.fromList
@@ -110,5 +110,3 @@ getMax (i,j) Nothing (Just d)   = Just ((j,i), d)
 getMax ij   (Just di) (Just dj) = if di >= dj then getMax ij (Just di) Nothing
                                               else getMax ij Nothing   (Just dj)
 getMax _ _ _ = Nothing
-
-

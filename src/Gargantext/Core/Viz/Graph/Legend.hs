@@ -45,7 +45,3 @@ take 7 [(CommunityId, take 3 [Label])]
 
 
 -}
-
-
-
-

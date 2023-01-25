@@ -13,16 +13,15 @@ import Data.Morpheus.Types
   , lift
   )
 import Data.Text (Text, pack)
-import Data.Time (UTCTime)
 import Data.Time.Format.ISO8601 (iso8601Show)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Prelude (GargM, GargError)
 import Gargantext.Core.Types.Search (HyperdataRow(..), toHyperdataRow)
 import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument)
-import Gargantext.Database.Admin.Types.Node (ContextTitle, NodeId(..), NodeTypeId, ParentId, UserId, unNodeId)
+import Gargantext.Database.Admin.Types.Node (ContextTitle, NodeId(..), NodeTypeId, UserId, unNodeId)
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
-import Gargantext.Database.Query.Table.NodeContext (getNodeContext, getContextsForNgrams)
+import Gargantext.Database.Query.Table.NodeContext (getNodeContext, getContextsForNgramsTerms, ContextForNgramsTerms(..))
 import qualified Gargantext.Database.Query.Table.NodeContext as DNC
 import Gargantext.Database.Schema.NodeContext (NodeContext, NodeContextPoly(..))
 import Gargantext.Prelude
@@ -38,31 +37,33 @@ data ContextGQL = ContextGQL
   , c_name      :: ContextTitle
   , c_date      :: Text  -- TODO UTCTime
   , c_hyperdata :: Maybe HyperdataRowDocumentGQL
+  , c_score     :: Maybe Double
+  , c_category  :: Maybe Int
   } deriving (Generic, GQLType, Show)
 
 -- We need this type instead of HyperdataRow(HyperdataRowDocument)
 -- because the latter is a sum type (of doc and contact) and we return
 -- docs here only. Without the union type, GraphQL endpoint is simpler.
 data HyperdataRowDocumentGQL =
-  HyperdataRowDocumentGQL { hrd_abstract           :: !Text
-                          , hrd_authors            :: !Text
-                          , hrd_bdd                :: !Text
-                          , hrd_doi                :: !Text
-                          , hrd_institutes         :: !Text
-                          , hrd_language_iso2      :: !Text
-                          , hrd_page               :: !Int
-                          , hrd_publication_date   :: !Text
-                          , hrd_publication_day    :: !Int
-                          , hrd_publication_hour   :: !Int
-                          , hrd_publication_minute :: !Int
-                          , hrd_publication_month  :: !Int
-                          , hrd_publication_second :: !Int
-                          , hrd_publication_year   :: !Int
-                          , hrd_source             :: !Text
-                          , hrd_title              :: !Text
-                          , hrd_url                :: !Text
-                          , hrd_uniqId             :: !Text
-                          , hrd_uniqIdBdd          :: !Text
+  HyperdataRowDocumentGQL { hrd_abstract           :: Text
+                          , hrd_authors            :: Text
+                          , hrd_bdd                :: Text
+                          , hrd_doi                :: Text
+                          , hrd_institutes         :: Text
+                          , hrd_language_iso2      :: Text
+                          , hrd_page               :: Int
+                          , hrd_publication_date   :: Text
+                          , hrd_publication_day    :: Int
+                          , hrd_publication_hour   :: Int
+                          , hrd_publication_minute :: Int
+                          , hrd_publication_month  :: Int
+                          , hrd_publication_second :: Int
+                          , hrd_publication_year   :: Int
+                          , hrd_source             :: Text
+                          , hrd_title              :: Text
+                          , hrd_url                :: Text
+                          , hrd_uniqId             :: Text
+                          , hrd_uniqIdBdd          :: Text
                           } deriving (Generic, GQLType, Show)
 
 data NodeContextGQL = NodeContextGQL
@@ -84,8 +85,8 @@ data NodeContextArgs
 
 data ContextsForNgramsArgs
   = ContextsForNgramsArgs
-    { corpus_id :: Int
-    , ngrams_ids :: [Int]
+    { corpus_id    :: Int
+    , ngrams_terms :: [Text]
     } deriving (Generic, GQLType)
 
 data NodeContextCategoryMArgs = NodeContextCategoryMArgs
@@ -109,8 +110,8 @@ resolveNodeContext NodeContextArgs { context_id, node_id } =
 resolveContextsForNgrams
   :: (HasConnectionPool env, HasConfig env, HasMail env)
   => ContextsForNgramsArgs -> GqlM e env [ContextGQL]
-resolveContextsForNgrams ContextsForNgramsArgs { corpus_id, ngrams_ids } =
-  dbContextForNgrams corpus_id ngrams_ids
+resolveContextsForNgrams ContextsForNgramsArgs { corpus_id, ngrams_terms } =
+  dbContextForNgrams corpus_id ngrams_terms
 
 -- DB
 
@@ -128,11 +129,11 @@ dbNodeContext context_id node_id = do
 
 dbContextForNgrams
   :: (HasConnectionPool env, HasConfig env, HasMail env)
-  => Int -> [Int] -> GqlM e env [ContextGQL]
-dbContextForNgrams node_id ngrams_ids = do
-  contextTuples <- lift $ getContextsForNgrams (NodeId node_id) ngrams_ids
-  lift $ printDebug "[dbContextForNgrams] contextTuples" contextTuples
-  pure $ toContextGQL <$> contextTuples
+  => Int -> [Text] -> GqlM e env [ContextGQL]
+dbContextForNgrams node_id ngrams_terms = do
+  contextsForNgramsTerms <- lift $ getContextsForNgramsTerms (NodeId node_id) ngrams_terms
+  --lift $ printDebug "[dbContextForNgrams] contextsForNgramsTerms" contextsForNgramsTerms
+  pure $ toContextGQL <$> contextsForNgramsTerms
 
 -- Conversion functions
 
@@ -146,19 +147,24 @@ toNodeContextGQL (NodeContext { _nc_node_id = NodeId nc_node_id
                  , nc_score = _nc_score
                  , nc_category = _nc_category }
 
-toContextGQL :: (NodeId, Maybe Hash, NodeTypeId, UserId, Maybe ParentId, ContextTitle, UTCTime, HyperdataDocument) -> ContextGQL
-toContextGQL ( c_id
-             , c_hash_id
-             , c_typename
-             , c_user_id
-             , m_c_parent_id
-             , c_name
-             , c_date
-             , hyperdata ) = ContextGQL { c_id = unNodeId c_id
-                                        , c_parent_id = unNodeId <$> m_c_parent_id
-                                        , c_date = pack $ iso8601Show c_date
-                                        , c_hyperdata = toHyperdataRowDocumentGQL hyperdata
-                                        , .. }
+toContextGQL :: ContextForNgramsTerms -> ContextGQL
+toContextGQL ContextForNgramsTerms { _cfnt_nodeId = c_id
+                                   , _cfnt_hash = c_hash_id
+                                   , _cfnt_nodeTypeId = c_typename
+                                   , _cfnt_userId = c_user_id
+                                   , _cfnt_parentId = m_c_parent_id
+                                   , _cfnt_c_title = c_name
+                                   , _cfnt_date = c_date
+                                   , _cfnt_hyperdata =hyperdata
+                                   , _cfnt_score = c_score
+                                   , _cfnt_category = c_category } =
+  ContextGQL { c_id = unNodeId c_id
+             , c_parent_id = unNodeId <$> m_c_parent_id
+             , c_date = pack $ iso8601Show c_date
+             , c_hyperdata = toHyperdataRowDocumentGQL hyperdata
+             , c_score
+             , c_category
+             , .. }
 
 toHyperdataRowDocumentGQL :: HyperdataDocument -> Maybe HyperdataRowDocumentGQL
 toHyperdataRowDocumentGQL hyperdata =

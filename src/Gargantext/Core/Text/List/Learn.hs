@@ -114,7 +114,7 @@ grid s e tr te = do
                              $ Map.toList t
 
           res' <- liftBase $ predictList m toGuess
-          pure $ score'' $ score' $ List.zip res res' 
+          pure $ score'' $ score' $ List.zip res res'
 
       score <- mapM (getScore model') te'
       pure (mean score, model')

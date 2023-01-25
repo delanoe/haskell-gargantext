@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Core.Text.List.Group.WithStem
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -86,7 +86,7 @@ groupWith (GroupParams { unGroupParams_lang = l }) t =
                   $ unNgramsTerm t
 
 -- | This lemmatization group done with CoreNLP algo (or others)
-groupWith (GroupWithPosTag { _gwl_map = m }) t = 
+groupWith (GroupWithPosTag { _gwl_map = m }) t =
   case HashMap.lookup (unNgramsTerm t) m of
       Nothing -> clean t
       Just t' -> clean $ NgramsTerm t'
@@ -121,7 +121,7 @@ patch s = case Set.size s > 1 of
     parent   <- headMay ngrams
     let children = List.tail ngrams
     pure (parent, toNgramsPatch children)
-    
+
 toNgramsPatch :: [NgramsTerm] -> NgramsPatch
 toNgramsPatch children = NgramsPatch children' Patch.Keep
   where

@@ -127,7 +127,7 @@ toSchoolName t = case M.lookup t mapIdSchool of
 
 publisBySchool :: DV.Vector CsvHal -> [(Maybe Text, Int)]
 publisBySchool hal_data' = Gargantext.Prelude.map (\(i,n) -> (M.lookup i mapIdSchool, n))
-                        $ DL.filter (\i -> S.member  (fst i) names) 
+                        $ DL.filter (\i -> S.member  (fst i) names)
                         $ DL.reverse
                         $ DL.sortOn snd
                         $ M.toList
@@ -136,5 +136,3 @@ publisBySchool hal_data' = Gargantext.Prelude.map (\(i,n) -> (M.lookup i mapIdSc
                         $ DV.toList
                         $ DV.map (\n -> splitOn ( ", ") (csvHal_instStructId_i n) )
                         $ DV.filter (\n -> csvHal_publication_year n == 2017) hal_data'
-
-

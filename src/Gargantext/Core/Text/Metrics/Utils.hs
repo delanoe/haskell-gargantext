@@ -39,5 +39,3 @@ average x = L.sum x / L.genericLength x
 average' :: [Int] -> Double
 average' x = (L.sum y) / (L.genericLength y) where
     y = L.map fromIntegral x
-
-

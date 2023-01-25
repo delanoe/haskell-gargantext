@@ -9,7 +9,7 @@ Portability : POSIX
 
 Let be a graph Bridgeness filters inter-communities links in two ways.
 If the partitions are known, filtering is uniform to expose the communities clearly for the beginners.
-But 
+But
 
 
 uniformly

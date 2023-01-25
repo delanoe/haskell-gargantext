@@ -186,4 +186,3 @@ getHistory types listsId = do
   pure $ Map.map (Map.filterWithKey (\k _ -> List.elem k types))
        $ Map.filterWithKey (\k _ -> List.elem k listsId)
        $ Map.fromListWith (Map.unionWith (<>)) nsp
-

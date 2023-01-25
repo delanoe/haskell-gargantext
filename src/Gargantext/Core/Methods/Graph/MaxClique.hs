@@ -119,7 +119,7 @@ maxCliques g = map (\n -> subMaxCliques g (n:ns)) ns & concat & takeMax
             . purge
             . map fromList
             . sortOn length
-            . nub 
+            . nub
       where
         purge :: [Set Node] -> [Set Node]
         purge [] = []

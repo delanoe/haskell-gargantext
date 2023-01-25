@@ -131,6 +131,3 @@ testIndices = myMap == ( M.filter (>0) myMap')
     (ti,it) = createIndices myMap
     matrix  = mat2map $ map2mat Square 0 (M.size ti) $ toIndex ti myMap
     myMap'  = fromIndex it matrix
-
-
-

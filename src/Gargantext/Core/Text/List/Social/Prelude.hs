@@ -128,4 +128,3 @@ unPatchMapToMap = Map.fromList . PatchMap.toList
 
 unNgramsTablePatch :: NgramsTablePatch -> HashMap NgramsTerm NgramsPatch
 unNgramsTablePatch (NgramsTablePatch p) = unPatchMapToHashMap p
-

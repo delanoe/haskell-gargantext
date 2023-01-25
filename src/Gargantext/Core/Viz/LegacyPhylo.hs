@@ -81,7 +81,7 @@ data Phylo =
            deriving (Generic, Show, Eq)
 
 
--- | The foundations of a phylomemy created from a given TermList 
+-- | The foundations of a phylomemy created from a given TermList
 data PhyloFoundations =
   PhyloFoundations { _phylo_foundationsRoots :: !(Vector Ngrams)
                    , _phylo_foundationsTermsList :: !TermList
@@ -567,4 +567,3 @@ instance ToSchema EdgeType
 ----------------------------
 -- | TODO XML instances | --
 ----------------------------
-

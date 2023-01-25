@@ -11,7 +11,7 @@ module Gargantext.API.GraphQL where
 import Data.ByteString.Lazy.Char8
   ( ByteString
   )
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Morpheus
   ( App
   , deriveApp )
