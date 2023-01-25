@@ -108,25 +108,35 @@ data Line =
 parseLines :: Text -> Either ParseError Parsed
 parseLines text = foldl f emptyParsed <$> lst
   where
-    lst = parse documentLinesP "" (unpack text)
+    lst = parse documentLines "" (unpack text)
     f (Parsed { .. }) (LAuthors as) = Parsed { authors = as, .. }
     f (Parsed { .. }) (LContents c) = Parsed { contents = concat [contents, c], .. }
     f (Parsed { .. }) (LDate    d ) = Parsed { date = Just d, .. }
     f (Parsed { .. }) (LSource  s ) = Parsed { source = Just s, .. }
     f (Parsed { .. }) (LTitle   t ) = Parsed { title = t, .. }
 
+-- Source should be the name of the node
+-- First line of each Context should be the title.
 documentLinesP :: Parser [Line]
 documentLinesP = do
   t <- titleP
   ls <- lineP `sepBy` newline
   pure $ [LTitle $ pack t] ++ ls
 
+documentLines :: Parser [Line]
+documentLines = do
+  ls <- lineP `sepBy` newline
+  pure ls
+
+
+
 lineP :: Parser Line
 lineP = do
   choice [ try authorsLineP
          , try dateLineP
          , try sourceLineP
-         , contentsLineP ]
+         , contentsLineP
+         ]
 
 authorsLineP :: Parser Line
 authorsLineP = do
@@ -167,6 +177,7 @@ titleDelimiterP = do
   _ <- newline
   -- _ <- try (string "==")
   pure ()
+
 titleP :: Parser [Char]
 titleP = manyTill anyChar (try titleDelimiterP)
 
@@ -223,11 +234,14 @@ tokenEnd :: Parser ()
 tokenEnd = void (char '\n') <|> eof
 
 --- MISC Tools
+text2titleParagraphs :: Int -> Text -> [(Text, Text)]
+text2titleParagraphs n = catMaybes . List.map doTitle
+                       . splitEvery n . List.map clean
+                       . sentences . DT.concat . DT.lines
 
-text2paragraphs :: Int -> Text -> [Text]
-text2paragraphs n = List.map DT.concat
-                  . splitEvery n . List.map clean
-                  . sentences . DT.concat . DT.lines
+doTitle :: [Text] -> Maybe (Text, Text)
+doTitle (t:ts) = Just (t, DT.concat ts)
+doTitle [] = Nothing
 
 clean :: Text -> Text
 clean = DT.unwords . List.filter (\w -> DT.length w < 25) . DT.words
