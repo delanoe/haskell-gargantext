@@ -32,6 +32,7 @@ default-extensions:
   - OverloadedStrings
   - RankNTypes
   - RecordWildCards
+  - StrictData
 data-files:
   - ekg-assets/index.html
   - ekg-assets/monitor.js

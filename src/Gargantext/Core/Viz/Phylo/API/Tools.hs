@@ -14,7 +14,7 @@ module Gargantext.Core.Viz.Phylo.API.Tools
 
 import Data.Proxy
 import Data.Aeson (Value, decodeFileStrict, eitherDecode, encode)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Maybe (catMaybes)
 import Data.Set (Set)
 import Data.Text (Text, pack)
@@ -45,7 +45,7 @@ import Prelude
 import System.Process      as Shell
 import qualified Data.ByteString.Lazy                    as Lazy
 import qualified Data.List as List
-import qualified Data.Map  as Map
+import qualified Data.Map.Strict  as Map
 import qualified Data.Set  as Set
 
 

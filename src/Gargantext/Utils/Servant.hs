@@ -2,7 +2,7 @@ module Gargantext.Utils.Servant where
 
 import qualified Data.ByteString.Lazy.Char8 as BSC
 import Data.Csv (defaultEncodeOptions, encodeByNameWith, encodeDefaultOrderedByName, header, namedRecord, (.=), DefaultOrdered, EncodeOptions(..), NamedRecord, Quoting(QuoteNone), ToNamedRecord)
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import Gargantext.API.Ngrams.Types (mSetToList, NgramsRepoElement(..), NgramsTableMap, NgramsTerm(..), unNgramsTerm)
 import Gargantext.Core.Types.Main (ListType(..))

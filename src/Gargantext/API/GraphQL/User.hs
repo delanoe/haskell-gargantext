@@ -42,7 +42,7 @@ resolveUsers UserArgs { user_id } = dbUsers user_id
 -- | Inner function to fetch the user from DB.
 dbUsers
   :: (HasConnectionPool env, HasConfig env, HasMail env)
-  => Int -> GqlM e env ([User (GqlM e env)])
+  => Int -> GqlM e env [User (GqlM e env)]
 dbUsers user_id = lift (map toUser <$> getUsersWithId user_id)
 
 toUser

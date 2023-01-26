@@ -14,13 +14,13 @@ Portability : POSIX
 module Gargantext.Core.Ext.IMT where
 
 import Data.Either (Either(..))
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Text (Text, splitOn)
 
 import qualified Data.Set    as S
 import qualified Data.List   as DL
 import qualified Data.Vector as DV
-import qualified Data.Map    as M
+import qualified Data.Map.Strict    as M
 import qualified Prelude
 
 import Data.Morpheus.Types (GQLType)
@@ -127,7 +127,7 @@ toSchoolName t = case M.lookup t mapIdSchool of
 
 publisBySchool :: DV.Vector CsvHal -> [(Maybe Text, Int)]
 publisBySchool hal_data' = Gargantext.Prelude.map (\(i,n) -> (M.lookup i mapIdSchool, n))
-                        $ DL.filter (\i -> S.member  (fst i) names) 
+                        $ DL.filter (\i -> S.member  (fst i) names)
                         $ DL.reverse
                         $ DL.sortOn snd
                         $ M.toList
@@ -136,5 +136,3 @@ publisBySchool hal_data' = Gargantext.Prelude.map (\(i,n) -> (M.lookup i mapIdSc
                         $ DV.toList
                         $ DV.map (\n -> splitOn ( ", ") (csvHal_instStructId_i n) )
                         $ DV.filter (\n -> csvHal_publication_year n == 2017) hal_data'
-
-

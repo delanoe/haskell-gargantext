@@ -17,7 +17,7 @@ import Control.Lens (view)
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Monoid (mconcat)
 import Data.Pool
 import Data.Swagger
@@ -36,7 +36,7 @@ import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
 import Web.Internal.HttpApiData (ToHttpApiData, FromHttpApiData, parseUrlPiece, toUrlPiece)
 import qualified Data.List       as List
-import qualified Data.Map        as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Scientific as Scientific
 import qualified Data.Text       as T
 import qualified Data.Vector     as V
@@ -186,4 +186,3 @@ getHistory types listsId = do
   pure $ Map.map (Map.filterWithKey (\k _ -> List.elem k types))
        $ Map.filterWithKey (\k _ -> List.elem k listsId)
        $ Map.fromListWith (Map.unionWith (<>)) nsp
-

@@ -8,14 +8,14 @@ import Control.Concurrent.Async
 import Control.Concurrent.STM
 import Control.Monad
 import Data.List
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Maybe
 import Data.Ord
 import Data.Proxy
 import Data.Time.Clock
 import Prelude
 
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Servant.Job.Core as SJ
 import qualified Servant.Job.Types as SJ
 

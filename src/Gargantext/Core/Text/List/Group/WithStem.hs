@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Core.Text.List.Group.WithStem
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -20,7 +20,7 @@ module Gargantext.Core.Text.List.Group.WithStem
 import Control.Lens (makeLenses)
 import Data.HashMap.Strict (HashMap)
 import Data.HashSet (HashSet)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Maybe (catMaybes)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core (Lang(..), PosTagAlgo(..), Form, Lem)
@@ -32,7 +32,7 @@ import Gargantext.Prelude
 import qualified Data.HashMap.Strict   as HashMap
 import qualified Data.HashSet          as Set
 import qualified Data.List             as List
-import qualified Data.Map              as Map
+import qualified Data.Map.Strict       as Map
 import qualified Data.Map.Strict.Patch as PatchMap
 import qualified Data.Patch.Class      as Patch (Replace(..))
 import qualified Data.Text             as Text
@@ -86,7 +86,7 @@ groupWith (GroupParams { unGroupParams_lang = l }) t =
                   $ unNgramsTerm t
 
 -- | This lemmatization group done with CoreNLP algo (or others)
-groupWith (GroupWithPosTag { _gwl_map = m }) t = 
+groupWith (GroupWithPosTag { _gwl_map = m }) t =
   case HashMap.lookup (unNgramsTerm t) m of
       Nothing -> clean t
       Just t' -> clean $ NgramsTerm t'
@@ -121,7 +121,7 @@ patch s = case Set.size s > 1 of
     parent   <- headMay ngrams
     let children = List.tail ngrams
     pure (parent, toNgramsPatch children)
-    
+
 toNgramsPatch :: [NgramsTerm] -> NgramsPatch
 toNgramsPatch children = NgramsPatch children' Patch.Keep
   where

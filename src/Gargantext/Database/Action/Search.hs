@@ -15,7 +15,7 @@ module Gargantext.Database.Action.Search where
 import Control.Arrow (returnA)
 import Control.Lens ((^.))
 import qualified Data.List as List
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import Data.Maybe
 import qualified Data.Set as Set
 import Data.Text (Text, unpack, intercalate)

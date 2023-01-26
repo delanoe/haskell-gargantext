@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Core.Viz.Graph.Utils
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -18,7 +18,7 @@ module Gargantext.Core.Viz.Graph.Utils
   where
 
 import Data.List (unzip)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Matrix hiding (identity)
 import Data.Maybe (catMaybes)
 import Data.Set (Set)
@@ -26,7 +26,7 @@ import Data.Vector (Vector)
 import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
 import Gargantext.Prelude
 import qualified Data.List    as List
-import qualified Data.Map     as Map
+import qualified Data.Map.Strict     as Map
 import qualified Data.Set     as Set
 import qualified Data.Vector  as Vector
 
@@ -86,7 +86,7 @@ edgesFilter m = Map.fromList $ catMaybes results
     (x,y)   = unzip $ Map.keys m
 
 nodesFilter :: (Show a, Show b, Ord a, Ord b, Num b) => (b -> Bool) -> Map (a,a) b -> (Map (a,a) b, Set a)
-nodesFilter f m = (m', toKeep) 
+nodesFilter f m = (m', toKeep)
   where
     m' = Map.filterWithKey (\(a,b) _ -> Set.member a toKeep && Set.member b toKeep) m
     toKeep = Set.fromList
@@ -110,5 +110,3 @@ getMax (i,j) Nothing (Just d)   = Just ((j,i), d)
 getMax ij   (Just di) (Just dj) = if di >= dj then getMax ij (Just di) Nothing
                                               else getMax ij Nothing   (Just dj)
 getMax _ _ _ = Nothing
-
-

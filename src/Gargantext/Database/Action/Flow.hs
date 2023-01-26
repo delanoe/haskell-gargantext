@@ -58,7 +58,7 @@ import Data.Either
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
 import Data.List (concat)
-import Data.Map (Map, lookup)
+import Data.Map.Strict (Map, lookup)
 import Data.Maybe (catMaybes)
 import Data.Monoid
 import Data.Swagger
@@ -69,7 +69,7 @@ import Servant.Client (ClientError)
 import System.FilePath (FilePath)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Conduit.List as CL
 import qualified Data.Conduit      as C
 

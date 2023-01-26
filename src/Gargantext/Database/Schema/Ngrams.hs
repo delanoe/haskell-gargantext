@@ -27,7 +27,7 @@ import Data.Aeson
 import Data.Aeson.Types (toJSONKeyText)
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
-import Data.Map (fromList, lookup)
+import Data.Map.Strict (fromList, lookup)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, splitOn, pack, strip)
 import Database.PostgreSQL.Simple.FromField (returnError, ResultError(..))

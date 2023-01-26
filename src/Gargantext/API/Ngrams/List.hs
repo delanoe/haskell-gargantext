@@ -18,7 +18,7 @@ module Gargantext.API.Ngrams.List
 import Control.Lens hiding (elements, Indexed)
 import Data.Either (Either(..))
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map, toList)
+import Data.Map.Strict (Map, toList)
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Set (Set)
 import Data.Text (Text, concat, pack, splitOn)
@@ -54,7 +54,7 @@ import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Csv as Csv
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List           as List
-import qualified Data.Map            as Map
+import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
 import qualified Data.Text           as Text
 import qualified Data.Vector         as Vec

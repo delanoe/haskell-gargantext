@@ -16,12 +16,12 @@ Main exports of Gargantext:
 module Gargantext.API.Node.Corpus.Export
   where
 
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import Data.Text (Text, pack)
 import qualified Data.List as List
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.HashMap.Strict as HashMap
 import Servant (Headers, Header, addHeader)
