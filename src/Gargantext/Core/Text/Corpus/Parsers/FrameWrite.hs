@@ -94,7 +94,8 @@ emptyParsed =
 data Date =
   Date { year  :: Integer
        , month :: Integer
-       , day   :: Integer }
+       , day   :: Integer
+       }
   deriving (Show)
 
 data Line =
@@ -109,17 +110,17 @@ parseLines :: Text -> Either ParseError Parsed
 parseLines text = foldl f emptyParsed <$> lst
   where
     lst = parse documentLines "" (unpack text)
-    f (Parsed { .. }) (LAuthors as) = Parsed { authors = as, .. }
-    f (Parsed { .. }) (LContents c) = Parsed { contents = concat [contents, c], .. }
-    f (Parsed { .. }) (LDate    d ) = Parsed { date = Just d, .. }
-    f (Parsed { .. }) (LSource  s ) = Parsed { source = Just s, .. }
-    f (Parsed { .. }) (LTitle   t ) = Parsed { title = t, .. }
+    f (Parsed { .. }) (LAuthors as) = Parsed { authors  = as                      , .. }
+    f (Parsed { .. }) (LContents c) = Parsed { contents = DT.unlines [contents, c], .. }
+    f (Parsed { .. }) (LDate    d ) = Parsed { date     = Just d                  , .. }
+    f (Parsed { .. }) (LSource  s ) = Parsed { source   = Just s                  , .. }
+    f (Parsed { .. }) (LTitle   t ) = Parsed { title    = t                       , .. }
 
 -- Source should be the name of the node
 -- First line of each Context should be the title.
 documentLinesP :: Parser [Line]
 documentLinesP = do
-  t <- titleP
+  t  <- titleP
   ls <- lineP `sepBy` newline
   pure $ [LTitle $ pack t] ++ ls
 
@@ -127,8 +128,6 @@ documentLines :: Parser [Line]
 documentLines = do
   ls <- lineP `sepBy` newline
   pure ls
-
-
 
 lineP :: Parser Line
 lineP = do
@@ -235,15 +234,20 @@ tokenEnd = void (char '\n') <|> eof
 
 --- MISC Tools
 text2titleParagraphs :: Int -> Text -> [(Text, Text)]
-text2titleParagraphs n = catMaybes . List.map doTitle
-                       . splitEvery n . List.map clean
-                       . sentences . DT.concat . DT.lines
+text2titleParagraphs n = catMaybes
+                       . List.map doTitle
+                       . (splitEvery n)
+                       . sentences
+                       . DT.intercalate ". "
+                       . List.filter (/= "")
+                       . DT.lines
+
 
 doTitle :: [Text] -> Maybe (Text, Text)
 doTitle (t:ts) = Just (t, DT.concat ts)
 doTitle [] = Nothing
 
+
 clean :: Text -> Text
 clean = DT.unwords . List.filter (\w -> DT.length w < 25) . DT.words
-
 
