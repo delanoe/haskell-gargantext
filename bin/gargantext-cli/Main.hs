@@ -26,8 +26,8 @@ import Data.ByteString.Lazy (writeFile)
 import Data.Either (Either(..))
 import Data.List (cycle, concat, unwords)
 import Data.List.Split (chunksOf)
-import Data.Map (Map)
-import qualified Data.Map    as DM
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict    as DM
 import Data.Text (pack, Text)
 import qualified Data.Text as DT
 import Data.Tuple.Extra (both)
@@ -142,8 +142,8 @@ terms' pats txt = pure $ concat $ extractTermsWithList pats txt
 
 testCorpus :: [(Int, [Text])]
 testCorpus = [ (1998, [pack "The beees"])
-             , (1999, [ pack "The bees and the flowers" 
-                      --, pack "The bees and the flowers" 
+             , (1999, [ pack "The bees and the flowers"
+                      --, pack "The bees and the flowers"
                       ])
              ]
 
@@ -151,4 +151,3 @@ testTermList :: TermList
 testTermList = [ ([pack "bee"], [[pack "bees"]])
                , ([pack "flower"], [[pack "flowers"]])
                ]
-

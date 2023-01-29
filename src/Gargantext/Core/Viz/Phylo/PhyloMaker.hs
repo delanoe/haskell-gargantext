@@ -14,7 +14,7 @@ import Control.DeepSeq (NFData)
 import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
 import Data.List (concat, nub, partition, sort, (++), group, intersect, null, sortOn, groupBy, tail)
-import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, foldlWithKey, insert)
+import Data.Map.Strict (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, foldlWithKey, insert)
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Vector (Vector)
@@ -57,11 +57,11 @@ toPhylo phylowithoutLink = trace ("# flatPhylo groups " <> show(length $ getGrou
                       $ traceToPhylo (phyloScale $ getConfig phylowithoutLink) $
     if (phyloScale $ getConfig phylowithoutLink) > 1
       then foldl' (\phylo' _ -> synchronicClustering phylo') phyloAncestors [2..(phyloScale $ getConfig phylowithoutLink)]
-      else phyloAncestors 
+      else phyloAncestors
     where
         --------------------------------------
         phyloAncestors :: Phylo
-        phyloAncestors = 
+        phyloAncestors =
             if (findAncestors $ getConfig phylowithoutLink)
               then toHorizon flatPhylo
               else flatPhylo
@@ -75,42 +75,42 @@ toPhylo phylowithoutLink = trace ("# flatPhylo groups " <> show(length $ getGrou
 -- | Create a flat Phylo | --
 -----------------------------
 
-{- 
+{-
 -- create an adaptative diachronic 'sea elevation' ladder
 -}
 adaptDiachronicLadder :: Double -> Set Double -> Set Double -> [Double]
-adaptDiachronicLadder curr similarities ladder = 
+adaptDiachronicLadder curr similarities ladder =
   if curr <= 0 || Set.null similarities
     then Set.toList ladder
-    else 
+    else
       let idx = ((Set.size similarities) `div` (floor curr)) - 1
           thr = Set.elemAt idx similarities
       -- we use a sliding methods 1/10, then 1/9, then ... 1/2
-      in adaptDiachronicLadder (curr -1) (Set.filter (> thr) similarities) (Set.insert thr ladder) 
+      in adaptDiachronicLadder (curr -1) (Set.filter (> thr) similarities) (Set.insert thr ladder)
 
 
-{- 
+{-
 -- create a constante diachronic 'sea elevation' ladder
 -}
 constDiachronicLadder :: Double -> Double -> Set Double -> [Double]
-constDiachronicLadder curr step ladder = 
+constDiachronicLadder curr step ladder =
   if curr > 1
     then Set.toList ladder
     else constDiachronicLadder (curr + step) step (Set.insert curr ladder)
 
 
-{- 
+{-
 -- process an initial scanning of the kinship links
 -}
 scanSimilarity :: Scale -> Phylo -> Phylo
-scanSimilarity lvl phylo = 
+scanSimilarity lvl phylo =
   let proximity = phyloProximity $ getConfig phylo
-      scanning  = foldlWithKey (\acc pId pds -> 
+      scanning  = foldlWithKey (\acc pId pds ->
                       -- 1) process period by period
                       let egos = map (\g -> (getGroupId g, g ^. phylo_groupNgrams))
-                               $ elems 
-                               $ view ( phylo_periodScales 
-                                      . traverse . filtered (\phyloLvl -> phyloLvl ^. phylo_scaleScale == lvl) 
+                               $ elems
+                               $ view ( phylo_periodScales
+                                      . traverse . filtered (\phyloLvl -> phyloLvl ^. phylo_scaleScale == lvl)
                                       . phylo_scaleGroups ) pds
                           next    = getNextPeriods ToParents (getTimeFrame $ timeUnit $ getConfig phylo) pId (keys $ phylo ^. phylo_periods)
                           targets = map (\g ->  (getGroupId g, g ^. phylo_groupNgrams)) $ getGroupsFromScalePeriods lvl next phylo
@@ -127,7 +127,7 @@ scanSimilarity lvl phylo =
                           pairs' = pairs `using` parList rdeepseq
                        in acc ++ (concat pairs')
                     ) [] $ phylo ^. phylo_periods
-   in phylo & phylo_diaSimScan .~ Set.fromList (traceGroupsProxi $ map snd scanning) 
+   in phylo & phylo_diaSimScan .~ Set.fromList (traceGroupsProxi $ map snd scanning)
 
 
 
@@ -142,7 +142,7 @@ appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ co
                             let pId  = phyloLvl ^. phylo_scalePeriod
                                 pId' = phyloLvl ^. phylo_scalePeriodStr
                                 phyloCUnit = m ! pId
-                            in  phyloLvl 
+                            in  phyloLvl
                               & phylo_scaleGroups .~ (fromList $ foldl (\groups obj ->
                                     groups ++ [ (((pId,lvl),length groups)
                                               , f obj pId pId' lvl (length groups)
@@ -164,11 +164,11 @@ clusterToGroup fis pId pId' lvl idx coocs = PhyloGroup pId pId' lvl idx ""
                    (fromList [("breaks",[0]),("seaLevels",[0])])
                    [] [] [] [] [] [] []
 
-{- 
+{-
 -- enhance the phylo with temporal links
 -}
 addTemporalLinksToPhylo :: Phylo -> Phylo
-addTemporalLinksToPhylo phylowithoutLink = case strategy of 
+addTemporalLinksToPhylo phylowithoutLink = case strategy of
     Constante start gap -> temporalMatching (constDiachronicLadder start gap Set.empty) phylowithoutLink
     Adaptative steps    -> temporalMatching (adaptDiachronicLadder steps (phylowithoutLink ^. phylo_diaSimScan) Set.empty) phylowithoutLink
   where
@@ -177,7 +177,7 @@ addTemporalLinksToPhylo phylowithoutLink = case strategy of
 
 -----------------------
 -- | To Phylo Step | --
------------------------  
+-----------------------
 
 
 indexDates' :: Map (Date,Date) [Document] -> Map (Date,Date) (Text,Text)
@@ -196,9 +196,9 @@ indexDates' m = map (\docs ->
 -- QL: backend entre phyloBase et Clustering
 -- tophylowithoutLink
 toPhyloWithoutLink :: [Document] -> TermList -> PhyloConfig -> Phylo
-toPhyloWithoutLink docs lst conf = case (getSeaElevation phyloBase) of 
+toPhyloWithoutLink docs lst conf = case (getSeaElevation phyloBase) of
     Constante  _ _ -> appendGroups clusterToGroup 1 seriesOfClustering (updatePeriods (indexDates' docs') phyloBase)
-    Adaptative _   -> scanSimilarity 1 
+    Adaptative _   -> scanSimilarity 1
                     $ appendGroups clusterToGroup 1 seriesOfClustering (updatePeriods (indexDates' docs') phyloBase)
     where
         --------------------------------------
@@ -237,11 +237,11 @@ filterCliqueBySize thr l = filter (\clq -> (length $ clq ^. clustering_roots) >=
 
 --  To filter nested Fis
 filterCliqueByNested :: Map (Date, Date) [Clustering] -> Map (Date, Date) [Clustering]
-filterCliqueByNested m = 
-  let clq  = map (\l -> 
+filterCliqueByNested m =
+  let clq  = map (\l ->
                 foldl (\mem f -> if (any (\f' -> isNested (f' ^. clustering_roots) (f ^. clustering_roots)) mem)
                                  then mem
-                                 else 
+                                 else
                                     let fMax = filter (\f' -> not $ isNested (f ^. clustering_roots) (f' ^. clustering_roots)) mem
                                     in  fMax ++ [f] ) [] l)
            $ elems m
@@ -251,7 +251,7 @@ filterCliqueByNested m =
 
 -- | To transform a time map of docs into a time map of Fis with some filters
 toSeriesOfClustering :: Phylo -> Map (Date, Date) [Document] -> Map (Date,Date) [Clustering]
-toSeriesOfClustering phylo phyloDocs = case (clique $ getConfig phylo) of 
+toSeriesOfClustering phylo phyloDocs = case (clique $ getConfig phylo) of
     Fis s s'    -> -- traceFis "Filtered Fis"
                    filterCliqueByNested
                  {- \$ traceFis "Filtered by clique size" -}
@@ -263,16 +263,16 @@ toSeriesOfClustering phylo phyloDocs = case (clique $ getConfig phylo) of
     MaxClique s _ _ -> filterClique True s (filterCliqueBySize)
                        seriesOfClustering
     where
-        -------------------------------------- 
+        --------------------------------------
         seriesOfClustering :: Map (Date,Date) [Clustering]
-        seriesOfClustering = case (clique $ getConfig phylo) of 
-          Fis _ _     ->  
-                      let fis  = map (\(prd,docs) -> 
+        seriesOfClustering = case (clique $ getConfig phylo) of
+          Fis _ _     ->
+                      let fis  = map (\(prd,docs) ->
                                       case (corpusParser $ getConfig phylo) of
                                         Csv' _  -> let lst = toList
                                                                   $ fisWithSizePolyMap' (Segment 1 20) 1 (map (\d -> (ngramsToIdx (text d) (getRoots phylo), (weight d, (sourcesToIdx (sources d) (getSources phylo))))) docs)
                                                            in (prd, map (\f -> Clustering (Set.toList $ fst f) ((fst . snd) f) prd ((fst . snd . snd) f) (((snd . snd . snd) f))) lst)
-                                        _  -> let lst = toList 
+                                        _  -> let lst = toList
                                                       $ fisWithSizePolyMap (Segment 1 20) 1 (map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs)
                                               in (prd, map (\f -> Clustering (Set.toList $ fst f) (snd f) prd (Just $ fromIntegral $ snd f) []) lst)
                                       )
@@ -285,7 +285,7 @@ toSeriesOfClustering phylo phyloDocs = case (clique $ getConfig phylo) of
                                              $ foldl sumCooc empty
                                              $ map listToMatrix
                                              $ map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs
-                                     in (prd, map (\cl -> Clustering cl 0 prd Nothing []) $ getMaxCliques filterType Conditional thr cooc)) 
+                                     in (prd, map (\cl -> Clustering cl 0 prd Nothing []) $ getMaxCliques filterType Conditional thr cooc))
                                $ toList phyloDocs
                           mcl' = mcl `using` parList rdeepseq
                        in fromList mcl'
@@ -356,7 +356,7 @@ groupDocsByPeriod f pds es =
     inPeriode :: Ord b => (t -> b) -> [t] -> (b, b) -> [t]
     inPeriode f' h (start,end) =
       fst $ partition (\d -> f' d >= start && f' d <= end) h
-    -------------------------------------- 
+    --------------------------------------
 
 
 docsToTermFreq :: [Document] -> Vector Ngrams -> Map Int Double
@@ -391,7 +391,7 @@ docsToTimeScaleNb docs =
 
 
 initPhyloScales :: Int -> Period -> Map PhyloScaleId PhyloScale
-initPhyloScales lvlMax pId = 
+initPhyloScales lvlMax pId =
     fromList $ map (\lvl -> ((pId,lvl),PhyloScale pId ("","") lvl empty)) [1..lvlMax]
 
 
@@ -399,12 +399,12 @@ initPhyloScales lvlMax pId =
 --  Init the basic elements of a Phylo
 --
 initPhylo :: [Document] -> TermList -> PhyloConfig -> Phylo
-initPhylo docs lst conf = 
+initPhylo docs lst conf =
     let foundations  = PhyloFoundations (Vector.fromList $ nub $ concat $ map text docs) lst
         docsSources  = PhyloSources     (Vector.fromList $ nub $ concat $ map sources docs)
         params = defaultPhyloParam { _phyloParam_config = conf }
         periods = toPeriods (sort $ nub $ map date docs) (getTimePeriod $ timeUnit conf) (getTimeStep $ timeUnit conf)
-    in trace ("\n" <> "-- | Init a phylo out of " <> show(length docs) <> " docs \n") 
+    in trace ("\n" <> "-- | Init a phylo out of " <> show(length docs) <> " docs \n")
        $ Phylo foundations
                docsSources
                (docsToTimeScaleCooc docs (foundations ^. foundations_roots))

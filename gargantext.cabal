@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-version: 0.0.6.9.1
+version:        0.0.6.9.3
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
@@ -203,7 +203,6 @@ library
       Gargantext.Core.Text.List.Merge
       Gargantext.Core.Text.List.Social
       Gargantext.Core.Text.List.Social.Find
-      Gargantext.Core.Text.List.Social.History
       Gargantext.Core.Text.List.Social.Patch
       Gargantext.Core.Text.List.Social.Prelude
       Gargantext.Core.Text.Metrics.FrequentItemSet
@@ -223,6 +222,7 @@ library
       Gargantext.Core.Text.Terms.Multi.PosTagging
       Gargantext.Core.Text.Terms.Multi.PosTagging.Types
       Gargantext.Core.Types.Phylo
+      Gargantext.Core.Types.Search
       Gargantext.Core.Utils.DateUtils
       Gargantext.Core.Viz
       Gargantext.Core.Viz.Chart
@@ -231,6 +231,7 @@ library
       Gargantext.Core.Viz.Graph.FGL
       Gargantext.Core.Viz.Graph.GEXF
       Gargantext.Core.Viz.Graph.Legend
+      Gargantext.Core.Viz.Graph.PatriciaTreeTypes
       Gargantext.Core.Viz.Graph.Tools.Infomap
       Gargantext.Core.Viz.Graph.Types
       Gargantext.Core.Viz.Graph.Utils
@@ -282,6 +283,7 @@ library
       Gargantext.Database.GargDB
       Gargantext.Database.Query
       Gargantext.Database.Query.Facet
+      Gargantext.Database.Query.Facet.Types
       Gargantext.Database.Query.Filter
       Gargantext.Database.Query.Join
       Gargantext.Database.Query.Prelude
@@ -342,6 +344,7 @@ library
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wmissing-signatures -Wunused-binds -Wunused-imports -Werror -freduction-depth=300
   build-depends:
       HSvm
@@ -540,6 +543,7 @@ executable gargantext-admin
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       base
@@ -567,6 +571,7 @@ executable gargantext-cbor2json
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       aeson
@@ -598,6 +603,7 @@ executable gargantext-cli
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       aeson
@@ -636,6 +642,7 @@ executable gargantext-import
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       base
@@ -664,6 +671,7 @@ executable gargantext-init
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       base
@@ -691,6 +699,7 @@ executable gargantext-invitations
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       base
@@ -718,6 +727,7 @@ executable gargantext-phylo
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       aeson
@@ -759,6 +769,7 @@ executable gargantext-server
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -O2 -Wcompat -Wmissing-signatures -rtsopts -threaded -with-rtsopts=-N -with-rtsopts=-T -fprof-auto
   build-depends:
       base
@@ -793,6 +804,7 @@ executable gargantext-upgrade
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       base
@@ -837,6 +849,7 @@ test-suite garg-test
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
       DataKinds
       DeriveGeneric
       FlexibleContexts
@@ -881,6 +894,7 @@ test-suite jobqueue-test
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       async

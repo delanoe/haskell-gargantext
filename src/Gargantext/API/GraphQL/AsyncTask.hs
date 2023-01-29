@@ -6,8 +6,8 @@ module Gargantext.API.GraphQL.AsyncTask where
 import Control.Concurrent.Async (poll)
 import Control.Concurrent.MVar (readMVar)
 import Control.Lens
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Control.Monad.Reader (ask, liftIO)
 import Data.Either (Either(..))
 import qualified Data.IntMap.Strict as IntMap

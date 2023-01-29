@@ -11,7 +11,7 @@ Portability : POSIX
 
 
 module Gargantext.Database.Admin.Types.Hyperdata.Prelude
-  ( module Control.Lens 
+  ( module Control.Lens
   , module Data.Aeson
   , module Data.Aeson.TH
   , module Data.Aeson.Types
@@ -66,8 +66,3 @@ data Chart =
 instance ToJSON Chart
 instance FromJSON Chart
 instance ToSchema Chart
-
-
-
-
-

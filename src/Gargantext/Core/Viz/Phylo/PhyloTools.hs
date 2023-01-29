@@ -14,7 +14,7 @@ module Gargantext.Core.Viz.Phylo.PhyloTools where
 
 import Control.Lens hiding (Level)
 import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition, tails, nubBy, group, notElem)
-import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty, restrictKeys)
+import Data.Map.Strict (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty, restrictKeys)
 import Data.Set (Set, disjoint)
 import Data.String (String)
 import Data.Text (Text,unpack)
@@ -408,7 +408,7 @@ getPhyloSeaRiseStart phylo = case (getSeaElevation phylo) of
 getPhyloSeaRiseSteps :: Phylo -> Double
 getPhyloSeaRiseSteps phylo = case (getSeaElevation phylo) of
     Constante  _ s -> s
-    Adaptative s -> s    
+    Adaptative s -> s
 
 
 getConfig :: Phylo -> PhyloConfig
@@ -496,7 +496,7 @@ updatePeriods periods' phylo =
                 ) phylo
 
 updateQuality :: Double -> Phylo -> Phylo
-updateQuality quality phylo = phylo { _phylo_quality = quality }           
+updateQuality quality phylo = phylo { _phylo_quality = quality }
 
 
 traceToPhylo :: Scale -> Phylo -> Phylo
@@ -592,7 +592,7 @@ getMinSharedNgrams :: Proximity -> Int
 getMinSharedNgrams proxi = case proxi of
     WeightedLogJaccard _ m -> m
     WeightedLogSim     _ m -> m
-    Hamming            _ _ -> undefined    
+    Hamming            _ _ -> undefined
 
 ----------------
 -- | Branch | --

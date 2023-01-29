@@ -22,7 +22,7 @@ import Graph.Types (ClusterNode(..))
 import IGraph hiding (mkGraph, neighbors, edges, nodes, Node, Graph)
 import Protolude
 import qualified Data.List                   as List
-import qualified Data.Map                    as Map
+import qualified Data.Map.Strict             as Map
 import qualified IGraph                      as IG
 import qualified IGraph.Algorithms.Clique    as IG
 import qualified IGraph.Algorithms.Community as IG

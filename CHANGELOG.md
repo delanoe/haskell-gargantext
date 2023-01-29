@@ -1,6 +1,20 @@
+## Version 0.0.6.9.3
+
+* [FRONT][FIX][[hackathon] GraphExplorer fixes (#489)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/489)
+* [BACK][FIX][Corpus Analysis from Nodes FrameWrites (#164)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/164)
+
+
+## Version 0.0.6.9.2
+
+* [BACK][FIX] NodeWrite simple parsing
+* [BACK][FIX] List Learning is back
+* [BACK][FIX][Document rating in Doc Table is broken (#174)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/174)
+* [FRONT][FIX][Document supression do not work (#495)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/495)
+
 ## Version 0.0.6.9.1
 
 * [FRONT][FIX][terms] resolve flickering issue on children
+* [FRONT][FIX] [layout] Close CTA button on graph/phylo sidebar 
 
 ## Version 0.0.6.9.0
 

@@ -16,7 +16,7 @@ module Gargantext.API.Ngrams.Prelude
 
 import Data.Maybe (catMaybes)
 import Control.Lens (view)
-import Data.Map (fromList)
+import Data.Map.Strict (fromList)
 import Data.Hashable (Hashable)
 import Data.Validity
 import Gargantext.API.Ngrams.Types

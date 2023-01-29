@@ -19,18 +19,17 @@ module Gargantext.Core.Viz.Graph.GEXF
   where
 
 import Gargantext.Prelude
-import Gargantext.Core.Viz.Graph
 import qualified Data.HashMap.Lazy as HashMap
 import qualified Gargantext.Prelude as P
-import qualified Gargantext.Core.Viz.Graph as G
+import qualified Gargantext.Core.Viz.Graph.Types as G
 import qualified Xmlbf as Xmlbf
 import Prelude (error)
 
 -- Converts to GEXF format
 -- See https://gephi.org/gexf/format/
-instance Xmlbf.ToXml Graph where
-  toXml (Graph { _graph_nodes = graphNodes
-                , _graph_edges = graphEdges }) = root graphNodes graphEdges
+instance Xmlbf.ToXml G.Graph where
+  toXml (G.Graph { _graph_nodes = graphNodes
+                 , _graph_edges = graphEdges }) = root graphNodes graphEdges
     where
       root :: [G.Node] -> [G.Edge] -> [Xmlbf.Node]
       root gn ge =
@@ -77,5 +76,5 @@ instance Xmlbf.ToXml Graph where
 
 -- just to be able to derive a client for the entire gargantext API,
 -- we however want to avoid sollicitating this instance
-instance Xmlbf.FromXml Graph where
+instance Xmlbf.FromXml G.Graph where
   fromXml = error "FromXml Graph: not defined, just a placeholder"

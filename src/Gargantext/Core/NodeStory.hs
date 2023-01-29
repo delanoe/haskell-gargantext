@@ -70,7 +70,7 @@ module Gargantext.Core.NodeStory
   , nse_archive_saver_immediate
   , nse_var
   , unNodeStory
-  , getNodeArchiveHistory
+  , getNodesArchiveHistory
   , Archive(..)
   , initArchive
   , a_history
@@ -93,23 +93,25 @@ module Gargantext.Core.NodeStory
 where
 
 -- import Debug.Trace (traceShow)
-import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Codec.Serialise.Class
 import Control.Concurrent (MVar(), newMVar, modifyMVar_)
+import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Control.Exception (catch, throw, SomeException(..))
 import Control.Lens (makeLenses, Getter, (^.), (.~), (%~), _Just, at, traverse, view)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Aeson hiding ((.=), decode)
 import Data.ByteString.Char8 (hPutStrLn)
+import Data.HashMap.Strict (HashMap)
 import Data.Map.Strict (Map)
 import Data.Maybe (catMaybes)
 import Data.Monoid
 import Data.Pool (Pool, withResource)
-import Data.Semigroup
-import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Database.PostgreSQL.Simple.FromField (FromField(fromField), fromJSONField)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Data.Semigroup
+import Database.PostgreSQL.Simple.FromField (FromField(fromField), fromJSONField)
+import Database.PostgreSQL.Simple.SqlQQ (sql)
+import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListId, NodeId(..), NodeType)
@@ -117,14 +119,16 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Prelude (CmdM', HasConnectionPool(..), HasConfig)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
+import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
 import Opaleye (DefaultFromField(..), SqlJsonb, fromPGSFromField)
 import System.IO (stderr)
+import qualified Data.HashMap.Strict                    as HashMap
 import qualified Data.Map.Strict                        as Map
 import qualified Data.Map.Strict.Patch                  as PM
-import qualified Data.Set as Set
-import qualified Data.Text as Text
-import qualified Database.PostgreSQL.Simple as PGS
+import qualified Data.Set                               as Set
+import qualified Data.Text                              as Text
+import qualified Database.PostgreSQL.Simple             as PGS
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 ------------------------------------------------------------------------
@@ -133,7 +137,7 @@ data NodeStoryEnv = NodeStoryEnv
   , _nse_saver  :: !(IO ())
   , _nse_saver_immediate :: !(IO ())
   , _nse_archive_saver_immediate :: !(NodeListStory -> IO NodeListStory)
-  , _nse_getter :: [NodeId] -> IO (MVar NodeListStory)
+  , _nse_getter :: !([NodeId] -> IO (MVar NodeListStory))
   --, _nse_cleaner :: !(IO ()) -- every 12 hours: cleans the repos of unused NodeStories
   -- , _nse_lock  :: !FileLock -- TODO (it depends on the option: if with database or file only)
   }
@@ -253,8 +257,6 @@ initNodeListStoryMock = NodeStory $ Map.singleton nodeListId archive
                    ]
 
 ------------------------------------------------------------------------
-
-
 ------------------------------------------------------------------------
 -- | Lenses at the bottom of the file because Template Haskell would reorder order of execution in others cases
 makeLenses ''NodeStoryEnv
@@ -263,16 +265,16 @@ makeLenses ''Archive
 
 ----------------------------------------------------------------------
 data NodeStoryPoly nid v ngtid ngid nre =
-  NodeStoryDB { node_id             :: nid
-              , version             :: v
-              , ngrams_type_id      :: ngtid
-              , ngrams_id           :: ngid
-              , ngrams_repo_element :: nre }
+  NodeStoryDB { node_id             :: !nid
+              , version             :: !v
+              , ngrams_type_id      :: !ngtid
+              , ngrams_id           :: !ngid
+              , ngrams_repo_element :: !nre }
   deriving (Eq)
 
 data NodeStoryArchivePoly nid a =
-  NodeStoryArchiveDB { a_node_id :: nid
-                     , archive :: a }
+  NodeStoryArchiveDB { a_node_id :: !nid
+                     , archive   :: !a }
   deriving (Eq)
 
 $(makeAdaptorAndInstance "pNodeStory" ''NodeStoryPoly)
@@ -288,7 +290,8 @@ type ArchiveList = Archive NgramsState' NgramsStatePatch'
 
 -- DB stuff
 
-runPGSExecute :: (PGS.ToRow q) => PGS.Connection -> PGS.Query -> q -> IO Int64
+runPGSExecute :: (PGS.ToRow q)
+              => PGS.Connection -> PGS.Query -> q -> IO Int64
 runPGSExecute c qs a = catch (PGS.execute c qs a) printError
   where
     printError (SomeException e) = do
@@ -296,7 +299,8 @@ runPGSExecute c qs a = catch (PGS.execute c qs a) printError
       _ <- panic $ Text.pack $ show e
       throw (SomeException e)
 
-runPGSExecuteMany :: (PGS.ToRow q) => PGS.Connection -> PGS.Query -> [q] -> IO Int64
+runPGSExecuteMany :: (PGS.ToRow q)
+                  => PGS.Connection -> PGS.Query -> [q] -> IO Int64
 runPGSExecuteMany c qs a = catch (PGS.executeMany c qs a) printError
   where
     printError (SomeException e) = do
@@ -304,7 +308,8 @@ runPGSExecuteMany c qs a = catch (PGS.executeMany c qs a) printError
       _ <- panic $ Text.pack $ show e
       throw (SomeException e)
 
-runPGSQuery :: (PGS.FromRow r, PGS.ToRow q) => PGS.Connection -> PGS.Query -> q -> IO [r]
+runPGSQuery :: (PGS.FromRow r, PGS.ToRow q)
+            => PGS.Connection -> PGS.Query -> q -> IO [r]
 runPGSQuery c q a = catch (PGS.query c q a) printError
   where
     printError (SomeException e) = do
@@ -314,22 +319,26 @@ runPGSQuery c q a = catch (PGS.query c q a) printError
 
 runPGSAdvisoryLock :: PGS.Connection -> Int -> IO ()
 runPGSAdvisoryLock c id = do
-  _ <- runPGSQuery c [sql| SELECT pg_advisory_lock(?) |] (PGS.Only id) :: IO [PGS.Only ()]
+  _ <- runPGSQuery c [sql| SELECT pg_advisory_lock(?) |]
+                     (PGS.Only id) :: IO [PGS.Only ()]
   pure ()
 
 runPGSAdvisoryUnlock :: PGS.Connection -> Int -> IO ()
 runPGSAdvisoryUnlock c id = do
-  _ <- runPGSQuery c [sql| SELECT pg_advisory_unlock(?) |] (PGS.Only id) :: IO [PGS.Only Bool]
+  _ <- runPGSQuery c [sql| SELECT pg_advisory_unlock(?) |]
+                     (PGS.Only id) :: IO [PGS.Only Bool]
   pure ()
 
 runPGSAdvisoryXactLock :: PGS.Connection -> Int -> IO ()
 runPGSAdvisoryXactLock c id = do
-  _ <- runPGSQuery c [sql| SELECT pg_advisory_xact_lock(?) |] (PGS.Only id) :: IO [PGS.Only ()]
+  _ <- runPGSQuery c [sql| SELECT pg_advisory_xact_lock(?) |]
+                     (PGS.Only id) :: IO [PGS.Only ()]
   pure ()
 
 nodeExists :: PGS.Connection -> NodeId -> IO Bool
 nodeExists c nId = (== [PGS.Only True])
-  <$> runPGSQuery c [sql| SELECT true FROM nodes WHERE id = ? LIMIT 1 |] (PGS.Only nId)
+  <$> runPGSQuery c [sql| SELECT true FROM nodes WHERE id = ? LIMIT 1 |]
+                    (PGS.Only nId)
 
 getNodesIdWithType :: PGS.Connection -> NodeType -> IO [NodeId]
 getNodesIdWithType c nt = do
@@ -340,38 +349,34 @@ getNodesIdWithType c nt = do
     query = [sql| SELECT id FROM nodes WHERE typename = ? |]
 
 
+-- /!\ This function is using an hard coded parameter
+-- which depends on the Ngrams List Flow
+-- Version > 5 is hard coded because by default
+-- first version of history of manual change is 6
+getNodesArchiveHistory :: PGS.Connection
+                       -> [NodeId]
+                       -> IO [(NodeId, (Map NgramsType [HashMap NgramsTerm NgramsPatch]))]
+getNodesArchiveHistory c nodesId = do
+  as <- runPGSQuery c query (PGS.Only $ Values fields nodesId)
+                            :: IO [(Int, TableNgrams.NgramsType, NgramsTerm, NgramsPatch)]
 
--- nodeStoryTable :: Table NodeStoryRead NodeStoryWrite
--- nodeStoryTable =
---   Table "node_stories"
---     ( pNodeStory NodeStoryDB { node_id             = tableField "node_id"
---                              , version             = tableField "version"
---                              , ngrams_type_id      = tableField "ngrams_type_id"
---                              , ngrams_id           = tableField "ngrams_id"
---                              , ngrams_repo_element = tableField "ngrams_repo_element"
---                              } )
-
--- nodeStoryArchiveTable :: Table NodeStoryArchiveRead NodeStoryArchiveWrite
--- nodeStoryArchiveTable =
---   Table "node_story_archive_history"
---     ( pNodeArchiveStory NodeStoryArchiveDB { a_node_id = tableField "node_id"
---                                            , archive   = tableField "archive" } )
-
--- nodeStorySelect :: Select NodeStoryRead
--- nodeStorySelect = selectTable nodeStoryTable
-
--- NOTE "first patch in the _a_history list is the most recent"
-getNodeArchiveHistory :: PGS.Connection -> NodeId -> IO [NgramsStatePatch']
-getNodeArchiveHistory c nodeId = do
-  as <- runPGSQuery c query (PGS.Only nodeId) :: IO [(TableNgrams.NgramsType, NgramsTerm, NgramsPatch)]
-  pure $ (\(ngramsType, terms, patch) -> fst $ PM.singleton ngramsType (NgramsTablePatch $ fst $ PM.singleton terms patch)) <$> as
+  pure $ map (\(nId, ngramsType, terms, patch)
+               -> ( NodeId nId
+                  , Map.singleton ngramsType [HashMap.singleton terms patch]
+                  )
+             ) as
   where
+
+    fields = [QualifiedIdentifier Nothing "int4"]
     query :: PGS.Query
-    query = [sql| SELECT ngrams_type_id, terms, patch
+    query = [sql| WITH nodes_id(nid) as (?)
+                    SELECT node_id, ngrams_type_id, terms, patch
                     FROM node_story_archive_history
                     JOIN ngrams ON ngrams.id = ngrams_id
-                    WHERE node_id = ?
-                    ORDER BY (version, node_story_archive_history.id) DESC |]
+                    JOIN nodes_id n ON node_id = n.nid
+                    WHERE version > 5
+                    ORDER BY (version, node_story_archive_history.id) DESC
+            |]
 
 ngramsIdQuery :: PGS.Query
 ngramsIdQuery = [sql| SELECT id FROM ngrams WHERE terms = ? |]
@@ -380,22 +385,30 @@ ngramsIdQuery = [sql| SELECT id FROM ngrams WHERE terms = ? |]
 insertNodeArchiveHistory :: PGS.Connection -> NodeId -> Version -> [NgramsStatePatch'] -> IO ()
 insertNodeArchiveHistory _ _ _ [] = pure ()
 insertNodeArchiveHistory c nodeId version (h:hs) = do
-  let tuples = mconcat $ (\(nType, (NgramsTablePatch patch)) ->
+  let tuples = mconcat $ (\(nType, NgramsTablePatch patch) ->
                            (\(term, p) ->
                               (nodeId, nType, term, p)) <$> PM.toList patch) <$> PM.toList h :: [(NodeId, TableNgrams.NgramsType, NgramsTerm, NgramsPatch)]
   tuplesM <- mapM (\(nId, nType, term, patch) -> do
                       ngrams <- runPGSQuery c ngramsIdQuery (PGS.Only term)
                       pure $ (\(PGS.Only termId) -> (nId, nType, termId, term, patch)) <$> (headMay ngrams)
                       ) tuples :: IO [Maybe (NodeId, TableNgrams.NgramsType, Int, NgramsTerm, NgramsPatch)]
-  _ <- runPGSExecuteMany c query $ ((\(nId, nType, termId, _term, patch) -> (nId, nType, termId, patch, version)) <$> (catMaybes tuplesM))
+  _ <- runPGSExecuteMany c query $ ((\(nId, nType, termId, _term, patch) -> (nId, nType, termId, patch, version)) <$> catMaybes tuplesM)
   _ <- insertNodeArchiveHistory c nodeId version hs
   pure ()
   where
 
+    -- https://dba.stackexchange.com/questions/265554/how-to-check-other-table-for-value-during-insert
     query :: PGS.Query
-
     query = [sql| INSERT INTO node_story_archive_history(node_id, ngrams_type_id, ngrams_id, patch, version)
-                VALUES (?, ?, ?, ?, ?) |]
+                SELECT node_id, ngrams_type_id, ngrams_id, patch::jsonb, version FROM (
+                  VALUES (?, ?, ?, ?, ?)
+                ) AS i(node_id, ngrams_type_id, ngrams_id, patch, version)
+                WHERE NOT EXISTS (
+                  SELECT FROM ngrams
+                    CROSS JOIN nodes
+                    WHERE ngrams.id = ngrams_id
+                     AND nodes.id = node_id
+                )|]
 
 getNodeStory :: PGS.Connection -> NodeId -> IO NodeListStory
 getNodeStory c nId@(NodeId nodeId) = do
@@ -454,18 +467,26 @@ archiveStateListFilterFromSet set =
 -- | This function inserts whole new node story and archive for given node_id.
 insertNodeStory :: PGS.Connection -> NodeId -> ArchiveList -> IO ()
 insertNodeStory c (NodeId nId) a = do
-  _ <- mapM (\(ngramsType, ngrams, ngramsRepoElement) -> do
-                termIdM <- runPGSQuery c ngramsIdQuery (PGS.Only ngrams) :: IO [PGS.Only Int64]
-                case headMay termIdM of
-                  Nothing -> pure 0
-                  Just (PGS.Only termId) -> runPGSExecuteMany c query [(nId, a ^. a_version, ngramsType, termId, ngramsRepoElement)]) $ archiveStateToList $ a ^. a_state
+  mapM_ (\(ngramsType, ngrams, ngramsRepoElement) -> do
+            termIdM <- runPGSQuery c ngramsIdQuery (PGS.Only ngrams) :: IO [PGS.Only Int64]
+            case headMay termIdM of
+              Nothing -> pure 0
+              Just (PGS.Only termId) -> runPGSExecuteMany c query [(nId, a ^. a_version, ngramsType, termId, ngramsRepoElement)]) $ archiveStateToList $ a ^. a_state
              -- runInsert c $ insert ngramsType ngrams ngramsRepoElement) $ archiveStateToList _a_state
 
-  pure ()
   where
+    -- https://dba.stackexchange.com/questions/265554/how-to-check-other-table-for-value-during-insert
     query :: PGS.Query
     query = [sql| INSERT INTO node_stories(node_id, ngrams_type_id, ngrams_id, ngrams_repo_element)
-                VALUES (?, ?, ?, ?) |]
+                SELECT * FROM (
+                  VALUES (?, ?, ?, ?)
+                ) AS i(node_id, ngrams_type_id, ngrams_id, ngrams_repo_element)
+                WHERE NOT EXISTS (
+                  SELECT FROM ngrams
+                   CROSS JOIN nodes
+                   WHERE ngrams.id = ngrams_id
+                     AND nodes.id = node_id
+                )|]
     -- insert ngramsType ngrams ngramsRepoElement =
     --   Insert { iTable      = nodeStoryTable
     --          , iRows       = [NodeStoryDB { node_id = sqlInt4 nId
@@ -479,8 +500,7 @@ insertNodeStory c (NodeId nId) a = do
 
 insertArchiveStateList :: PGS.Connection -> NodeId -> Version -> ArchiveStateList -> IO ()
 insertArchiveStateList c nodeId version as = do
-  _ <- mapM_ (\(nt, n, nre) -> runPGSExecute c query (nodeId, version, nt, nre, n)) as
-  pure ()
+  mapM_ (\(nt, n, nre) -> runPGSExecute c query (nodeId, version, nt, nre, n)) as
   where
     query :: PGS.Query
     query = [sql| WITH s as (SELECT ? as sid, ? sversion, ? sngrams_type_id, ngrams.id as sngrams_id, ?::jsonb as srepo FROM ngrams WHERE terms = ?)
@@ -490,8 +510,7 @@ insertArchiveStateList c nodeId version as = do
 
 deleteArchiveStateList :: PGS.Connection -> NodeId -> ArchiveStateList -> IO ()
 deleteArchiveStateList c nodeId as = do
-  _ <- mapM_ (\(nt, n, _) -> runPGSExecute c query (nodeId, nt, n)) as
-  pure ()
+  mapM_ (\(nt, n, _) -> runPGSExecute c query (nodeId, nt, n)) as
   where
     query :: PGS.Query
     query = [sql| DELETE FROM node_stories
@@ -502,8 +521,7 @@ updateArchiveStateList c nodeId version as = do
   let params = (\(nt, n, nre) -> (nre, version, nodeId, nt, n)) <$> as
   --q <- PGS.format c query params
   --printDebug "[updateArchiveList] query" q
-  _ <- mapM (\p -> runPGSExecute c query p) params
-  pure ()
+  mapM_ (runPGSExecute c query) params
   where
     query :: PGS.Query
     query = [sql| UPDATE node_stories
@@ -591,8 +609,7 @@ upsertNodeStories c nodeId@(NodeId nId) newArchive = do
 fixNodeStoryVersion :: PGS.Connection -> NodeId -> ArchiveList -> IO ()
 fixNodeStoryVersion c nodeId newArchive = do
   let ngramsTypes = Map.keys $ newArchive ^. a_state
-  _ <- mapM_ (\nt -> runPGSExecute c query (newArchive ^. a_version, nodeId, nt)) ngramsTypes
-  pure ()
+  mapM_ (\nt -> runPGSExecute c query (newArchive ^. a_version, nodeId, nt)) ngramsTypes
   where
     query :: PGS.Query
     query = [sql|UPDATE node_stories
@@ -602,8 +619,7 @@ fixNodeStoryVersion c nodeId newArchive = do
 
 writeNodeStories :: PGS.Connection -> NodeListStory -> IO ()
 writeNodeStories c (NodeStory nls) = do
-  _ <- mapM (\(nId, a) -> upsertNodeStories c nId a) $ Map.toList nls
-  pure ()
+  mapM_ (\(nId, a) -> upsertNodeStories c nId a) $ Map.toList nls
 
 -- | Returns a `NodeListStory`, updating the given one for given `NodeId`
 nodeStoryInc :: PGS.Connection -> Maybe NodeListStory -> NodeId -> IO NodeListStory
@@ -643,9 +659,9 @@ readNodeStoryEnv pool = do
           writeNodeStories c ns
           pure ns
   let archive_saver_immediate ns@(NodeStory nls) = withResource pool $ \c -> do
-        _ <- mapM (\(nId, a) -> do
-                      insertNodeArchiveHistory c nId (a ^. a_version) $ reverse $ a ^. a_history
-                   ) $ Map.toList nls
+        mapM_ (\(nId, a) -> do
+                  insertNodeArchiveHistory c nId (a ^. a_version) $ reverse $ a ^. a_history
+              ) $ Map.toList nls
         pure $ clearHistory ns
   saver <- mkNodeStorySaver saver_immediate
   -- let saver = modifyMVar_ mvar $ \mv -> do
@@ -671,7 +687,7 @@ nodeStoryVar pool Nothing nIds = do
 nodeStoryVar pool (Just mv) nIds = do
   _ <- withResource pool
       $ \c -> modifyMVar_ mv
-      $ \nsl -> (nodeStoryIncs c (Just nsl) nIds)
+      $ \nsl -> nodeStoryIncs c (Just nsl) nIds
   pure mv
 
 -- Debounce is useful since it could delay the saving to some later
@@ -730,19 +746,18 @@ fixNodeStoryVersions = do
   _ <- withResource pool $ \c -> liftBase $ PGS.withTransaction c $ do
     nIds <- runPGSQuery c [sql| SELECT id FROM nodes WHERE ? |] (PGS.Only True) :: IO [PGS.Only Int64]
     printDebug "[fixNodeStoryVersions] nIds" nIds
-    _ <- mapM_ (\(PGS.Only nId) -> do
-                   printDebug "[fixNodeStoryVersions] nId" nId
-                   updateVer c TableNgrams.Authors nId
+    mapM_ (\(PGS.Only nId) -> do
+        printDebug "[fixNodeStoryVersions] nId" nId
+        updateVer c TableNgrams.Authors nId
 
-                   updateVer c TableNgrams.Institutes nId
+        updateVer c TableNgrams.Institutes nId
 
-                   updateVer c TableNgrams.Sources nId
+        updateVer c TableNgrams.Sources nId
 
-                   updateVer c TableNgrams.NgramsTerms nId
+        updateVer c TableNgrams.NgramsTerms nId
 
-                   pure ()
-                   ) nIds
-    pure ()
+        pure ()
+      ) nIds
   pure ()
   where
     maxVerQuery :: PGS.Query

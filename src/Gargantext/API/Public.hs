@@ -28,7 +28,7 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
 import qualified Data.List as List
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 
 import Gargantext.API.Prelude
@@ -121,8 +121,8 @@ toPublicData base (n , mn) = do
     hd = head
        $ filter (\(HyperdataField cd _ _) -> cd == JSON)
        $ n^. (node_hyperdata . hc_fields)
-    url' :: [NodeId] -> Text 
-    url' mn' = base 
+    url' :: [NodeId] -> Text
+    url' mn' = base
            <>   "/public/"
            <> (cs $ show $ (maybe 0 unNodeId $ head mn'))
            <> "/file/download"
@@ -149,7 +149,7 @@ instance ToJSON    PublicData where
 instance ToSchema  PublicData
 instance Arbitrary PublicData where
   arbitrary = elements
-            $ replicate 6 defaultPublicData 
+            $ replicate 6 defaultPublicData
 
 defaultPublicData :: PublicData
 defaultPublicData =
@@ -160,7 +160,3 @@ defaultPublicData =
              , date = "YY/MM/DD"
              , database = "database"
              , author = "Author" }
-
-
-
-

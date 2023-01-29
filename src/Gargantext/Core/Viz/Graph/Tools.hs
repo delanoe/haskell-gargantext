@@ -16,7 +16,7 @@ module Gargantext.Core.Viz.Graph.Tools
 
 import Data.Aeson
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe)
 import Data.Swagger hiding (items)
 import GHC.Float (sin, cos)
@@ -25,11 +25,11 @@ import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Methods.Similarities (Similarity(..), measure)
 import Gargantext.Core.Methods.Similarities.Conditional (conditional)
 import Gargantext.Core.Statistics
-import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Bridgeness(..), Partitions, nodeId2comId)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
 import Gargantext.Core.Viz.Graph.Tools.Infomap (infomap)
+import Gargantext.Core.Viz.Graph.Types (Attributes(..), Edge(..), Graph(..), MultiPartite(..), Node(..), Partite(..), Strength(..))
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Core.Viz.Graph.Utils (edgesFilter, nodesFilter)
 import Gargantext.Prelude
@@ -39,7 +39,7 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import qualified Data.HashMap.Strict      as HashMap
 import qualified Data.List                as List
-import qualified Data.Map                 as Map
+import qualified Data.Map.Strict          as Map
 import qualified Data.Set                 as Set
 import qualified Data.HashSet             as HashSet
 import qualified Data.Text                as Text
@@ -242,6 +242,7 @@ data2graph multi labels' occurences bridge conf partitions =
     (bridge', toKeep) = nodesFilter (\v -> v > 1) bridge
 
     edges = [ Edge { edge_source = cs (show s)
+                   , edge_hidden = Nothing
                    , edge_target = cs (show t)
                    , edge_weight = weight
                    , edge_confluence = maybe 0 identity $ Map.lookup (s,t) conf
@@ -340,7 +341,7 @@ cooc2graph'' distance threshold myCooc = neighbourMap
 -- Quentin
 filterByNeighbours :: Double -> Map (Index, Index) Double -> Map (Index, Index) Double
 filterByNeighbours threshold distanceMap = filteredMap
-  where 
+  where
     indexes :: [Index]
     indexes = List.nub $ List.concat $ map (\(idx,idx') -> [idx,idx'] ) $ Map.keys distanceMap
     filteredMap :: Map (Index, Index) Double
@@ -354,4 +355,3 @@ filterByNeighbours threshold distanceMap = filteredMap
                                        $ Map.filterWithKey (\(from,_) _ -> idx == from) distanceMap
                            in List.take (round threshold) selected
                       ) indexes
-

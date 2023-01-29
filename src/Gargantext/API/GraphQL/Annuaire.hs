@@ -28,20 +28,20 @@ import Gargantext.Prelude
 import GHC.Generics (Generic)
 
 data AnnuaireContact = AnnuaireContact
-  { ac_title        :: Maybe Text
-  , ac_source       :: Maybe Text
-  , ac_id           :: Int
-  , ac_firstName    :: Maybe Text
-  , ac_lastName     :: Maybe Text
-  , ac_labTeamDepts :: [Text]
-  , ac_organization :: [Text]
-  , ac_role         :: Maybe Text
-  , ac_office       :: Maybe Text
-  , ac_country      :: Maybe Text
-  , ac_city         :: Maybe Text
-  , ac_touchMail    :: Maybe Text
-  , ac_touchPhone   :: Maybe Text
-  , ac_touchUrl     :: Maybe Text
+  { ac_title        :: !(Maybe Text)
+  , ac_source       :: !(Maybe Text)
+  , ac_id           :: !Int
+  , ac_firstName    :: !(Maybe Text)
+  , ac_lastName     :: !(Maybe Text)
+  , ac_labTeamDepts :: ![Text]
+  , ac_organization :: ![Text]
+  , ac_role         :: !(Maybe Text)
+  , ac_office       :: !(Maybe Text)
+  , ac_country      :: !(Maybe Text)
+  , ac_city         :: !(Maybe Text)
+  , ac_touchMail    :: !(Maybe Text)
+  , ac_touchPhone   :: !(Maybe Text)
+  , ac_touchUrl     :: !(Maybe Text)
   }
   deriving (Generic, GQLType, Show)
 

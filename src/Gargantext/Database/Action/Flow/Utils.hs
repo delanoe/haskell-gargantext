@@ -13,7 +13,7 @@ Portability : POSIX
 module Gargantext.Database.Action.Flow.Utils
     where
 
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.HashMap.Strict (HashMap)
 import Gargantext.Core.Types (TermsCount)
 import Gargantext.Database.Admin.Types.Node
@@ -23,7 +23,7 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Types
 import Gargantext.Prelude
 import Control.Lens ((^.))
-import qualified Data.Map as DM
+import qualified Data.Map.Strict as DM
 import qualified Data.HashMap.Strict as HashMap
 
 

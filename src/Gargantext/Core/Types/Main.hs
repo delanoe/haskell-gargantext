@@ -21,7 +21,7 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.Either (Either(..))
 import Data.Hashable (Hashable)
-import Data.Map (fromList, lookup)
+import Data.Map.Strict (fromList, lookup)
 import Data.Maybe (fromMaybe)
 import Data.Semigroup (Semigroup(..))
 import Data.Swagger

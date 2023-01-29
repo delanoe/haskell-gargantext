@@ -153,7 +153,7 @@ updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
           pure 1
   where
     uh _ Nothing u_hyperdata = u_hyperdata
-    uh lens' (Just val) u_hyperdata = u_hyperdata & lens' .~ Just val
+    uh lens' (Just val) u_hyperdata = u_hyperdata & lens' ?~ val
     uh' _ Nothing u_hyperdata = u_hyperdata
     uh' lens' (Just val) u_hyperdata = u_hyperdata & lens' .~ val
     nId Node {_node_id} = _node_id

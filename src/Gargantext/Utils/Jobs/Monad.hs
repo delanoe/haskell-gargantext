@@ -9,7 +9,7 @@ import Gargantext.Utils.Jobs.State
 import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad.Except
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Time.Clock
 import Network.HTTP.Client (Manager)
 import Prelude

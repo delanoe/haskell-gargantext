@@ -15,7 +15,7 @@ module Gargantext.Core.Viz.Chart
   where
 
 import Data.List (sortOn)
-import Data.Map (toList)
+import Data.Map.Strict (toList)
 import qualified Data.List as List
 import Data.Maybe (catMaybes)
 import qualified Data.Vector as V
@@ -93,4 +93,3 @@ treeData cId nt lt = do
 
   m  <- getListNgrams ls nt
   pure $ V.fromList $ toTree lt cs' m
-

@@ -47,9 +47,9 @@ import qualified Data.List as L
 import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe)
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import Gargantext.Prelude hiding (cs)
 import qualified Data.Tree as Tree
 import Data.Tree (Tree)

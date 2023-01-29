@@ -19,7 +19,7 @@ module Gargantext.Core.Text.List
 import Control.Lens hiding (both) -- ((^.), view, over, set, (_1), (_2))
 import Data.HashMap.Strict (HashMap)
 import Data.HashSet (HashSet)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Monoid (mempty)
 import Data.Ord (Down(..))
 import Data.Set (Set)
@@ -50,7 +50,7 @@ import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.HashSet as HashSet
 import qualified Data.List    as List
-import qualified Data.Map     as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Set     as Set
 import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
 
@@ -179,7 +179,10 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, MapListSize mapListSi
                                     )
   printDebug "[buildNgramsTermsList: Flow Social List / end]" nt
 
-  let !ngramsKeys = HashSet.fromList $ List.take mapListSize $ HashSet.toList $ HashMap.keysSet allTerms
+  let !ngramsKeys = HashSet.fromList
+                  $ List.take mapListSize
+                  $ HashSet.toList
+                  $ HashMap.keysSet allTerms
 
   printDebug "[buildNgramsTermsList: ngramsKeys]" (HashSet.size ngramsKeys)
 
@@ -189,14 +192,16 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, MapListSize mapListSi
 
   let
     !socialLists_Stemmed = addScoreStem groupParams' ngramsKeys socialLists
-  --printDebug "socialLists_Stemmed" socialLists_Stemmed
     !groupedWithList = toGroupedTree socialLists_Stemmed allTerms
     !(stopTerms, candidateTerms) = HashMap.partition ((== Just StopTerm) . viewListType)
-                                $ HashMap.filter (\g -> (view gts'_score g) > 1)
-                                $ view flc_scores groupedWithList
+                                 $ HashMap.filter (\g -> (view gts'_score g) > 1)
+                                 $ view flc_scores groupedWithList
 
     !(groupedMono, groupedMult)  = HashMap.partitionWithKey (\(NgramsTerm t) _v -> size t < 2) candidateTerms
 
+  printDebug "[buildNgramsTermsList] socialLists" socialLists
+  printDebug "[buildNgramsTermsList] socialLists with scores" socialLists_Stemmed
+  printDebug "[buildNgramsTermsList] groupedWithList" groupedWithList
   printDebug "[buildNgramsTermsList] stopTerms" stopTerms
 
   -- splitting monterms and multiterms to take proportional candidates
