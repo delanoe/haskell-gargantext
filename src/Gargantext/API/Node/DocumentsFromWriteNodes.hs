@@ -21,9 +21,7 @@ import Conduit
 import Control.Lens ((^.))
 import Data.Aeson
 import Data.Either (Either(..), rights)
-import Data.Maybe (fromMaybe)
 import Data.Swagger
-import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.EnvTypes (Env, GargJob(..))
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
@@ -46,7 +44,6 @@ import Gargantext.Prelude
 import Gargantext.Utils.Jobs (serveJobsAPI)
 import Gargantext.Core.Text.Corpus.Parsers.Date (split')
 import Servant
-import Text.Read (readMaybe)
 import qualified Data.List           as List
 import qualified Data.Text           as T
 -- import qualified Gargantext.Defaults as Defaults
@@ -57,7 +54,7 @@ type API = Summary " Documents from Write nodes."
 ------------------------------------------------------------------------
 data Params = Params 
   { id         :: Int 
-  , paragraphs :: Text
+  , paragraphs :: Int
   , lang       :: Lang
   , selection  :: FlowSocialListWith
   }
@@ -109,10 +106,8 @@ documentsFromWriteNodes uId nId Params { selection, lang, paragraphs } logStatus
              pure (node, contents)
          ) frameWrites
 
-  let paragraphs' = readMaybe $ T.unpack paragraphs :: Maybe Int
-
   let parsedE = (\(node, contents)
-                  -> hyperdataDocumentFromFrameWrite lang (fromMaybe 7 paragraphs') (node, contents)) <$> frameWritesWithContents
+                  -> hyperdataDocumentFromFrameWrite lang paragraphs (node, contents)) <$> frameWritesWithContents
   let parsed = List.concat $ rights parsedE
 
   _ <- flowDataText (RootId (NodeId uId))
