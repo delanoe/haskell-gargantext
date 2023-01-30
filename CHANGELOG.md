@@ -1,7 +1,7 @@
 ## Version 0.0.6.9.4
 
 * [BACK][FIX] Username and email to lowerCase always. Use migration script please to avoid errors.
-
+* [BACK][FIX][Ngrams Change insert causes Database error (#173)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/173)
 
 ## Version 0.0.6.9.3
 
