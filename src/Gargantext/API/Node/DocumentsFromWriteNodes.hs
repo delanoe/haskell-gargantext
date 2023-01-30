@@ -108,7 +108,7 @@ documentsFromWriteNodes uId nId Params { selection, lang, paragraphs } logStatus
              contents <- getHyperdataFrameContents (node ^. node_hyperdata)
              pure (node, contents)
          ) frameWrites
-
+  
   let paragraphs' = readMaybe $ T.unpack paragraphs :: Maybe Int
 
   let parsedE = (\(node, contents)
