@@ -35,22 +35,16 @@ module Gargantext.API.Admin.Auth
   )
   where
 
-import Control.Lens (view, (#))
 --import Control.Monad.Logger.Aeson
+--import qualified Text.Blaze.Html5.Attributes as HA
+import Control.Lens (view, (#))
 import Data.Aeson
 import Data.Swagger (ToSchema(..))
 import Data.Text (Text)
 import Data.Text.Lazy (toStrict)
-import qualified Data.Text.Lazy.Encoding as LE
 import Data.UUID (UUID, fromText, toText)
 import Data.UUID.V4 (nextRandom)
 import GHC.Generics (Generic)
-import Servant
-import Servant.Auth.Server
---import qualified Text.Blaze.Html5.Attributes as HA
-
-import qualified Gargantext.Prelude.Crypto.Auth as Auth
-
 import Gargantext.API.Admin.Auth.Types
 import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
@@ -70,6 +64,11 @@ import Gargantext.Database.Schema.Node (NodePoly(_node_id))
 import Gargantext.Prelude hiding (reverse)
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
 import Gargantext.Utils.Jobs (serveJobsAPI)
+import Servant
+import Servant.Auth.Server
+import qualified Data.Text as Text
+import qualified Data.Text.Lazy.Encoding as LE
+import qualified Gargantext.Prelude.Crypto.Auth as Auth
 
 ---------------------------------------------------
 
@@ -181,7 +180,7 @@ forgotPassword = forgotPasswordPost :<|> forgotPasswordGet
 forgotPasswordPost :: ( HasConnectionPool env, HasConfig env, HasMail env)
      => ForgotPasswordRequest -> Cmd' env err ForgotPasswordResponse
 forgotPasswordPost (ForgotPasswordRequest email) = do
-  us <- getUsersWithEmail email
+  us <- getUsersWithEmail (Text.toLower email)
   case us of
     [u] -> forgotUserPassword u
     _ -> pure ()

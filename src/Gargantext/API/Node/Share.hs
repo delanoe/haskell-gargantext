@@ -27,14 +27,15 @@ import Gargantext.Database.Action.User
 import Gargantext.Database.Action.User.New
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude
-import Gargantext.Database.Query.Tree (findNodesWithType)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
+import Gargantext.Database.Query.Tree (findNodesWithType)
 import Gargantext.Prelude
-import qualified Gargantext.Utils.Aeson as GUA
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import qualified Data.List as List
+import qualified Data.Text as Text
+import qualified Gargantext.Utils.Aeson as GUA
 
 ------------------------------------------------------------------------
 data ShareNodeParams = ShareTeamParams   { username :: Text  }
@@ -61,8 +62,9 @@ api :: HasNodeError err
     -> ShareNodeParams
     -> CmdR err Int
 api userInviting nId (ShareTeamParams user') = do
-  user <- case guessUserName user' of
-    Nothing    -> pure user'
+  let user'' = Text.toLower user'
+  user <- case guessUserName user'' of
+    Nothing    -> pure user''
     Just (u,_) -> do
       isRegistered <- getUserId' (UserName u)
       case isRegistered of
@@ -87,8 +89,8 @@ api userInviting nId (ShareTeamParams user') = do
                   printDebug "[G.A.N.Share.api]" ("Invitation is enabled if you share a corpus at least" :: Text)
                   pure 0
                 False -> do 
-                  printDebug "[G.A.N.Share.api]" ("Your invitation is sent to: " <> user')
-                  newUsers [user']
+                  printDebug "[G.A.N.Share.api]" ("Your invitation is sent to: " <> user'')
+                  newUsers [user'']
               pure ()
           pure u
 
