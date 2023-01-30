@@ -1,3 +1,8 @@
+## Version 0.0.6.9.4
+
+* [BACK][FIX] Username and email to lowerCase always. Use migration script please to avoid errors.
+
+
 ## Version 0.0.6.9.3
 
 * [FRONT][FIX][[hackathon] GraphExplorer fixes (#489)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/489)
