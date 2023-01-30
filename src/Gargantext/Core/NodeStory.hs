@@ -396,18 +396,14 @@ insertNodeArchiveHistory c nodeId version (h:hs) = do
   _ <- insertNodeArchiveHistory c nodeId version hs
   pure ()
   where
-
-    -- https://dba.stackexchange.com/questions/265554/how-to-check-other-table-for-value-during-insert
+    -- https://stackoverflow.com/questions/39224438/postgresql-insert-if-foreign-key-exists
     query :: PGS.Query
     query = [sql| INSERT INTO node_story_archive_history(node_id, ngrams_type_id, ngrams_id, patch, version)
                 SELECT node_id, ngrams_type_id, ngrams_id, patch::jsonb, version FROM (
                   VALUES (?, ?, ?, ?, ?)
                 ) AS i(node_id, ngrams_type_id, ngrams_id, patch, version)
-                WHERE NOT EXISTS (
-                  SELECT FROM ngrams
-                    CROSS JOIN nodes
-                    WHERE ngrams.id = ngrams_id
-                     AND nodes.id = node_id
+                WHERE EXISTS (
+                  SELECT * FROM nodes where nodes.id = node_id
                 )|]
 
 getNodeStory :: PGS.Connection -> NodeId -> IO NodeListStory
@@ -475,17 +471,14 @@ insertNodeStory c (NodeId nId) a = do
              -- runInsert c $ insert ngramsType ngrams ngramsRepoElement) $ archiveStateToList _a_state
 
   where
-    -- https://dba.stackexchange.com/questions/265554/how-to-check-other-table-for-value-during-insert
+    -- https://stackoverflow.com/questions/39224438/postgresql-insert-if-foreign-key-exists
     query :: PGS.Query
     query = [sql| INSERT INTO node_stories(node_id, ngrams_type_id, ngrams_id, ngrams_repo_element)
                 SELECT * FROM (
                   VALUES (?, ?, ?, ?)
                 ) AS i(node_id, ngrams_type_id, ngrams_id, ngrams_repo_element)
-                WHERE NOT EXISTS (
-                  SELECT FROM ngrams
-                   CROSS JOIN nodes
-                   WHERE ngrams.id = ngrams_id
-                     AND nodes.id = node_id
+                WHERE EXISTS (
+                  SELECT * FROM nodes where nodes.id = node_id
                 )|]
     -- insert ngramsType ngrams ngramsRepoElement =
     --   Insert { iTable      = nodeStoryTable
