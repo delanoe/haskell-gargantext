@@ -52,6 +52,7 @@ keys field
             | field == "TI" = "title"
             | field == "SO" = "source"
             | field == "DI" = "doi"
-            | field == "PY" = "publication_date"
+            | field == "PD" = "publication_date"
+            | field == "SP" = "institutes"
             | field == "AB" = "abstract"
             | otherwise  = field

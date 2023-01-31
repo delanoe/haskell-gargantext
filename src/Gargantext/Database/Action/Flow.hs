@@ -75,11 +75,11 @@ import qualified Data.Conduit      as C
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import Gargantext.Core (Lang(..), PosTagAlgo(..))
-import Gargantext.Core.Ext.IMT (toSchoolName)
+-- import Gargantext.Core.Ext.IMT (toSchoolName)
 import Gargantext.Core.Ext.IMTUser (readFile_Annuaire)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
-import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat, FileType)
+import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat, FileType, splitOn)
 import Gargantext.Core.Text.List (buildNgramsLists)
 import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
 import Gargantext.Core.Text.List.Social (FlowSocialListWith(..))
@@ -550,12 +550,13 @@ instance ExtractNgramsT HyperdataDocument
                         $ _hd_source doc
 
               institutes = map text2ngrams
-                         $ maybe ["Nothing"] (map toSchoolName . (T.splitOn ", "))
+                         $ maybe ["Nothing"] (splitOn Institutes (doc^. hd_bdd))
                          $ _hd_institutes doc
 
               authors    = map text2ngrams
-                         $ maybe ["Nothing"] (T.splitOn ", ")
+                         $ maybe ["Nothing"] (splitOn Authors (doc^. hd_bdd))
                          $ _hd_authors doc
+
 
           termsWithCounts' <- map (\(t, cnt) -> (enrichedTerms (lang' ^. tt_lang) CoreNLP NP t, cnt))
                               <$> concat

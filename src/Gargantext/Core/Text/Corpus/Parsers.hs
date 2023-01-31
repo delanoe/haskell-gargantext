@@ -20,14 +20,15 @@ please follow the types.
 
 {-# LANGUAGE PackageImports    #-}
 
-module Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), FileType(..), clean, parseFile, cleanText, parseFormatC)
+module Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), FileType(..), clean, parseFile, cleanText, parseFormatC, splitOn)
     where
 
+-- import Gargantext.Core.Text.Learn (detectLangDefault)
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
 import Conduit
 import Control.Concurrent.Async as CCA (mapConcurrently)
-import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad (join)
+import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Attoparsec.ByteString (parseOnly, Parser)
 import Data.Either(Either(..))
 import Data.Either.Extra (partitionEithers)
@@ -38,25 +39,24 @@ import Data.String()
 import Data.Text (Text, intercalate, pack, unpack)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Tuple.Extra (both, first, second)
+import Gargantext.API.Node.Corpus.New.Types (FileFormat(..))
+import Gargantext.Core (Lang(..))
+import Gargantext.Core.Text.Corpus.Parsers.CSV (parseHal, parseCsv, parseCsvC)
+import Gargantext.Core.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import Gargantext.Prelude
 import System.FilePath (FilePath(), takeExtension)
+import System.IO.Temp (emptySystemTempFile)
 import qualified Data.ByteString       as DB
 import qualified Data.ByteString.Char8 as DBC
 import qualified Data.ByteString.Lazy  as DBL
 import qualified Data.Map              as DM
 import qualified Data.Text             as DT
-import qualified Prelude
-import System.IO.Temp (emptySystemTempFile)
-
-import Gargantext.API.Node.Corpus.New.Types (FileFormat(..))
-import Gargantext.Core (Lang(..))
-import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
-import Gargantext.Prelude
-import Gargantext.Core.Text.Corpus.Parsers.CSV (parseHal, parseCsv, parseCsvC)
-import Gargantext.Core.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
--- import Gargantext.Core.Text.Learn (detectLangDefault)
 import qualified Gargantext.Core.Text.Corpus.Parsers.Date as Date
 import qualified Gargantext.Core.Text.Corpus.Parsers.RIS  as RIS
 import qualified Gargantext.Core.Text.Corpus.Parsers.WOS  as WOS
+import qualified Prelude
+import Gargantext.Database.Query.Table.Ngrams (NgramsType(..))
 ------------------------------------------------------------------------
 
 type ParseError = String
@@ -168,12 +168,15 @@ parseFormatC _ _ _ = undefined
 parseFile :: FileType -> FileFormat -> FilePath -> IO (Either Prelude.String [HyperdataDocument])
 parseFile CsvHal    Plain p = parseHal p
 parseFile CsvGargV3 Plain p = parseCsv p
+
 parseFile RisPresse Plain p = do
   docs <- join $ mapM (toDoc RIS) <$> snd <$> enrichWith RisPresse <$> readFileWith RIS p
   pure $ Right docs
+
 parseFile WOS       Plain p = do
   docs <- join $ mapM (toDoc WOS) <$> snd <$> enrichWith WOS       <$> readFileWith WOS p
   pure $ Right docs
+
 parseFile ff        _ p = do
   docs <- join $ mapM (toDoc ff)  <$> snd <$> enrichWith ff        <$> readFileWith ff  p
   pure $ Right docs
@@ -184,19 +187,19 @@ toDoc ff d = do
       -- let abstract = lookup "abstract" d
       let lang = EN -- maybe EN identity (join $ detectLangDefault <$> (fmap (DT.take 50) abstract))
 
-      let dateToParse = DT.replace "-" " " <$> lookup "PY" d <> Just " " <> lookup "publication_date" d
-
+      let dateToParse = DT.replace " " "" <$> lookup "PY" d  -- <> Just " " <> lookup "publication_date" d 
+      printDebug "[G.C.T.C.Parsers] dateToParse" dateToParse
       (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit lang dateToParse
 
-      pure HyperdataDocument { _hd_bdd = Just $ DT.pack $ show ff
+      let hd = HyperdataDocument { _hd_bdd = Just $ DT.pack $ show ff
                              , _hd_doi = lookup "doi" d
                              , _hd_url = lookup "URL" d
                              , _hd_uniqId = Nothing
                              , _hd_uniqIdBdd = Nothing
                              , _hd_page = Nothing
                              , _hd_title = lookup "title" d
-                             , _hd_authors = Nothing
-                             , _hd_institutes = lookup "authors" d
+                             , _hd_authors = lookup "authors" d
+                             , _hd_institutes = lookup "institutes" d
                              , _hd_source = lookup "source" d
                              , _hd_abstract = lookup "abstract" d
                              , _hd_publication_date = fmap (DT.pack . show) utcTime
@@ -207,6 +210,8 @@ toDoc ff d = do
                              , _hd_publication_minute = Nothing
                              , _hd_publication_second = Nothing
                              , _hd_language_iso2 = Just $ (DT.pack . show) lang }
+      printDebug "[G.C.T.C.Parsers] HyperdataDocument" hd
+      pure hd
 
 enrichWith :: FileType
            ->  (a, [[[(DB.ByteString, DB.ByteString)]]]) -> (a, [[(Text, Text)]])
@@ -267,3 +272,10 @@ clean txt = DBC.map clean' txt
     clean' '\t' = ' '
     clean' ';' = '.'
     clean' c  = c
+
+-- 
+
+splitOn :: NgramsType -> Maybe Text -> Text -> [Text]
+splitOn Authors (Just "WOS") = (DT.splitOn "; ")
+splitOn _ _                  = (DT.splitOn ", ")
+
