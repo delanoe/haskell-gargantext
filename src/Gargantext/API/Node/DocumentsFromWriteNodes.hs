@@ -114,7 +114,7 @@ documentsFromWriteNodes uId nId Params { selection, lang, paragraphs } logStatus
   let parsedE = (\(node, contents)
                   -> hyperdataDocumentFromFrameWrite lang (fromMaybe 7 paragraphs') (node, contents)) <$> frameWritesWithContents
   let parsed = List.concat $ rights parsedE
-
+  printDebug "DocumentsFromWriteNodes: uId" uId
   _ <- flowDataText (RootId (NodeId uId))
                     (DataNew (Just $ fromIntegral $ length parsed, yieldMany parsed))
                     (Multi lang)
