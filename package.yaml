@@ -6,7 +6,7 @@ name: gargantext
 #         | | | +-----  Layers * : New versions with API additions
 #         | | | | +---  Layers * : New versions without API breaking changes
 #         | | | | |
-version: '0.0.6.9.4'
+version: '0.0.6.9.4.1'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data

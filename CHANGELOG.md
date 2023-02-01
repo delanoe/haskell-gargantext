@@ -1,3 +1,7 @@
+## Version 0.0.6.9.4.1
+
+* [FRONT][FIX][Invite many users without closing the modal (#498)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/498)
+
 ## Version 0.0.6.9.4
 
 * [BACK][FIX] Username and email to lowerCase always. Use migration script please to avoid errors.
