@@ -1,3 +1,7 @@
+## Version 0.0.6.9.4.2
+
+* [FRONT][FIX][Regression : on graph (#496)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/496)
+
 ## Version 0.0.6.9.4.1
 
 * [FRONT][FIX][Invite many users without closing the modal (#498)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/498)
