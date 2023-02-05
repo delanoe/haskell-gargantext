@@ -32,7 +32,9 @@ rec {
     icu
     graphviz
     llvm_9
-  ];
+  ] ++ ( lib.optionals stdenv.isDarwin [
+       darwin.apple_sdk.frameworks.Accelerate
+       ]);
   libPaths = pkgs.lib.makeLibraryPath nonhsBuildInputs;
   shellHook = ''
     export LD_LIBRARY_PATH="${pkgs.gfortran7.cc.lib}:${libPaths}:$LD_LIBRARY_PATH"
