@@ -37,15 +37,15 @@ stack --version
 
 ### With Nix setup
 
-First install [nix](https://nixos.org/guides/install-nix.html): 
+First install [nix](https://nixos.org/download.html): 
 
 ```shell
-curl -sSL https://nixos.org/nix/install | sh
+$ sh <(curl -L https://nixos.org/nix/install) --daemon
 ```
 
 Verify the installation is complete
 ```shell
-$ nix-env
+$ nix-env --version
 nix-env (Nix) 2.3.12
 ```
 And just build:
@@ -114,6 +114,7 @@ then run:
 
 ``` sh
 stack --docker exec gargantext-init -- gargantext.ini
+```
 
 ### Initialization
 
