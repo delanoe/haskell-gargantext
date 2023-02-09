@@ -17,7 +17,7 @@ module Gargantext.Database.Action.Flow.Pairing
     where
 
 import Debug.Trace (trace)
-import Control.Lens (_Just, (^.))
+import Control.Lens (_Just, (^.), view)
 import Data.Hashable (Hashable)
 import Data.HashMap.Strict (HashMap)
 import Data.Maybe (fromMaybe, catMaybes)
@@ -35,7 +35,7 @@ import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOn
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
 import Gargantext.Database.Admin.Types.Node -- (AnnuaireId, CorpusId, ListId, DocId, ContactId, NodeId)
-import Gargantext.Database.Query.Prelude (leftJoin2, returnA, queryNodeNodeTable)
+import Gargantext.Database.Query.Prelude (returnA, queryNodeNodeTable)
 import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node.Children (getAllContacts)
 import Gargantext.Database.Query.Table.Node.Select (selectNodesWithUsername)
@@ -60,15 +60,12 @@ isPairedWith nId nt = runOpaQuery (selectQuery nt nId)
   where
     selectQuery :: NodeType -> NodeId -> Select (Column SqlInt4)
     selectQuery nt' nId' = proc () -> do
-      (node, node_node) <- queryJoin -< ()
-      restrict -< (node^.node_typename)    .== (sqlInt4 $ toDBid nt')
-      restrict -< (node_node^.nn_node1_id) .== (toNullable $ pgNodeId nId')
+      node <- queryNodeTable -< ()
+      node_node <- optionalRestrict queryNodeNodeTable -<
+        \node_node' -> (node ^. node_id) .== (node_node' ^. nn_node2_id)
+      restrict -< (node^.node_typename)  .== sqlInt4 (toDBid nt')
+      restrict -< (view nn_node1_id <$> node_node) .=== justFields (pgNodeId nId')
       returnA  -<  node^.node_id
-
-    queryJoin :: Select (NodeRead, NodeNodeReadNull)
-    queryJoin = leftJoin2 queryNodeTable queryNodeNodeTable cond
-      where
-        cond (node, node_node) = node^.node_id .== node_node^. nn_node2_id
 
 -----------------------------------------------------------------------
 pairing :: AnnuaireId -> CorpusId -> Maybe ListId -> GargNoServer [Int]
@@ -85,7 +82,7 @@ dataPairing :: AnnuaireId
              -> (CorpusId, ListId, NgramsType)
              -> GargNoServer (HashMap ContactId (Set DocId))
 dataPairing aId (cId, lId, ngt) = do
-  -- mc :: HM.HashMap ContactName (Set ContactId) 
+  -- mc :: HM.HashMap ContactName (Set ContactId)
   mc <- getNgramsContactId aId
   -- md :: HM.HashMap DocAuthor   (Set DocId)
   md <- getNgramsDocId     cId lId ngt

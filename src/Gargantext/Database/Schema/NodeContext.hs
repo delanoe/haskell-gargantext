@@ -34,23 +34,23 @@ data NodeContextPoly id node_id context_id score cat
                                  , _nc_category    :: !cat
                                  } deriving (Show)
 
-type NodeContextWrite     = NodeContextPoly (Maybe (Column (SqlInt4)))
-                                            (Column (SqlInt4))
-                                            (Column (SqlInt4))
-                                            (Maybe  (Column (SqlFloat8)))
-                                            (Maybe  (Column (SqlInt4)))
+type NodeContextWrite     = NodeContextPoly (Maybe (Field SqlInt4))
+                                            (Field SqlInt4)
+                                            (Field SqlInt4)
+                                            (Maybe  (Field SqlFloat8))
+                                            (Maybe  (Field SqlInt4))
 
-type NodeContextRead      = NodeContextPoly (Column (SqlInt4))
-                                            (Column (SqlInt4))
-                                            (Column (SqlInt4))
-                                            (Column (SqlFloat8))
-                                            (Column (SqlInt4))
+type NodeContextRead      = NodeContextPoly (Field SqlInt4)
+                                            (Field SqlInt4)
+                                            (Field SqlInt4)
+                                            (Field SqlFloat8)
+                                            (Field SqlInt4)
 
-type NodeContextReadNull  = NodeContextPoly (Column (Nullable SqlInt4))
-                                            (Column (Nullable SqlInt4))
-                                            (Column (Nullable SqlInt4))
-                                            (Column (Nullable SqlFloat8))
-                                            (Column (Nullable SqlInt4))
+type NodeContextReadNull  = NodeContextPoly (FieldNullable SqlInt4)
+                                            (FieldNullable SqlInt4)
+                                            (FieldNullable SqlInt4)
+                                            (FieldNullable SqlFloat8)
+                                            (FieldNullable SqlInt4)
 
 type NodeContext = NodeContextPoly (Maybe Int) NodeId NodeId (Maybe Double) (Maybe Int)
 

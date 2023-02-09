@@ -111,17 +111,17 @@ leftJoin4 q1 q2     q3     q4
               ) cond34
 
 
-leftJoin5 :: (Default Unpackspec b2 b2, Default Unpackspec b3 b3,
-            Default Unpackspec b4 b4, Default Unpackspec b5 b5,
-            Default Unpackspec b6 b6, Default Unpackspec b7 b7,
-            Default Unpackspec fieldsL fieldsL, Default Unpackspec b8 b8,
-            Default Unpackspec b9 b9, Default Unpackspec b10 b10,
-            Default Unpackspec fieldsR fieldsR, Default NullMaker b7 b6,
-            Default NullMaker b6 b11, Default NullMaker b8 b12,
-            Default NullMaker b3 b13, Default NullMaker b2 b14,
-            Default NullMaker b9 b3, Default NullMaker b10 b2,
-            Default NullMaker b5 b9, Default NullMaker b4 b10,
-            Default NullMaker fieldsR b4) =>
+leftJoin5 :: ( Default Unpackspec b2 b2, Default Unpackspec b3 b3
+             , Default Unpackspec b4 b4, Default Unpackspec b5 b5
+             , Default Unpackspec b6 b6, Default Unpackspec b7 b7
+             , Default Unpackspec fieldsL fieldsL, Default Unpackspec b8 b8
+             , Default Unpackspec b9 b9, Default Unpackspec b10 b10
+             , Default Unpackspec fieldsR fieldsR, Default NullMaker b7 b6
+             , Default NullMaker b6 b11, Default NullMaker b8 b12
+             , Default NullMaker b3 b13, Default NullMaker b2 b14
+             , Default NullMaker b9 b3, Default NullMaker b10 b2
+             , Default NullMaker b5 b9, Default NullMaker b4 b10
+             , Default NullMaker fieldsR b4) =>
            Select fieldsR
            -> Select b5
            -> Select b7

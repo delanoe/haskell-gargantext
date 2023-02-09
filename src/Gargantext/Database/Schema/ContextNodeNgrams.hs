@@ -40,28 +40,28 @@ data ContextNodeNgramsPoly c n ngrams_id ngt w dc
                        } deriving (Show)
 
 type ContextNodeNgramsWrite =
-     ContextNodeNgramsPoly (Column SqlInt4  )
-                           (Column SqlInt4  )
-                           (Column SqlInt4  )
-                           (Column SqlInt4  )
-                           (Column SqlFloat8)
-                           (Column SqlInt4  )
+     ContextNodeNgramsPoly (Field SqlInt4  )
+                           (Field SqlInt4  )
+                           (Field SqlInt4  )
+                           (Field SqlInt4  )
+                           (Field SqlFloat8)
+                           (Field SqlInt4  )
 
 type ContextNodeNgramsRead  =
-     ContextNodeNgramsPoly (Column SqlInt4  )
-                           (Column SqlInt4  )
-                           (Column SqlInt4  )
-                           (Column SqlInt4  )
-                           (Column SqlFloat8)
-                           (Column SqlInt4  )
+     ContextNodeNgramsPoly (Field SqlInt4  )
+                           (Field SqlInt4  )
+                           (Field SqlInt4  )
+                           (Field SqlInt4  )
+                           (Field SqlFloat8)
+                           (Field SqlInt4  )
 
 type ContextNodeNgramsReadNull =
-     ContextNodeNgramsPoly (Column (Nullable SqlInt4  ))
-                           (Column (Nullable SqlInt4  ))
-                           (Column (Nullable SqlInt4  ))
-                           (Column (Nullable SqlInt4  ))
-                           (Column (Nullable SqlFloat8))
-                           (Column (Nullable SqlInt4  ))
+     ContextNodeNgramsPoly (FieldNullable SqlInt4  )
+                           (FieldNullable SqlInt4  )
+                           (FieldNullable SqlInt4  )
+                           (FieldNullable SqlInt4  )
+                           (FieldNullable SqlFloat8)
+                           (FieldNullable SqlInt4  )
 
 $(makeAdaptorAndInstance "pContextNodeNgrams" ''ContextNodeNgramsPoly)
 makeLenses ''ContextNodeNgramsPoly
@@ -78,3 +78,6 @@ contextNodeNgramsTable  = Table "context_node_ngrams"
                                , _cnng_doc_count  = requiredTableField "doc_count"
                                }
                           )
+
+-- queryContextNodeNgramsTable :: Select ContextNodeNgramsRead
+-- queryContextNodeNgramsTable = selectTable contextNodeNgramsTable
