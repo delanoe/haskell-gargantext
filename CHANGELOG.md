@@ -1,3 +1,9 @@
+## Version 0.0.6.9.4.3
+
+* [BACK][DOC][Welcome: Door To enter the project (#177)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/177)
+* [FRONT][DOC][Door to entry: Welcome! (#269)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/269)
+* [BACK][REFACT][Doc Table: count (#175)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/175)
+
 ## Version 0.0.6.9.4.2
 
 * [FRONT][FIX][Regression : on graph (#496)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/496)
