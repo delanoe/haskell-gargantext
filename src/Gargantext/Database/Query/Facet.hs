@@ -48,7 +48,6 @@ import qualified Opaleye.Internal.Unpackspec()
 import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Database.Query.Filter
-import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Query.Table.Context
 import Gargantext.Database.Query.Facet.Types
@@ -82,35 +81,53 @@ viewAuthorsDoc :: HasDBid NodeType
                -> NodeType
                -> Select FacetDocRead
 viewAuthorsDoc cId _ nt = proc () -> do
-  (doc,(_,(_,(_,contact')))) <- queryAuthorsDoc      -< ()
+  --(doc,(_,(_,(_,contact')))) <- queryAuthorsDoc      -< ()
+  (doc, _, _, _, contact') <- queryAuthorsDoc -< ()
 
-  restrict -< _node_id   contact'  .== (toNullable $ pgNodeId cId)
-  restrict -< _node_typename doc   .== (sqlInt4 $ toDBid nt)
+  restrict -< fromMaybeFields (sqlInt4 $ -1) (_node_id <$> contact')  .=== pgNodeId cId
+  restrict -< _node_typename doc   .== sqlInt4 (toDBid nt)
 
   returnA  -< FacetDoc { facetDoc_id         = _node_id        doc
                        , facetDoc_created    = _node_date      doc
                        , facetDoc_title      = _node_name      doc
                        , facetDoc_hyperdata  = _node_hyperdata doc
                        , facetDoc_category   = toNullable $ sqlInt4 1
-                       , facetDoc_ngramCount = toNullable $ sqlDouble 1
+                       , facetDoc_ngramCount = toNullable $ sqlDouble 1.0
                        , facetDoc_score      = toNullable $ sqlDouble 1 }
 
-queryAuthorsDoc :: Select (NodeRead, (ContextNodeNgramsReadNull, (NgramsReadNull, (ContextNodeNgramsReadNull, NodeReadNull))))
-queryAuthorsDoc = leftJoin5 queryNodeTable queryContextNodeNgramsTable queryNgramsTable queryContextNodeNgramsTable queryNodeTable cond12 cond23 cond34 cond45
-    where
-         cond12 :: (ContextNodeNgramsRead, NodeRead) -> Column SqlBool
-         cond12 (nodeNgram, doc) =  _node_id doc
-                                .== _cnng_context_id nodeNgram
+--queryAuthorsDoc :: Select (NodeRead, (ContextNodeNgramsReadNull, (NgramsReadNull, (ContextNodeNgramsRead, NodeReadNull))))
+--queryAuthorsDoc = leftJoin5 queryNodeTable queryContextNodeNgramsTable queryNgramsTable queryContextNodeNgramsTable queryNodeTable cond12 cond23 cond34 cond45
+queryAuthorsDoc :: Select ( NodeRead
+                          , MaybeFields ContextNodeNgramsRead
+                          , MaybeFields NgramsRead
+                          , MaybeFields ContextNodeNgramsRead
+                          , MaybeFields NodeRead)
+queryAuthorsDoc = proc () -> do
+  n <- queryNodeTable -< ()
+  cnn <- optionalRestrict queryContextNodeNgramsTable -<
+    \cnn' -> _node_id n .== _cnng_context_id cnn'
+  ng <- optionalRestrict queryNgramsTable -<
+    \ng' -> justFields (ng' ^. ngrams_id) .=== (_cnng_ngrams_id <$> cnn)
+  cnn2 <- optionalRestrict queryContextNodeNgramsTable -<
+    \cnn2' -> (_ngrams_id <$> ng) .=== justFields (_cnng_ngrams_id cnn2')
+  contact <- optionalRestrict queryNodeTable -<
+    \contact' -> justFields (_node_id contact') .=== (_cnng_context_id <$> cnn2)
 
-         cond23 :: (NgramsRead, (ContextNodeNgramsRead, NodeReadNull)) -> Column SqlBool
-         cond23 (ngrams', (nodeNgram, _)) =  ngrams'^.ngrams_id
-                                        .== _cnng_ngrams_id nodeNgram
+  returnA -< (n, cnn, ng, cnn2, contact)
+    -- where
+    --      cond12 :: (ContextNodeNgramsRead, NodeRead) -> Field SqlBool
+    --      cond12 (nodeNgram, doc) =  _node_id doc
+    --                             .== _cnng_context_id nodeNgram
 
-         cond34 :: (ContextNodeNgramsRead, (NgramsRead, (ContextNodeNgramsReadNull, NodeReadNull))) -> Column SqlBool
-         cond34 (nodeNgram2, (ngrams', (_,_)))= ngrams'^.ngrams_id .== _cnng_ngrams_id       nodeNgram2
+    --      cond23 :: (NgramsRead, (ContextNodeNgramsRead, NodeReadNull)) -> Field SqlBool
+    --      cond23 (ngrams', (nodeNgram, _)) =  ngrams'^.ngrams_id
+    --                                     .== _cnng_ngrams_id nodeNgram
 
-         cond45 :: (NodeRead, (ContextNodeNgramsRead, (NgramsReadNull, (ContextNodeNgramsReadNull, NodeReadNull)))) -> Column SqlBool
-         cond45 (contact', (nodeNgram2', (_, (_,_)))) = _node_id  contact'  .== _cnng_context_id         nodeNgram2'
+    --      cond34 :: (ContextNodeNgramsRead, (NgramsRead, (ContextNodeNgramsReadNull, NodeReadNull))) -> Field SqlBool
+    --      cond34 (nodeNgram2, (ngrams', (_,_)))= ngrams'^.ngrams_id .== _cnng_ngrams_id       nodeNgram2
+
+    --      cond45 :: (NodeRead, (ContextNodeNgramsRead, (NgramsReadNull, (ContextNodeNgramsReadNull, NodeReadNull)))) -> Field SqlBool
+    --      cond45 (contact', (nodeNgram2', (_, (_,_)))) = _node_id  contact'  .== _cnng_context_id         nodeNgram2'
 
 
 ------------------------------------------------------------------------
@@ -144,6 +161,7 @@ viewDocuments :: CorpusId
               -> Maybe Text
               -> Select FacetDocRead
 viewDocuments cId t ntId mQuery mYear = viewDocumentsQuery cId t ntId mQuery mYear >>> proc (c, nc) -> do
+  -- ngramCountAgg <- aggregate sumInt4 -< cnng
   returnA  -< FacetDoc { facetDoc_id         = _cs_id        c
                        , facetDoc_created    = _cs_date      c
                        , facetDoc_title      = _cs_name      c
@@ -153,29 +171,38 @@ viewDocuments cId t ntId mQuery mYear = viewDocumentsQuery cId t ntId mQuery mYe
                        , facetDoc_score      = toNullable $ nc^.nc_score
                        }
 
+-- TODO Join with context_node_ngrams at context_id/node_id and sum by
+-- doc_count.
 viewDocumentsQuery :: CorpusId
                    -> IsTrash
                    -> NodeTypeId
                    -> Maybe Text
                    -> Maybe Text
                    -> Select (ContextSearchRead, NodeContextRead)
+                   -- -> Select (ContextSearchRead, NodeContextRead, MaybeFields ContextNodeNgramsRead)
 viewDocumentsQuery cId t ntId mQuery mYear = proc () -> do
   c  <- queryContextSearchTable -< ()
-  nc <- queryNodeContextTable   -< ()
-  restrict -< c^.cs_id         .== nc^.nc_context_id
-  restrict -< nc^.nc_node_id   .== (pgNodeId cId)
-  restrict -< c^.cs_typename   .== (sqlInt4 ntId)
-  restrict -< if t then nc^.nc_category .== (sqlInt4 0)
-                   else nc^.nc_category .>= (sqlInt4 1)
+  -- let joinCond (nc, cnn) = do
+  --       restrict -< (nc ^. context_id) .== (cnn ^. context_id)
+  --       restrict -< (nc ^. node_id)    .== (cnn ^. node_id)  -- :: (NodeContextRead, ContextNodeNgramsRead) -> Field SqlBool
+  nc <- queryNodeContextTable -< ()
+  restrict -< (c^.cs_id)       .== (nc^.nc_context_id)
+  restrict -< nc^.nc_node_id   .== pgNodeId cId
+  restrict -< c^.cs_typename   .== sqlInt4 ntId
+  -- cnng <- optionalRestrict queryContextNodeNgramsTable -<
+  --   (\cnng' -> (nc ^. nc_context_id) .== (cnng' ^. cnng_context_id) .&&
+  --              (nc ^. nc_node_id)    .== (cnng' ^. cnng_node_id))
+  restrict -< if t then nc^.nc_category .== sqlInt4 0
+                   else nc^.nc_category .>= sqlInt4 1
 
   let
     query         = (fromMaybe "" mQuery)
     year          = (fromMaybe "" mYear)
     iLikeQuery    = T.intercalate "" ["%", query, "%"]
     abstractLHS h = fromNullable (sqlStrictText "")
-                  $ toNullable h .->> (sqlStrictText "abstract")
+                  $ toNullable h .->> sqlStrictText "abstract"
     yearLHS h     = fromNullable (sqlStrictText "")
-                  $ toNullable h .->> (sqlStrictText "publication_year")
+                  $ toNullable h .->> sqlStrictText "publication_year"
 
   restrict -<
     if query == "" then sqlBool True
@@ -183,42 +210,43 @@ viewDocumentsQuery cId t ntId mQuery mYear = proc () -> do
         .|| ((abstractLHS (c^.cs_hyperdata)) `ilike` (sqlStrictText iLikeQuery))
   restrict -<
     if year == "" then sqlBool True
-      else (yearLHS (c^.cs_hyperdata)) .== (sqlStrictText year)
+      else yearLHS (c ^. cs_hyperdata) .== sqlStrictText year
 
   returnA -< (c, nc)
+  -- returnA -< (c, nc, cnng)
 
 
 ------------------------------------------------------------------------
-filterWith :: (SqlOrd date, SqlOrd title, SqlOrd category, SqlOrd score, hyperdata ~ Column SqlJsonb) =>
+filterWith :: (SqlOrd date, SqlOrd title, SqlOrd category, SqlOrd score, hyperdata ~ SqlJsonb) =>
         Maybe Gargantext.Core.Types.Offset
      -> Maybe Gargantext.Core.Types.Limit
      -> Maybe OrderBy
-     -> Select (Facet id (Column date) (Column title) hyperdata (Column category) ngramCount (Column score))
-     -> Select (Facet id (Column date) (Column title) hyperdata (Column category) ngramCount (Column score))
+     -> Select (Facet id (Field date) (Field title) (Field hyperdata) (FieldNullable category) ngramCount (FieldNullable score))
+     -> Select (Facet id (Field date) (Field title) (Field hyperdata)(FieldNullable category) ngramCount (FieldNullable score))
 filterWith o l order q = limit' l $ offset' o $ orderBy (orderWith order) q
 
 
 orderWith :: (SqlOrd b1, SqlOrd b2, SqlOrd b3, SqlOrd b4)
           => Maybe OrderBy
-          -> Order (Facet id (Column b1) (Column b2) (Column SqlJsonb) (Column b3) ngramCount (Column b4))
+          -> Order (Facet id (Field b1) (Field b2) (Field SqlJsonb) (FieldNullable b3) ngramCount (FieldNullable b4))
 orderWith (Just DateAsc)   = asc  facetDoc_created
 orderWith (Just DateDesc)  = desc facetDoc_created
 
 orderWith (Just TitleAsc)  = asc  facetDoc_title
 orderWith (Just TitleDesc) = desc facetDoc_title
 
-orderWith (Just ScoreAsc)  = asc  facetDoc_score
+orderWith (Just ScoreAsc)  = ascNullsLast  facetDoc_score
 orderWith (Just ScoreDesc) = descNullsLast facetDoc_score
 
-orderWith (Just SourceAsc)  = asc  facetDoc_source
-orderWith (Just SourceDesc) = desc facetDoc_source
+orderWith (Just SourceAsc)  = ascNullsLast  facetDoc_source
+orderWith (Just SourceDesc) = descNullsLast facetDoc_source
 
-orderWith (Just TagAsc)     = asc  facetDoc_category
-orderWith (Just TagDesc)    = desc facetDoc_category
+orderWith (Just TagAsc)     = ascNullsLast  facetDoc_category
+orderWith (Just TagDesc)    = descNullsLast facetDoc_category
 
 orderWith _                = asc facetDoc_created
 
 facetDoc_source :: SqlIsJson a
-                => Facet id created title (Column a) favorite ngramCount score
-                -> Column (Nullable SqlText)
-facetDoc_source x = toNullable (facetDoc_hyperdata x) .->> sqlString "source"
+                => Facet id created title (Field a) favorite ngramCount score
+                -> FieldNullable SqlText
+facetDoc_source x = (toNullable $ facetDoc_hyperdata x) .->> sqlString "source"

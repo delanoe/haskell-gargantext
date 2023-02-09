@@ -1,5 +1,5 @@
 {-| Module      : Gargantext.Database.Select.Table.NodeNode
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -14,6 +14,7 @@ commentary with @some markup@.
 
 {-# LANGUAGE Arrows                 #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE LambdaCase             #-}
 {-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
@@ -135,7 +136,7 @@ nodeNodesCategory :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
 nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
                             <$> runPGSQuery catQuery (PGS.Only $ Values fields inputData)
   where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
+    fields = map (QualifiedIdentifier Nothing) ["int4","int4","int4"]
     catQuery :: PGS.Query
     catQuery = [sql| UPDATE nodes_nodes as nn0
                       SET category = nn1.category
@@ -160,7 +161,7 @@ nodeNodesScore :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
 nodeNodesScore inputData = map (\(PGS.Only a) -> a)
                             <$> runPGSQuery catScore (PGS.Only $ Values fields inputData)
   where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
+    fields = map (QualifiedIdentifier Nothing) ["int4","int4","int4"]
     catScore :: PGS.Query
     catScore = [sql| UPDATE nodes_nodes as nn0
                       SET score = nn1.score
@@ -176,9 +177,11 @@ _selectCountDocs cId = runCountOpaQuery (queryCountDocs cId)
   where
     queryCountDocs cId' = proc () -> do
       (n, nn) <- joinInCorpus -< ()
-      restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId')
-      restrict -< nn^.nn_category  .>= (toNullable $ sqlInt4 1)
-      restrict -< n^.node_typename .== (sqlInt4 $ toDBid NodeDocument)
+      restrict -< matchMaybe nn $ \case
+        Nothing  -> toFields True
+        Just nn' -> (nn' ^. nn_node1_id) .== pgNodeId cId' .&&
+                    (nn' ^. nn_category) .>= sqlInt4 1
+      restrict -< n^.node_typename .== sqlInt4 (toDBid NodeDocument)
       returnA -< n
 
 
@@ -197,10 +200,12 @@ selectDocs cId = runOpaQuery (queryDocs cId)
 queryDocs :: HasDBid NodeType => CorpusId -> O.Select (Column SqlJsonb)
 queryDocs cId = proc () -> do
   (n, nn) <- joinInCorpus -< ()
-  restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
-  restrict -< nn^.nn_category  .>= (toNullable $ sqlInt4 1)
-  restrict -< n^.node_typename .== (sqlInt4 $ toDBid NodeDocument)
-  returnA -< view (node_hyperdata) n
+  restrict -< matchMaybe nn $ \case
+    Nothing  -> toFields True
+    Just nn' -> (nn' ^. nn_node1_id) .== pgNodeId cId .&&
+                (nn' ^. nn_category) .>= sqlInt4 1
+  restrict -< n ^. node_typename .== (sqlInt4 $ toDBid NodeDocument)
+  returnA -< view node_hyperdata n
 
 selectDocNodes :: HasDBid NodeType =>CorpusId -> Cmd err [Node HyperdataDocument]
 selectDocNodes cId = runOpaQuery (queryDocNodes cId)
@@ -208,22 +213,19 @@ selectDocNodes cId = runOpaQuery (queryDocNodes cId)
 queryDocNodes :: HasDBid NodeType =>CorpusId -> O.Select NodeRead
 queryDocNodes cId = proc () -> do
   (n, nn) <- joinInCorpus -< ()
-  restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
-  restrict -< nn^.nn_category  .>= (toNullable $ sqlInt4 1)
-  restrict -< n^.node_typename .== (sqlInt4 $ toDBid NodeDocument)
+  restrict -< matchMaybe nn $ \case
+    Nothing  -> toFields True
+    Just nn' -> (nn' ^.nn_node1_id   .== pgNodeId cId) .&&
+                (nn' ^. nn_category) .>= sqlInt4 1
+  restrict -< n^.node_typename .== sqlInt4 (toDBid NodeDocument)
   returnA -<  n
 
-joinInCorpus :: O.Select (NodeRead, NodeNodeReadNull)
-joinInCorpus = leftJoin queryNodeTable queryNodeNodeTable cond
-  where
-    cond :: (NodeRead, NodeNodeRead) -> Column SqlBool
-    cond (n, nn) = nn^.nn_node2_id .== (view node_id n)
-
-_joinOn1 :: O.Select (NodeRead, NodeNodeReadNull)
-_joinOn1 = leftJoin queryNodeTable queryNodeNodeTable cond
-  where
-    cond :: (NodeRead, NodeNodeRead) -> Column SqlBool
-    cond (n, nn) = nn^.nn_node1_id .== n^.node_id
+joinInCorpus :: O.Select (NodeRead, MaybeFields NodeNodeRead)
+joinInCorpus = proc () -> do
+  n <- queryNodeTable -< ()
+  nn <- optionalRestrict queryNodeNodeTable -<
+        (\nn' -> (nn' ^. nn_node2_id) .== view node_id n)
+  returnA -< (n, nn)
 
 
 ------------------------------------------------------------------------
@@ -233,17 +235,15 @@ selectPublicNodes = runOpaQuery (queryWithType NodeFolderPublic)
 
 queryWithType :: HasDBid NodeType
               => NodeType
-              -> O.Select (NodeRead, Column (Nullable SqlInt4))
+              -> O.Select (NodeRead, MaybeFields (Column SqlInt4))
 queryWithType nt = proc () -> do
-  (n, nn) <- node_NodeNode -< ()
-  restrict -< n^.node_typename .== (sqlInt4 $ toDBid nt)
-  returnA  -<  (n, nn^.nn_node2_id)
+  (n, nn_node2_id') <- node_NodeNode -< ()
+  restrict -< n^.node_typename .== sqlInt4 (toDBid nt)
+  returnA  -<  (n, nn_node2_id')
 
-node_NodeNode :: O.Select (NodeRead, NodeNodeReadNull)
-node_NodeNode = leftJoin queryNodeTable queryNodeNodeTable cond
-  where
-    cond :: (NodeRead, NodeNodeRead) -> Column SqlBool
-    cond (n, nn) = nn^.nn_node1_id .== n^.node_id
-
-
-
+node_NodeNode :: O.Select (NodeRead, MaybeFields (Field SqlInt4))
+node_NodeNode = proc () -> do
+  n <- queryNodeTable -< ()
+  nn <- optionalRestrict queryNodeNodeTable -<
+    (\nn' -> (nn' ^. nn_node1_id) .== (n ^. node_id))
+  returnA -< (n, view nn_node2_id <$> nn)

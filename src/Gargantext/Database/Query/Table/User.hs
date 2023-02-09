@@ -96,7 +96,7 @@ updateUserDB us = mkCmd $ \c -> runUpdate_ c (updateUserQuery us)
 
 -----------------------------------------------------------------------
 toUserWrite :: NewUser HashPassword -> UserWrite
-toUserWrite (NewUser u m (Auth.PasswordHash p)) = 
+toUserWrite (NewUser u m (Auth.PasswordHash p)) =
   UserDB { user_id = Nothing
          , user_password = sqlStrictText p
          , user_lastLogin = Nothing

@@ -9,7 +9,9 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE Arrows #-}
 {-# LANGUAGE ConstraintKinds, ScopedTypeVariables #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Gargantext.Database.Prelude where
 
@@ -33,17 +35,16 @@ import Database.PostgreSQL.Simple.Internal  (Field)
 import Database.PostgreSQL.Simple.Types (Query(..))
 import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Prelude
-import Gargantext.Prelude.Config (readIniFile', val)
-import Opaleye (Unpackspec, showSql, FromFields, Select, runSelect, SqlJsonb, DefaultFromField)
+import Gargantext.Prelude.Config (GargConfig(), readIniFile', val)
+import Opaleye (Unpackspec, showSql, FromFields, Select, runSelect, SqlJsonb, DefaultFromField, toFields, matchMaybe, MaybeFields)
 import Opaleye.Aggregate (countRows)
-import System.IO (FilePath)
-import System.IO (stderr)
+import qualified Opaleye.Internal.Constant
+import qualified Opaleye.Internal.Operators
+import System.IO (FilePath, stderr)
 import Text.Read (readMaybe)
 import qualified Data.ByteString      as DB
 import qualified Data.List as DL
 import qualified Database.PostgreSQL.Simple as PGS
-
-import Gargantext.Prelude.Config (GargConfig())
 
 -------------------------------------------------------
 class HasConnectionPool env where
@@ -215,3 +216,10 @@ dbCheck = do
   case r of
     [] -> return False
     _  -> return True
+
+restrictMaybe :: ( Default Opaleye.Internal.Operators.IfPP b b
+                 , (Default Opaleye.Internal.Constant.ToFields Bool b))
+              => MaybeFields a -> (a -> b) -> b
+restrictMaybe v cond = matchMaybe v $ \case
+  Nothing -> toFields True
+  Just v' -> cond v'

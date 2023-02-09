@@ -30,61 +30,34 @@ library
   exposed-modules:
       Gargantext
       Gargantext.API
+      Gargantext.API.Admin.Auth.Types
+      Gargantext.API.Admin.EnvTypes
+      Gargantext.API.Admin.Settings
+      Gargantext.API.Admin.Types
       Gargantext.API.Dev
       Gargantext.API.HashedResponse
-      Gargantext.API.Node
-      Gargantext.API.Node.Share
-      Gargantext.API.Node.File
       Gargantext.API.Ngrams
+      Gargantext.API.Ngrams.Prelude
       Gargantext.API.Ngrams.Tools
       Gargantext.API.Ngrams.Types
-      Gargantext.API.Ngrams.Prelude
-      Gargantext.API.Admin.Settings
-      Gargantext.API.Admin.EnvTypes
-      Gargantext.API.Admin.Auth.Types
-      Gargantext.API.Admin.Types
+      Gargantext.API.Node
+      Gargantext.API.Node.File
+      Gargantext.API.Node.Share
       Gargantext.API.Prelude
       Gargantext.Core
-      Gargantext.Core.NodeStory
       Gargantext.Core.Methods.Similarities
-      Gargantext.Core.Types
-      Gargantext.Core.Types.Individu
-      Gargantext.Core.Types.Main
-      Gargantext.Core.Utils
-      Gargantext.Core.Utils.Prefix
-      Gargantext.Utils.Jobs
-      Gargantext.Utils.Jobs.API
-      Gargantext.Utils.Jobs.Map
-      Gargantext.Utils.Jobs.Monad
-      Gargantext.Utils.Jobs.Queue
-      Gargantext.Utils.Jobs.Settings
-      Gargantext.Utils.Jobs.State
-      Gargantext.Utils.SpacyNLP
-      Gargantext.Database.Action.Flow
-      Gargantext.Database.Action.Flow.Types
-      Gargantext.Database.Action.User.New
-      Gargantext.Database.Query.Table.User
-      Gargantext.Database.Query.Table.Node
-      Gargantext.Database.Query.Table.Node.UpdateOpaleye
-      Gargantext.Database.Query.Table.NgramsPostag
-      Gargantext.Database.Schema.Ngrams
-      Gargantext.Database.Prelude
-      Gargantext.Database.Admin.Trigger.Init
-      Gargantext.Database.Admin.Config
-      Gargantext.Database.Admin.Types.Hyperdata
-      Gargantext.Database.Admin.Types.Node
-      Gargantext.Defaults
+      Gargantext.Core.NodeStory
       Gargantext.Core.Text
       Gargantext.Core.Text.Context
-      Gargantext.Core.Text.Corpus.Parsers
-      Gargantext.Core.Text.Corpus.Parsers.Date.Parsec
       Gargantext.Core.Text.Corpus.API
+      Gargantext.Core.Text.Corpus.Parsers
       Gargantext.Core.Text.Corpus.Parsers.CSV
+      Gargantext.Core.Text.Corpus.Parsers.Date.Parsec
       Gargantext.Core.Text.List.Formats.CSV
       Gargantext.Core.Text.Metrics
-      Gargantext.Core.Text.Metrics.TFICF
       Gargantext.Core.Text.Metrics.CharByChar
       Gargantext.Core.Text.Metrics.Count
+      Gargantext.Core.Text.Metrics.TFICF
       Gargantext.Core.Text.Prepare
       Gargantext.Core.Text.Search
       Gargantext.Core.Text.Terms
@@ -94,18 +67,46 @@ library
       Gargantext.Core.Text.Terms.Multi.Lang.Fr
       Gargantext.Core.Text.Terms.Multi.RAKE
       Gargantext.Core.Text.Terms.WithList
+      Gargantext.Core.Types
+      Gargantext.Core.Types.Individu
+      Gargantext.Core.Types.Main
+      Gargantext.Core.Utils
+      Gargantext.Core.Utils.Prefix
       Gargantext.Core.Viz.Graph
+      Gargantext.Core.Viz.Graph.Index
       Gargantext.Core.Viz.Graph.Tools
       Gargantext.Core.Viz.Graph.Tools.IGraph
-      Gargantext.Core.Viz.Graph.Index
       Gargantext.Core.Viz.Phylo
       Gargantext.Core.Viz.Phylo.API
       Gargantext.Core.Viz.Phylo.API.Tools
+      Gargantext.Core.Viz.Phylo.PhyloExport
       Gargantext.Core.Viz.Phylo.PhyloMaker
       Gargantext.Core.Viz.Phylo.PhyloTools
-      Gargantext.Core.Viz.Phylo.PhyloExport
       Gargantext.Core.Viz.Phylo.SynchronicClustering
       Gargantext.Core.Viz.Types
+      Gargantext.Database.Action.Flow
+      Gargantext.Database.Action.Flow.Types
+      Gargantext.Database.Action.User.New
+      Gargantext.Database.Admin.Config
+      Gargantext.Database.Admin.Trigger.Init
+      Gargantext.Database.Admin.Types.Hyperdata
+      Gargantext.Database.Admin.Types.Node
+      Gargantext.Database.Prelude
+      Gargantext.Database.Query.Table.NgramsPostag
+      Gargantext.Database.Query.Table.Node
+      Gargantext.Database.Query.Table.Node.UpdateOpaleye
+      Gargantext.Database.Query.Table.User
+      Gargantext.Database.Schema.Ngrams
+      Gargantext.Defaults
+      Gargantext.Utils.Jobs
+      Gargantext.Utils.Jobs.API
+      Gargantext.Utils.Jobs.Map
+      Gargantext.Utils.Jobs.Monad
+      Gargantext.Utils.Jobs.Queue
+      Gargantext.Utils.Jobs.Settings
+      Gargantext.Utils.Jobs.State
+      Gargantext.Utils.SpacyNLP
+      Gargantext.Utils.Tuple
   other-modules:
       Gargantext.API.Admin.Auth
       Gargantext.API.Admin.FrontEnd
@@ -144,8 +145,8 @@ library
       Gargantext.API.Node.Corpus.Types
       Gargantext.API.Node.Document.Export
       Gargantext.API.Node.Document.Export.Types
-      Gargantext.API.Node.DocumentsFromWriteNodes
       Gargantext.API.Node.DocumentUpload
+      Gargantext.API.Node.DocumentsFromWriteNodes
       Gargantext.API.Node.FrameCalcUpload
       Gargantext.API.Node.Get
       Gargantext.API.Node.New
@@ -189,10 +190,10 @@ library
       Gargantext.Core.Text.Corpus.Parsers.Json2Csv
       Gargantext.Core.Text.Corpus.Parsers.RIS
       Gargantext.Core.Text.Corpus.Parsers.RIS.Presse
+      Gargantext.Core.Text.Corpus.Parsers.WOS
       Gargantext.Core.Text.Corpus.Parsers.Wikidata
       Gargantext.Core.Text.Corpus.Parsers.Wikidata.Crawler
       Gargantext.Core.Text.Corpus.Parsers.Wikimedia
-      Gargantext.Core.Text.Corpus.Parsers.WOS
       Gargantext.Core.Text.Learn
       Gargantext.Core.Text.List
       Gargantext.Core.Text.List.Group
@@ -299,12 +300,12 @@ library
       Gargantext.Database.Query.Table.Node.Select
       Gargantext.Database.Query.Table.Node.Update
       Gargantext.Database.Query.Table.Node.User
-      Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
       Gargantext.Database.Query.Table.NodeContext
       Gargantext.Database.Query.Table.NodeContext_NodeContext
       Gargantext.Database.Query.Table.NodeNgrams
       Gargantext.Database.Query.Table.NodeNode
       Gargantext.Database.Query.Table.NodeNodeNgrams
+      Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
       Gargantext.Database.Query.Table.NodesNgramsRepo
       Gargantext.Database.Query.Tree
       Gargantext.Database.Query.Tree.Error
@@ -314,13 +315,13 @@ library
       Gargantext.Database.Schema.ContextNodeNgrams2
       Gargantext.Database.Schema.NgramsPostag
       Gargantext.Database.Schema.Node
-      Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
       Gargantext.Database.Schema.NodeContext
       Gargantext.Database.Schema.NodeContext_NodeContext
       Gargantext.Database.Schema.NodeNgrams
       Gargantext.Database.Schema.NodeNode
       Gargantext.Database.Schema.NodeNodeNgrams
       Gargantext.Database.Schema.NodeNodeNgrams2
+      Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
       Gargantext.Database.Schema.NodesNgramsRepo
       Gargantext.Database.Schema.Prelude
       Gargantext.Database.Schema.User

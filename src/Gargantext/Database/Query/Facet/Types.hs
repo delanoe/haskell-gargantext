@@ -97,28 +97,28 @@ instance ( Arbitrary id
          ) => Arbitrary (FacetPaired id date hyperdata score) where
   arbitrary = FacetPaired <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
-type FacetPairedRead = FacetPaired (Column SqlInt4       )
-                                   (Column SqlTimestamptz)
-                                   (Column SqlJsonb      )
-                                   (Column SqlInt4       )
+type FacetPairedRead = FacetPaired (Field SqlInt4       )
+                                   (Field SqlTimestamptz)
+                                   (Field SqlJsonb      )
+                                   (Field SqlInt4       )
 
-type FacetPairedReadNull = FacetPaired (Column (Nullable SqlInt4)       )
-                                       (Column (Nullable SqlTimestamptz))
-                                       (Column (Nullable SqlJsonb)      )
-                                       (Column (Nullable SqlInt4)       )
+type FacetPairedReadNull = FacetPaired (FieldNullable SqlInt4)
+                                       (FieldNullable SqlTimestamptz)
+                                       (FieldNullable SqlJsonb)
+                                       (FieldNullable SqlInt4)
 
-type FacetPairedReadNullAgg = FacetPaired (Aggregator (Column (Nullable SqlInt4)       )
-                                                      (Column (Nullable SqlInt4)       )
+type FacetPairedReadNullAgg = FacetPaired (Aggregator (FieldNullable SqlInt4)
+                                                      (FieldNullable SqlInt4)
                                           )
-                                          (Aggregator (Column (Nullable SqlTimestamptz))
-                                                      (Column (Nullable SqlTimestamptz))
+                                          (Aggregator (FieldNullable SqlTimestamptz)
+                                                      (FieldNullable SqlTimestamptz)
 
                                           )
-                                          (Aggregator (Column (Nullable SqlJsonb)      )
-                                                      (Column (Nullable SqlJsonb)      )
+                                          (Aggregator (FieldNullable SqlJsonb)
+                                                      (FieldNullable SqlJsonb)
                                           )
-                                          (Aggregator (Column (Nullable SqlInt4)       )
-                                                      (Column (Nullable SqlInt4)       )
+                                          (Aggregator (FieldNullable SqlInt4)
+                                                      (FieldNullable SqlInt4)
                                           )
 
 
@@ -148,13 +148,13 @@ instance Arbitrary FacetDoc where
 $(makeAdaptorAndInstance "pFacetDoc" ''Facet)
 -- $(makeLensesWith abbreviatedFields   ''Facet)
 
-type FacetDocRead = Facet (Column SqlInt4       )
-                          (Column SqlTimestamptz)
-                          (Column SqlText       )
-                          (Column SqlJsonb      )
-                          (Column (Nullable SqlInt4)) -- Category
-                          (Column (Nullable SqlFloat8)) -- Ngrams Count
-                          (Column (Nullable SqlFloat8)) -- Score
+type FacetDocRead = Facet (Field SqlInt4       )
+                          (Field SqlTimestamptz)
+                          (Field SqlText       )
+                          (Field SqlJsonb      )
+                          (FieldNullable SqlInt4) -- Category
+                          (FieldNullable SqlFloat8) -- Ngrams Count
+                          (FieldNullable SqlFloat8) -- Score
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------

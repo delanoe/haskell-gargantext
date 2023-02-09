@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Database.Schema.NodeNode
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -30,20 +30,20 @@ data NodeNodePoly node1_id node2_id score cat
                               , _nn_category   :: !cat
                               } deriving (Show)
 
-type NodeNodeWrite     = NodeNodePoly (Column (SqlInt4))
-                                      (Column (SqlInt4))
-                                      (Maybe  (Column (SqlFloat8)))
-                                      (Maybe  (Column (SqlInt4)))
+type NodeNodeWrite     = NodeNodePoly (Field SqlInt4)
+                                      (Field SqlInt4)
+                                      (Maybe  (Field SqlFloat8))
+                                      (Maybe  (Field SqlInt4))
 
-type NodeNodeRead      = NodeNodePoly (Column (SqlInt4))
-                                      (Column (SqlInt4))
-                                      (Column (SqlFloat8))
-                                      (Column (SqlInt4))
+type NodeNodeRead      = NodeNodePoly (Field SqlInt4)
+                                      (Field SqlInt4)
+                                      (Field SqlFloat8)
+                                      (Field SqlInt4)
 
-type NodeNodeReadNull  = NodeNodePoly (Column (Nullable SqlInt4))
-                                      (Column (Nullable SqlInt4))
-                                      (Column (Nullable SqlFloat8))
-                                      (Column (Nullable SqlInt4))
+type NodeNodeReadNull  = NodeNodePoly (Field SqlInt4)
+                                      (Field SqlInt4)
+                                      (FieldNullable SqlFloat8)
+                                      (FieldNullable SqlInt4)
 
 type NodeNode = NodeNodePoly NodeId NodeId (Maybe Double) (Maybe Int)
 
@@ -60,4 +60,3 @@ nodeNodeTable  =
                     , _nn_category = optionalTableField "category"
                     }
                 )
-

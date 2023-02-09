@@ -15,6 +15,7 @@ commentary with @some markup@.
 
 {-# LANGUAGE Arrows                 #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE LambdaCase             #-}
 {-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
@@ -75,7 +76,7 @@ _nodesContexts = runOpaQuery queryNodeContextTable
 getNodeContexts :: NodeId -> Cmd err [NodeContext]
 getNodeContexts n = runOpaQuery (selectNodeContexts $ pgNodeId n)
   where
-    selectNodeContexts :: Column SqlInt4 -> Select NodeContextRead
+    selectNodeContexts :: Field SqlInt4 -> Select NodeContextRead
     selectNodeContexts n' = proc () -> do
       ns <- queryNodeContextTable -< ()
       restrict -< _nc_node_id ns .== n'
@@ -89,7 +90,7 @@ getNodeContext c n = do
     Nothing -> nodeError (DoesNotExist c)
     Just  r -> pure r
   where
-    selectNodeContext :: Column SqlInt4 -> Column SqlInt4 -> Select NodeContextRead
+    selectNodeContext :: Field SqlInt4 -> Field SqlInt4 -> Select NodeContextRead
     selectNodeContext c' n' = proc () -> do
       ns <- queryNodeContextTable -< ()
       restrict -< _nc_context_id ns .== c'
@@ -211,7 +212,7 @@ nodeContextsCategory :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
 nodeContextsCategory inputData = map (\(PGS.Only a) -> a)
                             <$> runPGSQuery catSelect (PGS.Only $ Values fields inputData)
   where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
+    fields = map (QualifiedIdentifier Nothing) ["int4","int4","int4"]
     catSelect :: PGS.Query
     catSelect = [sql| UPDATE nodes_contexts as nn0
                       SET category = nn1.category
@@ -227,7 +228,7 @@ nodeContextsScore :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
 nodeContextsScore inputData = map (\(PGS.Only a) -> a)
                             <$> runPGSQuery catScore (PGS.Only $ Values fields inputData)
   where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
+    fields = map (QualifiedIdentifier Nothing) ["int4","int4","int4"]
     catScore :: PGS.Query
     catScore = [sql| UPDATE nodes_contexts as nn0
                       SET score = nn1.score
@@ -244,9 +245,9 @@ selectCountDocs cId = runCountOpaQuery (queryCountDocs cId)
   where
     queryCountDocs cId' = proc () -> do
       (c, nc) <- joinInCorpus -< ()
-      restrict -< nc^.nc_node_id   .== (toNullable $ pgNodeId cId')
-      restrict -< nc^.nc_category  .>= (toNullable $ sqlInt4 1)
-      restrict -< c^.context_typename .== (sqlInt4 $ toDBid NodeDocument)
+      restrict -< restrictMaybe nc $ \nc' -> (nc' ^. nc_node_id)  .== pgNodeId cId' .&&
+                                             (nc' ^. nc_category) .>= sqlInt4 1
+      restrict -< (c ^. context_typename) .== sqlInt4 (toDBid NodeDocument)
       returnA  -< c
 
 
@@ -260,12 +261,12 @@ selectDocsDates cId =  map (head' "selectDocsDates" . splitOn "-")
 selectDocs :: HasDBid NodeType => CorpusId -> Cmd err [HyperdataDocument]
 selectDocs cId = runOpaQuery (queryDocs cId)
 
-queryDocs :: HasDBid NodeType => CorpusId -> O.Select (Column SqlJsonb)
+queryDocs :: HasDBid NodeType => CorpusId -> O.Select (Field SqlJsonb)
 queryDocs cId = proc () -> do
   (c, nn)  <- joinInCorpus -< ()
-  restrict -< nn^.nc_node_id      .== (toNullable $ pgNodeId cId)
-  restrict -< nn^.nc_category     .>= (toNullable $ sqlInt4 1)
-  restrict -< c^.context_typename .== (sqlInt4 $ toDBid NodeDocument)
+  restrict -< restrictMaybe nn $ \nn' -> (nn' ^. nc_node_id)  .== pgNodeId cId .&&
+                                         (nn' ^. nc_category) .>= sqlInt4 1
+  restrict -< (c ^. context_typename) .== sqlInt4 (toDBid NodeDocument)
   returnA  -< view (context_hyperdata) c
 
 selectDocNodes :: HasDBid NodeType => CorpusId -> Cmd err [Context HyperdataDocument]
@@ -274,23 +275,29 @@ selectDocNodes cId = runOpaQuery (queryDocNodes cId)
 queryDocNodes :: HasDBid NodeType => CorpusId -> O.Select ContextRead
 queryDocNodes cId = proc () -> do
   (c, nc) <- joinInCorpus -< ()
-  restrict -< nc^.nc_node_id   .== (toNullable $ pgNodeId cId)
-  restrict -< nc^.nc_category  .>= (toNullable $ sqlInt4 1)
-  restrict -< c^.context_typename .== (sqlInt4 $ toDBid NodeDocument)
+  -- restrict -< restrictMaybe nc $ \nc' -> (nc' ^. nc_node_id)  .== pgNodeId cId .&&
+  --                                        (nc' ^. nc_category) .>= sqlInt4 1
+  restrict -< matchMaybe nc $ \case
+    Nothing  -> toFields True
+    Just nc' -> (nc' ^. nc_node_id)  .== pgNodeId cId .&&
+                (nc' ^. nc_category) .>= sqlInt4 1
+  restrict -< (c ^. context_typename) .== sqlInt4 (toDBid NodeDocument)
   returnA -<  c
 
-joinInCorpus :: O.Select (ContextRead, NodeContextReadNull)
-joinInCorpus = leftJoin queryContextTable queryNodeContextTable cond
-  where
-    cond :: (ContextRead, NodeContextRead) -> Column SqlBool
-    cond (c, nc) = c^.context_id .== nc^.nc_context_id
+joinInCorpus :: O.Select (ContextRead, MaybeFields NodeContextRead)
+joinInCorpus = proc () -> do
+  c <- queryContextTable -< ()
+  nc <- optionalRestrict queryNodeContextTable -<
+    (\nc' -> (c ^. context_id) .== (nc' ^. nc_context_id))
+  returnA -< (c, nc)
 
 
-joinOn1 :: O.Select (NodeRead, NodeContextReadNull)
-joinOn1 = leftJoin queryNodeTable queryNodeContextTable cond
-  where
-    cond :: (NodeRead, NodeContextRead) -> Column SqlBool
-    cond (n, nc) = nc^.nc_node_id .== n^.node_id
+joinOn1 :: O.Select (NodeRead, MaybeFields NodeContextRead)
+joinOn1 = proc () -> do
+  n <- queryNodeTable -< ()
+  nc <- optionalRestrict queryNodeContextTable -<
+    (\nc' -> (nc' ^. nc_node_id) .== (n ^. node_id))
+  returnA -< (n, nc)
 
 
 ------------------------------------------------------------------------
@@ -298,8 +305,8 @@ selectPublicContexts :: HasDBid NodeType => (Hyperdata a, DefaultFromField SqlJs
                   => Cmd err [(Node a, Maybe Int)]
 selectPublicContexts = runOpaQuery (queryWithType NodeFolderPublic)
 
-queryWithType :: HasDBid NodeType =>NodeType -> O.Select (NodeRead, Column (Nullable SqlInt4))
+queryWithType :: HasDBid NodeType => NodeType -> O.Select (NodeRead, MaybeFields (Field SqlInt4))
 queryWithType nt = proc () -> do
   (n, nc) <- joinOn1 -< ()
-  restrict -< n^.node_typename .== (sqlInt4 $ toDBid nt)
-  returnA  -<  (n, nc^.nc_context_id)
+  restrict -< (n ^. node_typename) .== sqlInt4 (toDBid nt)
+  returnA  -<  (n, view nc_context_id <$> nc)
