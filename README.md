@@ -1,4 +1,9 @@
+<div align="center"><img height="180" src="https://gitlab.iscpif.fr/gargantext/purescript-gargantext/raw/dev/dist/images/logo.png"></div>
+
+&nbsp;
 # Gargantext with Haskell (Backend instance)
+
+![Purescript](https://img.shields.io/badge/Code-Haskell-informational?style=flat&logo=haskell&color=6144b3)&nbsp;&nbsp;![Nix](https://img.shields.io/badge/Package%20manager-Nix-informational?style=flat&logo=debian&color=6586c8)&nbsp;&nbsp;![Docker](https://img.shields.io/badge/Tools-Docker-informational?style=flat&logo=docker&color=003f8c)
 
 ## About the project
 
@@ -24,7 +29,7 @@ progress. Please report and improve this documentation if you encounter issues.
 
 ### Stack setup
 
-You need to install stack first:
+You need to install [Stack (or Haskell Tool Stack)](https://docs.haskellstack.org/en/stable/) first:
 
 ```shell
 curl -sSL https://get.haskellstack.org/ | sh
@@ -33,11 +38,12 @@ curl -sSL https://get.haskellstack.org/ | sh
 Verify the installation is complete with
 ```shell
 stack --version
+Version 2.9.1
 ```
 
 ### With Nix setup
 
-First install [nix](https://nixos.org/download.html): 
+First install [Nix](https://nixos.org/download.html): 
 
 ```shell
 $ sh <(curl -L https://nixos.org/nix/install) --daemon
@@ -46,7 +52,7 @@ $ sh <(curl -L https://nixos.org/nix/install) --daemon
 Verify the installation is complete
 ```shell
 $ nix-env --version
-nix-env (Nix) 2.3.12
+nix-env (Nix) 2.12.0
 ```
 And just build:
 ``` sh
