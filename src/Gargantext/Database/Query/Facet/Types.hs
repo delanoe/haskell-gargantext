@@ -102,25 +102,6 @@ type FacetPairedRead = FacetPaired (Field SqlInt4       )
                                    (Field SqlJsonb      )
                                    (Field SqlInt4       )
 
-type FacetPairedReadNull = FacetPaired (FieldNullable SqlInt4)
-                                       (FieldNullable SqlTimestamptz)
-                                       (FieldNullable SqlJsonb)
-                                       (FieldNullable SqlInt4)
-
-type FacetPairedReadNullAgg = FacetPaired (Aggregator (FieldNullable SqlInt4)
-                                                      (FieldNullable SqlInt4)
-                                          )
-                                          (Aggregator (FieldNullable SqlTimestamptz)
-                                                      (FieldNullable SqlTimestamptz)
-
-                                          )
-                                          (Aggregator (FieldNullable SqlJsonb)
-                                                      (FieldNullable SqlJsonb)
-                                          )
-                                          (Aggregator (FieldNullable SqlInt4)
-                                                      (FieldNullable SqlInt4)
-                                          )
-
 
 
 

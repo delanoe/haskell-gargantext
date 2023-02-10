@@ -40,11 +40,6 @@ type NodeNodeRead      = NodeNodePoly (Field SqlInt4)
                                       (Field SqlFloat8)
                                       (Field SqlInt4)
 
-type NodeNodeReadNull  = NodeNodePoly (Field SqlInt4)
-                                      (Field SqlInt4)
-                                      (FieldNullable SqlFloat8)
-                                      (FieldNullable SqlInt4)
-
 type NodeNode = NodeNodePoly NodeId NodeId (Maybe Double) (Maybe Int)
 
 $(makeAdaptorAndInstance "pNodeNode" ''NodeNodePoly)

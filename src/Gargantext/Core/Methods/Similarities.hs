@@ -51,4 +51,3 @@ instance Arbitrary GraphMetric where
   arbitrary = elements [ minBound .. maxBound ]
 
 ------------------------------------------------------------------------
-

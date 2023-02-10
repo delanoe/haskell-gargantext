@@ -37,10 +37,3 @@ selectNodesWithUsername nt u = runOpaQuery $ proc () -> do
     Just us -> user_username us .== sqlStrictText u
   restrict -< _node_typename n .== sqlInt4 (toDBid nt)
   returnA  -< _node_id n
-
-    -- join' :: Select (NodeRead, UserReadNull)
-    -- --join' = leftJoin queryNodeTable queryUserTable on1
-    -- join' = optionalRestrict queryUserTable -<
-    --   (\(n, us) -> _node_user_id n .== user_id ud)
-    --   -- where
-    --   --   on1 (n,us) = _node_user_id n .== user_id us

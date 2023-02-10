@@ -32,13 +32,11 @@ module Gargantext.Database.Query.Facet
   , FacetDocRead
   , FacetPaired(..)
   , FacetPairedRead
-  , FacetPairedReadNull
-  , FacetPairedReadNullAgg
   , OrderBy(..)
   )
   where
 
-import Control.Arrow (returnA, (>>>))
+import Control.Arrow (returnA)
 import Control.Lens ((^.))
 import qualified Data.Text as T
 import Opaleye
@@ -95,8 +93,6 @@ viewAuthorsDoc cId _ nt = proc () -> do
                        , facetDoc_ngramCount = toNullable $ sqlDouble 1.0
                        , facetDoc_score      = toNullable $ sqlDouble 1 }
 
---queryAuthorsDoc :: Select (NodeRead, (ContextNodeNgramsReadNull, (NgramsReadNull, (ContextNodeNgramsRead, NodeReadNull))))
---queryAuthorsDoc = leftJoin5 queryNodeTable queryContextNodeNgramsTable queryNgramsTable queryContextNodeNgramsTable queryNodeTable cond12 cond23 cond34 cond45
 queryAuthorsDoc :: Select ( NodeRead
                           , MaybeFields ContextNodeNgramsRead
                           , MaybeFields NgramsRead
@@ -114,20 +110,6 @@ queryAuthorsDoc = proc () -> do
     \contact' -> justFields (_node_id contact') .=== (_cnng_context_id <$> cnn2)
 
   returnA -< (n, cnn, ng, cnn2, contact)
-    -- where
-    --      cond12 :: (ContextNodeNgramsRead, NodeRead) -> Field SqlBool
-    --      cond12 (nodeNgram, doc) =  _node_id doc
-    --                             .== _cnng_context_id nodeNgram
-
-    --      cond23 :: (NgramsRead, (ContextNodeNgramsRead, NodeReadNull)) -> Field SqlBool
-    --      cond23 (ngrams', (nodeNgram, _)) =  ngrams'^.ngrams_id
-    --                                     .== _cnng_ngrams_id nodeNgram
-
-    --      cond34 :: (ContextNodeNgramsRead, (NgramsRead, (ContextNodeNgramsReadNull, NodeReadNull))) -> Field SqlBool
-    --      cond34 (nodeNgram2, (ngrams', (_,_)))= ngrams'^.ngrams_id .== _cnng_ngrams_id       nodeNgram2
-
-    --      cond45 :: (NodeRead, (ContextNodeNgramsRead, (NgramsReadNull, (ContextNodeNgramsReadNull, NodeReadNull)))) -> Field SqlBool
-    --      cond45 (contact', (nodeNgram2', (_, (_,_)))) = _node_id  contact'  .== _cnng_context_id         nodeNgram2'
 
 
 ------------------------------------------------------------------------

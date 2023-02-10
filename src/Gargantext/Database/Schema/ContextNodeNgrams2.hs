@@ -43,11 +43,6 @@ type ContextNodeNgrams2Read  =
                             (Column SqlInt4  )
                             (Column SqlFloat8)
 
-type ContextNodeNgrams2ReadNull =
-     ContextNodeNgrams2Poly (Column (Nullable SqlInt4  ))
-                            (Column (Nullable SqlInt4  ))
-                            (Column (Nullable SqlFloat8))
-
 $(makeAdaptorAndInstance "pContextNodeNgrams2" ''ContextNodeNgrams2Poly)
 makeLenses ''ContextNodeNgrams2Poly
 

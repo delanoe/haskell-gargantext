@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Database.Schema.ContextContext
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -35,9 +35,6 @@ type NodeContext_NodeContextWrite = NodeContext_NodeContextPoly (Column (SqlInt4
 type NodeContext_NodeContextRead  = NodeContext_NodeContextPoly (Column (SqlInt4))
                                                                 (Column (SqlInt4))
 
-type NodeContext_NodeContextReadNull  = NodeContext_NodeContextPoly (Column (Nullable SqlInt4))
-                                                                    (Column (Nullable SqlInt4))
-
 type NodeContext_NodeContext = NodeContext_NodeContextPoly NodeContextId NodeContextId
 
 $(makeAdaptorAndInstance "pNodeContext_NodeContext" ''NodeContext_NodeContextPoly)
@@ -53,6 +50,3 @@ nodeContext_NodeContextTable =
           )
 queryNodeContext_NodeContextTable :: Query NodeContext_NodeContextRead
 queryNodeContext_NodeContextTable = selectTable nodeContext_NodeContextTable
-
-
-
