@@ -1,3 +1,7 @@
+## Version 0.0.6.9.4.4
+
+* [BACK][Add optional Accelerate dependency on Darwin for pkgs.nix](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/merge_requests/128)
+
 ## Version 0.0.6.9.4.3
 
 * [BACK][DOC][Welcome: Door To enter the project (#177)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/177)

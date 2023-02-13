@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-version: 0.0.6.9.4.3
+version: 0.0.6.9.4.4
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
@@ -145,8 +145,8 @@ library
       Gargantext.API.Node.Corpus.Types
       Gargantext.API.Node.Document.Export
       Gargantext.API.Node.Document.Export.Types
-      Gargantext.API.Node.DocumentUpload
       Gargantext.API.Node.DocumentsFromWriteNodes
+      Gargantext.API.Node.DocumentUpload
       Gargantext.API.Node.FrameCalcUpload
       Gargantext.API.Node.Get
       Gargantext.API.Node.New
@@ -190,10 +190,10 @@ library
       Gargantext.Core.Text.Corpus.Parsers.Json2Csv
       Gargantext.Core.Text.Corpus.Parsers.RIS
       Gargantext.Core.Text.Corpus.Parsers.RIS.Presse
-      Gargantext.Core.Text.Corpus.Parsers.WOS
       Gargantext.Core.Text.Corpus.Parsers.Wikidata
       Gargantext.Core.Text.Corpus.Parsers.Wikidata.Crawler
       Gargantext.Core.Text.Corpus.Parsers.Wikimedia
+      Gargantext.Core.Text.Corpus.Parsers.WOS
       Gargantext.Core.Text.Learn
       Gargantext.Core.Text.List
       Gargantext.Core.Text.List.Group
@@ -300,12 +300,12 @@ library
       Gargantext.Database.Query.Table.Node.Select
       Gargantext.Database.Query.Table.Node.Update
       Gargantext.Database.Query.Table.Node.User
+      Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
       Gargantext.Database.Query.Table.NodeContext
       Gargantext.Database.Query.Table.NodeContext_NodeContext
       Gargantext.Database.Query.Table.NodeNgrams
       Gargantext.Database.Query.Table.NodeNode
       Gargantext.Database.Query.Table.NodeNodeNgrams
-      Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
       Gargantext.Database.Query.Table.NodesNgramsRepo
       Gargantext.Database.Query.Tree
       Gargantext.Database.Query.Tree.Error
@@ -315,13 +315,13 @@ library
       Gargantext.Database.Schema.ContextNodeNgrams2
       Gargantext.Database.Schema.NgramsPostag
       Gargantext.Database.Schema.Node
+      Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
       Gargantext.Database.Schema.NodeContext
       Gargantext.Database.Schema.NodeContext_NodeContext
       Gargantext.Database.Schema.NodeNgrams
       Gargantext.Database.Schema.NodeNode
       Gargantext.Database.Schema.NodeNodeNgrams
       Gargantext.Database.Schema.NodeNodeNgrams2
-      Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
       Gargantext.Database.Schema.NodesNgramsRepo
       Gargantext.Database.Schema.Prelude
       Gargantext.Database.Schema.User
