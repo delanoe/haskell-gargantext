@@ -142,7 +142,8 @@ viewDocuments :: CorpusId
               -> Maybe Text
               -> Maybe Text
               -> Select FacetDocRead
-viewDocuments cId t ntId mQuery mYear = viewDocumentsQuery cId t ntId mQuery mYear >>> proc (c, nc) -> do
+viewDocuments cId t ntId mQuery mYear = proc () -> do
+  (c, nc) <- viewDocumentsQuery cId t ntId mQuery mYear -< ()
   -- ngramCountAgg <- aggregate sumInt4 -< cnng
   returnA  -< FacetDoc { facetDoc_id         = _cs_id        c
                        , facetDoc_created    = _cs_date      c
