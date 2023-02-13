@@ -101,6 +101,7 @@ library:
   - Gargantext.Core.Viz.Graph.Index
   - Gargantext.Core.Viz.Graph.Tools
   - Gargantext.Core.Viz.Graph.Tools.IGraph
+  - Gargantext.Core.Viz.Graph.Types
   - Gargantext.Core.Viz.Phylo
   - Gargantext.Core.Viz.Phylo.API
   - Gargantext.Core.Viz.Phylo.API.Tools
@@ -215,7 +216,6 @@ library:
   - matrix
   - monad-control
   - monad-logger
-  - monad-logger-aeson
   - morpheus-graphql
   - morpheus-graphql-app
   - morpheus-graphql-core

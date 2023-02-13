@@ -76,6 +76,7 @@ library
       Gargantext.Core.Viz.Graph.Index
       Gargantext.Core.Viz.Graph.Tools
       Gargantext.Core.Viz.Graph.Tools.IGraph
+      Gargantext.Core.Viz.Graph.Types
       Gargantext.Core.Viz.Phylo
       Gargantext.Core.Viz.Phylo.API
       Gargantext.Core.Viz.Phylo.API.Tools
@@ -234,7 +235,6 @@ library
       Gargantext.Core.Viz.Graph.Legend
       Gargantext.Core.Viz.Graph.PatriciaTreeTypes
       Gargantext.Core.Viz.Graph.Tools.Infomap
-      Gargantext.Core.Viz.Graph.Types
       Gargantext.Core.Viz.Graph.Utils
       Gargantext.Core.Viz.LegacyPhylo
       Gargantext.Core.Viz.Phylo.Example
@@ -431,7 +431,6 @@ library
     , matrix
     , monad-control
     , monad-logger
-    , monad-logger-aeson
     , morpheus-graphql
     , morpheus-graphql-app
     , morpheus-graphql-core

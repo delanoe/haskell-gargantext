@@ -176,3 +176,4 @@ ghc-options:
   hmatrix: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
   sparse-linear: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
   gargantext-graph: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
+  "$locals": -fwrite-ide-info -hiedir=".stack-work/hiedb"
