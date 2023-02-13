@@ -2,6 +2,7 @@
 
 * [BACK][Add optional Accelerate dependency on Darwin for pkgs.nix](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/merge_requests/128)
 * [BACK][Crawlers] pubmed clean unused deps removed
+* [BACK][CLEAN][Explore cutting down forks/extra-deps of libraries (#180)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/180)
 
 ## Version 0.0.6.9.4.3
 
