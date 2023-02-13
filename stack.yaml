@@ -73,8 +73,7 @@ extra-deps:
 
   # External Data API connectors
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed.git
-  commit: 31cb4d28dcb5d17274cede5e67b2a01914379129
-  #commit: 364885c891cbadcd4d8a623d2e41394b09f653aa
+  commit: 4ade495751eaf31d3ca1ac8b0ae13d3538c6e18c
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/istex.git
   commit: a34bb341236d82cf3d488210bc1d8448a98f5808
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
