@@ -1,11 +1,17 @@
-<div align="center"><img height="180" src="https://gitlab.iscpif.fr/gargantext/purescript-gargantext/raw/dev/dist/images/logo.png"></div>
+<div align="center"><img height="180" src="https://gitlab.iscpif.fr/gargantext/main/images/logo.png"></div>
 
 &nbsp;
 # Gargantext with Haskell (Backend instance)
 
-![Purescript](https://img.shields.io/badge/Code-Haskell-informational?style=flat&logo=haskell&color=6144b3)&nbsp;&nbsp;![Nix](https://img.shields.io/badge/Package%20manager-Nix-informational?style=flat&logo=debian&color=6586c8)&nbsp;&nbsp;![Docker](https://img.shields.io/badge/Tools-Docker-informational?style=flat&logo=docker&color=003f8c)
+![Haskell](https://img.shields.io/badge/Code-Haskell-informational?style=flat&logo=haskell&color=6144b3)&nbsp;&nbsp;![Stack](https://img.shields.io/badge/Tools-Stack-informational?style=flat&logo=&color=6144b3)&nbsp;&nbsp;![GHC](https://img.shields.io/badge/Tools-GHC-informational?style=flat&logo=&color=2E677B)&nbsp;&nbsp;![Nix](https://img.shields.io/badge/Package%20manager-Nix-informational?style=flat&logo=debian&color=6586c8)&nbsp;&nbsp;![Docker](https://img.shields.io/badge/Tools-Docker-informational?style=flat&logo=docker&color=003f8c)
 
-## About the project
+#### Table of Contents
+1. [About the project](#about)
+2. [Example2](#example2)
+3. [Third Example](#third-example)
+4. [Fourth Example](#fourth-examplehttpwwwfourthexamplecom)
+
+## About the project  <a name="about"></a>
 
 GarganText is a collaborative web-decentralized-based macro-service
 platform for the exploration of unstructured texts. It combines tools
@@ -27,7 +33,11 @@ backend for the frontend server built by
 Disclaimer: this project is still in development, this is work in
 progress. Please report and improve this documentation if you encounter issues.
 
-### Stack setup
+### Prerequisite
+
+Clone the project.
+
+### 1. Install Stack
 
 You need to install [Stack (or Haskell Tool Stack)](https://docs.haskellstack.org/en/stable/) first:
 
@@ -41,7 +51,7 @@ stack --version
 Version 2.9.1
 ```
 
-### With Nix setup
+### 2. Install Nix
 
 First install [Nix](https://nixos.org/download.html): 
 
@@ -54,12 +64,17 @@ Verify the installation is complete
 $ nix-env --version
 nix-env (Nix) 2.12.0
 ```
-And just build:
-``` sh
-stack --nix build --fast
-```
 
-### Build Core Code
+> **NOTE INFO (upgrade/downgrade if needed)**
+>
+> Gargantext works with Nix 2.12.0 (older version than current 2.13.2). To downgrade your Nix version:
+>
+> `nix-channel --update; nix-env -iA nixpkgs.nixVersions.nix_2_12 nixpkgs.cacert; systemctl daemon-reload; systemctl restart nix-daemon`
+>
+> Upgrading Nix: https://nixos.org/manual/nix/unstable/installation/upgrading.html
+
+
+### 3. Build Core Code
 
 NOTE: Default build (with optimizations) requires large amounts of RAM
 (16GB at least). To avoid heavy compilation times and swapping out your
@@ -74,6 +89,16 @@ or
 ``` sh
 stack --docker build --fast
 ```
+
+
+
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+
+
 
 #### Docker
 
@@ -100,9 +125,14 @@ curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/dev/devops/
 ``` sh
 ./devops/install-corenlp
 ```
+Note: if necessary change permission (```sudo chmod 755 ./devops/install-corenlp```)
+
 ### Launch Gargantext (It should have been initialized first)
-Run
-haskell-gargantext/devops/docker$ docker-compose up
+Run from haskell-gargantext/devops/docker$ 
+
+``` sh
+docker compose up 
+```
 
 Then 
 ``` sh
