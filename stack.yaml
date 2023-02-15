@@ -64,8 +64,9 @@ extra-deps:
   commit: fd7e5d7325939103cd87d0dc592faf644160341c
 
   # Databases libs
-- git: https://github.com/garganscript/haskell-opaleye.git
-  commit: 18c4958e076f5f8f82a4e4a3fc9ec659d2bd8766
+#- git: https://github.com/garganscript/haskell-opaleye.git
+#  commit: 912641cddd98bbdd315f5614b4098dc2460064ee
+- ../haskell-opaleye
 - git: https://github.com/delanoe/hsparql.git
   commit: 2acbbc55ac9bbd4bf1a713c586b8b8e8b82892eb
 - git: https://github.com/robstewart57/rdf4h.git
