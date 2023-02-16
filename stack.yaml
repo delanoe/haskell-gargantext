@@ -58,8 +58,6 @@ extra-deps:
     - servant-auth/servant-auth/
     - servant-auth/servant-auth-client/
     - servant-auth/servant-auth-server/
-- git: https://github.com/delanoe/servant-static-th.git
-  commit: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
 - git: https://github.com/alpmestan/ekg-json.git
   commit: fd7e5d7325939103cd87d0dc592faf644160341c
 

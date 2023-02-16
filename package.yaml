@@ -264,7 +264,6 @@ library:
   - servant-mock
   - servant-multipart
   - servant-server
-  - servant-static-th
   - servant-swagger
   - servant-swagger-ui
   - servant-xml
