@@ -1,3 +1,10 @@
+## Version 0.0.6.9.4.5
+
+* [BACK][CLEAN] Switch to Hackage version of hstatistics
+* [BACK][CLEAN] Drop unused servant-static-th
+* [FRONT][CLEAN] README 
+* [FIX][CRALER] ArXiv API
+
 ## Version 0.0.6.9.4.4
 
 * [BACK][Add optional Accelerate dependency on Darwin for pkgs.nix](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/merge_requests/128)
