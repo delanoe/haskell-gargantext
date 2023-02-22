@@ -1,4 +1,4 @@
-<div align="center"><img height="180" src="https://gitlab.iscpif.fr/gargantext/main/images/logo.png"></div>
+<div align="center"><img height="180" src="https://gitlab.iscpif.fr/gargantext/main/raw/master/images/logo.png"></div>
 
 &nbsp;
 # Gargantext with Haskell (Backend instance)
@@ -7,11 +7,14 @@
 
 #### Table of Contents
 1. [About the project](#about)
-2. [Example2](#example2)
-3. [Third Example](#third-example)
-4. [Fourth Example](#fourth-examplehttpwwwfourthexamplecom)
+2. [Installation](#install)
+3. [Initialization](#init)
+4. [Launch & develop GarganText](#launch)
+5. [Uses cases](#use-cases)
+6. [GraphQL](#graphql)
+7. [PostgreSQL](#postgresql)
 
-## About the project  <a name="about"></a>
+## About the project <a name="about"></a>
 
 GarganText is a collaborative web-decentralized-based macro-service
 platform for the exploration of unstructured texts. It combines tools
@@ -28,20 +31,20 @@ GarganText Project: this repo builds the backend for the frontend server built b
 [backend](https://gitlab.iscpif.fr/gargantext/haskell-gargantext).
 
 
-## Installation
+## Installation <a name="install"></a>
 
 Disclaimer: since this project is still in development, this document
 remains in progress. Please report and improve this documentation if you
 encounter any issues.
 
-### Prerequisite
+#### Prerequisite
 
 Clone the project.
 ```shell
 git clone https://gitlab.iscpif.fr/gargantext/haskell-gargantext.git
 cd haskell-gargantext
 ```
-### 1. Install Stack
+#### 1. Install Stack
 
 Install [Stack (or Haskell Tool Stack)](https://docs.haskellstack.org/en/stable/):
 
@@ -55,7 +58,7 @@ stack --version
 Version 2.9.1
 ```
 
-### 2. Install Nix
+#### 2. Install Nix
 
 Install [Nix](https://nixos.org/download.html):
 
@@ -66,16 +69,16 @@ $ sh <(curl -L https://nixos.org/nix/install) --daemon
 Verify the installation is complete with
 ```shell
 $ nix-env --version
-nix-env (Nix) 2.12.0
+nix-env (Nix) 2.11.0
 ```
 
 > **NOTE INFO (upgrade/downgrade if needed)**
-> Gargantext works with Nix 2.12.0 (older version than current 2.13.2). To downgrade your Nix version:
-> `nix-channel --update; nix-env -iA nixpkgs.nixVersions.nix_2_12 nixpkgs.cacert; systemctl daemon-reload; systemctl restart nix-daemon`
+> Gargantext works with Nix 2.11.0 (older version than current 2.13.2). To downgrade your Nix version:
+> `nix-channel --update; nix-env -iA nixpkgs.nixVersions.nix_2_11 nixpkgs.cacert; systemctl daemon-reload; systemctl restart nix-daemon`
 > Upgrading Nix: https://nixos.org/manual/nix/unstable/installation/upgrading.html
 
 
-### 3. Build Core Code
+#### 3. Build Core Code
 
 NOTE: Default build (with optimizations) requires large amounts of RAM
 (16GB at least). To avoid heavy compilation times and swapping out your
@@ -90,15 +93,11 @@ If the build is finishing without error, you are ready to launch
 GarganText! See next step.
 
 &nbsp;
-&nbsp;
-&nbsp;
-&nbsp;
-&nbsp;
 
 
-### Initialization
+## Initialization <a name="init"></a>
 
-Docker-compose will configure your database and some NLP bricks (such as CoreNLP):
+#### 1. Docker-compose will configure your database and some NLP bricks (such as CoreNLP):
 
 ``` sh
 # If docker is not installed:
@@ -108,30 +107,49 @@ docker compose up
 ```
 Initialization schema should be loaded automatically (from `devops/postgres/schema.sql`).
 
-Then install:
+#### 2. Then install:
 ``` sh
 stack --nix install
 ```
 
-Copy the configuration file:
+#### 3. Copy the configuration file:
 ``` sh
 cp gargantext.ini_toModify gargantext.ini
 ```
-Do not worry, `.gitignore` avoids adding this file to the repository by
-mistake, then you can change the passwords in gargantext.ini safely.
+> Do not worry, `.gitignore` avoids adding this file to the repository by mistake, then you can change the passwords in gargantext.ini safely.
 
-Users have to be created first (`user1` is created as instance):
+#### 4. A user have to be created first as instance:
 ``` sh
 ~/.local/bin/gargantext-init "gargantext.ini"
 ```
+Now, `user1` is created with password `1resu`
 
-Launch GarganText:
-``` sh
+#### 5. Clone FRONTEND repository:
+
+From the Backend root folder (haskell-gargantext):
+
+```shell
+git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/purescript-gargantext.git
+```
+
+
+## Launch & develop GarganText <a name="launch"></a>
+
+##### 1. From devops/docker, run the Docker for postgresql
+
+``` shell
+cd devops/docker
+docker compose up
+```
+
+##### 2. From the Backend root folder (haskell-gargantext)
+
+``` shell
 stack --nix exec gargantext-server -- --ini gargantext.ini --run Prod
 ```
 
 
-## Use Cases
+## Use Cases <a name="use-cases"></a>
 
 ### Multi-User with Graphical User Interface (Server Mode)
 
@@ -139,7 +157,7 @@ stack --nix exec gargantext-server -- --ini gargantext.ini --run Prod
 ~/.local/bin/stack --docker exec gargantext-server -- --ini "gargantext.ini" --run Prod
 ```
 
-Then you can log in with `user1` / `1resu`.
+Then you can log in with `user1` / `1resu`
 
 
 ### Command Line Mode tools
@@ -169,7 +187,7 @@ stack --nix build --haddock --no-haddock-deps --fast
 
 (in `.stack-work/dist/x86_64-linux-nix/Cabal-3.2.1.0/doc/html/gargantext`).
 
-## GraphQL
+## GraphQL <a name="graphql"></a>
 
 Some introspection information.
 
@@ -202,7 +220,7 @@ Playground is located at http://localhost:8008/gql
 	}
 }
 ```
-## PostgreSQL
+## PostgreSQL <a name="pgsql"></a>
 
 ### Upgrading using Docker
 
