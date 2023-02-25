@@ -1,0 +1,13 @@
+#!/bin/bash
+
+echo "GarganText: Starting project..."
+echo "GarganText: docker for postgresql database..."
+cd devops/docker
+docker compose up -d
+echo "GarganText: docker for postgresql database [OK]"
+cd ../../
+echo "GarganText: gargantext-server with stack and nix..."
+stack --nix exec gargantext-server -- --ini gargantext.ini --run Prod
+echo "GarganText: gargantext-server with stack and nix [OK]"
+echo "GarganText: project stopped."
+

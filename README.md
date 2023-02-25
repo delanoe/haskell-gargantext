@@ -135,18 +135,17 @@ git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/purescript-gargantext.git
 
 ## Launch & develop GarganText <a name="launch"></a>
 
-##### 1. From devops/docker, run the Docker for postgresql
+From the Backend root folder (haskell-gargantext):
 
 ``` shell
-cd devops/docker
-docker compose up
+./start
 ```
 
-##### 2. From the Backend root folder (haskell-gargantext)
+> The start script runs following commands:
+> `docker compose up` to run the Docker for postgresql from devops/docker folder
+> `stack --nix exec gargantext-server -- --ini gargantext.ini --run Prod` to run other services
 
-``` shell
-stack --nix exec gargantext-server -- --ini gargantext.ini --run Prod
-```
+
 
 
 ## Use Cases <a name="use-cases"></a>
