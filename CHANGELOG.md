@@ -1,3 +1,9 @@
+## Version 0.0.6.9.4.6
+
+* [FRONT][ERGO][When the progress bar is empty: say: waiting task (#503)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/503)
+* [FRONT][DOC][Door to entry: Welcome! (#269)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/269)
+* [FRONT][DOC] Show Text Size Limit
+
 ## Version 0.0.6.9.4.5
 
 * [BACK][CLEAN] Switch to Hackage version of hstatistics
