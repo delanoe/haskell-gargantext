@@ -131,9 +131,9 @@ From the Backend root folder (haskell-gargantext):
 ```shell
 git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/purescript-gargantext.git
 ```
+&nbsp;
 
-
-## Launch & develop GarganText <a name="launch"></a>
+## Launch & develop GarganText <a name="launch"></a>
 
 From the Backend root folder (haskell-gargantext):
 
