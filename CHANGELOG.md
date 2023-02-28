@@ -1,3 +1,111 @@
+## Version 0.0.6.9.4.6
+
+* [FRONT][ERGO][When the progress bar is empty: say: waiting task (#503)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/503)
+* [FRONT][DOC][Door to entry: Welcome! (#269)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/269)
+* [FRONT][DOC] Show Text Size Limit
+
+## Version 0.0.6.9.4.5
+
+* [BACK][CLEAN] Switch to Hackage version of hstatistics
+* [BACK][CLEAN] Drop unused servant-static-th
+* [FRONT][CLEAN] README 
+* [FIX][CRALER] ArXiv API
+
+## Version 0.0.6.9.4.4
+
+* [BACK][Add optional Accelerate dependency on Darwin for pkgs.nix](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/merge_requests/128)
+* [BACK][Crawlers] pubmed clean unused deps removed
+* [BACK][CLEAN][Explore cutting down forks/extra-deps of libraries (#180)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/180)
+* [BACK][DOC] README
+
+## Version 0.0.6.9.4.3
+
+* [BACK][DOC][Welcome: Door To enter the project (#177)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/177)
+* [FRONT][DOC][Door to entry: Welcome! (#269)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/269)
+* [BACK][REFACT][Doc Table: count (#175)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/175)
+
+## Version 0.0.6.9.4.2
+
+* [FRONT][FIX][Regression : on graph (#496)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/496)
+
+## Version 0.0.6.9.4.1
+
+* [FRONT][FIX][Invite many users without closing the modal (#498)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/498)
+
+## Version 0.0.6.9.4
+
+* [BACK][FIX] Username and email to lowerCase always. Use migration script please to avoid errors.
+* [BACK][FIX][Ngrams Change insert causes Database error (#173)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/173)
+* [FRONTED][CLEAN] Removing Isidore DB for now
+* [BACK][FIX] WOS Parser
+
+## Version 0.0.6.9.3
+
+* [FRONT][FIX][[hackathon] GraphExplorer fixes (#489)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/489)
+* [BACK][FIX][Corpus Analysis from Nodes FrameWrites (#164)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/164)
+
+
+## Version 0.0.6.9.2
+
+* [BACK][FIX] NodeWrite simple parsing
+* [BACK][FIX] List Learning is back
+* [BACK][FIX][Document rating in Doc Table is broken (#174)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/174)
+* [FRONT][FIX][Document supression do not work (#495)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/495)
+
+## Version 0.0.6.9.1
+
+* [FRONT][FIX][terms] resolve flickering issue on children
+* [FRONT][FIX] [layout] Close CTA button on graph/phylo sidebar 
+
+## Version 0.0.6.9.0
+
+* [BACK][FIX] Advanced Bridgeness fix
+* [FRONT][FEAT] Ratings in Document each
+* [FRONT][FIX] Ngrams Table, removing useless columns
+* [BACK][FIX] Duplicates
+* [FRONT][FIX] Node Selection Indicator
+* [FRONT][FIX] Just a little warning specifying a bug on <ReactTooltip>
+* [FRONT][FEAT] Graph Explorer fixes (labels, Sigma JS parameters)
+* [FRONT][layout] Close CTA button on graph/phylo sidebar
+* [BACK][NodeWrite] Corpus easier to make with NodeWrite Frames
+
+
+## Version 0.0.6.8.6
+
+* [BACK][FIX][New Corpus, Ngrams Table Repo (#163)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/163)
+* [BACK][FIX][Export List as CSV (#155)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/155)
+
+## Version 0.0.6.8.5.9.4
+
+* [FRONT][FIX][Editor codtype change (#145)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/145)
+* [BACK][FIX][Conduit insert with batch of documents in db (#161)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/161)
+* [BACK][FIX] API: HAL, PUBMED
+* [BACK][FIX] API: Upload file with options
+
+## Version 0.0.6.8.5.9.3
+
+* [BACK][FIX][Conduit insert with batch of documents in db (#161)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/161)
+* [BACK][FIX][Not Found</title>](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/441)
+
+## Version 0.0.6.8.5.9.2
+
+* [BACK][FIX] Incorrect count in HAL
+* [FRONT][FEAT] Node Move Settings (Just a type and it changes everything)
+
+## Version 0.0.6.8.5.9.1
+
+* [BACK][FIX][fix to current db to update versions (#159)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/159)
+
+## Version 0.0.6.8.5.9
+
+* [ALL][FEAT] Text Flow with NoList built as option
+* [FRONT][FIX][Adding 3th ngrams in document view breaks ngrams Table (#476)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/476)
+
+## Version 0.0.6.8.5.8
+
+* [FRONT][FIX][Graph Explorer Nodes (#471)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/471)
+* [FRONT][FIX][[docs] Backend improvements (#443)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/443)
+
 ## Version 0.0.6.8.5.7
 
 * [FRONT][FIX][Graph Explorer Blank Page (#465)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/465)

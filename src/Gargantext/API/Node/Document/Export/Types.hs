@@ -90,9 +90,9 @@ instance ToParamSchema Ngrams where
 type API = Summary "Document Export"
             :> "export"
             :> ( "json"
-               :> Get '[JSON] DocumentExport
+               :> Get '[JSON] (Headers '[Servant.Header "Content-Disposition" Text] DocumentExport)
                :<|> "csv"
-               :> Get '[PlainText] Text) -- [Document])
+               :> Get '[PlainText] (Headers '[Servant.Header "Content-Disposition" Text] Text)) -- [Document])
 
 $(deriveJSON (unPrefix "_de_") ''DocumentExport)
 $(deriveJSON (unPrefix "_d_") ''Document)

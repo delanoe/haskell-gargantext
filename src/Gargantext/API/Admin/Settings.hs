@@ -43,13 +43,14 @@ import qualified Data.ByteString.Lazy as L
 import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Admin.Types
 -- import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
-import Gargantext.Database.Prelude (databaseParameters)
+import Gargantext.Database.Prelude (databaseParameters, hasConfig)
 import Gargantext.Prelude
--- import Gargantext.Prelude.Config (gc_repofilepath)
+import Gargantext.Prelude.Config (gc_js_job_timeout, gc_js_id_timeout)
 import qualified Gargantext.Prelude.Mail as Mail
 import qualified Gargantext.Utils.Jobs       as Jobs
 import qualified Gargantext.Utils.Jobs.Monad as Jobs
 import qualified Gargantext.Utils.Jobs.Queue as Jobs
+import qualified Gargantext.Utils.Jobs.Settings as Jobs
 
 devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
@@ -192,7 +193,10 @@ newEnv port file = do
   scrapers_env  <- newJobEnv defaultSettings manager_env
 
   secret        <- Jobs.genSecret
-  jobs_env      <- Jobs.newJobEnv (Jobs.defaultJobSettings 1 secret) prios' manager_env
+  let jobs_settings = (Jobs.defaultJobSettings 1 secret)
+                        & Jobs.l_jsJobTimeout .~ (fromIntegral $ config_env ^. hasConfig ^. gc_js_job_timeout)
+                        & Jobs.l_jsIDTimeout  .~ (fromIntegral $ config_env ^. hasConfig ^. gc_js_id_timeout)
+  jobs_env      <- Jobs.newJobEnv jobs_settings prios' manager_env
   logger        <- newStderrLoggerSet defaultBufSize
   config_mail   <- Mail.readConfig file
 

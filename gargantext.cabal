@@ -1,11 +1,11 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.0.
+-- This file has been generated from package.yaml by hpack version 0.35.1.
 --
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-version:        0.0.6.8.5.7
+version: 0.0.6.9.4.6
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
@@ -30,61 +30,34 @@ library
   exposed-modules:
       Gargantext
       Gargantext.API
+      Gargantext.API.Admin.Auth.Types
+      Gargantext.API.Admin.EnvTypes
+      Gargantext.API.Admin.Settings
+      Gargantext.API.Admin.Types
       Gargantext.API.Dev
       Gargantext.API.HashedResponse
-      Gargantext.API.Node
-      Gargantext.API.Node.Share
-      Gargantext.API.Node.File
       Gargantext.API.Ngrams
+      Gargantext.API.Ngrams.Prelude
       Gargantext.API.Ngrams.Tools
       Gargantext.API.Ngrams.Types
-      Gargantext.API.Ngrams.Prelude
-      Gargantext.API.Admin.Settings
-      Gargantext.API.Admin.EnvTypes
-      Gargantext.API.Admin.Auth.Types
-      Gargantext.API.Admin.Types
+      Gargantext.API.Node
+      Gargantext.API.Node.File
+      Gargantext.API.Node.Share
       Gargantext.API.Prelude
       Gargantext.Core
-      Gargantext.Core.NodeStory
       Gargantext.Core.Methods.Similarities
-      Gargantext.Core.Types
-      Gargantext.Core.Types.Individu
-      Gargantext.Core.Types.Main
-      Gargantext.Core.Utils
-      Gargantext.Core.Utils.Prefix
-      Gargantext.Utils.Jobs
-      Gargantext.Utils.Jobs.API
-      Gargantext.Utils.Jobs.Map
-      Gargantext.Utils.Jobs.Monad
-      Gargantext.Utils.Jobs.Queue
-      Gargantext.Utils.Jobs.Settings
-      Gargantext.Utils.Jobs.State
-      Gargantext.Utils.SpacyNLP
-      Gargantext.Database.Action.Flow
-      Gargantext.Database.Action.Flow.Types
-      Gargantext.Database.Action.User.New
-      Gargantext.Database.Query.Table.User
-      Gargantext.Database.Query.Table.Node
-      Gargantext.Database.Query.Table.Node.UpdateOpaleye
-      Gargantext.Database.Query.Table.NgramsPostag
-      Gargantext.Database.Schema.Ngrams
-      Gargantext.Database.Prelude
-      Gargantext.Database.Admin.Trigger.Init
-      Gargantext.Database.Admin.Config
-      Gargantext.Database.Admin.Types.Hyperdata
-      Gargantext.Database.Admin.Types.Node
-      Gargantext.Defaults
+      Gargantext.Core.NodeStory
       Gargantext.Core.Text
       Gargantext.Core.Text.Context
-      Gargantext.Core.Text.Corpus.Parsers
-      Gargantext.Core.Text.Corpus.Parsers.Date.Parsec
       Gargantext.Core.Text.Corpus.API
+      Gargantext.Core.Text.Corpus.Parsers
       Gargantext.Core.Text.Corpus.Parsers.CSV
+      Gargantext.Core.Text.Corpus.Parsers.Date.Parsec
       Gargantext.Core.Text.List.Formats.CSV
       Gargantext.Core.Text.Metrics
-      Gargantext.Core.Text.Metrics.TFICF
       Gargantext.Core.Text.Metrics.CharByChar
       Gargantext.Core.Text.Metrics.Count
+      Gargantext.Core.Text.Metrics.TFICF
       Gargantext.Core.Text.Prepare
       Gargantext.Core.Text.Search
       Gargantext.Core.Text.Terms
@@ -94,18 +67,47 @@ library
       Gargantext.Core.Text.Terms.Multi.Lang.Fr
       Gargantext.Core.Text.Terms.Multi.RAKE
       Gargantext.Core.Text.Terms.WithList
+      Gargantext.Core.Types
+      Gargantext.Core.Types.Individu
+      Gargantext.Core.Types.Main
+      Gargantext.Core.Utils
+      Gargantext.Core.Utils.Prefix
       Gargantext.Core.Viz.Graph
+      Gargantext.Core.Viz.Graph.Index
       Gargantext.Core.Viz.Graph.Tools
       Gargantext.Core.Viz.Graph.Tools.IGraph
-      Gargantext.Core.Viz.Graph.Index
+      Gargantext.Core.Viz.Graph.Types
       Gargantext.Core.Viz.Phylo
       Gargantext.Core.Viz.Phylo.API
       Gargantext.Core.Viz.Phylo.API.Tools
+      Gargantext.Core.Viz.Phylo.PhyloExport
       Gargantext.Core.Viz.Phylo.PhyloMaker
       Gargantext.Core.Viz.Phylo.PhyloTools
-      Gargantext.Core.Viz.Phylo.PhyloExport
       Gargantext.Core.Viz.Phylo.SynchronicClustering
       Gargantext.Core.Viz.Types
+      Gargantext.Database.Action.Flow
+      Gargantext.Database.Action.Flow.Types
+      Gargantext.Database.Action.User.New
+      Gargantext.Database.Admin.Config
+      Gargantext.Database.Admin.Trigger.Init
+      Gargantext.Database.Admin.Types.Hyperdata
+      Gargantext.Database.Admin.Types.Node
+      Gargantext.Database.Prelude
+      Gargantext.Database.Query.Table.NgramsPostag
+      Gargantext.Database.Query.Table.Node
+      Gargantext.Database.Query.Table.Node.UpdateOpaleye
+      Gargantext.Database.Query.Table.User
+      Gargantext.Database.Schema.Ngrams
+      Gargantext.Defaults
+      Gargantext.Utils.Jobs
+      Gargantext.Utils.Jobs.API
+      Gargantext.Utils.Jobs.Map
+      Gargantext.Utils.Jobs.Monad
+      Gargantext.Utils.Jobs.Queue
+      Gargantext.Utils.Jobs.Settings
+      Gargantext.Utils.Jobs.State
+      Gargantext.Utils.SpacyNLP
+      Gargantext.Utils.Tuple
   other-modules:
       Gargantext.API.Admin.Auth
       Gargantext.API.Admin.FrontEnd
@@ -120,6 +122,7 @@ library
       Gargantext.API.GraphQL
       Gargantext.API.GraphQL.Annuaire
       Gargantext.API.GraphQL.AsyncTask
+      Gargantext.API.GraphQL.Context
       Gargantext.API.GraphQL.IMT
       Gargantext.API.GraphQL.Node
       Gargantext.API.GraphQL.Team
@@ -202,7 +205,6 @@ library
       Gargantext.Core.Text.List.Merge
       Gargantext.Core.Text.List.Social
       Gargantext.Core.Text.List.Social.Find
-      Gargantext.Core.Text.List.Social.History
       Gargantext.Core.Text.List.Social.Patch
       Gargantext.Core.Text.List.Social.Prelude
       Gargantext.Core.Text.Metrics.FrequentItemSet
@@ -222,6 +224,7 @@ library
       Gargantext.Core.Text.Terms.Multi.PosTagging
       Gargantext.Core.Text.Terms.Multi.PosTagging.Types
       Gargantext.Core.Types.Phylo
+      Gargantext.Core.Types.Search
       Gargantext.Core.Utils.DateUtils
       Gargantext.Core.Viz
       Gargantext.Core.Viz.Chart
@@ -230,8 +233,8 @@ library
       Gargantext.Core.Viz.Graph.FGL
       Gargantext.Core.Viz.Graph.GEXF
       Gargantext.Core.Viz.Graph.Legend
+      Gargantext.Core.Viz.Graph.PatriciaTreeTypes
       Gargantext.Core.Viz.Graph.Tools.Infomap
-      Gargantext.Core.Viz.Graph.Types
       Gargantext.Core.Viz.Graph.Utils
       Gargantext.Core.Viz.LegacyPhylo
       Gargantext.Core.Viz.Phylo.Example
@@ -281,6 +284,7 @@ library
       Gargantext.Database.GargDB
       Gargantext.Database.Query
       Gargantext.Database.Query.Facet
+      Gargantext.Database.Query.Facet.Types
       Gargantext.Database.Query.Filter
       Gargantext.Database.Query.Join
       Gargantext.Database.Query.Prelude
@@ -341,6 +345,7 @@ library
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wmissing-signatures -Wunused-binds -Wunused-imports -Werror -freduction-depth=300
   build-depends:
       HSvm
@@ -426,7 +431,6 @@ library
     , matrix
     , monad-control
     , monad-logger
-    , monad-logger-aeson
     , morpheus-graphql
     , morpheus-graphql-app
     , morpheus-graphql-core
@@ -475,7 +479,6 @@ library
     , servant-mock
     , servant-multipart
     , servant-server
-    , servant-static-th
     , servant-swagger
     , servant-swagger-ui
     , servant-xml
@@ -539,6 +542,7 @@ executable gargantext-admin
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       base
@@ -566,6 +570,7 @@ executable gargantext-cbor2json
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       aeson
@@ -597,6 +602,7 @@ executable gargantext-cli
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       aeson
@@ -635,6 +641,7 @@ executable gargantext-import
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       base
@@ -663,6 +670,7 @@ executable gargantext-init
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       base
@@ -690,6 +698,7 @@ executable gargantext-invitations
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       base
@@ -717,6 +726,7 @@ executable gargantext-phylo
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       aeson
@@ -758,6 +768,7 @@ executable gargantext-server
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -O2 -Wcompat -Wmissing-signatures -rtsopts -threaded -with-rtsopts=-N -with-rtsopts=-T -fprof-auto
   build-depends:
       base
@@ -792,6 +803,7 @@ executable gargantext-upgrade
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       base
@@ -836,6 +848,7 @@ test-suite garg-test
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
       DataKinds
       DeriveGeneric
       FlexibleContexts
@@ -880,6 +893,7 @@ test-suite jobqueue-test
       OverloadedStrings
       RankNTypes
       RecordWildCards
+      StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       async

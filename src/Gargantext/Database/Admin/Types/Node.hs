@@ -19,6 +19,7 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Node
   where
 
+import Database.PostgreSQL.Simple.ToRow (ToRow, toRow)
 import Codec.Serialise (Serialise())
 import Control.Monad (mzero)
 import Data.Aeson
@@ -217,6 +218,9 @@ instance Show NodeId where
 instance Serialise NodeId
 instance ToField NodeId where
   toField (NodeId n) = toField n
+instance ToRow NodeId where
+  toRow (NodeId i) = [toField i]
+
 instance FromField NodeId where
   fromField field mdata = do
     n <- fromField field mdata

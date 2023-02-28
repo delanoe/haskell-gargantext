@@ -30,9 +30,9 @@ import Gargantext.API.Prelude
 import Gargantext.Core.Methods.Similarities (Similarity(..), GraphMetric(..), withMetric)
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Types.Main
-import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.GEXF ()
 import Gargantext.Core.Viz.Graph.Tools -- (cooc2graph)
+import Gargantext.Core.Viz.Graph.Types
 import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOnlyUser)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
@@ -142,7 +142,7 @@ recomputeGraph _uId nId partitionMethod bridgeMethod maybeSimilarity maybeStreng
     listVersion   = graph ^? _Just . graph_metadata . _Just . gm_list . lfg_version
     graphMetric   = case maybeSimilarity of
                       Nothing -> graph ^? _Just . graph_metadata . _Just . gm_metric
-                      _       -> maybeSimilarity
+                      Just _  -> maybeSimilarity
     similarity = case graphMetric of
                    Nothing -> withMetric Order1
                    Just m  -> withMetric m
@@ -216,13 +216,11 @@ computeGraph corpusId partitionMethod bridgeMethod similarity strength (nt1,nt2)
               $ -} getCoocByNgrams'' (Diagonal True) (identity, identity) (m1,m2)
 
   -- TODO MultiPartite Here
-  graph <- liftBase
+  liftBase
         $ cooc2graphWith partitionMethod bridgeMethod (MultiPartite (Partite (HashMap.keysSet m1) nt1)
                                               (Partite (HashMap.keysSet m2) nt2)
                                               )
                                 similarity 0 strength myCooc
-
-  pure graph
 
 
 
@@ -246,7 +244,7 @@ defaultGraphMetadata cId t repo gm str = do
                            , LegendField 3 "#FFF" "Cluster3"
                            , LegendField 4 "#FFF" "Cluster4"
                            ]
-                       , _gm_list  = (ListForGraph lId (repo ^. unNodeStory . at lId . _Just . a_version))
+                       , _gm_list  = ListForGraph lId (repo ^. unNodeStory . at lId . _Just . a_version)
                        , _gm_startForceAtlas = True
                        }
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])

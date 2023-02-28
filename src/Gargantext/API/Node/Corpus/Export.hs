@@ -16,14 +16,15 @@ Main exports of Gargantext:
 module Gargantext.API.Node.Corpus.Export
   where
 
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import qualified Data.List as List
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.HashMap.Strict as HashMap
+import Servant (Headers, Header, addHeader)
 
 import Gargantext.API.Node.Corpus.Export.Types
 import qualified Gargantext.API.Node.Document.Export.Types as DocumentExport
@@ -50,7 +51,7 @@ import Gargantext.Prelude
 getCorpus :: CorpusId
           -> Maybe ListId
           -> Maybe NgramsType
-          -> GargNoServer Corpus
+          -> GargNoServer (Headers '[Header "Content-Disposition" Text] Corpus)
 getCorpus cId lId nt' = do
 
   let
@@ -61,7 +62,7 @@ getCorpus cId lId nt' = do
   listId <- case lId of
     Nothing -> defaultList cId
     Just l  -> pure l
-  
+
   ns   <- Map.fromList
        <$> map (\n -> (_context_id n, n))
        <$> selectDocNodes cId
@@ -79,8 +80,9 @@ getCorpus cId lId nt' = do
             d_hash  a b = hash [ fromMaybe "" (_hd_uniqId $ _context_hyperdata a)
                                , hash b
                                ]
-  pure $ Corpus { _c_corpus = Map.elems r
-                , _c_hash = hash $ List.map DocumentExport._d_hash $ Map.elems r }
+  pure $ addHeader ("attachment; filename=GarganText_corpus-" <> (pack $ show cId) <> ".json")
+    $ Corpus { _c_corpus = Map.elems r
+             , _c_hash = hash $ List.map DocumentExport._d_hash $ Map.elems r }
 
 getContextNgrams :: HasNodeError err
         => CorpusId

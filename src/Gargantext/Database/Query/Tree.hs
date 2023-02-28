@@ -43,7 +43,7 @@ import Control.Lens (view, toListOf, at, each, _Just, to, set, makeLenses)
 import Control.Monad.Error.Class (MonadError())
 import Data.List (tail, concat, nub)
 import qualified Data.List as List
-import Data.Map (Map, fromListWith, lookup)
+import Data.Map.Strict (Map, fromListWith, lookup)
 -- import Data.Monoid (mconcat)
 import Data.Proxy
 -- import qualified Data.Set  as Set

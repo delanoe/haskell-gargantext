@@ -27,13 +27,13 @@ import Data.Aeson
 import Data.Aeson.Types (toJSONKeyText)
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
-import Data.Map (fromList, lookup)
+import Data.Map.Strict (fromList, lookup)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, splitOn, pack, strip)
 import Database.PostgreSQL.Simple.FromField (returnError, ResultError(..))
 import Gargantext.Core (HasDBid(..))
 import Gargantext.Core.Types (TODO(..), Typed(..))
-import Gargantext.Database.Schema.Prelude
+import Gargantext.Database.Schema.Prelude hiding (over)
 import Gargantext.Database.Types
 import Gargantext.Prelude
 import Servant (FromHttpApiData(..), Proxy(..), ToHttpApiData(..))
@@ -52,17 +52,17 @@ data NgramsPoly id terms n = NgramsDB { _ngrams_id    :: !id
                                       , _ngrams_n     :: !n
                                       } deriving (Show)
 
-type NgramsWrite = NgramsPoly (Maybe (Column SqlInt4))
-                                   (Column SqlText)
-                                   (Column SqlInt4)
+type NgramsWrite = NgramsPoly (Maybe (Field SqlInt4))
+                                   (Field SqlText)
+                                   (Field SqlInt4)
 
-type NgramsRead  = NgramsPoly (Column SqlInt4)
-                              (Column SqlText)
-                              (Column SqlInt4)
+type NgramsRead  = NgramsPoly (Field SqlInt4)
+                              (Field SqlText)
+                              (Field SqlInt4)
 
-type NgramsReadNull = NgramsPoly (Column (Nullable SqlInt4))
-                                 (Column (Nullable SqlText))
-                                 (Column (Nullable SqlInt4))
+type NgramsReadNull = NgramsPoly (FieldNullable SqlInt4)
+                                 (FieldNullable SqlText)
+                                 (FieldNullable SqlInt4)
 
 type NgramsDB = NgramsPoly Int Text Int
 
@@ -89,11 +89,12 @@ data NgramsType = Authors | Institutes | Sources | NgramsTerms
 instance Serialise NgramsType
 instance FromJSON NgramsType
   where
-    parseJSON (String "Authors")    = pure Authors
-    parseJSON (String "Institutes") = pure Institutes
-    parseJSON (String "Sources")    = pure Sources
-    parseJSON (String "Terms")      = pure NgramsTerms
-    parseJSON _                     = mzero
+    parseJSON (String "Authors")     = pure Authors
+    parseJSON (String "Institutes")  = pure Institutes
+    parseJSON (String "Sources")     = pure Sources
+    parseJSON (String "Terms")       = pure NgramsTerms
+    parseJSON (String "NgramsTerms") = pure NgramsTerms
+    parseJSON _                      = mzero
 
 instance FromJSONKey NgramsType where
    fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
@@ -154,10 +155,10 @@ instance DefaultFromField (Nullable SqlInt4) NgramsTypeId
   where
     defaultFromField = fromPGSFromField
 
-pgNgramsType :: NgramsType -> Column SqlInt4
+pgNgramsType :: NgramsType -> Field SqlInt4
 pgNgramsType = pgNgramsTypeId . ngramsTypeId
 
-pgNgramsTypeId :: NgramsTypeId -> Column SqlInt4
+pgNgramsTypeId :: NgramsTypeId -> Field SqlInt4
 pgNgramsTypeId (NgramsTypeId n) = sqlInt4 n
 
 ngramsTypeId :: NgramsType -> NgramsTypeId

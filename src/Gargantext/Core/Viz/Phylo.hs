@@ -30,7 +30,7 @@ import Control.DeepSeq (NFData)
 import Control.Lens (makeLenses)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Set (Set)
 import Data.Swagger
 import Data.Text   (Text, pack)
@@ -78,8 +78,8 @@ data Proximity =
     | WeightedLogSim
       { _wls_sensibility     :: Double
       , _wls_minSharedNgrams :: Int }
-    | Hamming 
-      { _hmg_sensibility     :: Double 
+    | Hamming
+      { _hmg_sensibility     :: Double
       , _hmg_minSharedNgrams :: Int}
 
     deriving (Show,Generic,Eq)
@@ -205,7 +205,7 @@ data PhyloSubConfig =
 
 
 subConfig2config :: PhyloSubConfig -> PhyloConfig
-subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard (_sc_phyloProximity subConfig) 1 
+subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard (_sc_phyloProximity subConfig) 1
                                            , phyloSynchrony = ByProximityThreshold (_sc_phyloSynchrony subConfig) 0 AllBranches MergeAllGroups
                                            , phyloQuality   = Quality (_sc_phyloQuality   subConfig) 1
                                            , timeUnit       = _sc_timeUnit       subConfig

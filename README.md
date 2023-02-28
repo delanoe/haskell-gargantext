@@ -1,30 +1,52 @@
+<div align="center"><img height="180" src="https://gitlab.iscpif.fr/gargantext/main/raw/master/images/logo.png"></div>
+
+&nbsp;
 # Gargantext with Haskell (Backend instance)
 
-## About the project
+![Haskell](https://img.shields.io/badge/Code-Haskell-informational?style=flat&logo=haskell&color=6144b3)&nbsp;&nbsp;![Stack](https://img.shields.io/badge/Tools-Stack-informational?style=flat&logo=&color=6144b3)&nbsp;&nbsp;![GHC](https://img.shields.io/badge/Tools-GHC-informational?style=flat&logo=&color=2E677B)&nbsp;&nbsp;![Nix](https://img.shields.io/badge/Package%20manager-Nix-informational?style=flat&logo=debian&color=6586c8)&nbsp;&nbsp;![Docker](https://img.shields.io/badge/Tools-Docker-informational?style=flat&logo=docker&color=003f8c)
+
+#### Table of Contents
+1. [About the project](#about)
+2. [Installation](#install)
+3. [Initialization](#init)
+4. [Launch & develop GarganText](#launch)
+5. [Uses cases](#use-cases)
+6. [GraphQL](#graphql)
+7. [PostgreSQL](#postgresql)
+
+## About the project <a name="about"></a>
 
 GarganText is a collaborative web-decentralized-based macro-service
 platform for the exploration of unstructured texts. It combines tools
-from natural language processing, text-data-mining tricks, complex
-networks analysis algorithms and interactive data visualization tools to
-pave the way toward new kinds of interactions with your digital corpora.
+from natural language processing, text-data-mining bricks, complex
+networks analysis algorithms and interactive data visualization tools
+to pave the way toward new kinds of interactions with your textual and
+digital corpora.
 
-This software is free software, developed and offered by the CNRS
-Complex Systems Institute of Paris Île-de-France (ISC-PIF) and its
+This software is free (as "Libre" in French) software, developed by the
+CNRS Complex Systems Institute of Paris Île-de-France (ISC-PIF) and its
 partners.
 
-GarganText Project: this repo builds the
-backend for the frontend server built by
+GarganText Project: this repo builds the backend for the frontend server built by
 [backend](https://gitlab.iscpif.fr/gargantext/haskell-gargantext).
 
 
-## Installation
+## Installation <a name="install"></a>
 
-Disclaimer: this project is still in development, this is work in
-progress. Please report and improve this documentation if you encounter issues.
+Disclaimer: since this project is still in development, this document
+remains in progress. Please report and improve this documentation if you
+encounter any issues.
 
-### Stack setup
+#### Prerequisite
 
-You need to install stack first:
+Clone the project.
+```shell
+git clone https://gitlab.iscpif.fr/gargantext/haskell-gargantext.git
+cd haskell-gargantext
+```
+#### 1. Install Stack
+
+Install [Stack (or Haskell Tool Stack)](https://docs.haskellstack.org/en/stable/):
 
 ```shell
 curl -sSL https://get.haskellstack.org/ | sh
@@ -33,134 +55,100 @@ curl -sSL https://get.haskellstack.org/ | sh
 Verify the installation is complete with
 ```shell
 stack --version
+Version 2.9.1
 ```
 
-### With Nix setup
+#### 2. Install Nix
 
-First install [nix](https://nixos.org/guides/install-nix.html): 
+Install [Nix](https://nixos.org/download.html):
 
 ```shell
-curl -sSL https://nixos.org/nix/install | sh
+$ sh <(curl -L https://nixos.org/nix/install) --daemon
 ```
 
-Verify the installation is complete
+Verify the installation is complete with
 ```shell
-$ nix-env
-nix-env (Nix) 2.3.12
-```
-And just build:
-``` sh
-stack --nix build --fast
+$ nix-env --version
+nix-env (Nix) 2.11.0
 ```
 
-### Build Core Code
+> **NOTE INFO (upgrade/downgrade if needed)**
+> Gargantext works with Nix 2.11.0 (older version than current 2.13.2). To downgrade your Nix version:
+> `nix-channel --update; nix-env -iA nixpkgs.nixVersions.nix_2_11 nixpkgs.cacert; systemctl daemon-reload; systemctl restart nix-daemon`
+> Upgrading Nix: https://nixos.org/manual/nix/unstable/installation/upgrading.html
+
+
+#### 3. Build Core Code
 
 NOTE: Default build (with optimizations) requires large amounts of RAM
 (16GB at least). To avoid heavy compilation times and swapping out your
-machine, it is recommended to `stack build` with the `--fast-` flag,
+machine, it is recommended to `stack build` with the `--fast` flag,
 i.e.:
 
 ``` sh
 stack --nix build --fast
 ```
-or
+
+If the build is finishing without error, you are ready to launch
+GarganText! See next step.
+
+&nbsp;
+
+
+## Initialization <a name="init"></a>
+
+#### 1. Docker-compose will configure your database and some NLP bricks (such as CoreNLP):
 
 ``` sh
-stack --docker build --fast
-```
-
-#### Docker
-
-``` sh
-curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/dev/devops/docker/docker-install | sh
-```
-
-#### Debian
-
-``` sh
-curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/dev/devops/debian/install | sh
-```
-
-#### Ubuntu
-
-``` sh
-curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/dev/devops/ubuntu/install | sh
-```
-
-### Add dependencies
-
-1. CoreNLP is needed (EN and FR); This dependency will not be needed soon.
-
-``` sh
-./devops/install-corenlp
-```
-
-
-### Initialization
-
-#### Docker
-
-Run PostgreSQL first:
-
-``` sh
+# If docker is not installed:
+# curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/dev/devops/docker/docker-install | sh
 cd devops/docker
-docker-compose up
+docker compose up
 ```
-
 Initialization schema should be loaded automatically (from `devops/postgres/schema.sql`).
 
-#### Gargantext
-
-##### Fix the passwords
-
-Change the passwords in gargantext.ini_toModify then move it:
-
+#### 2. Then install:
 ``` sh
-mv gargantext.ini_toModify gargantext.ini
+stack --nix install
 ```
-(`.gitignore` avoids adding this file to the repository by mistake)
 
-
-##### Run Gargantext
-
-Users have to be created first (`user1` is created as instance):
-
+#### 3. Copy the configuration file:
 ``` sh
-stack install
+cp gargantext.ini_toModify gargantext.ini
+```
+> Do not worry, `.gitignore` avoids adding this file to the repository by mistake, then you can change the passwords in gargantext.ini safely.
+
+#### 4. A user have to be created first as instance:
+``` sh
 ~/.local/bin/gargantext-init "gargantext.ini"
 ```
+Now, `user1` is created with password `1resu`
 
-For Docker env, first create the appropriate image:
+#### 5. Clone FRONTEND repository:
 
-``` sh
-cd devops/docker
-docker build -t cgenie/stack-build:lts-18.12-garg .
+From the Backend root folder (haskell-gargantext):
+
+```shell
+git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/purescript-gargantext.git
 ```
 
-then run:
 
-``` sh
-stack --docker exec gargantext-init -- gargantext.ini
+## Launch & develop GarganText <a name="launch"></a>
+
+From the Backend root folder (haskell-gargantext):
+
+``` shell
+./start
 ```
 
-### Importing data
+> The start script runs following commands:
+> `docker compose up` to run the Docker for postgresql from devops/docker folder
+> `stack --nix exec gargantext-server -- --ini gargantext.ini --run Prod` to run other services
 
-You can import some data with:
-``` sh
-docker run --rm -it -p 9000:9000 cgenie/corenlp-garg
-stack exec gargantext-import -- "corpusCsvHal" "user1" "IMT3" gargantext.ini 10000 ./1000.csv
-```
 
-### Nix
 
-It is also possible to build everything with [Nix](https://nixos.org/) instead of Docker:
-``` sh
-stack --nix build
-stack --nix exec gargantext-import -- "corpusCsvHal" "user1" "IMT3" gargantext.ini 10000 ./1000.csv
-stack --nix exec gargantext-server -- --ini gargantext.ini --run Prod
-```
 
-## Use Cases
+## Use Cases <a name="use-cases"></a>
 
 ### Multi-User with Graphical User Interface (Server Mode)
 
@@ -168,7 +156,7 @@ stack --nix exec gargantext-server -- --ini gargantext.ini --run Prod
 ~/.local/bin/stack --docker exec gargantext-server -- --ini "gargantext.ini" --run Prod
 ```
 
-Then you can log in with `user1` / `1resu`.
+Then you can log in with `user1` / `1resu`
 
 
 ### Command Line Mode tools
@@ -193,12 +181,12 @@ cat repos/repo.cbor.v5 | stack --nix exec gargantext-cbor2json | jq .
 To build documentation, run:
 
 ```sh
-stack --docker build --haddock --no-haddock-deps --fast
+stack --nix build --haddock --no-haddock-deps --fast
 ```
 
 (in `.stack-work/dist/x86_64-linux-nix/Cabal-3.2.1.0/doc/html/gargantext`).
 
-## GraphQL
+## GraphQL <a name="graphql"></a>
 
 Some introspection information.
 
@@ -231,7 +219,7 @@ Playground is located at http://localhost:8008/gql
 	}
 }
 ```
-## PostgreSQL
+## PostgreSQL <a name="pgsql"></a>
 
 ### Upgrading using Docker
 

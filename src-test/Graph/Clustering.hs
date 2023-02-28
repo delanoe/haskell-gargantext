@@ -13,7 +13,8 @@ Portability : POSIX
 module Graph.Clustering where
 
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
-import Gargantext.Core.Viz.Graph (Graph(..), Strength(..))
+import Gargantext.Core.Viz.Graph
+import Gargantext.Core.Viz.Graph.Types
 import Gargantext.Core.Viz.Graph.Tools (doSimilarityMap)
 import Gargantext.Core.Viz.Graph.Tools.IGraph (spinglass)
 import Gargantext.Prelude

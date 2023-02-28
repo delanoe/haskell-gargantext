@@ -88,4 +88,3 @@ addToAnnuaireWithForm _cid (AnnuaireWithForm { _wf_filetype }) logStatus = do
                    , _scst_remaining = Just 0
                    , _scst_events    = Just []
                    }
-

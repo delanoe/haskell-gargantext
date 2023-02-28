@@ -38,7 +38,7 @@ authUser ui_id token = do
   u <- liftBase $ getUserFromToken jwtS token'
   case u of
     Nothing -> pure Invalid
-    Just au -> 
+    Just au ->
       if nId au == ui_id
         then pure Valid
         else pure Invalid

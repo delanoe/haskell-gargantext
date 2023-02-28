@@ -25,7 +25,7 @@ module Gargantext.Database.Query.Table.Ngrams
 import Control.Lens ((^.))
 import Data.ByteString.Internal (ByteString)
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Text (Text)
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude (runOpaQuery, Cmd, formatPGSQuery, runPGSQuery)
@@ -39,7 +39,7 @@ import Gargantext.Database.Types
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict        as HashMap
 import qualified Data.List                  as List
-import qualified Data.Map                   as Map
+import qualified Data.Map.Strict            as Map
 import qualified Database.PostgreSQL.Simple as PGS
 
 queryNgramsTable :: Select NgramsRead

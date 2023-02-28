@@ -19,7 +19,7 @@ module Gargantext.Database.Action.Metrics.NgramsByContext
 -- import Debug.Trace (trace)
 --import Data.Map.Strict.Patch (PatchMap, Replace, diff)
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Tuple.Extra (first, second, swap)
@@ -32,10 +32,11 @@ import Gargantext.Database.Admin.Types.Node (ListId, CorpusId, NodeId(..), Conte
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Prelude
-import qualified Data.HashMap.Strict as HM
-import qualified Data.Map as Map
-import qualified Data.Set as Set
-import qualified Database.PostgreSQL.Simple as DPS
+import qualified Data.HashMap.Strict              as HM
+import qualified Data.List                        as List
+import qualified Data.Map.Strict                  as Map
+import qualified Data.Set                         as Set
+import qualified Database.PostgreSQL.Simple       as DPS
 import qualified Database.PostgreSQL.Simple.Types as DPST
 
 -- | fst is size of Supra Corpus
@@ -166,7 +167,7 @@ selectNgramsOccurrencesOnlyByContextUser_withSample cId int nt tms =
                 ( int
                 , toDBid NodeDocument
                 , cId
-                , Values fields ((DPS.Only . unNgramsTerm) <$> tms)
+                , Values fields ((DPS.Only . unNgramsTerm) <$> (List.take 10000 tms))
                 , cId
                 , ngramsTypeId nt
                 )

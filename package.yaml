@@ -6,7 +6,7 @@ name: gargantext
 #         | | | +-----  Layers * : New versions with API additions
 #         | | | | +---  Layers * : New versions without API breaking changes
 #         | | | | |
-version: '0.0.6.8.5.7'
+version: '0.0.6.9.4.6'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -32,6 +32,7 @@ default-extensions:
   - OverloadedStrings
   - RankNTypes
   - RecordWildCards
+  - StrictData
 data-files:
   - ekg-assets/index.html
   - ekg-assets/monitor.js
@@ -54,61 +55,34 @@ library:
   exposed-modules:
   - Gargantext
   - Gargantext.API
+  - Gargantext.API.Admin.Auth.Types
+  - Gargantext.API.Admin.EnvTypes
+  - Gargantext.API.Admin.Settings
+  - Gargantext.API.Admin.Types
   - Gargantext.API.Dev
   - Gargantext.API.HashedResponse
-  - Gargantext.API.Node
-  - Gargantext.API.Node.Share
-  - Gargantext.API.Node.File
   - Gargantext.API.Ngrams
+  - Gargantext.API.Ngrams.Prelude
   - Gargantext.API.Ngrams.Tools
   - Gargantext.API.Ngrams.Types
-  - Gargantext.API.Ngrams.Prelude
-  - Gargantext.API.Admin.Settings
-  - Gargantext.API.Admin.EnvTypes
-  - Gargantext.API.Admin.Auth.Types
-  - Gargantext.API.Admin.Types
+  - Gargantext.API.Node
+  - Gargantext.API.Node.File
+  - Gargantext.API.Node.Share
   - Gargantext.API.Prelude
   - Gargantext.Core
-  - Gargantext.Core.NodeStory
   - Gargantext.Core.Methods.Similarities
-  - Gargantext.Core.Types
-  - Gargantext.Core.Types.Individu
-  - Gargantext.Core.Types.Main
-  - Gargantext.Core.Utils
-  - Gargantext.Core.Utils.Prefix
-  - Gargantext.Utils.Jobs
-  - Gargantext.Utils.Jobs.API
-  - Gargantext.Utils.Jobs.Map
-  - Gargantext.Utils.Jobs.Monad
-  - Gargantext.Utils.Jobs.Queue
-  - Gargantext.Utils.Jobs.Settings
-  - Gargantext.Utils.Jobs.State
-  - Gargantext.Utils.SpacyNLP
-  - Gargantext.Database.Action.Flow
-  - Gargantext.Database.Action.Flow.Types
-  - Gargantext.Database.Action.User.New
-  - Gargantext.Database.Query.Table.User
-  - Gargantext.Database.Query.Table.Node
-  - Gargantext.Database.Query.Table.Node.UpdateOpaleye
-  - Gargantext.Database.Query.Table.NgramsPostag
-  - Gargantext.Database.Schema.Ngrams
-  - Gargantext.Database.Prelude
-  - Gargantext.Database.Admin.Trigger.Init
-  - Gargantext.Database.Admin.Config
-  - Gargantext.Database.Admin.Types.Hyperdata
-  - Gargantext.Database.Admin.Types.Node
-  - Gargantext.Defaults
+  - Gargantext.Core.NodeStory
   - Gargantext.Core.Text
   - Gargantext.Core.Text.Context
-  - Gargantext.Core.Text.Corpus.Parsers
-  - Gargantext.Core.Text.Corpus.Parsers.Date.Parsec
   - Gargantext.Core.Text.Corpus.API
+  - Gargantext.Core.Text.Corpus.Parsers
   - Gargantext.Core.Text.Corpus.Parsers.CSV
+  - Gargantext.Core.Text.Corpus.Parsers.Date.Parsec
   - Gargantext.Core.Text.List.Formats.CSV
   - Gargantext.Core.Text.Metrics
-  - Gargantext.Core.Text.Metrics.TFICF
   - Gargantext.Core.Text.Metrics.CharByChar
   - Gargantext.Core.Text.Metrics.Count
+  - Gargantext.Core.Text.Metrics.TFICF
   - Gargantext.Core.Text.Prepare
   - Gargantext.Core.Text.Search
   - Gargantext.Core.Text.Terms
@@ -118,18 +92,47 @@ library:
   - Gargantext.Core.Text.Terms.Multi.Lang.Fr
   - Gargantext.Core.Text.Terms.Multi.RAKE
   - Gargantext.Core.Text.Terms.WithList
+  - Gargantext.Core.Types
+  - Gargantext.Core.Types.Individu
+  - Gargantext.Core.Types.Main
+  - Gargantext.Core.Utils
+  - Gargantext.Core.Utils.Prefix
   - Gargantext.Core.Viz.Graph
+  - Gargantext.Core.Viz.Graph.Index
   - Gargantext.Core.Viz.Graph.Tools
   - Gargantext.Core.Viz.Graph.Tools.IGraph
-  - Gargantext.Core.Viz.Graph.Index
+  - Gargantext.Core.Viz.Graph.Types
   - Gargantext.Core.Viz.Phylo
   - Gargantext.Core.Viz.Phylo.API
   - Gargantext.Core.Viz.Phylo.API.Tools
+  - Gargantext.Core.Viz.Phylo.PhyloExport
   - Gargantext.Core.Viz.Phylo.PhyloMaker
   - Gargantext.Core.Viz.Phylo.PhyloTools
-  - Gargantext.Core.Viz.Phylo.PhyloExport
   - Gargantext.Core.Viz.Phylo.SynchronicClustering
   - Gargantext.Core.Viz.Types
+  - Gargantext.Database.Action.Flow
+  - Gargantext.Database.Action.Flow.Types
+  - Gargantext.Database.Action.User.New
+  - Gargantext.Database.Admin.Config
+  - Gargantext.Database.Admin.Trigger.Init
+  - Gargantext.Database.Admin.Types.Hyperdata
+  - Gargantext.Database.Admin.Types.Node
+  - Gargantext.Database.Prelude
+  - Gargantext.Database.Query.Table.NgramsPostag
+  - Gargantext.Database.Query.Table.Node
+  - Gargantext.Database.Query.Table.Node.UpdateOpaleye
+  - Gargantext.Database.Query.Table.User
+  - Gargantext.Database.Schema.Ngrams
+  - Gargantext.Defaults
+  - Gargantext.Utils.Jobs
+  - Gargantext.Utils.Jobs.API
+  - Gargantext.Utils.Jobs.Map
+  - Gargantext.Utils.Jobs.Monad
+  - Gargantext.Utils.Jobs.Queue
+  - Gargantext.Utils.Jobs.Settings
+  - Gargantext.Utils.Jobs.State
+  - Gargantext.Utils.SpacyNLP
+  - Gargantext.Utils.Tuple
   dependencies:
   - HSvm
   - KMP
@@ -213,7 +216,6 @@ library:
   - matrix
   - monad-control
   - monad-logger
-  - monad-logger-aeson
   - morpheus-graphql
   - morpheus-graphql-app
   - morpheus-graphql-core
@@ -262,7 +264,6 @@ library:
   - servant-mock
   - servant-multipart
   - servant-server
-  - servant-static-th
   - servant-swagger
   - servant-swagger-ui
   - servant-xml

@@ -60,5 +60,3 @@ instance DefaultFromField SqlInt4              (Maybe Int)    where
 
 instance DefaultFromField (Nullable SqlText)  Text  where
     defaultFromField = fromPGSFromField
-
-

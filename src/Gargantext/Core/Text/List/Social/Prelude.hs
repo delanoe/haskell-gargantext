@@ -19,7 +19,7 @@ module Gargantext.Core.Text.List.Social.Prelude
   where
 
 import Control.Lens
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
 import Data.Monoid
@@ -128,4 +128,3 @@ unPatchMapToMap = Map.fromList . PatchMap.toList
 
 unNgramsTablePatch :: NgramsTablePatch -> HashMap NgramsTerm NgramsPatch
 unNgramsTablePatch (NgramsTablePatch p) = unPatchMapToHashMap p
-

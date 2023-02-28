@@ -9,7 +9,7 @@ Portability : POSIX
 
 Let be a graph Bridgeness filters inter-communities links in two ways.
 If the partitions are known, filtering is uniform to expose the communities clearly for the beginners.
-But 
+But
 
 
 uniformly
@@ -25,7 +25,7 @@ module Gargantext.Core.Viz.Graph.Bridgeness -- (bridgeness)
 
 import Gargantext.Core.Methods.Similarities (Similarity(..))
 -- import Data.IntMap (IntMap)
-import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
+import Data.Map.Strict (Map, fromListWith, lookup, toList, mapWithKey, elems)
 import Data.Maybe (catMaybes)
 import Data.Ord (Down(..))
 import Debug.Trace (trace)
@@ -33,8 +33,8 @@ import Gargantext.Prelude
 import Graph.Types (ClusterNode(..))
 -- import qualified Data.IntMap as IntMap
 import qualified Data.List   as List
-import qualified Data.Map    as Map
-import qualified Data.Set    as Set
+import qualified Data.Map.Strict    as Map
+-- import qualified Data.Set    as Set
 
 ----------------------------------------------------------------------
 
@@ -62,12 +62,17 @@ bridgeness :: Bridgeness
             -> Map (NodeId, NodeId) Double
             -> Map (NodeId, NodeId) Double
 bridgeness (Bridgeness_Advanced sim c) m = Map.fromList
+                $ List.filter (\x -> if sim == Conditional then snd x > 0.2 else snd x > 0.02)
                 $ map (\(ks, (v1,_v2)) -> (ks,v1))
-                $ List.take (if sim == Conditional then 2*n else 3*n)
-                $ List.sortOn (Down . (snd . snd))
+                -- $ List.take (if sim == Conditional then 2*n else 3*n)
+                -- $ List.sortOn (Down . (snd . snd))
                 $ Map.toList
-                $ trace ("bridgeness3 m c" <> show (m,c)) $ Map.intersectionWithKey (\k v1 v2 -> trace ("intersectionWithKey " <> (show (k, v1, v2))) (v1, v2)) m c
-  where
+                $ trace ("bridgeness3 m c" <> show (m,c))
+                $ Map.intersectionWithKey
+                      (\k v1 v2 -> trace ("intersectionWithKey " <> (show (k, v1, v2))) (v1, v2)) m c
+
+{-
+ where
     !m' = Map.toList m
     n :: Int
     !n = trace ("bridgeness m size: " <> (show $ List.length m'))
@@ -78,6 +83,8 @@ bridgeness (Bridgeness_Advanced sim c) m = Map.fromList
     nodesNumber = Set.size $ Set.fromList $ as <> bs
       where
         (as, bs) = List.unzip $ Map.keys m
+-}
+
 
 bridgeness (Bridgeness_Basic ns b) m = Map.fromList
                                      $ List.concat

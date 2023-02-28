@@ -163,7 +163,7 @@ getTable' :: NodeId
           -> Cmd err [FacetDoc]
 getTable' cId ft o l order query year =
   case ft of
-    (Just Docs)      -> runViewDocuments cId False o l order query year 
+    (Just Docs)      -> runViewDocuments cId False o l order query year
     (Just Trash)     -> runViewDocuments cId True  o l order query year
     (Just MoreFav)   -> moreLike cId o l order IsFav
     (Just MoreTrash) -> moreLike cId o l order IsTrash
@@ -178,4 +178,3 @@ getPair cId ft o l order =
     (Just Docs)  -> runViewAuthorsDoc cId False o l order
     (Just Trash) -> runViewAuthorsDoc cId True  o l order
     _     -> panic $ "not implemented: get Pairing" <> (cs $ show ft)
-

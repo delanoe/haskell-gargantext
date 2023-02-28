@@ -94,7 +94,7 @@ import Data.Monoid
 import Data.Ord (Down(..))
 import Data.Patch.Class (Action(act), Transformable(..), ours)
 import Data.Swagger hiding (version, patch)
-import Data.Text (Text, isInfixOf, unpack, pack)
+import Data.Text (Text, isInfixOf, toLower, unpack, pack)
 import Data.Text.Lazy.IO as DTL
 import Formatting (hprint, int, (%))
 import GHC.Generics (Generic)
@@ -201,7 +201,6 @@ saveNodeStoryImmediate = do
     saver
     --Gargantext.Prelude.putStrLn "---- Node story immediate saver finished ----"
 
-
 listTypeConflictResolution :: ListType -> ListType -> ListType
 listTypeConflictResolution _ _ = undefined -- TODO Use Map User ListType
 
@@ -213,7 +212,7 @@ ngramsStatePatchConflictResolution
 ngramsStatePatchConflictResolution _ngramsType _ngramsTerm
    = (ours, (const ours, ours), (False, False))
                              -- (False, False) mean here that Mod has always priority.
---  = (ours, (const ours, ours), (True, False))
+ -- = (ours, (const ours, ours), (True, False))
                              -- (True, False) <- would mean priority to the left (same as ours).
   -- undefined {- TODO think this through -}, listTypeConflictResolution)
 
@@ -293,13 +292,17 @@ newNgramsFromNgramsStatePatch p =
 
 
 
-commitStatePatch :: (HasNodeStory env err m, HasMail env)
+commitStatePatch :: ( HasNodeStory env err m
+                    , HasNodeStoryImmediateSaver env
+                    , HasNodeArchiveStoryImmediateSaver env
+                    , HasMail env)
                  => ListId
                  ->    Versioned NgramsStatePatch'
                  -> m (Versioned NgramsStatePatch')
 commitStatePatch listId (Versioned _p_version p) = do
   -- printDebug "[commitStatePatch]" listId
   var <- getNodeStoryVar [listId]
+  archiveSaver <- view hasNodeArchiveStoryImmediateSaver
   vq' <- liftBase $ modifyMVar var $ \ns -> do
     let
       a = ns ^. unNodeStory . at listId . _Just
@@ -308,7 +311,11 @@ commitStatePatch listId (Versioned _p_version p) = do
       --q = mconcat $ take (a ^. a_version - p_version) (a ^. a_history)
       q = mconcat $ a ^. a_history
 
-    printDebug "transformWith" (p,q)
+    --printDebug "[commitStatePatch] transformWith" (p,q)
+    -- let tws s = case s of
+    --       (Mod p) -> "Mod"
+    --       _ -> "Rpl"
+    -- printDebug "[commitStatePatch] transformWith" (tws $ p ^. _NgramsPatch, tws $ q ^. _NgramsPatch)
 
     let
       (p', q') = transformWith ngramsStatePatchConflictResolution p q
@@ -329,10 +336,28 @@ commitStatePatch listId (Versioned _p_version p) = do
     -}
     -- printDebug "[commitStatePatch] a version" (a ^. a_version)
     -- printDebug "[commitStatePatch] a' version" (a' ^. a_version)
-    pure ( ns & unNodeStory . at listId .~ (Just a')
+    let newNs = ( ns & unNodeStory . at listId .~ (Just a')
          , Versioned (a' ^. a_version) q'
          )
+
+    -- NOTE Now is the only good time to save the archive history. We
+    -- have the handle to the MVar and we need to save its exact
+    -- snapshot. Node Story archive is a linear table, so it's only
+    -- couple of inserts, it shouldn't take long...
+
+    -- If we postponed saving the archive to the debounce action, we
+    -- would have issues like
+    -- https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/476
+    -- where the `q` computation from above (which uses the archive)
+    -- would cause incorrect patch application (before the previous
+    -- archive was saved and applied)
+    newNs' <- archiveSaver $ fst newNs
+
+    pure (newNs', snd newNs)
+
+  -- NOTE State (i.e. `NodeStory` can be saved asynchronously, i.e. with debounce)
   saveNodeStory
+  --saveNodeStoryImmediate
   -- Save new ngrams
   _ <- insertNgrams (newNgramsFromNgramsStatePatch p)
 
@@ -366,6 +391,8 @@ tableNgramsPull listId ngramsType p_version = do
 -- client.
 -- TODO-ACCESS check
 tableNgramsPut :: ( HasNodeStory    env err m
+                  , HasNodeStoryImmediateSaver env
+                  , HasNodeArchiveStoryImmediateSaver env
                   , HasInvalidError     err
                   , HasSettings     env
                   , HasMail         env
@@ -553,8 +580,8 @@ getTableNgrams _nType nId tabType listId limit_ offset
     sortOnOrder Nothing          = sortOnOrder (Just ScoreDesc)
     sortOnOrder (Just TermAsc)   = List.sortOn $ view ne_ngrams
     sortOnOrder (Just TermDesc)  = List.sortOn $ Down . view ne_ngrams
-    sortOnOrder (Just ScoreAsc)  = List.sortOn $ view (ne_occurrences . to length)
-    sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view (ne_occurrences . to length)
+    sortOnOrder (Just ScoreAsc)  = List.sortOn $ view (ne_occurrences . to List.nub . to length)
+    sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view (ne_occurrences . to List.nub . to length)
 
     ---------------------------------------
     -- | Filter the given `tableMap` with the search criteria.
@@ -756,7 +783,7 @@ getTableNgramsCorpus :: (HasNodeStory env err m, HasNodeError err, HasConnection
 getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy mt =
   getTableNgrams NodeCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
     where
-      searchQuery (NgramsTerm nt) = maybe (const True) isInfixOf mt nt
+      searchQuery (NgramsTerm nt) = maybe (const True) isInfixOf (toLower <$> mt) (toLower nt)
 
 
 

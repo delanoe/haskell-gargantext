@@ -53,11 +53,12 @@ import Control.Lens ((^.), view, _Just, makeLenses, over, traverse)
 import Control.Monad.Reader (MonadReader)
 import Data.Aeson.TH (deriveJSON)
 import Data.Conduit.Internal (zipSources)
+import qualified Data.Conduit.List as CList
 import Data.Either
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
 import Data.List (concat)
-import Data.Map (Map, lookup)
+import Data.Map.Strict (Map, lookup)
 import Data.Maybe (catMaybes)
 import Data.Monoid
 import Data.Swagger
@@ -68,20 +69,20 @@ import Servant.Client (ClientError)
 import System.FilePath (FilePath)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Conduit.List as CL
 import qualified Data.Conduit      as C
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import Gargantext.Core (Lang(..), PosTagAlgo(..))
-import Gargantext.Core.Ext.IMT (toSchoolName)
+-- import Gargantext.Core.Ext.IMT (toSchoolName)
 import Gargantext.Core.Ext.IMTUser (readFile_Annuaire)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
-import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat, FileType)
+import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat, FileType, splitOn)
 import Gargantext.Core.Text.List (buildNgramsLists)
 import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
-import Gargantext.Core.Text.List.Social (FlowSocialListWith)
+import Gargantext.Core.Text.List.Social (FlowSocialListWith(..))
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Types (POS(NP), TermsCount)
@@ -111,7 +112,7 @@ import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
 import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
-import qualified Prelude
+--import qualified Prelude
 
 ------------------------------------------------------------------------
 -- Imports for upgrade function
@@ -193,7 +194,10 @@ flowDataText :: forall env err m.
                 -> Maybe FlowSocialListWith
                 -> (JobLog -> m ())
                 -> m CorpusId
-flowDataText u (DataOld ids) tt cid mfslw _ = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids mfslw
+flowDataText u (DataOld ids) tt cid mfslw _ = do
+  (_userId, userCorpusId, listId) <- createNodes u (Right [cid]) corpusType
+  _ <- Doc.add userCorpusId ids
+  flowCorpusUser (_tt_lang tt) u userCorpusId listId corpusType mfslw
   where
     corpusType = (Nothing :: Maybe HyperdataCorpus)
 flowDataText u (DataNew (mLen, txtC)) tt cid mfslw logStatus =
@@ -262,10 +266,18 @@ flow :: forall env err m a c.
         -> (JobLog -> m ())
         -> m CorpusId
 flow c u cn la mfslw (mLength, docsC) logStatus = do
+  (_userId, userCorpusId, listId) <- createNodes u cn c
   -- TODO if public insertMasterDocs else insertUserDocs
-  ids <- runConduit $ zipSources (yieldMany [1..]) docsC
-                   .| mapMC insertDoc
-                   .| sinkList
+  _ <- runConduit $ zipSources (yieldMany [1..]) docsC
+                 .| CList.chunksOf 100
+                 .| mapMC insertDocs'
+                 .| mapM_C (\ids' -> do
+                               _ <- Doc.add userCorpusId ids'
+                               pure ())
+                 .| sinkList
+
+  _ <- flowCorpusUser (la ^. tt_lang) u userCorpusId listId c mfslw
+
 --  ids <- traverse (\(idx, doc) -> do
 --                      id <- insertMasterDocs c la doc
 --                      logStatus JobLog { _scst_succeeded = Just $ 1 + idx
@@ -275,36 +287,38 @@ flow c u cn la mfslw (mLength, docsC) logStatus = do
 --                                       }
 --                      pure id
 --                  ) (zip [1..] docs)
-  flowCorpusUser (la ^. tt_lang) u cn c ids mfslw
+  --printDebug "[flow] calling flowCorpusUser" (0 :: Int)
+  pure userCorpusId
+  --flowCorpusUser (la ^. tt_lang) u cn c ids mfslw
 
   where
-    insertDoc :: (Integer, a) -> m NodeId
-    insertDoc (idx, doc) = do
-      id <- insertMasterDocs c la [doc]
+    insertDocs' :: [(Integer, a)] -> m [NodeId]
+    insertDocs' [] = pure []
+    insertDocs' docs = do
+      printDebug "[flow] calling insertDoc, ([idx], mLength) = " (fst <$> docs, mLength)
+      ids <- insertMasterDocs c la (snd <$> docs)
+      let maxIdx = maximum (fst <$> docs)
       case mLength of
         Nothing -> pure ()
         Just len -> do
-          logStatus JobLog { _scst_succeeded = Just $ fromIntegral $ 1 + idx
+          logStatus JobLog { _scst_succeeded = Just $ fromIntegral $ 1 + maxIdx
                            , _scst_failed    = Just 0
-                           , _scst_remaining = Just $ fromIntegral $ len - idx
+                           , _scst_remaining = Just $ fromIntegral $ len - maxIdx
                            , _scst_events    = Just []
                            }
-      pure $ Prelude.head id
+      pure ids
 
 
 
 ------------------------------------------------------------------------
-flowCorpusUser :: ( FlowCmdM env err m
-                  , MkCorpus c
-                  )
-               => Lang
-               -> User
-               -> Either CorpusName [CorpusId]
-               -> Maybe c
-               -> [ContextId]
-               -> Maybe FlowSocialListWith
-               -> m CorpusId
-flowCorpusUser l user corpusName ctype ids mfslw = do
+createNodes :: ( FlowCmdM env err m
+               , MkCorpus c
+               )
+            => User
+            -> Either CorpusName [CorpusId]
+            -> Maybe c
+            -> m (UserId, CorpusId, ListId)
+createNodes user corpusName ctype = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus user corpusName ctype
   -- NodeTexts is first
@@ -313,30 +327,46 @@ flowCorpusUser l user corpusName ctype ids mfslw = do
 
   -- NodeList is second
   listId <- getOrMkList userCorpusId userId
-  -- _cooc  <- insertDefaultNode NodeListCooc listId userId
-  -- TODO: check if present already, ignore
-  _ <- Doc.add userCorpusId ids
 
-  -- printDebug "Node Text Ids:" tId
+  -- User Graph Flow
+  _ <- insertDefaultNodeIfNotExists NodeGraph     userCorpusId userId
+  _ <- insertDefaultNodeIfNotExists NodeDashboard userCorpusId userId
 
+  pure (userId, userCorpusId, listId)
+
+
+flowCorpusUser :: ( FlowCmdM env err m
+                  , MkCorpus c
+                  )
+               => Lang
+               -> User
+               -> CorpusId
+               -> ListId
+               -> Maybe c
+               -> Maybe FlowSocialListWith
+               -> m CorpusId
+flowCorpusUser l user userCorpusId listId ctype mfslw = do
   -- User List Flow
   (masterUserId, _masterRootId, masterCorpusId)
     <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
 
   --let gp = (GroupParams l 2 3 (StopSize 3))
   -- Here the PosTagAlgo should be chosen according to the Lang
-  let gp = GroupWithPosTag l CoreNLP HashMap.empty
-  ngs    <- buildNgramsLists user userCorpusId masterCorpusId mfslw gp
+  _ <- case mfslw of
+         (Just (NoList _)) -> do
+           printDebug "Do not build list" mfslw
+           pure ()
+         _ -> do
+           ngs  <- buildNgramsLists user userCorpusId masterCorpusId mfslw
+                     $ GroupWithPosTag l CoreNLP HashMap.empty
 
-  -- printDebug "flowCorpusUser:ngs" ngs
+         -- printDebug "flowCorpusUser:ngs" ngs
 
-  _userListId <- flowList_DbRepo listId ngs
-  _mastListId <- getOrMkList masterCorpusId masterUserId
+           _userListId <- flowList_DbRepo listId ngs
+           _mastListId <- getOrMkList masterCorpusId masterUserId
+           pure ()
   -- _ <- insertOccsUpdates userCorpusId mastListId
   -- printDebug "userListId" userListId
-  -- User Graph Flow
-  _ <- insertDefaultNodeIfNotExists NodeGraph     userCorpusId userId
-  _ <- insertDefaultNodeIfNotExists NodeDashboard userCorpusId userId
   --_ <- mkPhylo  userCorpusId userId
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId
@@ -520,12 +550,13 @@ instance ExtractNgramsT HyperdataDocument
                         $ _hd_source doc
 
               institutes = map text2ngrams
-                         $ maybe ["Nothing"] (map toSchoolName . (T.splitOn ", "))
+                         $ maybe ["Nothing"] (splitOn Institutes (doc^. hd_bdd))
                          $ _hd_institutes doc
 
               authors    = map text2ngrams
-                         $ maybe ["Nothing"] (T.splitOn ", ")
+                         $ maybe ["Nothing"] (splitOn Authors (doc^. hd_bdd))
                          $ _hd_authors doc
+
 
           termsWithCounts' <- map (\(t, cnt) -> (enrichedTerms (lang' ^. tt_lang) CoreNLP NP t, cnt))
                               <$> concat

@@ -10,6 +10,7 @@ import Data.Morpheus.Types
   , Resolver
   , ResolverM
   , QUERY
+  , description
   , lift
   )
 import Data.Text (Text)
@@ -67,7 +68,9 @@ data UserInfo = UserInfo
   , ui_cwTouchMail    :: Maybe Text  -- TODO: Remove. userLight_email should be used instead
   , ui_cwDescription  :: Maybe Text
   }
-  deriving (Generic, GQLType, Show)
+  deriving (Generic, Show)
+instance GQLType UserInfo where
+  description = const $ Just "provides user info"
 
 -- | Arguments to the "user info" query.
 data UserInfoArgs
@@ -150,7 +153,7 @@ updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
           pure 1
   where
     uh _ Nothing u_hyperdata = u_hyperdata
-    uh lens' (Just val) u_hyperdata = u_hyperdata & lens' .~ Just val
+    uh lens' (Just val) u_hyperdata = u_hyperdata & lens' ?~ val
     uh' _ Nothing u_hyperdata = u_hyperdata
     uh' lens' (Just val) u_hyperdata = u_hyperdata & lens' .~ val
     nId Node {_node_id} = _node_id

@@ -28,7 +28,7 @@ module Core.Text.Examples
 
 {-
 import Data.Array.Accelerate (toList, Matrix)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Ord (Down(..))
 import Data.Text (Text)
 import Data.Tuple.Extra (both)
@@ -43,7 +43,7 @@ import Gargantext.Core.Viz.Graph.Index
 import Gargantext.Prelude
 import qualified Data.Array.Accelerate as DAA
 import qualified Data.List as List
-import qualified Data.Map  as Map
+import qualified Data.Map.Strict  as Map
 import qualified Data.Text as Text
 
 -- | Sentences
@@ -100,11 +100,11 @@ ex_cooc = cooc <$> ex_terms
 -- | Tests the specificity and genericity
 --
 -- >>> ex_cooc_mat
--- (fromList [(["glass"],0),(["spoon"],1),(["table"],2),(["wine"],3)],Matrix (Z :. 4 :. 4) 
+-- (fromList [(["glass"],0),(["spoon"],1),(["table"],2),(["wine"],3)],Matrix (Z :. 4 :. 4)
 --   [ 4, 0, 0, 0,
 --     1, 2, 0, 0,
 --     3, 2, 4, 0,
---     3, 1, 2, 3],Matrix (Z :. 4 :. 4) 
+--     3, 1, 2, 3],Matrix (Z :. 4 :. 4)
 --   [ 1.0, 0.25, 0.75, 0.75,
 --     0.0,  1.0,  1.0,  0.5,
 --     0.0,  0.0,  1.0,  0.5,

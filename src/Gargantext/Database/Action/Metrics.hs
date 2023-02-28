@@ -17,7 +17,7 @@ module Gargantext.Database.Action.Metrics
 
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Set (Set)
 import Database.PostgreSQL.Simple (Query, Only(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
@@ -39,7 +39,7 @@ import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
-import qualified Data.Map            as Map
+import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
 import qualified Data.List           as List
 import qualified Data.Text           as Text

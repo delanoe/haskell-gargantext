@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Query.Table.NodeNode
+Module      : Gargantext.Database.Query.Table.NodeContext
 Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -15,6 +15,7 @@ commentary with @some markup@.
 
 {-# LANGUAGE Arrows                 #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE LambdaCase             #-}
 {-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
@@ -26,7 +27,13 @@ module Gargantext.Database.Query.Table.NodeContext
   , selectDocs
   , nodeContextsCategory
   , nodeContextsScore
+  , getNodeContexts
   , getNodeContext
+  , updateNodeContextCategory
+  , getContextsForNgrams
+  , ContextForNgrams(..)
+  , getContextsForNgramsTerms
+  , ContextForNgramsTerms(..)
   , insertNodeContext
   , deleteNodeContext
   , selectPublicContexts
@@ -37,17 +44,21 @@ module Gargantext.Database.Query.Table.NodeContext
 import Control.Arrow (returnA)
 import Control.Lens (view, (^.))
 import Data.Maybe (catMaybes)
+import Data.Time (UTCTime)
 import Data.Text (Text, splitOn)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Opaleye
-import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
+import qualified Database.PostgreSQL.Simple as PGS (In(..), Query, Only(..))
 import qualified Opaleye as O
 
 import Gargantext.Core
 import Gargantext.Core.Types
+-- import Gargantext.Core.Types.Search (HyperdataRow(..), toHyperdataRow)
 import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError, NodeError(DoesNotExist), nodeError)
 import Gargantext.Database.Prelude
+import Gargantext.Prelude.Crypto.Hash (Hash)
 import Gargantext.Database.Schema.Context
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeContext
@@ -62,14 +73,109 @@ _nodesContexts = runOpaQuery queryNodeContextTable
 
 ------------------------------------------------------------------------
 -- | Basic NodeContext tools
-getNodeContext :: NodeId -> Cmd err [NodeContext]
-getNodeContext n = runOpaQuery (selectNodeContext $ pgNodeId n)
+getNodeContexts :: NodeId -> Cmd err [NodeContext]
+getNodeContexts n = runOpaQuery (selectNodeContexts $ pgNodeId n)
   where
-    selectNodeContext :: Column SqlInt4 -> Select NodeContextRead
-    selectNodeContext n' = proc () -> do
+    selectNodeContexts :: Field SqlInt4 -> Select NodeContextRead
+    selectNodeContexts n' = proc () -> do
       ns <- queryNodeContextTable -< ()
       restrict -< _nc_node_id ns .== n'
       returnA -< ns
+
+
+getNodeContext :: HasNodeError err => ContextId -> NodeId -> Cmd err NodeContext
+getNodeContext c n = do
+  maybeNodeContext <- headMay <$> runOpaQuery (selectNodeContext (pgNodeId c) (pgNodeId n))
+  case maybeNodeContext of
+    Nothing -> nodeError (DoesNotExist c)
+    Just  r -> pure r
+  where
+    selectNodeContext :: Field SqlInt4 -> Field SqlInt4 -> Select NodeContextRead
+    selectNodeContext c' n' = proc () -> do
+      ns <- queryNodeContextTable -< ()
+      restrict -< _nc_context_id ns .== c'
+      restrict -< _nc_node_id ns .== n'
+      returnA -< ns
+
+updateNodeContextCategory :: ContextId -> NodeId -> Int -> Cmd err Int64
+updateNodeContextCategory cId nId cat = do
+  execPGSQuery upScore (cat, cId, nId)
+  where
+    upScore :: PGS.Query
+    upScore = [sql| UPDATE nodes_contexts
+                      SET category = ?
+                      WHERE context_id = ?
+                      AND node_id = ? |]
+
+data ContextForNgrams =
+  ContextForNgrams { _cfn_nodeId    :: NodeId
+                   , _cfn_hash      :: Maybe Hash
+                   , _cfn_userId    :: UserId
+                   , _cfn_parentId  :: Maybe ParentId
+                   , _cfn_c_title   :: ContextTitle
+                   , _cfn_date      :: UTCTime
+                   , _cfn_hyperdata :: HyperdataDocument }
+getContextsForNgrams :: HasNodeError err
+                     => NodeId
+                     -> [Int]
+                     -> Cmd err [ContextForNgrams]
+getContextsForNgrams cId ngramsIds = do
+  res <- runPGSQuery query (cId, PGS.In ngramsIds)
+  pure $ (\( _cfn_nodeId
+           , _cfn_hash
+           , _cfn_userId
+           , _cfn_parentId
+           , _cfn_c_title
+           , _cfn_date
+           , _cfn_hyperdata) -> ContextForNgrams { .. }) <$> res
+  where
+    query :: PGS.Query
+    query = [sql| SELECT contexts.id, hash_id, typename, user_id, parent_id, name, date, hyperdata
+                  FROM contexts
+                  JOIN context_node_ngrams ON contexts.id = context_node_ngrams.context_id
+                  JOIN nodes_contexts ON contexts.id = nodes_contexts.context_id
+                  WHERE nodes_contexts.node_id = ?
+                   AND context_node_ngrams.ngrams_id IN ? |]
+
+data ContextForNgramsTerms =
+  ContextForNgramsTerms { _cfnt_nodeId     :: NodeId
+                        , _cfnt_hash       :: Maybe Hash
+                        , _cfnt_nodeTypeId :: NodeTypeId
+                        , _cfnt_userId     :: UserId
+                        , _cfnt_parentId   :: Maybe ParentId
+                        , _cfnt_c_title    :: ContextTitle
+                        , _cfnt_date       :: UTCTime
+                        , _cfnt_hyperdata  :: HyperdataDocument
+                        , _cfnt_score      :: Maybe Double
+                        , _cfnt_category   :: Maybe Int }
+getContextsForNgramsTerms :: HasNodeError err
+                          => NodeId
+                          -> [Text]
+                          -> Cmd err [ContextForNgramsTerms]
+getContextsForNgramsTerms cId ngramsTerms = do
+  res <- runPGSQuery query (cId, PGS.In ngramsTerms)
+  pure $ (\( _cfnt_nodeId
+           , _cfnt_hash
+           , _cfnt_nodeTypeId
+           , _cfnt_userId
+           , _cfnt_parentId
+           , _cfnt_c_title
+           , _cfnt_date
+           , _cfnt_hyperdata
+           , _cfnt_score
+           , _cfnt_category) -> ContextForNgramsTerms { .. }) <$> res
+  where
+    query :: PGS.Query
+    query = [sql| SELECT t.id, t.hash_id, t.typename, t.user_id, t.parent_id, t.name, t.date, t.hyperdata, t.score, t.category
+                FROM (
+                  SELECT DISTINCT ON (contexts.id) contexts.id AS id, hash_id, typename, user_id, parent_id, name, date, hyperdata, nodes_contexts.score AS score, nodes_contexts.category AS category,context_node_ngrams.doc_count AS doc_count
+                    FROM contexts
+                    JOIN context_node_ngrams ON contexts.id = context_node_ngrams.context_id
+                    JOIN nodes_contexts ON contexts.id = nodes_contexts.context_id
+                    JOIN ngrams ON context_node_ngrams.ngrams_id = ngrams.id
+                    WHERE nodes_contexts.node_id = ?
+                     AND ngrams.terms IN ?) t
+                   ORDER BY t.doc_count DESC |]
 
 ------------------------------------------------------------------------
 insertNodeContext :: [NodeContext] -> Cmd err Int
@@ -106,7 +212,7 @@ nodeContextsCategory :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
 nodeContextsCategory inputData = map (\(PGS.Only a) -> a)
                             <$> runPGSQuery catSelect (PGS.Only $ Values fields inputData)
   where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
+    fields = map (QualifiedIdentifier Nothing) ["int4","int4","int4"]
     catSelect :: PGS.Query
     catSelect = [sql| UPDATE nodes_contexts as nn0
                       SET category = nn1.category
@@ -122,7 +228,7 @@ nodeContextsScore :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
 nodeContextsScore inputData = map (\(PGS.Only a) -> a)
                             <$> runPGSQuery catScore (PGS.Only $ Values fields inputData)
   where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
+    fields = map (QualifiedIdentifier Nothing) ["int4","int4","int4"]
     catScore :: PGS.Query
     catScore = [sql| UPDATE nodes_contexts as nn0
                       SET score = nn1.score
@@ -139,9 +245,9 @@ selectCountDocs cId = runCountOpaQuery (queryCountDocs cId)
   where
     queryCountDocs cId' = proc () -> do
       (c, nc) <- joinInCorpus -< ()
-      restrict -< nc^.nc_node_id   .== (toNullable $ pgNodeId cId')
-      restrict -< nc^.nc_category  .>= (toNullable $ sqlInt4 1)
-      restrict -< c^.context_typename .== (sqlInt4 $ toDBid NodeDocument)
+      restrict -< restrictMaybe nc $ \nc' -> (nc' ^. nc_node_id)  .== pgNodeId cId' .&&
+                                             (nc' ^. nc_category) .>= sqlInt4 1
+      restrict -< (c ^. context_typename) .== sqlInt4 (toDBid NodeDocument)
       returnA  -< c
 
 
@@ -155,12 +261,12 @@ selectDocsDates cId =  map (head' "selectDocsDates" . splitOn "-")
 selectDocs :: HasDBid NodeType => CorpusId -> Cmd err [HyperdataDocument]
 selectDocs cId = runOpaQuery (queryDocs cId)
 
-queryDocs :: HasDBid NodeType => CorpusId -> O.Select (Column SqlJsonb)
+queryDocs :: HasDBid NodeType => CorpusId -> O.Select (Field SqlJsonb)
 queryDocs cId = proc () -> do
   (c, nn)  <- joinInCorpus -< ()
-  restrict -< nn^.nc_node_id      .== (toNullable $ pgNodeId cId)
-  restrict -< nn^.nc_category     .>= (toNullable $ sqlInt4 1)
-  restrict -< c^.context_typename .== (sqlInt4 $ toDBid NodeDocument)
+  restrict -< restrictMaybe nn $ \nn' -> (nn' ^. nc_node_id)  .== pgNodeId cId .&&
+                                         (nn' ^. nc_category) .>= sqlInt4 1
+  restrict -< (c ^. context_typename) .== sqlInt4 (toDBid NodeDocument)
   returnA  -< view (context_hyperdata) c
 
 selectDocNodes :: HasDBid NodeType => CorpusId -> Cmd err [Context HyperdataDocument]
@@ -169,23 +275,29 @@ selectDocNodes cId = runOpaQuery (queryDocNodes cId)
 queryDocNodes :: HasDBid NodeType => CorpusId -> O.Select ContextRead
 queryDocNodes cId = proc () -> do
   (c, nc) <- joinInCorpus -< ()
-  restrict -< nc^.nc_node_id   .== (toNullable $ pgNodeId cId)
-  restrict -< nc^.nc_category  .>= (toNullable $ sqlInt4 1)
-  restrict -< c^.context_typename .== (sqlInt4 $ toDBid NodeDocument)
+  -- restrict -< restrictMaybe nc $ \nc' -> (nc' ^. nc_node_id)  .== pgNodeId cId .&&
+  --                                        (nc' ^. nc_category) .>= sqlInt4 1
+  restrict -< matchMaybe nc $ \case
+    Nothing  -> toFields True
+    Just nc' -> (nc' ^. nc_node_id)  .== pgNodeId cId .&&
+                (nc' ^. nc_category) .>= sqlInt4 1
+  restrict -< (c ^. context_typename) .== sqlInt4 (toDBid NodeDocument)
   returnA -<  c
 
-joinInCorpus :: O.Select (ContextRead, NodeContextReadNull)
-joinInCorpus = leftJoin queryContextTable queryNodeContextTable cond
-  where
-    cond :: (ContextRead, NodeContextRead) -> Column SqlBool
-    cond (c, nc) = c^.context_id .== nc^.nc_context_id
+joinInCorpus :: O.Select (ContextRead, MaybeFields NodeContextRead)
+joinInCorpus = proc () -> do
+  c <- queryContextTable -< ()
+  nc <- optionalRestrict queryNodeContextTable -<
+    (\nc' -> (c ^. context_id) .== (nc' ^. nc_context_id))
+  returnA -< (c, nc)
 
 
-joinOn1 :: O.Select (NodeRead, NodeContextReadNull)
-joinOn1 = leftJoin queryNodeTable queryNodeContextTable cond
-  where
-    cond :: (NodeRead, NodeContextRead) -> Column SqlBool
-    cond (n, nc) = nc^.nc_node_id .== n^.node_id
+joinOn1 :: O.Select (NodeRead, MaybeFields NodeContextRead)
+joinOn1 = proc () -> do
+  n <- queryNodeTable -< ()
+  nc <- optionalRestrict queryNodeContextTable -<
+    (\nc' -> (nc' ^. nc_node_id) .== (n ^. node_id))
+  returnA -< (n, nc)
 
 
 ------------------------------------------------------------------------
@@ -193,8 +305,8 @@ selectPublicContexts :: HasDBid NodeType => (Hyperdata a, DefaultFromField SqlJs
                   => Cmd err [(Node a, Maybe Int)]
 selectPublicContexts = runOpaQuery (queryWithType NodeFolderPublic)
 
-queryWithType :: HasDBid NodeType =>NodeType -> O.Select (NodeRead, Column (Nullable SqlInt4))
+queryWithType :: HasDBid NodeType => NodeType -> O.Select (NodeRead, MaybeFields (Field SqlInt4))
 queryWithType nt = proc () -> do
   (n, nc) <- joinOn1 -< ()
-  restrict -< n^.node_typename .== (sqlInt4 $ toDBid nt)
-  returnA  -<  (n, nc^.nc_context_id)
+  restrict -< (n ^. node_typename) .== sqlInt4 (toDBid nt)
+  returnA  -<  (n, view nc_context_id <$> nc)

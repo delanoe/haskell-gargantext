@@ -83,8 +83,8 @@ resolveParent Nothing = pure Nothing
 
 
 nodeToTreeNode :: NN.Node json -> Maybe TreeNode
-nodeToTreeNode N.Node {..} = if (fromNodeTypeId _node_typename /= NN.NodeFolderShared) && (fromNodeTypeId _node_typename /= NN.NodeTeam) 
-                             then 
+nodeToTreeNode N.Node {..} = if (fromNodeTypeId _node_typename /= NN.NodeFolderShared) && (fromNodeTypeId _node_typename /= NN.NodeTeam)
+                             then
                              Just TreeNode { id        = NN.unNodeId _node_id
                                            , name      = _node_name
                                            , node_type = fromNodeTypeId _node_typename

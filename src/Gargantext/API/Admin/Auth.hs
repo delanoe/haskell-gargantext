@@ -35,22 +35,16 @@ module Gargantext.API.Admin.Auth
   )
   where
 
-import Control.Lens (view, (#))
 --import Control.Monad.Logger.Aeson
+--import qualified Text.Blaze.Html5.Attributes as HA
+import Control.Lens (view, (#))
 import Data.Aeson
 import Data.Swagger (ToSchema(..))
 import Data.Text (Text)
 import Data.Text.Lazy (toStrict)
-import qualified Data.Text.Lazy.Encoding as LE
 import Data.UUID (UUID, fromText, toText)
 import Data.UUID.V4 (nextRandom)
 import GHC.Generics (Generic)
-import Servant
-import Servant.Auth.Server
---import qualified Text.Blaze.Html5.Attributes as HA
-
-import qualified Gargantext.Prelude.Crypto.Auth as Auth
-
 import Gargantext.API.Admin.Auth.Types
 import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
@@ -70,6 +64,11 @@ import Gargantext.Database.Schema.Node (NodePoly(_node_id))
 import Gargantext.Prelude hiding (reverse)
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
 import Gargantext.Utils.Jobs (serveJobsAPI)
+import Servant
+import Servant.Auth.Server
+import qualified Data.Text as Text
+import qualified Data.Text.Lazy.Encoding as LE
+import qualified Gargantext.Prelude.Crypto.Auth as Auth
 
 ---------------------------------------------------
 
@@ -173,7 +172,7 @@ type ForgotPasswordAPI = Summary "Forgot password POST API"
                            :> QueryParam "uuid" Text
                            :> Get '[JSON] ForgotPasswordGet
 
-  
+
 forgotPassword :: GargServer ForgotPasswordAPI
      -- => ForgotPasswordRequest -> Cmd' env err ForgotPasswordResponse
 forgotPassword = forgotPasswordPost :<|> forgotPasswordGet
@@ -181,7 +180,7 @@ forgotPassword = forgotPasswordPost :<|> forgotPasswordGet
 forgotPasswordPost :: ( HasConnectionPool env, HasConfig env, HasMail env)
      => ForgotPasswordRequest -> Cmd' env err ForgotPasswordResponse
 forgotPasswordPost (ForgotPasswordRequest email) = do
-  us <- getUsersWithEmail email
+  us <- getUsersWithEmail (Text.toLower email)
   case us of
     [u] -> forgotUserPassword u
     _ -> pure ()
@@ -211,18 +210,18 @@ forgotPasswordGetUser :: (HasSettings env, HasConnectionPool env, HasJoseError e
 forgotPasswordGetUser (UserLight { .. }) = do
   -- pick some random password
   password <- liftBase gargPass
-  
+
   -- set it as user's password
   hashed <- liftBase $ Auth.hashPassword $ Auth.mkPassword password
   let hashed' = Auth.unPasswordHash hashed
   let userPassword = UserLight { userLight_password = GargPassword hashed', .. }
   _ <- updateUserPassword userPassword
-  
+
   -- display this briefly in the html
-  
+
   -- clear the uuid so that the page can't be refreshed
   _ <- updateUserForgotPasswordUUID $ UserLight { userLight_forgot_password_uuid = Nothing, .. }
-    
+
   pure $ ForgotPasswordGet password
 
 forgotUserPassword :: (HasConnectionPool env, HasConfig env, HasMail env)

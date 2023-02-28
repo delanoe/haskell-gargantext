@@ -12,7 +12,7 @@ module Gargantext.Core.Text.List.Social.Patch
   where
 
 import Control.Lens hiding (cons)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Hashable (Hashable)
 import Data.HashMap.Strict (HashMap)
 import Data.Monoid
@@ -23,7 +23,7 @@ import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Types (ListId)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.List as List
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Patch.Class    as Patch (Replace(..))
@@ -37,7 +37,6 @@ addScorePatches nt listes fl repo =
 
 
 addScorePatchesList :: NgramsType
-                   -- -> Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])
                    -> Map ListId (Map NgramsType [HashMap NgramsTerm NgramsPatch])
                    -> FlowCont NgramsTerm FlowListScores
                    -> ListId
@@ -97,13 +96,13 @@ addScorePatch fl (p, NgramsPatch { _patch_children
 -- | Inserting a new Ngrams
 addScorePatch fl (t, NgramsReplace { _patch_old = Nothing
                                    , _patch_new = Just nre }) =
-  childrenScore 1 t (nre ^. nre_children) 
+  childrenScore 1 t (nre ^. nre_children)
   $ fl & flc_scores . at t %~ (score fls_listType $ nre ^. nre_list) 1
        & flc_cont   %~ (HashMap.delete t)
 
 addScorePatch fl (t, NgramsReplace { _patch_old = Just old_nre
                                    , _patch_new = maybe_new_nre }) =
-  let fl' = childrenScore (-1) t (old_nre ^. nre_children) 
+  let fl' = childrenScore (-1) t (old_nre ^. nre_children)
             $ fl & flc_scores . at t %~ (score fls_listType $ old_nre ^. nre_list) (-1)
                  & flc_cont   %~ (HashMap.delete t)
     in case maybe_new_nre of
@@ -146,4 +145,3 @@ score field list n m = (Just mempty <> m)
                      %~ (<> Just n)
 
 ------------------------------------------------------------------------
-

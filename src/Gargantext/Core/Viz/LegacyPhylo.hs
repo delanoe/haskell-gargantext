@@ -30,7 +30,7 @@ module Gargantext.Core.Viz.LegacyPhylo where
 import Control.DeepSeq
 import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON,defaultOptions)
-import Data.Map     (Map)
+import Data.Map.Strict     (Map)
 import Data.Set     (Set)
 import Data.Swagger
 import Data.Text    (Text)
@@ -81,7 +81,7 @@ data Phylo =
            deriving (Generic, Show, Eq)
 
 
--- | The foundations of a phylomemy created from a given TermList 
+-- | The foundations of a phylomemy created from a given TermList
 data PhyloFoundations =
   PhyloFoundations { _phylo_foundationsRoots :: !(Vector Ngrams)
                    , _phylo_foundationsTermsList :: !TermList
@@ -567,4 +567,3 @@ instance ToSchema EdgeType
 ----------------------------
 -- | TODO XML instances | --
 ----------------------------
-

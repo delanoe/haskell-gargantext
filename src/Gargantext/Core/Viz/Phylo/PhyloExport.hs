@@ -19,7 +19,7 @@ import Data.GraphViz.Attributes.Complete hiding (EdgeType, Order)
 import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.GraphViz.Types.Monadic
 import Data.List ((++), sort, nub, null, concat, sortOn, groupBy, union, (\\), (!!), init, partition, notElem, unwords, nubBy, inits, elemIndex)
-import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList, member)
+import Data.Map.Strict (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList, member)
 import Data.Text.Lazy (fromStrict, pack, unpack)
 import Data.Vector (Vector)
 import Debug.Trace (trace)
@@ -375,7 +375,7 @@ processSort sort' elev export = case sort' of
     ByBirthDate o -> sortByBirthDate o export
     ByHierarchy _ -> case elev of
             Constante  s s' ->  export & export_branches .~ (branchToIso' s s' $ sortByHierarchy 0 (export ^. export_branches))
-            Adaptative _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches))       
+            Adaptative _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches))
 
 -----------------
 -- | Metrics | --
@@ -567,7 +567,7 @@ toDynamics n elders g m =
         isNew :: Bool
         isNew = not $ elem n $ concat $ map _phylo_groupNgrams elders
 
-type FdtId = Int 
+type FdtId = Int
 processDynamics :: [PhyloGroup] -> [PhyloGroup]
 processDynamics groups =
     map (\g ->
@@ -722,4 +722,3 @@ traceExportGroups groups = trace ("\n" <> "-- | Export "
     <> show(length groups) <> " groups and "
     <> show(length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) groups) <> " terms"
   ) groups
-

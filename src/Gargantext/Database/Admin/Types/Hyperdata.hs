@@ -10,6 +10,7 @@ Portability : POSIX
 -}
 
 
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 
 module Gargantext.Database.Admin.Types.Hyperdata
   ( module Gargantext.Database.Admin.Types.Hyperdata.Any
@@ -26,7 +27,7 @@ module Gargantext.Database.Admin.Types.Hyperdata
   , module Gargantext.Database.Admin.Types.Hyperdata.Texts
   , module Gargantext.Database.Admin.Types.Hyperdata.Phylo
   , module Gargantext.Database.Admin.Types.Hyperdata.User
-  , module Gargantext.Core.Viz.Graph
+  , module Gargantext.Core.Viz.Graph.Types
   )
   where
 
@@ -44,6 +45,4 @@ import Gargantext.Database.Admin.Types.Hyperdata.Prelude (Hyperdata)
 import Gargantext.Database.Admin.Types.Hyperdata.Texts
 import Gargantext.Database.Admin.Types.Hyperdata.Phylo
 import Gargantext.Database.Admin.Types.Hyperdata.User
-import Gargantext.Core.Viz.Graph (HyperdataGraph(..), defaultHyperdataGraph)
-
-
+import Gargantext.Core.Viz.Graph.Types (HyperdataGraph(..), defaultHyperdataGraph)

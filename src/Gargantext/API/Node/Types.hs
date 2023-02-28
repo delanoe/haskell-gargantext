@@ -20,6 +20,7 @@ import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Prelude
 import qualified Gargantext.Database.GargDB as GargDB
 import Gargantext.API.Node.Corpus.New.Types (FileType, FileFormat)
+import Gargantext.Core.Text.List.Social (FlowSocialListWith)
 
 -------------------------------------------------------
 data NewWithForm = NewWithForm
@@ -28,6 +29,7 @@ data NewWithForm = NewWithForm
   , _wf_data       :: !Text    -- NOTE for binary files, this represents base-64 data
   , _wf_lang       :: !(Maybe Lang)
   , _wf_name       :: !Text
+  , _wf_selection  :: !FlowSocialListWith
   } deriving (Eq, Show, Generic)
 
 makeLenses ''NewWithForm
@@ -43,9 +45,9 @@ instance ToSchema NewWithForm where
 -------------------------------------------------------
 
 data NewWithFile = NewWithFile
-  { _wfi_b64_data :: !Text
-  , _wfi_lang     :: !(Maybe Lang)
-  , _wfi_name     :: !Text
+  { _wfi_b64_data  :: !Text
+  , _wfi_lang      :: !(Maybe Lang)
+  , _wfi_name      :: !Text
   } deriving (Eq, Show, Generic)
 
 makeLenses ''NewWithFile

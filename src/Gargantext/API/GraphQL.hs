@@ -11,7 +11,7 @@ module Gargantext.API.GraphQL where
 import Data.ByteString.Lazy.Char8
   ( ByteString
   )
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Morpheus
   ( App
   , deriveApp )
@@ -36,6 +36,7 @@ import Gargantext.API.Admin.Orchestrator.Types (JobLog)
 import Gargantext.API.Prelude (HasJobEnv')
 import qualified Gargantext.API.GraphQL.Annuaire as GQLA
 import qualified Gargantext.API.GraphQL.AsyncTask as GQLAT
+import qualified Gargantext.API.GraphQL.Context as GQLCTX
 import qualified Gargantext.API.GraphQL.IMT as GQLIMT
 import qualified Gargantext.API.GraphQL.Node as GQLNode
 import qualified Gargantext.API.GraphQL.User as GQLUser
@@ -65,21 +66,24 @@ import Gargantext.API.Admin.Types (HasSettings)
 -- | Represents possible GraphQL queries.
 data Query m
   = Query
-    { annuaire_contacts :: GQLA.AnnuaireContactArgs -> m [GQLA.AnnuaireContact]
-    , imt_schools :: GQLIMT.SchoolsArgs -> m [GQLIMT.School]
-    , job_logs    :: GQLAT.JobLogArgs -> m (Map Int JobLog)
-    , nodes       :: GQLNode.NodeArgs -> m [GQLNode.Node]
-    , node_parent :: GQLNode.NodeParentArgs -> m [GQLNode.Node]
-    , user_infos  :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
-    , users       :: GQLUser.UserArgs -> m [GQLUser.User m]
-    , tree        :: GQLTree.TreeArgs -> m (GQLTree.TreeFirstLevel m)
-    , team        :: GQLTeam.TeamArgs -> m GQLTeam.Team
+    { annuaire_contacts   :: GQLA.AnnuaireContactArgs -> m [GQLA.AnnuaireContact]
+    , contexts            :: GQLCTX.NodeContextArgs -> m [GQLCTX.NodeContextGQL]
+    , contexts_for_ngrams :: GQLCTX.ContextsForNgramsArgs -> m [GQLCTX.ContextGQL]
+    , imt_schools         :: GQLIMT.SchoolsArgs -> m [GQLIMT.School]
+    , job_logs            :: GQLAT.JobLogArgs -> m (Map Int JobLog)
+    , nodes               :: GQLNode.NodeArgs -> m [GQLNode.Node]
+    , node_parent         :: GQLNode.NodeParentArgs -> m [GQLNode.Node]
+    , user_infos          :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
+    , users               :: GQLUser.UserArgs -> m [GQLUser.User m]
+    , tree                :: GQLTree.TreeArgs -> m (GQLTree.TreeFirstLevel m)
+    , team                :: GQLTeam.TeamArgs -> m GQLTeam.Team
     } deriving (Generic, GQLType)
 
 data Mutation m
   = Mutation
-    { update_user_info        :: GQLUserInfo.UserInfoMArgs -> m Int 
-    , delete_team_membership :: GQLTeam.TeamDeleteMArgs -> m [Int] 
+    { update_user_info       :: GQLUserInfo.UserInfoMArgs -> m Int
+    , delete_team_membership :: GQLTeam.TeamDeleteMArgs -> m [Int]
+    , update_node_context_category :: GQLCTX.NodeContextCategoryMArgs -> m [Int]
     } deriving (Generic, GQLType)
 
 -- | Possible GraphQL Events, i.e. here we describe how we will
@@ -104,17 +108,20 @@ rootResolver
   => RootResolver (GargM env GargError) e Query Mutation Undefined
 rootResolver =
   RootResolver
-    { queryResolver = Query { annuaire_contacts = GQLA.resolveAnnuaireContacts
-                            , imt_schools       = GQLIMT.resolveSchools
-                            , job_logs          = GQLAT.resolveJobLogs
-                            , nodes             = GQLNode.resolveNodes
-                            , node_parent       = GQLNode.resolveNodeParent
-                            , user_infos        = GQLUserInfo.resolveUserInfos
-                            , users             = GQLUser.resolveUsers
-                            , tree              = GQLTree.resolveTree
-                            , team              = GQLTeam.resolveTeam }
-    , mutationResolver = Mutation { update_user_info       = GQLUserInfo.updateUserInfo 
-                                  , delete_team_membership = GQLTeam.deleteTeamMembership }
+    { queryResolver = Query { annuaire_contacts   = GQLA.resolveAnnuaireContacts
+                            , contexts            = GQLCTX.resolveNodeContext
+                            , contexts_for_ngrams = GQLCTX.resolveContextsForNgrams
+                            , imt_schools         = GQLIMT.resolveSchools
+                            , job_logs            = GQLAT.resolveJobLogs
+                            , nodes               = GQLNode.resolveNodes
+                            , node_parent         = GQLNode.resolveNodeParent
+                            , user_infos          = GQLUserInfo.resolveUserInfos
+                            , users               = GQLUser.resolveUsers
+                            , tree                = GQLTree.resolveTree
+                            , team                = GQLTeam.resolveTeam }
+    , mutationResolver = Mutation { update_user_info       = GQLUserInfo.updateUserInfo
+                                  , delete_team_membership = GQLTeam.deleteTeamMembership
+                                  , update_node_context_category = GQLCTX.updateNodeContextCategory }
     , subscriptionResolver = Undefined }
 
 -- | Main GraphQL "app".
@@ -149,7 +156,7 @@ gqapi = Proxy
 --   App e IO ->
 --   Server (API name)
 -- serveEndpoint publish app' = (liftIO . httpPubApp publish app') :<|> withSchema app' :<|> pure httpPlayground
--- 
+--
 -- withSchema :: (Applicative f) => App e m -> f Text
 -- withSchema = pure . LT.toStrict . decodeUtf8 . render
 

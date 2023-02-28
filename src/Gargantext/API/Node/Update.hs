@@ -29,9 +29,9 @@ import Gargantext.API.Ngrams.List (reIndexWith)
 import Gargantext.API.Prelude (GargM, GargError, simuLogs)
 import Gargantext.Core.Methods.Similarities (GraphMetric(..))
 import Gargantext.Core.Types.Main (ListType(..))
-import Gargantext.Core.Viz.Graph (Strength)
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
 import Gargantext.Core.Viz.Graph.Tools (PartitionMethod(..), BridgenessMethod(..))
+import Gargantext.Core.Viz.Graph.Types (Strength)
 import Gargantext.Core.Viz.Phylo (PhyloSubConfig(..), subConfig2config)
 import Gargantext.Core.Viz.Phylo.API.Tools (flowPhyloAPI)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
@@ -271,7 +271,7 @@ instance FromJSON  UpdateNodeParams where
 
 instance ToJSON    UpdateNodeParams where
   toJSON = genericToJSON (defaultOptions { sumEncoding = GUA.defaultTaggedObject })
-  
+
 instance ToSchema  UpdateNodeParams
 instance Arbitrary UpdateNodeParams where
   arbitrary = do

@@ -16,7 +16,6 @@ module Gargantext.Database.Action.User.New
 import Control.Lens (view)
 import Control.Monad.Random
 import Data.Text (Text, splitOn)
-import qualified Data.Text as Text
 import Gargantext.Core.Mail
 import Gargantext.Core.Mail.Types (HasMail, mailSettings)
 import Gargantext.Core.Types.Individu
@@ -27,6 +26,7 @@ import Gargantext.Database.Query.Table.User
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
 import Gargantext.Prelude.Mail.Types (MailConfig)
+import qualified Data.Text as Text
 
 ------------------------------------------------------------------------
 newUsers :: (CmdM env err m, MonadRandom m, HasNodeError err, HasMail env)
@@ -52,10 +52,11 @@ newUserQuick :: (MonadRandom m)
              => Text -> m (NewUser GargPassword)
 newUserQuick n = do
   pass <- gargPass
+  let n' = Text.toLower n
   let u = case guessUserName n of
         Just  (u', _m) -> u'
         Nothing        -> panic "[G.D.A.U.N.newUserQuick]: Email invalid"
-  pure (NewUser u n (GargPassword pass))
+  pure (NewUser u n' (GargPassword pass))
 ------------------------------------------------------------------------
 
 ------------------------------------------------------------------------

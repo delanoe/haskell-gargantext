@@ -9,13 +9,14 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE Arrows            #-}
+{-# LANGUAGE LambdaCase         #-}
 
 module Gargantext.Database.Action.Search where
 
 import Control.Arrow (returnA)
-import Control.Lens ((^.))
+import Control.Lens ((^.), view)
 import qualified Data.List as List
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import Data.Maybe
 import qualified Data.Set as Set
 import Data.Text (Text, unpack, intercalate)
@@ -157,27 +158,25 @@ queryInCorpus :: HasDBid NodeType
               -> Text
               -> O.Select FacetDocRead
 queryInCorpus cId t q = proc () -> do
-  (c, nc) <- joinInCorpus -< ()
-  restrict -< (nc^.nc_node_id) .== (toNullable $ pgNodeId cId)
+  c <- queryContextSearchTable -< ()
+  nc <- optionalRestrict queryNodeContextTable -<
+    \nc' -> (nc' ^. nc_context_id) .== _cs_id c
+  restrict -< (view nc_node_id <$> nc) .=== justFields (pgNodeId cId)
   restrict -< if t
-                 then (nc^.nc_category) .== (toNullable $ sqlInt4 0)
-                 else (nc^.nc_category) .>= (toNullable $ sqlInt4 1)
-  restrict -< (c ^. cs_search)           @@ (sqlTSQuery (unpack q))
-  restrict -< (c ^. cs_typename )       .== (sqlInt4 $ toDBid NodeDocument)
+                 then (view nc_category <$> nc) .=== justFields (sqlInt4 0)
+                 else matchMaybe (view nc_category <$> nc) $ \case
+                        Nothing -> toFields False
+                        Just c' -> c' .>= sqlInt4 1
+  restrict -< (c ^. cs_search)           @@ sqlTSQuery (unpack q)
+  restrict -< (c ^. cs_typename )       .== sqlInt4 (toDBid NodeDocument)
   returnA  -< FacetDoc { facetDoc_id         = c^.cs_id
                        , facetDoc_created    = c^.cs_date
                        , facetDoc_title      = c^.cs_name
                        , facetDoc_hyperdata  = c^.cs_hyperdata
-                       , facetDoc_category   = nc^.nc_category
-                       , facetDoc_ngramCount = nc^.nc_score
-                       , facetDoc_score      = nc^.nc_score
+                       , facetDoc_category   = maybeFieldsToNullable (view nc_category <$> nc)
+                       , facetDoc_ngramCount = maybeFieldsToNullable (view nc_score <$> nc)
+                       , facetDoc_score      = maybeFieldsToNullable (view nc_score <$> nc)
                        }
-
-joinInCorpus :: O.Select (ContextSearchRead, NodeContextReadNull)
-joinInCorpus = leftJoin queryContextSearchTable queryNodeContextTable cond
-  where
-    cond :: (ContextSearchRead, NodeContextRead) -> Column SqlBool
-    cond (c, nc) = nc^.nc_context_id .== _cs_id c
 
 ------------------------------------------------------------------------
 searchInCorpusWithContacts
@@ -201,7 +200,7 @@ selectGroup :: HasDBid NodeType
             => CorpusId
             -> AnnuaireId
             -> Text
-            -> Select FacetPairedReadNull
+            -> Select FacetPairedRead
 selectGroup cId aId q = proc () -> do
   (a, b, c, d) <- aggregate (p4 (groupBy, groupBy, groupBy, O.sum))
                             (selectContactViaDoc cId aId q) -< ()
@@ -214,25 +213,46 @@ selectContactViaDoc
   -> AnnuaireId
   -> Text
   -> SelectArr ()
-               ( Column (Nullable SqlInt4)
-               , Column (Nullable SqlTimestamptz)
-               , Column (Nullable SqlJsonb)
-               , Column (Nullable SqlInt4)
+               ( Field SqlInt4
+               , Field SqlTimestamptz
+               , Field SqlJsonb
+               , Field SqlInt4
                )
 selectContactViaDoc cId aId query = proc () -> do
-  (doc, (corpus, (_nodeContext_nodeContext, (annuaire, contact)))) <- queryContactViaDoc -< ()
-  restrict -< (doc^.cs_search)             @@ (sqlTSQuery $ unpack query                )
-  restrict -< (doc^.cs_typename)          .== (sqlInt4    $ toDBid NodeDocument         )
-  restrict -< (corpus^.nc_node_id)        .== (toNullable $ pgNodeId cId                )
-  restrict -< (annuaire^.nc_node_id)      .== (toNullable $ pgNodeId aId                )
-  restrict -< (contact^.context_typename) .== (toNullable $ sqlInt4 $ toDBid NodeContact)
-  returnA  -< ( contact^.context_id
-              , contact^.context_date
-              , contact^.context_hyperdata
-              , toNullable $ sqlInt4 1
+  --(doc, (corpus, (_nodeContext_nodeContext, (annuaire, contact)))) <- queryContactViaDoc -< ()
+  (contact, annuaire, _, corpus, doc) <- queryContactViaDoc -< ()
+  restrict -< matchMaybe (view cs_search <$> doc) $ \case
+    Nothing -> toFields False
+    Just s  -> s @@ sqlTSQuery (unpack query)
+  restrict -< (view cs_typename <$> doc)          .=== justFields (sqlInt4 (toDBid NodeDocument))
+  restrict -< (view nc_node_id <$> corpus)        .=== justFields (pgNodeId cId)
+  restrict -< (view nc_node_id <$> annuaire)      .=== justFields (pgNodeId aId)
+  restrict -< (contact ^. context_typename) .== sqlInt4 (toDBid NodeContact)
+  returnA  -< ( contact ^. context_id
+              , contact ^. context_date
+              , contact ^. context_hyperdata
+              , sqlInt4 1
               )
 
-queryContactViaDoc :: O.Select ( ContextSearchRead
+queryContactViaDoc :: O.Select ( ContextRead
+                               , MaybeFields NodeContextRead
+                               , MaybeFields NodeContext_NodeContextRead
+                               , MaybeFields NodeContextRead
+                               , MaybeFields ContextSearchRead )
+queryContactViaDoc = proc () -> do
+  contact <- queryContextTable -< ()
+  annuaire <- optionalRestrict queryNodeContextTable -<
+    \annuaire' -> (annuaire' ^. nc_context_id) .== (contact ^. context_id)
+  nodeContext_nodeContext <- optionalRestrict queryNodeContext_NodeContextTable -<
+    \ncnc' -> justFields (ncnc' ^. ncnc_nodecontext2) .=== (view nc_id <$> annuaire)
+  corpus <- optionalRestrict queryNodeContextTable -<
+    \corpus' -> justFields (corpus' ^. nc_id) .=== (view ncnc_nodecontext1 <$> nodeContext_nodeContext)
+  doc <- optionalRestrict queryContextSearchTable -<
+    \doc' -> justFields (doc' ^. cs_id) .=== (view nc_context_id <$> corpus)
+
+  returnA -< (contact, annuaire, nodeContext_nodeContext, corpus, doc)
+
+queryContactViaDoc' :: O.Select ( ContextSearchRead
                                , ( NodeContextReadNull
                                  , ( NodeContext_NodeContextReadNull
                                    , ( NodeContextReadNull
@@ -241,7 +261,7 @@ queryContactViaDoc :: O.Select ( ContextSearchRead
                                    )
                                  )
                                )
-queryContactViaDoc =
+queryContactViaDoc' =
   leftJoin5
   queryContextTable
   queryNodeContextTable
