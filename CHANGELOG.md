@@ -3,6 +3,7 @@
 * [FRONT][ERGO][When the progress bar is empty: say: waiting task (#503)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/503)
 * [FRONT][DOC][Door to entry: Welcome! (#269)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/269)
 * [FRONT][DOC] Show Text Size Limit
+* [BACK][FIX] Order 2 regression fixed and clustering with more granularity
 
 ## Version 0.0.6.9.4.5
 
