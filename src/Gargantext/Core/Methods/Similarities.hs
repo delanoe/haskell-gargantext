@@ -17,13 +17,18 @@ module Gargantext.Core.Methods.Similarities
 import Data.Aeson
 import Data.Array.Accelerate (Matrix)
 import Data.Swagger
+import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Core.Methods.Similarities.Accelerate.Conditional (measureConditional)
 import Gargantext.Core.Methods.Similarities.Accelerate.Distributional (logDistributional)
-import Gargantext.Prelude (Ord, Eq, Int, Double, Show)
+-- import Gargantext.Core.Text.Metrics.Count (coocOn)
+-- import Gargantext.Core.Viz.Graph.Index
+import Gargantext.Prelude (Ord, Eq, Int, Double, Show, map)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
+-- import qualified Data.Map  as Map
+import qualified Data.Text as Text 
 
 ------------------------------------------------------------------------
 data Similarity = Conditional | Distributional
@@ -31,9 +36,7 @@ data Similarity = Conditional | Distributional
 
 measure :: Similarity -> Matrix Int -> Matrix Double
 measure Conditional    x = measureConditional x
-measure Distributional x = y
-  where
-    y = logDistributional x
+measure Distributional x = logDistributional  x
 
 ------------------------------------------------------------------------
 withMetric :: GraphMetric -> Similarity
@@ -51,4 +54,33 @@ instance Arbitrary GraphMetric where
   arbitrary = elements [ minBound .. maxBound ]
 
 ------------------------------------------------------------------------
+
+-- Let's take 2 different forms to produce another one:
+hello_words :: [[Text]]
+hello_words = map (Text.splitOn "-") wrds
+  where
+    wrds = [ "bio-logie"
+              , "socio-logie"
+--              , "ana-logie"
+--              , "micro-scope"
+--                , "micro-phone"
+--                , "micro-cosme"
+--              --  , "micro-biote"
+--              , "tele-scope"
+--                , "tele-phone"
+--                , "tele-surveillance"
+--              , "macro-scope"
+--              , "macro-cosme"
+--              , "macro-biote"
+              ]
+
+{-
+hello_matrix ms' = measureConditional
+                 $ map2mat Square 0 (Map.size ti)
+                 $ toIndex ti ms
+  where
+    ms = coocOn identity ms'
+    (ti, it) = createIndices ms
+-}
+
 

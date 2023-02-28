@@ -21,6 +21,7 @@ import Gargantext.Core.Viz.Graph.Index
 import Graph.Types (ClusterNode(..))
 import IGraph hiding (mkGraph, neighbors, edges, nodes, Node, Graph)
 import Protolude
+import Gargantext.Prelude (saveAsFileDebug)
 import qualified Data.List                   as List
 import qualified Data.Map.Strict             as Map
 import qualified IGraph                      as IG
@@ -79,7 +80,11 @@ partitions_spinglass' :: (Serialize v, Serialize e)
                          => Seed -> IG.Graph 'U v e -> IO [[Int]]
 partitions_spinglass' s g = do
   gen <- IG.withSeed s pure
-  IG.findCommunity g Nothing Nothing IG.spinglass gen
+  res <- IG.findCommunity g Nothing Nothing IG.spinglass gen
+  -- res <- IG.findCommunity g Nothing Nothing IG.leiden gen
+  -- res <- IG.findCommunity g Nothing Nothing IG.infomap  gen
+  saveAsFileDebug "/tmp/res" res
+  pure res
 
 
 toClusterNode :: [[Int]] -> [ClusterNode]

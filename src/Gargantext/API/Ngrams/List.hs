@@ -159,37 +159,24 @@ reIndexWith cId lId nt lts = do
      <$> HashMap.toList
      <$> getTermsWith identity [lId] nt lts
 
-
-  let orphans = ts {- List.concat
-              $ map (\t -> case HashMap.lookup t occs of
-                       Nothing -> [t]
-                       Just n  -> if n <= 1 then [t] else [ ]
-                       ) ts
-                   -}
-
-  printDebug "orphans" orphans
-
   -- Get all documents of the corpus
   docs <- selectDocNodes cId
-  -- printDebug "docs length" (List.length docs)
 
-  -- Checking Text documents where orphans match
-  -- TODO Tests here
   let
     -- fromListWith (<>)
-    ngramsByDoc = map (HashMap.fromList)
+    ngramsByDoc = map (HashMap.fromListWith (Map.unionWith (Map.unionWith (\(_a,b) (_a',b') -> (1,b+b')))))
                   $ map (map (\((k, cnt), v) -> (SimpleNgrams (text2ngrams k), over (traverse . traverse) (\p -> (p, cnt)) v)))
                   $ map (\doc -> List.zip
-                                 (termsInText (buildPatterns $ map (\k -> (Text.splitOn " " $ unNgramsTerm k, [])) orphans)
-                                  $ Text.unlines $ catMaybes
-                                  [ doc ^. context_hyperdata . hd_title
-                                  , doc ^. context_hyperdata . hd_abstract
-                                  ]
+                                 (termsInText (buildPatterns $ map (\k -> (Text.splitOn " " $ unNgramsTerm k, [])) ts)
+                                              $ Text.unlines $ catMaybes
+                                              [ doc ^. context_hyperdata . hd_title
+                                              , doc ^. context_hyperdata . hd_abstract
+                                              ]
                                  )
                                  (List.cycle [Map.fromList $ [(nt, Map.singleton (doc ^. context_id) 1 )]])
                         ) docs
 
-  printDebug "ngramsByDoc: " ngramsByDoc
+  -- printDebug "ngramsByDoc: " ngramsByDoc
 
   -- Saving the indexation in database
   _ <- mapM (saveDocNgramsWith lId) ngramsByDoc
@@ -224,7 +211,7 @@ postAsync' l (WithJsonFile m _) logStatus = do
                    , _scst_remaining = Just 2
                    , _scst_events    = Just []
                    }
-  printDebug "New list as file" l
+  -- printDebug "New list as file" l
   _ <- setList l m
   -- printDebug "Done" r
 
@@ -283,15 +270,15 @@ csvPost :: FlowCmdM env err m
         -> Text
         -> m Bool
 csvPost l m  = do
-  printDebug "[csvPost] l" l
+  -- printDebug "[csvPost] l" l
   -- printDebug "[csvPost] m" m
   -- status label forms
   let lst = readCsvText m
   let p = parseCsvData lst
   --printDebug "[csvPost] lst" lst
-  printDebug "[csvPost] p" p
+  -- printDebug "[csvPost] p" p
   _ <- setListNgrams l NgramsTerms p
-  printDebug "ReIndexing List" l
+  -- printDebug "ReIndexing List" l
   corpus_node <- getNode l -- (Proxy :: Proxy HyperdataList)
   let corpus_id = fromMaybe (panic "") (_node_parent_id corpus_node)
   _ <- reIndexWith corpus_id l NgramsTerms (Set.fromList [MapTerm, CandidateTerm])
@@ -301,10 +288,10 @@ csvPost l m  = do
 ------------------------------------------------------------------------
 csvPostAsync :: ServerT CSVAPI (GargM Env GargError)
 csvPostAsync lId =
-  serveJobsAPI UpdateNgramsListJobCSV $ \f@(WithTextFile ft _ n) log' -> do
+  serveJobsAPI UpdateNgramsListJobCSV $ \f@(WithTextFile _ft _ _n) log' -> do
       let log'' x = do
-            printDebug "[csvPostAsync] filetype" ft
-            printDebug "[csvPostAsync] name" n
+            -- printDebug "[csvPostAsync] filetype" ft
+            -- printDebug "[csvPostAsync] name" n
             liftBase $ log' x
       csvPostAsync' lId f log''
 

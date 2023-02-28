@@ -23,19 +23,20 @@ TODO use Map LouvainNodeId (Map LouvainNodeId)
 module Gargantext.Core.Viz.Graph.Bridgeness -- (bridgeness)
   where
 
-import Gargantext.Core.Methods.Similarities (Similarity(..))
--- import Data.IntMap (IntMap)
 import Data.Map.Strict (Map, fromListWith, lookup, toList, mapWithKey, elems)
 import Data.Maybe (catMaybes)
 import Data.Ord (Down(..))
+import Data.Set (Set)
+import Data.Tuple.Extra (swap)
 import Debug.Trace (trace)
+import Gargantext.Core.Methods.Similarities (Similarity(..))
 import Gargantext.Prelude
 import Graph.Types (ClusterNode(..))
--- import qualified Data.IntMap as IntMap
-import qualified Data.List   as List
-import qualified Data.Map.Strict    as Map
--- import qualified Data.Set    as Set
-
+import qualified Data.List        as List
+import qualified Data.Map.Strict  as Map
+import qualified Data.Set         as Set
+import qualified Data.Tuple.Extra as Tuple
+import qualified Data.IntMap      as Dico
 ----------------------------------------------------------------------
 
 type Partitions = Map (Int, Int) Double -> IO [ClusterNode]
@@ -45,6 +46,43 @@ nodeId2comId (ClusterNode i1 i2) = (i1, i2)
 
 type NodeId        = Int
 type CommunityId   = Int
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+-- recursiveClustering : get get more granularity of a given clustering
+-- tested with spinglass clustering only (WIP)
+recursiveClustering :: Partitions -> Map (Int, Int) Double -> IO [ClusterNode]
+recursiveClustering f mp = do
+  let
+    n :: Double
+    n = fromIntegral $ Set.size
+      $ Set.unions  $ List.concat
+      $ map (\(k1,k2) -> map Set.singleton [k1, k2])
+      $ Map.keys mp
+
+    t :: Int
+    t = round $ (n / 2) * (sqrt n) / 100
+
+  (toSplit,others) <- List.span (\a -> Set.size a > t) <$> clusterNodes2sets <$> f mp
+  cls' <- mapM f $ map (\s -> removeNodes s mp) toSplit
+  pure $ setNodes2clusterNodes $ others <> (List.concat $ map clusterNodes2sets cls')
+
+setNodes2clusterNodes :: [Set NodeId] -> [ClusterNode]
+setNodes2clusterNodes ns = List.concat $ map (\(n,ns') -> toCluster n ns') $ zip [1..] ns
+  where
+    toCluster :: CommunityId -> Set NodeId -> [ClusterNode]
+    toCluster cId setNodeId = map (\n -> ClusterNode n cId) (Set.toList setNodeId)
+
+removeNodes :: Set NodeId
+            -> Map (NodeId, NodeId) Double
+            -> Map (NodeId, NodeId) Double
+removeNodes s = Map.filterWithKey (\(n1,n2) _v -> Set.member n1 s && Set.member n2 s)
+
+
+clusterNodes2sets :: [ClusterNode] -> [Set NodeId]
+clusterNodes2sets = Dico.elems
+                  . Dico.fromListWith (<>)
+                  . (map ((Tuple.second Set.singleton) . swap . nodeId2comId))
 
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------
@@ -116,7 +154,7 @@ filterComs _b m = Map.filter (\n -> length n > 0) $ mapWithKey filter' m
     filter' (c1,c2) a
       | c1 == c2  = a
       -- TODO use n here
-      | otherwise = take n $ List.sortOn (Down . snd) a
+      | otherwise = take (2*n) $ List.sortOn (Down . snd) a
            where
             n :: Int
             n = round $ 100 * a' / t

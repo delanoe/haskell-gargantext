@@ -23,9 +23,9 @@ import GHC.Float (sin, cos)
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Methods.Similarities (Similarity(..), measure)
-import Gargantext.Core.Methods.Similarities.Conditional (conditional)
+-- import Gargantext.Core.Methods.Similarities.Conditional (conditional)
 import Gargantext.Core.Statistics
-import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Bridgeness(..), Partitions, nodeId2comId)
+import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Bridgeness(..), Partitions, nodeId2comId, recursiveClustering)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
 import Gargantext.Core.Viz.Graph.Tools.Infomap (infomap)
@@ -47,7 +47,6 @@ import qualified Data.Vector.Storable     as Vec
 import qualified Graph.BAC.ProxemyOptim   as BAC
 import qualified IGraph                   as Igraph
 import qualified IGraph.Algorithms.Layout as Layout
-
 
 data PartitionMethod = Spinglass | Confluence | Infomap
     deriving (Generic, Eq, Ord, Enum, Bounded, Show)
@@ -124,16 +123,27 @@ cooc2graphWith' doPartitions bridgenessMethod multi similarity threshold strengt
   distanceMap `seq` diag `seq` ti `seq` return ()
 
 --{- -- Debug
-  -- saveAsFileDebug "/tmp/distanceMap" distanceMap
-  -- saveAsFileDebug "/tmp/distanceMap.keys" (List.length $ Map.keys distanceMap)
+  -- To Work with Igraph
+  saveAsFileDebug "/tmp/distanceMap" ( List.intercalate ";"
+                                     $ Set.toList
+                                     $ Set.fromList
+                                     $ map (\(k1,k2) -> if k1 < k2
+                                                           then show (k1+1) <> " " <> show (k2+1)
+                                                           else show (k2+1) <> " " <> show (k1+1)
+                                                           )
+                                     $ Map.keys
+                                     $ Map.filter (>0.005) distanceMap
+                                     )
+  saveAsFileDebug "/tmp/distanceMap.data" distanceMap
+  saveAsFileDebug "/tmp/distanceMap.cooc" myCooc
   -- printDebug "similarities" similarities
 --}
 
   partitions <- if (Map.size distanceMap > 0)
-      then doPartitions distanceMap
+      then recursiveClustering doPartitions distanceMap
       else panic $ Text.unlines [ "[Gargantext.C.V.Graph.Tools] Similarity Matrix is empty"
                                 , "Maybe you should add more Map Terms in your list"
-                                , "Tutorial: link todo"
+                                , "Tutorial: TODO"
                                 ]
   length partitions `seq` return ()
 
@@ -155,6 +165,33 @@ doSimilarityMap :: Similarity
                  , Map (Index, Index) Int
                  , Map NgramsTerm Index
                  )
+
+doSimilarityMap Conditional threshold strength myCooc = (distanceMap, toIndex ti myCooc', ti)
+  where
+    myCooc' = Map.fromList $ HashMap.toList myCooc
+
+    (_diag, theMatrix) = Map.partitionWithKey (\(x,y) _ -> x == y)
+                       $ Map.fromList
+                       $ HashMap.toList myCooc
+
+    (ti, _it) = createIndices theMatrix
+    tiSize  = Map.size ti
+
+    similarities = (\m -> m `seq` m)
+                 $ (\m -> m `seq` measure Conditional m)
+                 $ (\m -> m `seq` map2mat Square 0 tiSize m)
+                 $ theMatrix `seq` toIndex ti theMatrix
+
+    links = round (let n :: Double = fromIntegral (Map.size ti) in 10 * n * (log n)^(2::Int))
+    distanceMap = Map.fromList
+                $ List.take links
+                $ (if strength == Weak then List.reverse else identity)
+                $ List.sortOn snd
+                $ Map.toList
+                $ Map.filter (> threshold)
+                -- $ conditional myCooc
+                $ similarities `seq` mat2map similarities
+
 doSimilarityMap Distributional threshold strength myCooc = (distanceMap, toIndex ti diag, ti)
   where
     -- TODO remove below
@@ -180,20 +217,6 @@ doSimilarityMap Distributional threshold strength myCooc = (distanceMap, toIndex
                 $ edgesFilter
                 $ (\m -> m `seq` Map.filter (> threshold) m)
                 $ similarities `seq` mat2map similarities
-
-doSimilarityMap Conditional threshold strength myCooc = (distanceMap, toIndex ti myCooc', ti)
-  where
-    myCooc' = Map.fromList $ HashMap.toList myCooc
-    (ti, _it) = createIndices myCooc'
-    links = round (let n :: Double = fromIntegral (Map.size ti) in n * (log n)^(2::Int))
-    distanceMap = toIndex ti
-                $ Map.fromList
-                $ List.take links
-                $ (if strength == Weak then List.reverse else identity)
-                $ List.sortOn snd
-                $ HashMap.toList
-                $ HashMap.filter (> threshold)
-                $ conditional myCooc
 
 ----------------------------------------------------------
 -- | From data to Graph

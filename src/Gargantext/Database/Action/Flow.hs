@@ -424,14 +424,15 @@ saveDocNgramsWith lId mapNgramsDocs' = do
 
   --printDebug "saveDocNgramsWith" mapCgramsId
   -- insertDocNgrams
-  _return <- insertContextNodeNgrams2
-           $ catMaybes [ ContextNodeNgrams2 <$> Just nId
+  let ngrams2insert =  catMaybes [ ContextNodeNgrams2 <$> Just nId
                                             <*> (getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms''))
                                             <*> Just (fromIntegral w :: Double)
                        | (terms'', mapNgramsTypes)      <- HashMap.toList mapNgramsDocs
                        , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
-                       , (nId, (w, _cnt))                       <- Map.toList mapNodeIdWeight
+                       , (nId, (w, _cnt))               <- Map.toList mapNodeIdWeight
                        ]
+  printDebug "Ngrams2Insert" ngrams2insert
+  _return <- insertContextNodeNgrams2 ngrams2insert
 
   -- to be removed
   _   <- insertDocNgrams lId $ HashMap.mapKeys (indexNgrams terms2id) mapNgramsDocs
