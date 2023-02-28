@@ -131,9 +131,9 @@ From the Backend root folder (haskell-gargantext):
 ```shell
 git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/purescript-gargantext.git
 ```
+&nbsp;
 
-
-## Launch & develop GarganText <a name="launch"></a>
+## Launch & develop GarganText <a name="launch"></a>
 
 From the Backend root folder (haskell-gargantext):
 
@@ -145,7 +145,7 @@ From the Backend root folder (haskell-gargantext):
 > `docker compose up` to run the Docker for postgresql from devops/docker folder
 > `stack --nix exec gargantext-server -- --ini gargantext.ini --run Prod` to run other services
 
-
+For frontend development and compilation, see the [Frontend Readme.md](https://gitlab.iscpif.fr/gargantext/purescript-gargantext#dev)
 
 
 ## Use Cases <a name="use-cases"></a>
