@@ -25,9 +25,9 @@ import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Methods.Similarities (Similarity(..), measure)
 -- import Gargantext.Core.Methods.Similarities.Conditional (conditional)
 import Gargantext.Core.Statistics
-import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Bridgeness(..), Partitions, nodeId2comId, recursiveClustering)
+import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Bridgeness(..), Partitions, nodeId2comId, recursiveClustering, recursiveClustering', setNodes2clusterNodes)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
-import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
+import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass, spinglass')
 import Gargantext.Core.Viz.Graph.Tools.Infomap (infomap)
 import Gargantext.Core.Viz.Graph.Types (Attributes(..), Edge(..), Graph(..), MultiPartite(..), Node(..), Partite(..), Strength(..))
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
@@ -109,7 +109,6 @@ cooc2graphWith Infomap   = cooc2graphWith' (infomap "-v -N2")
 --cooc2graphWith Infomap   = cooc2graphWith' (infomap "--silent --two-level -N2")
                         -- TODO: change these options, or make them configurable in UI?
 
-
 cooc2graphWith' :: Partitions
                 -> BridgenessMethod
                 -> MultiPartite
@@ -118,26 +117,32 @@ cooc2graphWith' :: Partitions
                 -> Strength
                 -> HashMap (NgramsTerm, NgramsTerm) Int
                 -> IO Graph
-cooc2graphWith' doPartitions bridgenessMethod multi similarity threshold strength myCooc = do
+cooc2graphWith' _doPartitions _bridgenessMethod multi similarity@Conditional threshold strength myCooc = do
   let (distanceMap, diag, ti) = doSimilarityMap similarity threshold strength myCooc
   distanceMap `seq` diag `seq` ti `seq` return ()
 
---{- -- Debug
-  -- To Work with Igraph
-  saveAsFileDebug "/tmp/distanceMap" ( List.intercalate ";"
-                                     $ Set.toList
-                                     $ Set.fromList
-                                     $ map (\(k1,k2) -> if k1 < k2
-                                                           then show (k1+1) <> " " <> show (k2+1)
-                                                           else show (k2+1) <> " " <> show (k1+1)
-                                                           )
-                                     $ Map.keys
-                                     $ Map.filter (>0.005) distanceMap
-                                     )
-  saveAsFileDebug "/tmp/distanceMap.data" distanceMap
-  saveAsFileDebug "/tmp/distanceMap.cooc" myCooc
-  -- printDebug "similarities" similarities
---}
+  partitions <- if (Map.size distanceMap > 0)
+      -- then recursiveClustering doPartitions distanceMap
+      then recursiveClustering' (spinglass' 1) distanceMap
+      else panic $ Text.unlines [ "[Gargantext.C.V.Graph.Tools] Similarity Matrix is empty"
+                                , "Maybe you should add more Map Terms in your list"
+                                , "Tutorial: TODO"
+                                ]
+  length partitions `seq` return ()
+
+  let
+    !confluence' = BAC.computeConfluences 3 (Map.keys distanceMap) True
+    !bridgeness' = bridgeness (Bridgeness_Recursive partitions 1.0) distanceMap
+{-
+    !bridgeness' = if bridgenessMethod == BridgenessMethod_Basic
+                      then bridgeness (Bridgeness_Basic partitions 1.0) distanceMap
+                      else bridgeness (Bridgeness_Advanced similarity confluence') distanceMap
+-}
+  pure $ data2graph multi ti diag bridgeness' confluence' (setNodes2clusterNodes $ List.concat partitions)
+
+cooc2graphWith' doPartitions bridgenessMethod multi Distributional threshold strength myCooc = do
+  let (distanceMap, diag, ti) = doSimilarityMap Distributional threshold strength myCooc
+  distanceMap `seq` diag `seq` ti `seq` return ()
 
   partitions <- if (Map.size distanceMap > 0)
       then recursiveClustering doPartitions distanceMap
@@ -150,10 +155,15 @@ cooc2graphWith' doPartitions bridgenessMethod multi similarity threshold strengt
   let
     !confluence' = BAC.computeConfluences 3 (Map.keys distanceMap) True
     !bridgeness' = if bridgenessMethod == BridgenessMethod_Basic
-                      then bridgeness (Bridgeness_Basic partitions 1.0) distanceMap
-                      else bridgeness (Bridgeness_Advanced similarity confluence') distanceMap
+                      then bridgeness (Bridgeness_Basic partitions 10.0) distanceMap
+                      else bridgeness (Bridgeness_Advanced Distributional confluence') distanceMap
 
   pure $ data2graph multi ti diag bridgeness' confluence' partitions
+
+
+
+
+
 
 type Reverse = Bool
 

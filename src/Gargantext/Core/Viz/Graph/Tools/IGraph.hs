@@ -29,6 +29,7 @@ import qualified IGraph.Algorithms.Clique    as IG
 import qualified IGraph.Algorithms.Community as IG
 import qualified IGraph.Algorithms.Structure as IG
 import qualified IGraph.Random               as IG
+import qualified Data.Set                    as Set
 
 ------------------------------------------------------------------
 -- | Main Types
@@ -73,6 +74,23 @@ spinglass s g = toClusterNode
                       $ toIndex toI g
 
     (toI, fromI) = createIndices g
+
+spinglass' :: Seed -> Map (Int, Int) Double -> IO [Set Int]
+spinglass' s g = map Set.fromList
+             <$> map catMaybes
+             <$> map (map (\n -> Map.lookup n fromI))
+             <$> List.concat
+             <$> mapM (partitions_spinglass' s) g'
+  where
+    -- Not connected components of the graph make crash spinglass
+    g' = IG.decompose $ mkGraphUfromEdges
+                      $ Map.keys
+                      $ toIndex toI g
+
+    (toI, fromI) = createIndices g
+
+
+
 
 
 -- | Tools to analyze graphs
