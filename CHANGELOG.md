@@ -1,3 +1,8 @@
+## Version 0.0.6.9.4.7
+
+* [FRONT][FIX][Limite on text lenght is too small (#500)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/500)
+* [BACK][FEAT] Clustering with better granularity and structure
+
 ## Version 0.0.6.9.4.6
 
 * [FRONT][ERGO][When the progress bar is empty: say: waiting task (#503)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/503)
