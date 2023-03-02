@@ -127,11 +127,11 @@ bridgeness :: Bridgeness
             -> Map (NodeId, NodeId) Double
             -> Map (NodeId, NodeId) Double
 bridgeness (Bridgeness_Recursive sn f) m =
-  Map.unions $ [linksBetween] <> map (\s -> bridgeness (Bridgeness_Basic (setNodes2clusterNodes s) f) m') sn
+  Map.unions $ [linksBetween] <> map (\s -> bridgeness (Bridgeness_Basic (setNodes2clusterNodes s) (pi*f)) m') sn
     where
       (linksBetween, m') = Map.partitionWithKey (\(n1,n2) _v -> Map.lookup n1 mapNodeIdClusterId
                                                              /= Map.lookup n2 mapNodeIdClusterId
-                                                ) $ bridgeness (Bridgeness_Basic clusters (pi*f)) m
+                                                ) $ bridgeness (Bridgeness_Basic clusters f) m
       clusters = setNodes2clusterNodes (map Set.unions sn)
       mapNodeIdClusterId = clusterNodes2map clusters
 
