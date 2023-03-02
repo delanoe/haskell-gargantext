@@ -1,3 +1,7 @@
+## Version 0.0.6.9.4.8
+
+* [BACK][WIP][Doc Table: count (#175)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/175)
+
 ## Version 0.0.6.9.4.7
 
 * [FRONT][FIX][Limite on text lenght is too small (#500)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/500)
