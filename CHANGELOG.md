@@ -1,6 +1,11 @@
+## Version 0.0.6.9.4.9
+
+* [BACK/FRONT][475][Issues · gargantext / purescript-gargantext · GitLab</title>](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/)
+
 ## Version 0.0.6.9.4.8
 
 * [BACK][WIP][Doc Table: count (#175)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/175)
+* [BACK][FEAT] Clustering with better granularity and structure at different levels
 
 ## Version 0.0.6.9.4.7
 
