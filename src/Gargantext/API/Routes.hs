@@ -33,6 +33,7 @@ import Gargantext.API.Admin.EnvTypes (Env, GargJob(..))
 import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
 import Gargantext.API.Context
 import Gargantext.API.Count  (CountAPI, count, Query)
+import Gargantext.API.Members (MembersAPI, members)
 import Gargantext.API.Job (jobLogInit)
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
@@ -163,6 +164,9 @@ type GargPrivateAPI' =
                           :> Capture "tree_id" NodeId
                           :> TreeAPI
 
+           :<|> "members" :> Summary "Team node members"
+                          :> MembersAPI
+
            -- :<|> New.Upload
            :<|> New.AddWithForm
 --           :<|> New.AddWithFile
@@ -248,6 +252,8 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
 
      :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid
           <$> PathNode <*> treeAPI
+
+     :<|> members uid
      -- TODO access
      :<|> addCorpusWithForm  (RootId (NodeId uid))
     -- :<|> addCorpusWithFile  (RootId (NodeId uid))
