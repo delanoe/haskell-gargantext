@@ -67,14 +67,6 @@ type NgramsPosTagRead  = NgramsPostagPoly (Column SqlInt4)
                                           (Column SqlInt4)
                                           (Column SqlInt4)
                                           (Column SqlInt4)
-
-type NgramsPosTagReadNull =  NgramsPostagPoly (Column (Nullable SqlInt4))
-                                              (Column (Nullable SqlInt4))
-                                              (Column (Nullable SqlInt4))
-                                              (Column (Nullable SqlText))
-                                              (Column (Nullable SqlInt4))
-                                              (Column (Nullable SqlInt4))
-                                              (Column (Nullable SqlInt4))
 makeLenses ''NgramsPostagPoly
 
 instance PGS.ToRow NgramsPostagDB where

@@ -27,7 +27,6 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..), Hyperda
 import Gargantext.Database.Prelude (Cmd, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Query.Filter
-import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Context
 import Gargantext.Database.Query.Table.ContextNodeNgrams (queryContextNodeNgramsTable)
@@ -251,55 +250,3 @@ queryContactViaDoc = proc () -> do
     \doc' -> justFields (doc' ^. cs_id) .=== (view nc_context_id <$> corpus)
 
   returnA -< (contact, annuaire, nodeContext_nodeContext, corpus, doc)
-
-queryContactViaDoc' :: O.Select ( ContextSearchRead
-                               , ( NodeContextReadNull
-                                 , ( NodeContext_NodeContextReadNull
-                                   , ( NodeContextReadNull
-                                     , ContextReadNull
-                                     )
-                                   )
-                                 )
-                               )
-queryContactViaDoc' =
-  leftJoin5
-  queryContextTable
-  queryNodeContextTable
-  queryNodeContext_NodeContextTable
-  queryNodeContextTable
-  queryContextSearchTable
-  cond12
-  cond23
-  cond34
-  cond45
-    where
-      cond12 :: (NodeContextRead, ContextRead) -> Column SqlBool
-      cond12 (annuaire, contact) = contact^.context_id .== annuaire^.nc_context_id
-
-      cond23 :: ( NodeContext_NodeContextRead
-                , ( NodeContextRead
-                  , ContextReadNull
-                  )
-                ) -> Column SqlBool
-      cond23 (nodeContext_nodeContext, (annuaire, _)) = nodeContext_nodeContext^.ncnc_nodecontext2 .== annuaire^.nc_id
-
-      cond34 :: ( NodeContextRead
-                , ( NodeContext_NodeContextRead
-                  , ( NodeContextReadNull
-                    , ContextReadNull
-                    )
-                  )
-                ) -> Column SqlBool
-      cond34 (corpus, (nodeContext_nodeContext, (_,_))) =  nodeContext_nodeContext^.ncnc_nodecontext1 .== corpus^.nc_id
-
-
-      cond45 :: ( ContextSearchRead
-                , ( NodeContextRead
-                  , ( NodeContext_NodeContextReadNull
-                    , ( NodeContextReadNull
-                      , ContextReadNull
-                      )
-                    )
-                  )
-                ) -> Column SqlBool
-      cond45 (doc, (corpus, (_,(_,_)))) = doc^.cs_id .== corpus^.nc_context_id

@@ -46,12 +46,6 @@ type NodeContextRead      = NodeContextPoly (Field SqlInt4)
                                             (Field SqlFloat8)
                                             (Field SqlInt4)
 
-type NodeContextReadNull  = NodeContextPoly (FieldNullable SqlInt4)
-                                            (FieldNullable SqlInt4)
-                                            (FieldNullable SqlInt4)
-                                            (FieldNullable SqlFloat8)
-                                            (FieldNullable SqlInt4)
-
 type NodeContext = NodeContextPoly (Maybe Int) NodeId NodeId (Maybe Double) (Maybe Int)
 
 $(makeAdaptorAndInstance "pNodeContext" ''NodeContextPoly)

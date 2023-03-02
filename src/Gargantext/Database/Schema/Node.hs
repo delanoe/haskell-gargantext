@@ -89,15 +89,6 @@ type NodeRead = NodePoly (Field SqlInt4        )
                          (Field SqlText        )
                          (Field SqlTimestamptz )
                          (Field SqlJsonb       )
-
-type NodeReadNull = NodePoly (FieldNullable SqlInt4)
-                             (FieldNullable SqlText)
-                             (Field SqlInt4)
-                             (Field SqlInt4)
-                             (FieldNullable SqlInt4)
-                             (Field SqlText)
-                             (FieldNullable SqlTimestamptz)
-                             (Field SqlJsonb)
 ------------------------------------------------------------------------
 -- | Node(Read|Write)Search is slower than Node(Write|Read) use it
 -- for full text search only
@@ -123,17 +114,6 @@ type NodeSearchRead =
     (Field  SqlTimestamptz    )
     (Field  SqlJsonb          )
     (Field  SqlTSVector       )
-
-type NodeSearchReadNull =
-  NodePolySearch
-    (FieldNullable SqlInt4)
-    (FieldNullable SqlInt4)
-    (FieldNullable SqlInt4)
-    (FieldNullable SqlInt4)
-    (FieldNullable SqlText)
-    (FieldNullable SqlTimestamptz)
-    (FieldNullable SqlJsonb)
-    (FieldNullable SqlTSVector)
 
 
 data NodePolySearch id

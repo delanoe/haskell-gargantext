@@ -68,17 +68,6 @@ type NodeNgramsRead    = NodeNgramsPoly (Column SqlInt4)
                                       (Column SqlInt4)
                                       (Column SqlFloat8)
 
-
-type NodeNgramsReadNull = NodeNgramsPoly (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlInt4))
-
-                                         (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlFloat8))
 type NodeNgramsId = Int
 type NgramsField  = Int
 type NgramsTag    = Int

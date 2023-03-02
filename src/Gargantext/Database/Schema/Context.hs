@@ -89,15 +89,6 @@ type ContextRead = ContextPoly (Field SqlInt4        )
                          (Field SqlText        )
                          (Field SqlTimestamptz )
                          (Field SqlJsonb       )
-
-type ContextReadNull = ContextPoly (FieldNullable SqlInt4)
-                             (FieldNullable SqlText)
-                             (FieldNullable SqlInt4)
-                             (FieldNullable SqlInt4)
-                             (FieldNullable SqlInt4)
-                             (FieldNullable SqlText)
-                             (FieldNullable SqlTimestamptz)
-                             (FieldNullable SqlJsonb)
 ------------------------------------------------------------------------
 -- | Context(Read|Write)Search is slower than Context(Write|Read) use it
 -- for full text search only
@@ -123,18 +114,6 @@ type ContextSearchRead =
     (Field  SqlTimestamptz    )
     (Field  SqlJsonb          )
     (Field  SqlTSVector       )
-
-type ContextSearchReadNull =
-  ContextPolySearch
-    (FieldNullable SqlInt4)
-    (FieldNullable SqlInt4)
-    (FieldNullable SqlInt4)
-    (FieldNullable SqlInt4)
-    (FieldNullable SqlText)
-    (FieldNullable SqlTimestamptz)
-    (FieldNullable SqlJsonb)
-    (FieldNullable SqlTSVector)
-
 
 data ContextPolySearch id
                     typename

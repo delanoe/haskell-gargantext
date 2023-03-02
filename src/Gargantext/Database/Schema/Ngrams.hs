@@ -60,10 +60,6 @@ type NgramsRead  = NgramsPoly (Field SqlInt4)
                               (Field SqlText)
                               (Field SqlInt4)
 
-type NgramsReadNull = NgramsPoly (FieldNullable SqlInt4)
-                                 (FieldNullable SqlText)
-                                 (FieldNullable SqlInt4)
-
 type NgramsDB = NgramsPoly Int Text Int
 
 $(makeAdaptorAndInstance "pNgramsDb"    ''NgramsPoly)

@@ -99,14 +99,6 @@ type UserRead  = UserPoly        (Column SqlInt4)         (Column SqlText)
                                  (Column SqlTimestamptz)
                                  (Column SqlText)
 
-type UserReadNull = UserPoly     (Column (Nullable SqlInt4))         (Column SqlText)
-                                 (Column (Nullable SqlTimestamptz))  (Column SqlBool)
-                                 (Column SqlText)                    (Column SqlText)
-                                 (Column SqlText)                    (Column SqlText)
-                                 (Column SqlBool)                    (Column SqlBool)
-                                 (Column (Nullable SqlTimestamptz))
-                                 (Column (Nullable SqlText))
-
 type UserDB = UserPoly Int Text (Maybe UTCTime) Bool Text Text Text Text Bool Bool UTCTime (Maybe Text)
 
 $(makeAdaptorAndInstance "pUserDB"   ''UserPoly)

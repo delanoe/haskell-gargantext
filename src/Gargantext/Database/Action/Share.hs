@@ -88,20 +88,6 @@ nodeNode_node_User = proc () -> do
 
   returnA -< (nn, n, u)
 
--- nodeNode_node_User' :: O.Select (NodeNodeRead, (NodeReadNull, UserReadNull))
--- nodeNode_node_User' = leftJoin3' queryNodeNodeTable
---                                queryNodeTable
---                                queryUserTable
---                                cond12
---                                cond23
---   where
---     cond12 :: (NodeNodeRead, (NodeRead, UserReadNull)) -> Column SqlBool
---     cond12 (nn, (n, _u)) = (nn^.nn_node1_id  .== n^.node_id)
---     cond23 :: (NodeRead, UserRead) -> Column SqlBool
---     cond23 (n, u) = (n^.node_user_id .== user_id u)
-
-
-
 ------------------------------------------------------------------------
 -- To Share a Node Team with a user, use this function
 -- basically used with the invitation to a team
