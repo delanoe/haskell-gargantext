@@ -131,8 +131,8 @@ library
       Gargantext.API.GraphQL.UserInfo
       Gargantext.API.GraphQL.Utils
       Gargantext.API.Job
-      Gargantext.API.Metrics
       Gargantext.API.Members
+      Gargantext.API.Metrics
       Gargantext.API.Ngrams.List
       Gargantext.API.Ngrams.List.Types
       Gargantext.API.Ngrams.NgramsTree
