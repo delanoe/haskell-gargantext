@@ -214,13 +214,13 @@ exportToDot phylo export =
                   {-- home made attributes -}
                   <> [(toAttr (fromStrict "phyloFoundations") $ pack $ show (length $ Vector.toList $ getRoots phylo))
                      ,(toAttr (fromStrict "phyloTerms") $ pack $ show (length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) $ export ^. export_groups))
-                     ,(toAttr (fromStrict "phyloDocs") $ pack $ show (sum $ elems $ phylo ^. phylo_timeDocs))
+                     ,(toAttr (fromStrict "phyloDocs") $ pack $ show (sum $ elems $ getDocsByDate phylo))
                      ,(toAttr (fromStrict "phyloPeriods") $ pack $ show (length $ elems $ phylo ^. phylo_periods))
                      ,(toAttr (fromStrict "phyloBranches") $ pack $ show (length $ export ^. export_branches))
                      ,(toAttr (fromStrict "phyloGroups") $ pack $ show (length $ export ^. export_groups))
                      ,(toAttr (fromStrict "phyloSources") $ pack $ show (Vector.toList $ getSources phylo))
                      ,(toAttr (fromStrict "phyloTimeScale") $ pack $ getTimeScale phylo)
-                     ,(toAttr (fromStrict "PhyloScale") $ pack $ show (_qua_granularity $ phyloQuality $ getConfig phylo))
+                     ,(toAttr (fromStrict "PhyloScale") $ pack $ show (getLevel phylo))
                      ,(toAttr (fromStrict "phyloQuality") $ pack $ show (phylo ^. phylo_quality))
                      ,(toAttr (fromStrict "phyloSeaRiseStart") $ pack $ show (getPhyloSeaRiseStart phylo))
                      ,(toAttr (fromStrict "phyloSeaRiseSteps") $ pack $ show (getPhyloSeaRiseSteps phylo))
@@ -375,7 +375,8 @@ processSort sort' elev export = case sort' of
     ByBirthDate o -> sortByBirthDate o export
     ByHierarchy _ -> case elev of
             Constante  s s' ->  export & export_branches .~ (branchToIso' s s' $ sortByHierarchy 0 (export ^. export_branches))
-            Adaptative _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches))       
+            Adaptative _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches)) 
+            Evolving   _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches)) 
 
 -----------------
 -- | Metrics | --
@@ -416,7 +417,7 @@ ngramsMetrics phylo export =
              & phylo_groupMeta %~ insert "inclusion"
                                   (map (\n -> inclusion   (g ^. phylo_groupCooc) ((g ^. phylo_groupNgrams) \\ [n]) n) $ g ^. phylo_groupNgrams)
              & phylo_groupMeta %~ insert "frequence"
-                                  (map (\n -> getInMap n (phylo ^. phylo_lastTermFreq)) $ g ^. phylo_groupNgrams)
+                                  (map (\n -> getInMap n (getLastRootsFreq phylo)) $ g ^. phylo_groupNgrams)
         ) export
 
 
@@ -643,12 +644,13 @@ toHorizon phylo =
           heads   = filter (\g -> (not . null) $ (g ^. phylo_groupPeriodChilds))
                   $ filter (\g -> null (g ^. phylo_groupPeriodParents) && (notElem (getGroupId g) childs)) groups
           noHeads = groups \\ heads
-          nbDocs  = sum $ elems  $ filterDocs  (phylo ^. phylo_timeDocs) [prd]
-          diago   = reduceDiagos $ filterDiago (phylo ^. phylo_timeCooc) [prd]
+          nbDocs  = sum $ elems  $ filterDocs  (getDocsByDate phylo) [prd]
+          diago   = reduceDiagos $ filterDiago (getCoocByDate phylo) [prd]
           sim     = (similarity $ getConfig phylo)
           step = case getSeaElevation phylo of
             Constante  _ s -> s
             Adaptative _ -> 0
+            Evolving   _ -> 0
        -- in headsToAncestors nbDocs diago Similarity heads groups []
        in map (\ego -> toAncestor nbDocs diago sim step noHeads ego)
         $ headsToAncestors nbDocs diago sim step heads []
@@ -671,7 +673,7 @@ toPhyloExport :: Phylo -> DotGraph DotId
 toPhyloExport phylo = exportToDot phylo
                     $ processFilters (exportFilter $ getConfig phylo) (phyloQuality $ getConfig phylo)
                     $ processSort    (exportSort   $ getConfig phylo) (getSeaElevation phylo)
-                    $ processLabels  (exportLabel  $ getConfig phylo) (getRoots phylo) (_phylo_lastTermFreq phylo)
+                    $ processLabels  (exportLabel  $ getConfig phylo) (getRoots phylo) (getLastRootsFreq phylo)
                     $ processMetrics phylo export
     where
         export :: PhyloExport
@@ -711,7 +713,7 @@ tracePhyloAncestors groups = trace ( "-- | Found " <> show(length $ concat $ map
 
 tracePhyloInfo :: Phylo -> Phylo
 tracePhyloInfo phylo = trace ("\n"  <> "##########################" <> "\n\n" <> "-- | Phylo with λ = "
-    <> show(_qua_granularity $ phyloQuality $ getConfig phylo) <> " applied to "
+    <> show(getLevel phylo) <> " applied to "
     <> show(length $ Vector.toList $ getRoots phylo) <> " foundations"
   ) phylo
 

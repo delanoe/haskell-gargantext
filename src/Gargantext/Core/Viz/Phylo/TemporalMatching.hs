@@ -56,7 +56,7 @@ sumInvLog' s nb diago = foldl (\mem occ -> mem + (1 / (log (occ + 1/ tan (s * pi
 -- process the sumLog
 -}
 sumLog' :: Double -> Double -> [Double] -> Double
-sumLog' s nb diago = foldl (\mem occ -> mem + (log (occ + 1/ tan (s * pi / 2)) / log (nb + 1/ tan (s * pi / 2)))) 0 diago
+sumLog' s nb diago = foldl (\mem occ -> mem + (log (occ + 1 / tan (s * pi / 2)) / log (nb + 1/ tan (s * pi / 2)))) 0 diago
 
 
 {- 
@@ -695,14 +695,14 @@ temporalMatching ladder phylo = updatePhyloGroups 1
     sea :: ([(Branch,ShouldTry)],FinalQuality)
     sea = seaLevelRise (fromIntegral $ Vector.length $ getRoots phylo)
                                 (similarity $ getConfig phylo)
-                                (_qua_granularity $ phyloQuality $ getConfig phylo)
+                                (getLevel phylo)
                                 (_qua_minBranch $ phyloQuality $ getConfig phylo)
-                                (phylo ^. phylo_termFreq)
+                                (getRootsFreq phylo)
                                 ladder 1
                                 (getTimeFrame $ timeUnit $ getConfig phylo)
                                 (getPeriodIds phylo)
-                                (phylo ^. phylo_timeDocs)
-                                (phylo ^. phylo_timeCooc)
+                                (getDocsByDate phylo)
+                                (getCoocByDate phylo)
                                 ((phylo ^. phylo_foundations) ^. foundations_rootsInGroups)
                                 (reverse $ sortOn (length . fst) seabed)
     
@@ -714,7 +714,7 @@ temporalMatching ladder phylo = updatePhyloGroups 1
                          (getPeriodIds phylo)
                          (similarity $ getConfig phylo)
                          (List.head ladder)
-                         (phylo ^. phylo_timeDocs)
-                         (phylo ^. phylo_timeCooc)
+                         (getDocsByDate phylo)
+                         (getCoocByDate phylo)
                          ((phylo ^. phylo_foundations) ^. foundations_rootsInGroups)
                          (traceTemporalMatching $ getGroupsFromScale 1 phylo)

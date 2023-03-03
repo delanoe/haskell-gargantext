@@ -149,6 +149,7 @@ seaToLabel :: PhyloConfig -> [Char]
 seaToLabel config = case (seaElevation config) of
       Constante start step   -> ("sea_cst_"  <> (show start) <> "_" <> (show step))
       Adaptative granularity -> ("sea_adapt" <> (show granularity))
+      Evolving _ -> ("sea_evolv")
 
 
 sensToLabel :: PhyloConfig -> [Char]

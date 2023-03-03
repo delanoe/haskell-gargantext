@@ -76,7 +76,7 @@ toNextScale phylo groups =
                   $ fromList $ map (\g -> (getGroupId g, g))
                   $ foldlWithKey (\acc id groups' ->
                         --  4) create the parent group
-                        let parent = mergeGroups (elems $ restrictKeys (phylo ^. phylo_timeCooc) $ periodsToYears [(fst . fst) id]) id oldGroups groups'
+                        let parent = mergeGroups (elems $ restrictKeys (getCoocByDate phylo) $ periodsToYears [(fst . fst) id]) id oldGroups groups'
                         in  acc ++ [parent]) []
                   --  3) group the current groups by parentId
                   $ fromListWith (++) $ map (\g -> (getLevelParentId g, [g])) groups
@@ -199,8 +199,8 @@ synchronicClustering :: Phylo -> Phylo
 synchronicClustering phylo =
     let prox = similarity $ getConfig phylo
         sync = phyloSynchrony $ getConfig phylo
-        docs = phylo ^. phylo_timeDocs
-        diagos = map coocToDiago $ phylo ^. phylo_timeCooc
+        docs = getDocsByDate phylo
+        diagos = map coocToDiago $ getCoocByDate phylo
         newBranches  = map (\branch -> reduceGroups prox sync docs diagos branch) 
                      $ map processDynamics
                      $ chooseClusteringStrategy sync
