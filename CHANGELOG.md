@@ -1,3 +1,8 @@
+## Version 0.0.6.9.5
+
+* [FRONT][DESIGN][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
+* [BACK][CLEAN] Removing debug info
+
 ## Version 0.0.6.9.4.9
 
 * [BACK/FRONT][475][Issues · gargantext / purescript-gargantext · GitLab</title>](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/)
