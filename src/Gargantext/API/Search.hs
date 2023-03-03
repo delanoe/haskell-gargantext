@@ -53,7 +53,7 @@ api nId (SearchQuery q SearchDoc) o l order =
                <$> searchInCorpus nId False q o l order
                -- <$> searchInCorpus nId False (concat q) o l order
 api nId (SearchQuery q SearchContact) o l order = do
-  printDebug "isPairedWith" nId
+  -- printDebug "isPairedWith" nId
   aIds <- isPairedWith nId NodeAnnuaire
   -- TODO if paired with several corpus
   case head aIds of

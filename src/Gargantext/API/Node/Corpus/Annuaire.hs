@@ -76,7 +76,7 @@ addToAnnuaireWithForm :: FlowCmdM env err m
                     -> m JobLog
 addToAnnuaireWithForm _cid (AnnuaireWithForm { _wf_filetype }) logStatus = do
 
-  printDebug "ft" _wf_filetype
+  -- printDebug "ft" _wf_filetype
 
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0

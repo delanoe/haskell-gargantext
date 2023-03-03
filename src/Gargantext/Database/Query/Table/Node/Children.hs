@@ -72,7 +72,7 @@ getChildrenNode :: (JSONB a, HasDBid NodeType)
             -> Maybe Limit
             -> Cmd err (NodeTableResult a)
 getChildrenNode pId _ maybeNodeType maybeOffset maybeLimit = do
-  printDebug "getChildrenNode" (pId, maybeNodeType)
+  -- printDebug "getChildrenNode" (pId, maybeNodeType)
   let query = selectChildrenNode pId maybeNodeType
   docs <- runOpaQuery
         $ limit'  maybeLimit
@@ -103,7 +103,7 @@ getChildrenContext :: (JSONB a, HasDBid NodeType)
             -> Maybe Limit
             -> Cmd err (NodeTableResult a)
 getChildrenContext pId _ maybeNodeType maybeOffset maybeLimit = do
-  printDebug "getChildrenContext" (pId, maybeNodeType)
+  -- printDebug "getChildrenContext" (pId, maybeNodeType)
   let query = selectChildren' pId maybeNodeType
 
   docs <- runOpaQuery

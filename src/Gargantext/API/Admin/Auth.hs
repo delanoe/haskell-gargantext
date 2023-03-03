@@ -283,7 +283,7 @@ forgotPasswordAsync' (ForgotPasswordAsyncParams { email }) logStatus = do
                       }
   logStatus jobLog
 
-  printDebug "[forgotPasswordAsync'] email" email
+  -- printDebug "[forgotPasswordAsync'] email" email
 
   _ <- forgotPasswordPost $ ForgotPasswordRequest { _fpReq_email = email }
 

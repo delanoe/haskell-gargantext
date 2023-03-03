@@ -304,7 +304,7 @@ addCorpusWithFile user cid =
   serveJobsAPI AddCorpusFileJob $ \i log' ->
       let
         log'' x = do
-          printDebug "[addToCorpusWithFile]" x
+          -- printDebug "[addToCorpusWithFile]" x
           liftBase $ log' x
       in New.addToCorpusWithFile user cid i log''
 

@@ -124,8 +124,8 @@ grid s e tr te = do
            <$> mapM (\(x,y) -> grid' x y tr te)
                          [(x,y) | x <- [s..e], y <- [s..e]]
 
-  printDebug "GRID SEARCH" (map fst r)
-  --printDebug "file" fp
+  -- printDebug "GRID SEARCH" (map fst r)
+  -- printDebug "file" fp
   --fp <- saveFile (ModelSVM model')
   --save best result
   pure $ snd <$> r

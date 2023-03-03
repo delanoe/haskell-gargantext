@@ -108,7 +108,7 @@ corpusIdtoDocuments timeUnit corpusId = do
                         -> context2phyloDocument timeUnit doc (ngs_terms, ngs_sources)
                       ) docs
 
-  printDebug "corpusIdtoDocuments" (Prelude.map date docs')
+  -- printDebug "corpusIdtoDocuments" (Prelude.map date docs')
 
   case termList of
     Nothing        -> panic "[G.C.V.Phylo.API] no termList found"

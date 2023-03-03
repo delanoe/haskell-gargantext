@@ -534,11 +534,11 @@ updateNodeStory c nodeId@(NodeId _nId) currentArchive newArchive = do
   let currentSet = archiveStateSet currentList
   let newSet = archiveStateSet newList
 
-  printDebug "[updateNodeStory] new - current = " $ Set.difference newSet currentSet
+  -- printDebug "[updateNodeStory] new - current = " $ Set.difference newSet currentSet
   let inserts = archiveStateListFilterFromSet (Set.difference newSet currentSet) newList
   -- printDebug "[updateNodeStory] inserts" inserts
 
-  printDebug "[updateNodeStory] current - new" $ Set.difference currentSet newSet
+  -- printDebug "[updateNodeStory] current - new" $ Set.difference currentSet newSet
   let deletes = archiveStateListFilterFromSet (Set.difference currentSet newSet) currentList
   -- printDebug "[updateNodeStory] deletes" deletes
 
@@ -547,7 +547,7 @@ updateNodeStory c nodeId@(NodeId _nId) currentArchive newArchive = do
   let commonNewList = archiveStateListFilterFromSet commonSet newList
   let commonCurrentList = archiveStateListFilterFromSet commonSet currentList
   let updates = Set.toList $ Set.difference (Set.fromList commonNewList) (Set.fromList commonCurrentList)
-  printDebug "[updateNodeStory] updates" $ Text.unlines $ (Text.pack . show) <$> updates
+  -- printDebug "[updateNodeStory] updates" $ Text.unlines $ (Text.pack . show) <$> updates
 
   -- 2. Perform inserts/deletes/updates
   --printDebug "[updateNodeStory] applying insert" ()
@@ -580,9 +580,9 @@ updateNodeStory c nodeId@(NodeId _nId) currentArchive newArchive = do
 
 upsertNodeStories :: PGS.Connection -> NodeId -> ArchiveList -> IO ()
 upsertNodeStories c nodeId@(NodeId nId) newArchive = do
-  printDebug "[upsertNodeStories] START nId" nId
+  -- printDebug "[upsertNodeStories] START nId" nId
   PGS.withTransaction c $ do
-    printDebug "[upsertNodeStories] locking nId" nId
+    -- printDebug "[upsertNodeStories] locking nId" nId
     runPGSAdvisoryXactLock c nId
 
     (NodeStory m) <- getNodeStory c nodeId
@@ -597,7 +597,7 @@ upsertNodeStories c nodeId@(NodeId nId) newArchive = do
     -- 3. Now we need to set versions of all node state to be the same
     fixNodeStoryVersion c nodeId newArchive
 
-    printDebug "[upsertNodeStories] STOP nId" nId
+    -- printDebug "[upsertNodeStories] STOP nId" nId
 
 fixNodeStoryVersion :: PGS.Connection -> NodeId -> ArchiveList -> IO ()
 fixNodeStoryVersion c nodeId newArchive = do
@@ -738,9 +738,9 @@ fixNodeStoryVersions = do
   pool <- view connPool
   _ <- withResource pool $ \c -> liftBase $ PGS.withTransaction c $ do
     nIds <- runPGSQuery c [sql| SELECT id FROM nodes WHERE ? |] (PGS.Only True) :: IO [PGS.Only Int64]
-    printDebug "[fixNodeStoryVersions] nIds" nIds
+    -- printDebug "[fixNodeStoryVersions] nIds" nIds
     mapM_ (\(PGS.Only nId) -> do
-        printDebug "[fixNodeStoryVersions] nId" nId
+        -- printDebug "[fixNodeStoryVersions] nId" nId
         updateVer c TableNgrams.Authors nId
 
         updateVer c TableNgrams.Institutes nId

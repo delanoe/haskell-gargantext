@@ -164,5 +164,5 @@ simuTask logStatus cur total = do
                        , _scst_remaining = (-) <$> Just total <*> Just cur
                        , _scst_events    = Just []
                        }
-  printDebug "status" status
+  -- printDebug "status" status
   logStatus status

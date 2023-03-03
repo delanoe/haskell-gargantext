@@ -175,7 +175,7 @@ waitForJsTask jsTask = wait' 0
         if counter > 60 then
           panic "[waitForJsTask] waited for 1 minute and still no answer from JohnSnow NLP"
         else do
-          printDebug "[waitForJsTask] task not ready, waiting" counter
+          -- printDebug "[waitForJsTask] task not ready, waiting" counter
           _ <- threadDelay $ 1000000*1
           wait' $ counter + 1
 

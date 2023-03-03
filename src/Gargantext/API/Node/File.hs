@@ -70,8 +70,8 @@ fileDownload :: (HasSettings env, FlowCmdM env err m)
              -> NodeId
              -> m (Headers '[Servant.Header "Content-Type" Text] BSResponse)
 fileDownload uId nId = do
-  printDebug "[fileDownload] uId" uId
-  printDebug "[fileDownload] nId" nId
+  -- printDebug "[fileDownload] uId" uId
+  -- printDebug "[fileDownload] nId" nId
 
   node <- getNodeWith nId (Proxy :: Proxy HyperdataFile)
   let (HyperdataFile { _hff_name = name'
@@ -105,7 +105,7 @@ fileAsyncApi uId nId =
   serveJobsAPI AddFileJob $ \i l ->
       let
         log' x = do
-          printDebug "addWithFile" x
+          -- printDebug "addWithFile" x
           liftBase $ l x
       in addWithFile uId nId i log'
 
@@ -118,7 +118,7 @@ addWithFile :: (HasSettings env, FlowCmdM env err m)
             -> m JobLog
 addWithFile uId nId nwf@(NewWithFile _d _l fName) logStatus = do
 
-  printDebug "[addWithFile] Uploading file: " nId
+  -- printDebug "[addWithFile] Uploading file: " nId
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
                    , _scst_remaining = Just 1
@@ -126,7 +126,7 @@ addWithFile uId nId nwf@(NewWithFile _d _l fName) logStatus = do
                    }
 
   fPath <- GargDB.writeFile nwf
-  printDebug "[addWithFile] File saved as: " fPath
+  -- printDebug "[addWithFile] File saved as: " fPath
 
   nIds <- mkNodeWithParent NodeFile (Just nId) uId fName
 
@@ -137,10 +137,11 @@ addWithFile uId nId nwf@(NewWithFile _d _l fName) logStatus = do
         _ <- updateHyperdata nId' $ hl { _hff_name = fName
                                        , _hff_path = pack fPath }
 
-        printDebug "[addWithFile] Created node with id: " nId'
+        -- printDebug "[addWithFile] Created node with id: " nId'
+        pure ()
     _     -> pure ()
 
-  printDebug "[addWithFile] File upload finished: " nId
+  -- printDebug "[addWithFile] File upload finished: " nId
   pure $ JobLog { _scst_succeeded = Just 1
                 , _scst_failed    = Just 0
                 , _scst_remaining = Just 0

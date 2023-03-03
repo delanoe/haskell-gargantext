@@ -135,7 +135,7 @@ setList :: FlowCmdM env err m
     -> m Bool
 setList l m  = do
   -- TODO check with Version for optim
-  printDebug "New list as file" l
+  -- printDebug "New list as file" l
   _ <- mapM (\(nt, Versioned _v ns) -> setListNgrams l nt ns) $ toList m
   -- TODO reindex
   pure True
@@ -151,7 +151,7 @@ reIndexWith :: ( HasNodeStory env err m
             -> Set ListType
             -> m ()
 reIndexWith cId lId nt lts = do
-  printDebug "(cId,lId,nt,lts)" (cId, lId, nt, lts)
+  -- printDebug "(cId,lId,nt,lts)" (cId, lId, nt, lts)
 
   -- Getting [NgramsTerm]
   ts <- List.concat

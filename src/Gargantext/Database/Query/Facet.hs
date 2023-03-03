@@ -55,7 +55,7 @@ import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Context
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeContext
-import Gargantext.Prelude (printDebug)
+-- import Gargantext.Prelude (printDebug)
 
 ------------------------------------------------------------------------
 
@@ -124,7 +124,7 @@ runViewDocuments :: HasDBid NodeType
                  -> Maybe Text
                  -> Cmd err [FacetDoc]
 runViewDocuments cId t o l order query year = do
-    printDebug "[runViewDocuments] sqlQuery" $ showSql sqlQuery
+    -- printDebug "[runViewDocuments] sqlQuery" $ showSql sqlQuery
     runOpaQuery $ filterWith o l order sqlQuery
   where
     sqlQuery = viewDocuments cId t (toDBid NodeDocument) query year

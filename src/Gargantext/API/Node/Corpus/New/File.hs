@@ -70,23 +70,24 @@ postUpload :: NodeId
            -> Cmd err [Hash]
 postUpload _ Nothing _ _ = panic "fileType is a required parameter"
 postUpload _ _ Nothing _ = panic "fileFormat is a required parameter"
-postUpload _ (Just fileType) (Just fileFormat) multipartData = do
-  printDebug "File Type: " fileType
-  printDebug "File format: " fileFormat
+postUpload _ (Just _fileType) (Just _fileFormat) multipartData = do
+  -- printDebug "File Type: " fileType
+  -- printDebug "File format: " fileFormat
   is <- liftBase $ do
-    printDebug "Inputs:" ()
+    -- printDebug "Inputs:" ()
     forM (inputs multipartData) $ \input -> do
-      printDebug "iName  " (iName input)
-      printDebug "iValue " (iValue input)
+      -- printDebug "iName  " (iName input)
+      -- printDebug "iValue " (iValue input)
       pure $ iName input
 
+{-
   _ <- forM (files multipartData) $ \file -> do
-    let content = fdPayload file
-    printDebug "XXX " (fdFileName file)
-    printDebug "YYY " content
-    --pure $ cs content
+    -- let content = fdPayload file
+    -- printDebug "XXX " (fdFileName file)
+    -- printDebug "YYY " content
+    pure () -- $ cs content
   -- is <- inputs multipartData
-
+-}
   pure $ map hash is
 
 -------------------------------------------------------------------

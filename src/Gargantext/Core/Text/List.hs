@@ -23,7 +23,7 @@ import Data.Map.Strict (Map)
 import Data.Monoid (mempty)
 import Data.Ord (Down(..))
 import Data.Set (Set)
-import Data.Text (Text)
+-- import Data.Text (Text)
 import Data.Tuple.Extra (both)
 import Gargantext.API.Ngrams.Types (NgramsElement, NgramsTerm(..))
 import Gargantext.Core.NodeStory
@@ -163,12 +163,12 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, MapListSize mapListSi
 
 -- Filter 0 With Double
 -- Computing global speGen score
-  printDebug "[buildNgramsTermsList: Sample List] / start" nt
+  -- printDebug "[buildNgramsTermsList: Sample List] / start" nt
   !(allTerms :: HashMap NgramsTerm Double) <- getTficf_withSample uCid mCid nt
 
-  printDebug "[buildNgramsTermsList: Sample List / end]" (nt, HashMap.size allTerms)
+  -- printDebug "[buildNgramsTermsList: Sample List / end]" (nt, HashMap.size allTerms)
 
-  printDebug "[buildNgramsTermsList: Flow Social List / start]" nt
+  -- printDebug "[buildNgramsTermsList: Flow Social List / start]" nt
 
   -- PrivateFirst for first developments since Public NodeMode is not implemented yet
   !(socialLists :: FlowCont NgramsTerm FlowListScores)
@@ -177,18 +177,18 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, MapListSize mapListSi
                                                       $ List.zip (HashMap.keys   allTerms)
                                                                  (List.cycle     [mempty])
                                     )
-  printDebug "[buildNgramsTermsList: Flow Social List / end]" nt
+  -- printDebug "[buildNgramsTermsList: Flow Social List / end]" nt
 
   let !ngramsKeys = HashSet.fromList
                   $ List.take mapListSize
                   $ HashSet.toList
                   $ HashMap.keysSet allTerms
 
-  printDebug "[buildNgramsTermsList: ngramsKeys]" (HashSet.size ngramsKeys)
+  -- printDebug "[buildNgramsTermsList: ngramsKeys]" (HashSet.size ngramsKeys)
 
   !groupParams' <- getGroupParams groupParams (HashSet.map (text2ngrams . unNgramsTerm) ngramsKeys)
 
-  printDebug "[buildNgramsTermsList: groupParams']" ("" :: Text)
+  -- printDebug "[buildNgramsTermsList: groupParams']" ("" :: Text)
 
   let
     !socialLists_Stemmed = addScoreStem groupParams' ngramsKeys socialLists
@@ -199,10 +199,10 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, MapListSize mapListSi
 
     !(groupedMono, groupedMult)  = HashMap.partitionWithKey (\(NgramsTerm t) _v -> size t < 2) candidateTerms
 
-  printDebug "[buildNgramsTermsList] socialLists" socialLists
-  printDebug "[buildNgramsTermsList] socialLists with scores" socialLists_Stemmed
-  printDebug "[buildNgramsTermsList] groupedWithList" groupedWithList
-  printDebug "[buildNgramsTermsList] stopTerms" stopTerms
+  -- printDebug "[buildNgramsTermsList] socialLists" socialLists
+  -- printDebug "[buildNgramsTermsList] socialLists with scores" socialLists_Stemmed
+  -- printDebug "[buildNgramsTermsList] groupedWithList" groupedWithList
+  -- printDebug "[buildNgramsTermsList] stopTerms" stopTerms
 
   -- splitting monterms and multiterms to take proportional candidates
     -- use % of list if to big, or Int if too small
@@ -223,7 +223,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, MapListSize mapListSi
 -- Filter 1 With Set NodeId and SpeGen
     !selectedTerms = Set.toList $ hasTerms (groupedMonoHead <> groupedMultHead)
 
-  printDebug "[buildNgramsTermsList: selectedTerms]" selectedTerms
+  -- printDebug "[buildNgramsTermsList: selectedTerms]" selectedTerms
 
  -- TODO remove (and remove HasNodeError instance)
   !userListId    <- defaultList uCid
@@ -235,7 +235,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, MapListSize mapListSi
                                             selectedTerms
 
 
-  printDebug "[buildNgramsTermsList: mapTextDocIds]" mapTextDocIds
+  -- printDebug "[buildNgramsTermsList: mapTextDocIds]" mapTextDocIds
 
   let
     groupedTreeScores_SetNodeId :: HashMap NgramsTerm (GroupedTreeScores (Set NodeId))
@@ -243,7 +243,7 @@ buildNgramsTermsList user uCid mCid mfslw groupParams (nt, MapListSize mapListSi
                                 $ setScoresWithMap mapTextDocIds (groupedMonoHead <> groupedMultHead)
 
 
-  printDebug "[buildNgramsTermsList: groupedTreeScores_SetNodeId]" groupedTreeScores_SetNodeId
+  -- printDebug "[buildNgramsTermsList: groupedTreeScores_SetNodeId]" groupedTreeScores_SetNodeId
 
   -- Coocurrences computation
   --, t1 >= t2 -- permute byAxis diag  -- since matrix symmetric

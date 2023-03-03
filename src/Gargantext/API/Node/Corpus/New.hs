@@ -198,13 +198,13 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
                    , _scst_remaining = Just 3
                    , _scst_events    = Just []
                    }
-  printDebug "[addToCorpusWithQuery] (cid, dbs)" (cid, dbs)
-  printDebug "[addToCorpusWithQuery] datafield" datafield
-  printDebug "[addToCorpusWithQuery] flowListWith" flw
+  -- printDebug "[addToCorpusWithQuery] (cid, dbs)" (cid, dbs)
+  -- printDebug "[addToCorpusWithQuery] datafield" datafield
+  -- printDebug "[addToCorpusWithQuery] flowListWith" flw
 
   case datafield of
     Just Web -> do
-      printDebug "[addToCorpusWithQuery] processing web request" datafield
+      -- printDebug "[addToCorpusWithQuery] processing web request" datafield
 
       _ <- triggerSearxSearch user cid q l logStatus
 
@@ -219,12 +219,12 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
       -- TODO if cid is folder -> create Corpus
       --      if cid is corpus -> add to corpus
       --      if cid is root   -> create corpus in Private
-      printDebug "[G.A.N.C.New] getDataText with query" q
+      -- printDebug "[G.A.N.C.New] getDataText with query" q
       databaseOrigin <- database2origin dbs
       eTxts <- mapM (\db -> getDataText db (Multi l) q maybeLimit) [databaseOrigin]
 
       let lTxts = lefts eTxts
-      printDebug "[G.A.N.C.New] lTxts" lTxts
+      -- printDebug "[G.A.N.C.New] lTxts" lTxts
       case lTxts of
         [] -> do
           let txts = rights eTxts
@@ -235,10 +235,10 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
                              , _scst_events    = Just []
                              }
 
-          cids <- mapM (\txt -> do
+          _cids <- mapM (\txt -> do
                            flowDataText user txt (Multi l) cid (Just flw) logStatus) txts
-          printDebug "corpus id" cids
-          printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
+          -- printDebug "corpus id" cids
+          -- printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
           sendMail user
           -- TODO ...
           pure JobLog { _scst_succeeded = Just 3
@@ -248,7 +248,7 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
                       }
 
         (err:_) -> do
-          printDebug "Error: " err
+          -- printDebug "Error: " err
           let jl = addEvent "ERROR" (T.pack $ show err) $
                 JobLog { _scst_succeeded = Just 2
                        , _scst_failed    = Just 1
@@ -275,9 +275,9 @@ addToCorpusWithForm :: (FlowCmdM env err m)
                     -> JobLog
                     -> m JobLog
 addToCorpusWithForm user cid (NewWithForm ft ff d l _n sel) logStatus jobLog = do
-  printDebug "[addToCorpusWithForm] Parsing corpus: " cid
-  printDebug "[addToCorpusWithForm] fileType" ft
-  printDebug "[addToCorpusWithForm] fileFormat" ff
+  -- printDebug "[addToCorpusWithForm] Parsing corpus: " cid
+  -- printDebug "[addToCorpusWithForm] fileType" ft
+  -- printDebug "[addToCorpusWithForm] fileFormat" ff
   logStatus jobLog
   limit' <- view $ hasConfig . gc_max_docs_parsers
   let limit = fromIntegral limit' :: Integer
@@ -320,7 +320,7 @@ addToCorpusWithForm user cid (NewWithForm ft ff d l _n sel) logStatus jobLog = d
 
       --printDebug "Starting extraction     : " cid
       -- TODO granularity of the logStatus
-      printDebug "flowCorpus with (corpus_id, lang)" (cid, l)
+      -- printDebug "flowCorpus with (corpus_id, lang)" (cid, l)
 
       _cid' <- flowCorpus user
                           (Right [cid])
@@ -331,8 +331,8 @@ addToCorpusWithForm user cid (NewWithForm ft ff d l _n sel) logStatus jobLog = d
                           --(map (map toHyperdataDocument) docs)
                           logStatus
 
-      printDebug "Extraction finished   : " cid
-      printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
+      -- printDebug "Extraction finished   : " cid
+      -- printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
       -- TODO uncomment this
       --sendMail user
 

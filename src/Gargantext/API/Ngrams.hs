@@ -372,7 +372,7 @@ tableNgramsPull :: HasNodeStory env err m
                 -> Version
                 -> m (Versioned NgramsTablePatch)
 tableNgramsPull listId ngramsType p_version = do
-  printDebug "[tableNgramsPull]" (listId, ngramsType)
+  -- printDebug "[tableNgramsPull]" (listId, ngramsType)
   var <- getNodeStoryVar [listId]
   r <- liftBase $ readMVar var
 
@@ -403,12 +403,12 @@ tableNgramsPut :: ( HasNodeStory    env err m
                  -> m (Versioned NgramsTablePatch)
 tableNgramsPut tabType listId (Versioned p_version p_table)
   | p_table == mempty = do
-      printDebug "[tableNgramsPut]" ("TableEmpty" :: Text)
+      -- printDebug "[tableNgramsPut]" ("TableEmpty" :: Text)
       let ngramsType        = ngramsTypeFromTabType tabType
       tableNgramsPull listId ngramsType p_version
 
   | otherwise         = do
-      printDebug "[tableNgramsPut]" ("TableNonEmpty" :: Text)
+      -- printDebug "[tableNgramsPut]" ("TableNonEmpty" :: Text)
       let ngramsType        = ngramsTypeFromTabType tabType
           (p, p_validity)   = PM.singleton ngramsType p_table
 
@@ -434,7 +434,7 @@ tableNgramsPostChartsAsync utn logStatus = do
       let listId = utn ^. utn_list_id
 
       node <- getNode listId
-      let nId = node ^. node_id
+      let _nId = node ^. node_id
           _uId = node ^. node_user_id
           mCId = node ^. node_parent_id
 
@@ -443,7 +443,7 @@ tableNgramsPostChartsAsync utn logStatus = do
 
       case mCId of
         Nothing -> do
-          printDebug "[tableNgramsPostChartsAsync] can't update charts, no parent, nId" nId
+          -- printDebug "[tableNgramsPostChartsAsync] can't update charts, no parent, nId" nId
           pure $ jobLogFail $ jobLogInit 1
         Just cId -> do
           case tabType of
@@ -499,7 +499,7 @@ tableNgramsPostChartsAsync utn logStatus = do
 
               getRef
             _ -> do
-              printDebug "[tableNgramsPostChartsAsync] no update for tabType = " tabType
+              -- printDebug "[tableNgramsPostChartsAsync] no update for tabType = " tabType
               pure $ jobLogFail $ jobLogInit 1
 
   {-

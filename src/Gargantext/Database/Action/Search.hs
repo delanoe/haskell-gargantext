@@ -93,10 +93,10 @@ tfidfAll cId ngramIds = do
   let docsWithAllNgrams =
         List.filter (\(ctxId, _, _) ->
                        Set.member ctxId docsWithAllNgramsS) docsWithNgrams
-  printDebug "[tfidfAll] docsWithAllNgrams" docsWithAllNgrams
+  -- printDebug "[tfidfAll] docsWithAllNgrams" docsWithAllNgrams
   let docsWithCounts = Map.fromListWith (+) [ (ctxId, doc_count)
                                             | (ctxId, _, doc_count) <- docsWithAllNgrams]
-  printDebug "[tfidfAll] docsWithCounts" docsWithCounts
+  -- printDebug "[tfidfAll] docsWithCounts" docsWithCounts
   let totals = [ ( ctxId
                  , ngrams_id
                  , fromIntegral doc_count :: Double

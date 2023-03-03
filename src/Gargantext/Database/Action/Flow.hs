@@ -295,7 +295,7 @@ flow c u cn la mfslw (mLength, docsC) logStatus = do
     insertDocs' :: [(Integer, a)] -> m [NodeId]
     insertDocs' [] = pure []
     insertDocs' docs = do
-      printDebug "[flow] calling insertDoc, ([idx], mLength) = " (fst <$> docs, mLength)
+      -- printDebug "[flow] calling insertDoc, ([idx], mLength) = " (fst <$> docs, mLength)
       ids <- insertMasterDocs c la (snd <$> docs)
       let maxIdx = maximum (fst <$> docs)
       case mLength of
@@ -354,7 +354,7 @@ flowCorpusUser l user userCorpusId listId ctype mfslw = do
   -- Here the PosTagAlgo should be chosen according to the Lang
   _ <- case mfslw of
          (Just (NoList _)) -> do
-           printDebug "Do not build list" mfslw
+           -- printDebug "Do not build list" mfslw
            pure ()
          _ -> do
            ngs  <- buildNgramsLists user userCorpusId masterCorpusId mfslw
@@ -431,7 +431,7 @@ saveDocNgramsWith lId mapNgramsDocs' = do
                        , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
                        , (nId, (w, _cnt))               <- Map.toList mapNodeIdWeight
                        ]
-  printDebug "Ngrams2Insert" ngrams2insert
+  -- printDebug "Ngrams2Insert" ngrams2insert
   _return <- insertContextNodeNgrams2 ngrams2insert
 
   -- to be removed

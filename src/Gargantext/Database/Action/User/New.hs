@@ -79,7 +79,7 @@ newUsers' cfg us = do
   r   <- insertUsers      $ map  toUserWrite us'
   _   <- mapM getOrMkRoot $ map  (\u -> UserName   (_nu_username u)) us
   _   <- mapM (\u -> mail cfg (Invitation u)) us
-  printDebug "newUsers'" us
+  -- printDebug "newUsers'" us
   pure r
 ------------------------------------------------------------------------
 updateUser :: HasNodeError err
