@@ -30,7 +30,6 @@ import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
 import Gargantext.Core.Viz.Phylo.TemporalMatching (temporalMatching)
 import Gargantext.Prelude
 import qualified Data.Vector as Vector
-import qualified Data.Set as Set
 import qualified Data.Map as Map
 
 ---------------------------------
@@ -55,15 +54,11 @@ phyloCleopatre = synchronicClustering $ toHorizon flatPhylo
 -----------------------------------------------
 
 flatPhylo :: Phylo
-flatPhylo = case (getSeaElevation emptyPhylo) of 
-    Constante s g   -> temporalMatching (constDiachronicLadder s g Set.empty) 
-       $ scanSimilarity 1
-       $ appendGroups clusterToGroup 1 seriesOfClustering emptyPhylo
-    Adaptative s    -> temporalMatching (adaptDiachronicLadder s (emptyPhylo' ^. phylo_diaSimScan) Set.empty) emptyPhylo'
+flatPhylo = temporalMatching (getLadder emptyPhylo') emptyPhylo'
 
 emptyPhylo' :: Phylo
-emptyPhylo' = scanSimilarity 1
-            $ joinRootsToGroups
+emptyPhylo' = joinRoots
+            $ findSeaLadder
             $ appendGroups clusterToGroup 1 seriesOfClustering emptyPhylo
 
 ---------------------------------------------
@@ -83,10 +78,8 @@ docsByPeriods = groupDocsByPeriod date periods docs
 -- | STEP 1 | -- Init the Phylo
 ---------------------------------
 
-
 emptyPhylo :: Phylo
 emptyPhylo = initPhylo docs config
-
 
 phyloCooc :: Map Date Cooc
 phyloCooc = docsToTimeScaleCooc docs (foundations ^. foundations_roots)
@@ -106,7 +99,7 @@ config :: PhyloConfig
 config = 
     defaultConfig { phyloName  = "Cesar et Cleopatre"
                   , phyloScale = 2
-                  , seaElevation   = Adaptative 4
+                  , seaElevation   = Evolving True
                   , exportFilter = [ByBranchSize 0]
                   , clique = MaxClique 0 15 ByNeighbours }
 

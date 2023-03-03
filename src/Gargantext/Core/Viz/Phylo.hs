@@ -31,7 +31,6 @@ import Control.Lens (makeLenses)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Map (Map)
-import Data.Set (Set)
 import Data.Swagger
 import Data.Text   (Text, pack)
 import Data.Vector (Vector)
@@ -66,6 +65,8 @@ data SeaElevation =
       , _cons_gap   :: Double }
     | Adaptative
       { _adap_steps :: Double }
+    | Evolving
+      { _evol_neighborhood :: Bool }      
     deriving (Show,Generic,Eq)
 
 instance ToSchema SeaElevation
@@ -180,6 +181,7 @@ data PhyloConfig =
             , phyloScale     :: Int
             , similarity     :: Similarity
             , seaElevation   :: SeaElevation
+            , defaultMode    :: Bool
             , findAncestors  :: Bool
             , phyloSynchrony :: Synchrony
             , phyloQuality   :: Quality
@@ -215,7 +217,7 @@ subConfig2config subConfig = defaultConfig { similarity     = WeightedLogJaccard
 ------------------------------------------------------------------------
 defaultConfig :: PhyloConfig
 defaultConfig =
-     PhyloConfig { corpusPath     = "corpus.csv" -- useful for commandline only
+     PhyloConfig { corpusPath = "corpus.csv" -- useful for commandline only
             , listPath       = "list.csv"   -- useful for commandline only
             , outputPath     = "data/"
             , corpusParser   = Csv 100000
@@ -224,6 +226,7 @@ defaultConfig =
             , phyloScale     = 2
             , similarity     = WeightedLogJaccard 0.5 1
             , seaElevation   = Constante 0.1 0.1
+            , defaultMode    = True
             , findAncestors  = False
             , phyloSynchrony = ByProximityThreshold 0.5 0 AllBranches MergeAllGroups
             , phyloQuality   = Quality 0.5 1
@@ -365,14 +368,21 @@ data PhyloFoundations = PhyloFoundations
       , _foundations_rootsInGroups :: Map Int [PhyloGroupId] -- map of roots associated to groups
       } deriving (Generic, Show, Eq)
 
-instance ToSchema PhyloFoundations where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_foundations_")
-
-
+data PhyloCounts = PhyloCounts
+      { coocByDate    :: !(Map Date Cooc)
+      , docsByDate    :: !(Map Date Double)
+      , rootsCount    :: !(Map Int  Double)
+      , rootsFreq     :: !(Map Int  Double)
+      , lastRootsFreq :: !(Map Int  Double)
+      } deriving (Generic, Show, Eq)
 
 data PhyloSources = PhyloSources
       { _sources :: !(Vector Text) } deriving (Generic, Show, Eq)
 
+instance ToSchema PhyloFoundations where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_foundations_")
+instance ToSchema PhyloCounts where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
 instance ToSchema PhyloSources where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
 
@@ -396,6 +406,8 @@ type Period = (Date,Date)
 type PeriodStr = (DateStr,DateStr)
 
 
+
+
 -- | Phylo datatype of a phylomemy
 --  foundations : the foundations of the phylo
 --  timeCooc : a Map of coocurency by minimal unit of time (ex: by year)
@@ -405,14 +417,12 @@ type PeriodStr = (DateStr,DateStr)
 data Phylo =
      Phylo { _phylo_foundations  :: PhyloFoundations
            , _phylo_sources      :: PhyloSources
-           , _phylo_timeCooc     :: !(Map Date Cooc)
-           , _phylo_timeDocs     :: !(Map Date Double)
-           , _phylo_termFreq     :: !(Map Int Double)
-           , _phylo_lastTermFreq :: !(Map Int Double)
-           , _phylo_diaSimScan   :: Set Double
+           , _phylo_counts       :: PhyloCounts
+           , _phylo_seaLadder    :: [Double]
            , _phylo_param        :: PhyloParam
            , _phylo_periods      :: Map Period PhyloPeriod
            , _phylo_quality      :: Double
+           , _phylo_level        :: Double
            }
            deriving (Generic, Show, Eq)
 
@@ -619,6 +629,9 @@ instance ToJSON PhyloSources
 
 instance FromJSON PhyloParam
 instance ToJSON PhyloParam
+
+instance FromJSON PhyloCounts
+instance ToJSON PhyloCounts
 
 instance FromJSON PhyloPeriod
 instance ToJSON PhyloPeriod
