@@ -3,6 +3,9 @@
 # Main url serving the FrontEnd
 URL = http://localhost
 
+# The instance name
+BACKEND_NAME = localhost
+
 # Main API url serving the BackEnd
 URL_BACKEND_API = http://localhost:8008/api/v1.0
 
@@ -19,6 +22,7 @@ DATA_FILEPATH = FILEPATH_TO_CHANGE
 # Data path to local files (do not use quotes)
 REPO_FILEPATH = FILEPATH_TO_CHANGE
 
+PUBMED_API_KEY = ENTER_PUBMED_API_KEY
 
 
 # [external]
@@ -35,6 +39,10 @@ FRAME_ISTEX_URL  = URL_TO_CHANGE
 
 MAX_DOCS_PARSERS = 1000000
 MAX_DOCS_SCRAPERS = 10000
+
+# in seconds
+JS_JOB_TIMEOUT = 1800
+JS_ID_TIMEOUT = 1800
 
 [server]
 # Server config (TODO connect in ReaderMonad)

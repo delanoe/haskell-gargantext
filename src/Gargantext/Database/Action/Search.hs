@@ -9,12 +9,16 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE Arrows            #-}
+{-# LANGUAGE LambdaCase         #-}
 
 module Gargantext.Database.Action.Search where
 
 import Control.Arrow (returnA)
-import Control.Lens ((^.))
+import Control.Lens ((^.), view)
+import qualified Data.List as List
+import qualified Data.Map.Strict as Map
 import Data.Maybe
+import qualified Data.Set as Set
 import Data.Text (Text, unpack, intercalate)
 import Data.Time (UTCTime)
 import Gargantext.Core
@@ -23,11 +27,13 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..), Hyperda
 import Gargantext.Database.Prelude (Cmd, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Query.Filter
-import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Context
-import Gargantext.Database.Query.Table.NodeNode
+import Gargantext.Database.Query.Table.ContextNodeNgrams (queryContextNodeNgramsTable)
 import Gargantext.Database.Query.Table.NodeContext
+import Gargantext.Database.Query.Table.NodeContext_NodeContext
+import Gargantext.Database.Schema.ContextNodeNgrams (ContextNodeNgramsPoly(..))
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Context
 import Gargantext.Prelude
@@ -41,15 +47,83 @@ searchDocInDatabase :: HasDBid NodeType
                     => ParentId
                     -> Text
                     -> Cmd err [(NodeId, HyperdataDocument)]
-searchDocInDatabase _p t = runOpaQuery (queryDocInDatabase t)
+searchDocInDatabase p t = runOpaQuery (queryDocInDatabase p t)
   where
-    -- | Global search query where ParentId is Master Node Corpus Id 
-    queryDocInDatabase :: Text -> O.Select (Column SqlInt4, Column SqlJsonb)
-    queryDocInDatabase q = proc () -> do
+    -- | Global search query where ParentId is Master Node Corpus Id
+    queryDocInDatabase :: ParentId -> Text -> O.Select (Column SqlInt4, Column SqlJsonb)
+    queryDocInDatabase _p q = proc () -> do
         row <- queryNodeSearchTable -< ()
         restrict -< (_ns_search row)    @@ (sqlTSQuery (unpack q))
         restrict -< (_ns_typename row) .== (sqlInt4 $ toDBid NodeDocument)
         returnA  -< (_ns_id row, _ns_hyperdata row)
+
+------------------------------------------------------------------------
+-- | Search ngrams in documents, ranking them by TF-IDF. We narrow our
+-- search only to map/candidate terms.
+searchInCorpusWithNgrams :: HasDBid NodeType
+               => CorpusId
+               -> ListId
+               -> IsTrash
+               -> NgramsType
+               -> [[Text]]
+               -> Maybe Offset
+               -> Maybe Limit
+               -> Maybe OrderBy
+               -> Cmd err [FacetDoc]
+searchInCorpusWithNgrams _cId _lId _t _ngt _q _o _l _order = undefined
+
+-- | Compute TF-IDF for all 'ngramIds' in given 'CorpusId'. In this
+-- case only the "TF" part makes sense and so we only compute the
+-- ratio of "number of times our terms appear in given document" and
+-- "number of all terms in document" and return a sorted list of
+-- document ids
+tfidfAll :: CorpusId -> [Int] -> Cmd err [Int]
+tfidfAll cId ngramIds = do
+  let ngramIdsSet = Set.fromList ngramIds
+  docsWithNgrams <- runOpaQuery (queryCorpusWithNgrams cId ngramIds) :: Cmd err [(Int, Int, Int)]
+  -- NOTE The query returned docs with ANY ngramIds. We need to further
+  -- restrict to ALL ngramIds.
+  let docsNgramsM =
+        Map.fromListWith (Set.union)
+            [ (ctxId, Set.singleton ngrams_id)
+            | (ctxId, ngrams_id, _) <- docsWithNgrams]
+  let docsWithAllNgramsS = Set.fromList $ List.map fst $
+        List.filter (\(_, docNgrams) ->
+                        ngramIdsSet == Set.intersection ngramIdsSet docNgrams) $ Map.toList docsNgramsM
+  let docsWithAllNgrams =
+        List.filter (\(ctxId, _, _) ->
+                       Set.member ctxId docsWithAllNgramsS) docsWithNgrams
+  -- printDebug "[tfidfAll] docsWithAllNgrams" docsWithAllNgrams
+  let docsWithCounts = Map.fromListWith (+) [ (ctxId, doc_count)
+                                            | (ctxId, _, doc_count) <- docsWithAllNgrams]
+  -- printDebug "[tfidfAll] docsWithCounts" docsWithCounts
+  let totals = [ ( ctxId
+                 , ngrams_id
+                 , fromIntegral doc_count :: Double
+                 , fromIntegral (fromMaybe 0 $ Map.lookup ctxId docsWithCounts) :: Double)
+               | (ctxId, ngrams_id, doc_count) <- docsWithAllNgrams]
+  let tfidf_sorted = List.sortOn snd [(ctxId, doc_count/s)
+                                     | (ctxId, _, doc_count, s) <- totals]
+  pure $ List.map fst $ List.reverse tfidf_sorted
+
+-- | Query for searching the 'context_node_ngrams' table so that we
+-- find docs with ANY given 'ngramIds'.
+queryCorpusWithNgrams :: CorpusId -> [Int] -> Select (Column SqlInt4, Column SqlInt4, Column SqlInt4)
+queryCorpusWithNgrams cId ngramIds = proc () -> do
+  row <- queryContextNodeNgramsTable -< ()
+  restrict -< (_cnng_node_id row) .== (pgNodeId cId)
+  restrict -< in_ (sqlInt4 <$> ngramIds) (_cnng_ngrams_id row)
+  returnA -< ( _cnng_context_id row
+             , _cnng_ngrams_id row
+             , _cnng_doc_count row)
+  --returnA -< row
+  -- returnA -< ( _cnng_context_id row
+  --            , _cnng_node_id row
+  --            , _cnng_ngrams_id row
+  --            , _cnng_ngramsType row
+  --            , _cnng_weight row
+  --            , _cnng_doc_count row)
+
 
 ------------------------------------------------------------------------
 -- | todo add limit and offset and order
@@ -83,27 +157,25 @@ queryInCorpus :: HasDBid NodeType
               -> Text
               -> O.Select FacetDocRead
 queryInCorpus cId t q = proc () -> do
-  (c, nc) <- joinInCorpus -< ()
-  restrict -< (nc^.nc_node_id) .== (toNullable $ pgNodeId cId)
+  c <- queryContextSearchTable -< ()
+  nc <- optionalRestrict queryNodeContextTable -<
+    \nc' -> (nc' ^. nc_context_id) .== _cs_id c
+  restrict -< (view nc_node_id <$> nc) .=== justFields (pgNodeId cId)
   restrict -< if t
-                 then (nc^.nc_category) .== (toNullable $ sqlInt4 0)
-                 else (nc^.nc_category) .>= (toNullable $ sqlInt4 1)
-  restrict -< (c ^. cs_search)           @@ (sqlTSQuery (unpack q))
-  restrict -< (c ^. cs_typename )       .== (sqlInt4 $ toDBid NodeDocument)
+                 then (view nc_category <$> nc) .=== justFields (sqlInt4 0)
+                 else matchMaybe (view nc_category <$> nc) $ \case
+                        Nothing -> toFields False
+                        Just c' -> c' .>= sqlInt4 1
+  restrict -< (c ^. cs_search)           @@ sqlTSQuery (unpack q)
+  restrict -< (c ^. cs_typename )       .== sqlInt4 (toDBid NodeDocument)
   returnA  -< FacetDoc { facetDoc_id         = c^.cs_id
                        , facetDoc_created    = c^.cs_date
                        , facetDoc_title      = c^.cs_name
                        , facetDoc_hyperdata  = c^.cs_hyperdata
-                       , facetDoc_category   = nc^.nc_category
-                       , facetDoc_ngramCount = nc^.nc_score
-                       , facetDoc_score      = nc^.nc_score
+                       , facetDoc_category   = maybeFieldsToNullable (view nc_category <$> nc)
+                       , facetDoc_ngramCount = maybeFieldsToNullable (view nc_score <$> nc)
+                       , facetDoc_score      = maybeFieldsToNullable (view nc_score <$> nc)
                        }
-
-joinInCorpus :: O.Select (ContextSearchRead, NodeContextReadNull)
-joinInCorpus = leftJoin queryContextSearchTable queryNodeContextTable cond
-  where
-    cond :: (ContextSearchRead, NodeContextRead) -> Column SqlBool
-    cond (c, nc) = nc^.nc_context_id .== _cs_id c
 
 ------------------------------------------------------------------------
 searchInCorpusWithContacts
@@ -118,10 +190,21 @@ searchInCorpusWithContacts
 searchInCorpusWithContacts cId aId q o l _order =
   runOpaQuery $ limit'   l
               $ offset'  o
-              $ orderBy ( desc _fp_score)
+              $ orderBy (desc _fp_score)
               $ selectGroup cId aId
               $ intercalate " | "
               $ map stemIt q
+
+selectGroup :: HasDBid NodeType
+            => CorpusId
+            -> AnnuaireId
+            -> Text
+            -> Select FacetPairedRead
+selectGroup cId aId q = proc () -> do
+  (a, b, c, d) <- aggregate (p4 (groupBy, groupBy, groupBy, O.sum))
+                            (selectContactViaDoc cId aId q) -< ()
+  returnA -< FacetPaired a b c d
+
 
 selectContactViaDoc
   :: HasDBid NodeType
@@ -129,86 +212,41 @@ selectContactViaDoc
   -> AnnuaireId
   -> Text
   -> SelectArr ()
-               ( Column (Nullable SqlInt4)
-               , Column (Nullable SqlTimestamptz)
-               , Column (Nullable SqlJsonb)
-               , Column (Nullable SqlInt4)
+               ( Field SqlInt4
+               , Field SqlTimestamptz
+               , Field SqlJsonb
+               , Field SqlInt4
                )
-selectContactViaDoc cId aId q = proc () -> do
-  (doc, (corpus_doc, (_contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
-  restrict -< (doc^.ns_search)           @@ (sqlTSQuery  $ unpack q  )
-  restrict -< (doc^.ns_typename)        .== (sqlInt4 $ toDBid NodeDocument)
-  restrict -< (corpus_doc^.nn_node1_id)  .== (toNullable $ pgNodeId cId)
-  restrict -< (annuaire_contact^.nn_node1_id) .== (toNullable $ pgNodeId aId)
-  restrict -< (contact^.node_typename)        .== (toNullable $ sqlInt4 $ toDBid NodeContact)
-  returnA  -< ( contact^.node_id
-              , contact^.node_date
-              , contact^.node_hyperdata
-              , toNullable $ sqlInt4 1
+selectContactViaDoc cId aId query = proc () -> do
+  --(doc, (corpus, (_nodeContext_nodeContext, (annuaire, contact)))) <- queryContactViaDoc -< ()
+  (contact, annuaire, _, corpus, doc) <- queryContactViaDoc -< ()
+  restrict -< matchMaybe (view cs_search <$> doc) $ \case
+    Nothing -> toFields False
+    Just s  -> s @@ sqlTSQuery (unpack query)
+  restrict -< (view cs_typename <$> doc)          .=== justFields (sqlInt4 (toDBid NodeDocument))
+  restrict -< (view nc_node_id <$> corpus)        .=== justFields (pgNodeId cId)
+  restrict -< (view nc_node_id <$> annuaire)      .=== justFields (pgNodeId aId)
+  restrict -< (contact ^. context_typename) .== sqlInt4 (toDBid NodeContact)
+  returnA  -< ( contact ^. context_id
+              , contact ^. context_date
+              , contact ^. context_hyperdata
+              , sqlInt4 1
               )
 
-selectGroup :: HasDBid NodeType
-            => NodeId
-            -> NodeId
-            -> Text
-            -> Select FacetPairedReadNull
-selectGroup cId aId q = proc () -> do
-  (a, b, c, d) <- aggregate (p4 (groupBy, groupBy, groupBy, O.sum))
-                            (selectContactViaDoc cId aId q) -< ()
-  returnA -< FacetPaired a b c d
+queryContactViaDoc :: O.Select ( ContextRead
+                               , MaybeFields NodeContextRead
+                               , MaybeFields NodeContext_NodeContextRead
+                               , MaybeFields NodeContextRead
+                               , MaybeFields ContextSearchRead )
+queryContactViaDoc = proc () -> do
+  contact <- queryContextTable -< ()
+  annuaire <- optionalRestrict queryNodeContextTable -<
+    \annuaire' -> (annuaire' ^. nc_context_id) .== (contact ^. context_id)
+  nodeContext_nodeContext <- optionalRestrict queryNodeContext_NodeContextTable -<
+    \ncnc' -> justFields (ncnc' ^. ncnc_nodecontext2) .=== (view nc_id <$> annuaire)
+  corpus <- optionalRestrict queryNodeContextTable -<
+    \corpus' -> justFields (corpus' ^. nc_id) .=== (view ncnc_nodecontext1 <$> nodeContext_nodeContext)
+  doc <- optionalRestrict queryContextSearchTable -<
+    \doc' -> justFields (doc' ^. cs_id) .=== (view nc_context_id <$> corpus)
 
-
-queryContactViaDoc :: O.Select ( NodeSearchRead
-                               , ( NodeNodeReadNull
-                                 , ( NodeNodeReadNull
-                                   , ( NodeNodeReadNull
-                                     , NodeReadNull
-                                     )
-                                   )
-                                 )
-                               )
-queryContactViaDoc =
-  leftJoin5
-  queryNodeTable
-  queryNodeNodeTable
-  queryNodeNodeTable
-  queryNodeNodeTable
-  queryNodeSearchTable
-  cond12
-  cond23
-  cond34
-  cond45
-    where
-      cond12 :: (NodeNodeRead, NodeRead) -> Column SqlBool
-      cond12 (annuaire_contact, contact) = contact^.node_id .== annuaire_contact^.nn_node2_id
-
-      cond23 :: ( NodeNodeRead
-                , ( NodeNodeRead
-                  , NodeReadNull
-                  )
-                ) -> Column SqlBool
-      cond23 (contact_doc, (annuaire_contact, _)) = contact_doc^.nn_node1_id .== annuaire_contact^.nn_node2_id
-
-      cond34 :: ( NodeNodeRead
-                , ( NodeNodeRead
-                  , ( NodeNodeReadNull
-                    , NodeReadNull
-                    )
-                  )
-                ) -> Column SqlBool
-      cond34 (corpus_doc, (contact_doc, (_,_))) =  corpus_doc^.nn_node2_id .== contact_doc^.nn_node2_id
-
-
-      cond45 :: ( NodeSearchRead
-                , ( NodeNodeRead
-                  , ( NodeNodeReadNull
-                    , ( NodeNodeReadNull
-                      , NodeReadNull
-                      )
-                    )
-                  )
-                ) -> Column SqlBool
-      cond45 (doc, (corpus_doc, (_,(_,_)))) = doc^.ns_id .== corpus_doc^.nn_node2_id
-
-
-------------------------------------------------------------------------
+  returnA -< (contact, annuaire, nodeContext_nodeContext, corpus, doc)

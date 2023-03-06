@@ -17,7 +17,6 @@ module Gargantext.API.Server where
 import Control.Lens ((^.))
 import Control.Monad.Except (withExceptT)
 import Control.Monad.Reader (runReaderT)
-import Data.Aeson
 import Data.Text (Text)
 import Data.Version (showVersion)
 import Servant
@@ -28,7 +27,8 @@ import qualified Paths_gargantext           as PG -- cabal magic build module
 import qualified Gargantext.API.Public      as Public
 
 import Gargantext.API.Admin.Auth.Types (AuthContext)
-import Gargantext.API.Admin.Auth (auth)
+import Gargantext.API.Admin.Auth (auth, forgotPassword, forgotPasswordAsync)
+import Gargantext.API.Admin.EnvTypes (Env)
 import Gargantext.API.Admin.FrontEnd (frontEndServer)
 import qualified Gargantext.API.GraphQL as GraphQL
 import Gargantext.API.Prelude
@@ -41,9 +41,11 @@ import Gargantext.Prelude
 import Gargantext.Prelude.Config (gc_url_backend_api)
 
 
-serverGargAPI :: ToJSON err => Text -> GargServerM env err GargAPI
+serverGargAPI :: Text -> ServerT GargAPI (GargM Env GargError)
 serverGargAPI baseUrl -- orchestrator
        =  auth
+     :<|> forgotPassword
+     :<|> forgotPasswordAsync
      :<|> gargVersion
      :<|> serverPrivateGargAPI
      :<|> Public.api baseUrl
@@ -54,7 +56,7 @@ serverGargAPI baseUrl -- orchestrator
     gargVersion = pure (cs $ showVersion PG.version)
 
 -- | Server declarations
-server :: forall env. (Typeable env, EnvC env) => env -> IO (Server API)
+server :: Env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  swaggerSchemaUIServer swaggerDoc
@@ -70,7 +72,7 @@ server env = do
             GraphQL.api
      :<|> frontEndServer
   where
-    transform :: forall a. GargM env GargError a -> Handler a
+    transform :: forall a. GargM Env GargError a -> Handler a
     transform = Handler . withExceptT showAsServantErr . (`runReaderT` env)
 
 

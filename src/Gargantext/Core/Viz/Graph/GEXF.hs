@@ -19,25 +19,27 @@ module Gargantext.Core.Viz.Graph.GEXF
   where
 
 import Gargantext.Prelude
-import Gargantext.Core.Viz.Graph
 import qualified Data.HashMap.Lazy as HashMap
 import qualified Gargantext.Prelude as P
-import qualified Gargantext.Core.Viz.Graph as G
+import qualified Gargantext.Core.Viz.Graph.Types as G
 import qualified Xmlbf as Xmlbf
 import Prelude (error)
 
 -- Converts to GEXF format
 -- See https://gephi.org/gexf/format/
-instance Xmlbf.ToXml Graph where
-  toXml (Graph { _graph_nodes = graphNodes
-                , _graph_edges = graphEdges }) = root graphNodes graphEdges
+instance Xmlbf.ToXml G.Graph where
+  toXml (G.Graph { _graph_nodes = graphNodes
+                 , _graph_edges = graphEdges }) = root graphNodes graphEdges
     where
       root :: [G.Node] -> [G.Edge] -> [Xmlbf.Node]
       root gn ge =
         Xmlbf.element "gexf" params $ meta <> (graph gn ge)
         where
-          params = HashMap.fromList [ ("xmlns", "http://www.gexf.net/1.2draft")
-                                    , ("version", "1.2") ]
+          params = HashMap.fromList [ ("xmlns", "http://www.gexf.net/1.3")
+                                    , ("xmlns:viz", "http://gexf.net/1.3/viz")
+                                    , ("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+                                    , ("xsi:schemaLocation", "http://gexf.net/1.3 http://gexf.net/1.3/gexf.xsd")
+                                    , ("version", "1.3") ]
       meta = Xmlbf.element "meta" params $ creator <> desc
         where
           params = HashMap.fromList [ ("lastmodifieddate", "2020-03-13") ]
@@ -53,22 +55,26 @@ instance Xmlbf.ToXml Graph where
 
       node' :: G.Node -> [Xmlbf.Node]
       node' (G.Node { node_id = nId, node_label = l, node_size = w}) =
-        Xmlbf.element "node" params []
+        Xmlbf.element "node" params (Xmlbf.element "viz:size" sizeParams [])
         where
           params = HashMap.fromList [ ("id", nId)
-                                    , ("label", l) 
-                                    , ("size", (cs . show) w)]
+                                    , ("label", l) ]
+          sizeParams = HashMap.fromList [ ("value", (cs . show) w) ]
       edges :: [G.Edge] -> [Xmlbf.Node]
       edges gn = Xmlbf.element "edges" HashMap.empty $ P.concatMap edge gn
       edge :: G.Edge -> [Xmlbf.Node]
-      edge (G.Edge { edge_id = eId, edge_source = es, edge_target = et }) =
+      edge (G.Edge { edge_id = eId
+                   , edge_source = es
+                   , edge_target = et
+                   , edge_weight = ew }) =
         Xmlbf.element "edge" params []
         where
           params = HashMap.fromList [ ("id", eId)
                                     , ("source", es)
-                                    , ("target", et) ]
+                                    , ("target", et)
+                                    , ("weight", (cs . show) ew)]
 
 -- just to be able to derive a client for the entire gargantext API,
 -- we however want to avoid sollicitating this instance
-instance Xmlbf.FromXml Graph where
+instance Xmlbf.FromXml G.Graph where
   fromXml = error "FromXml Graph: not defined, just a placeholder"

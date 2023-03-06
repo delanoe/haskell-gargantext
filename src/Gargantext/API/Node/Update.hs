@@ -21,14 +21,17 @@ import Data.Aeson
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Swagger
 import GHC.Generics (Generic)
+import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Ngrams.List (reIndexWith)
-import Gargantext.API.Prelude (GargServer, simuLogs)
-import Gargantext.Core.Methods.Distances (GraphMetric(..))
+--import Gargantext.API.Ngrams.Types (TabType(..))
+import Gargantext.API.Prelude (GargM, GargError, simuLogs)
+import Gargantext.Core.Methods.Similarities (GraphMetric(..))
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
-import Gargantext.Core.Viz.Graph.Tools (PartitionMethod(..))
+import Gargantext.Core.Viz.Graph.Tools (PartitionMethod(..), BridgenessMethod(..))
+import Gargantext.Core.Viz.Graph.Types (Strength)
 import Gargantext.Core.Viz.Phylo (PhyloSubConfig(..), subConfig2config)
 import Gargantext.Core.Viz.Phylo.API.Tools (flowPhyloAPI)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
@@ -40,10 +43,10 @@ import Gargantext.Database.Query.Table.Node (defaultList, getNode)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Ngrams (NgramsType(NgramsTerms))
 import Gargantext.Database.Schema.Node (node_parent_id)
-import Gargantext.Prelude (Bool(..), Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic, (<*>))
+import Gargantext.Prelude (Bool(..), Ord, Eq, (<$>), ($), liftBase, (.), {-printDebug,-} pure, show, cs, (<>), panic, (<*>))
+import Gargantext.Utils.Jobs (serveJobsAPI)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import qualified Data.Set                    as Set
@@ -58,8 +61,12 @@ type API = Summary " Update node according to NodeType params"
 ------------------------------------------------------------------------
 data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: !Method      }
 
-                      | UpdateNodeParamsGraph { methodGraphMetric     :: !GraphMetric 
-                                              , methodGraphClustering :: !PartitionMethod
+                      | UpdateNodeParamsGraph { methodGraphMetric        :: !GraphMetric
+                                              , methodGraphClustering    :: !PartitionMethod
+                                              , methodGraphBridgeness    :: !BridgenessMethod
+                                              , methodGraphEdgesStrength :: !Strength
+                                              , methodGraphNodeType1     :: !NgramsType
+                                              , methodGraphNodeType2     :: !NgramsType
                                               }
 
                       | UpdateNodeParamsTexts { methodTexts :: !Granularity }
@@ -67,7 +74,7 @@ data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: !Method      }
                       | UpdateNodeParamsBoard { methodBoard :: !Charts      }
 
                       | LinkNodeReq           { nodeType    :: !NodeType
-                                              , id :: !NodeId }
+                                              , id          :: !NodeId }
 
                       | UpdateNodePhylo       { config :: !PhyloSubConfig }
     deriving (Generic)
@@ -85,16 +92,14 @@ data Charts = Sources | Authors | Institutes | Ngrams | All
     deriving (Generic, Eq, Ord, Enum, Bounded)
 
 ------------------------------------------------------------------------
-api :: UserId -> NodeId -> GargServer API
+api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI $
-    JobFunction (\p log'' ->
+  serveJobsAPI UpdateNodeJob $ \p log'' ->
       let
         log' x = do
-          printDebug "updateNode" x
+          -- printDebug "updateNode" x
           liftBase $ log'' x
       in updateNode uId nId p (liftBase . log')
-      )
 
 updateNode :: (HasSettings env, FlowCmdM env err m)
     => UserId
@@ -102,15 +107,16 @@ updateNode :: (HasSettings env, FlowCmdM env err m)
     -> UpdateNodeParams
     -> (JobLog -> m ())
     -> m JobLog
-updateNode uId nId (UpdateNodeParamsGraph metric method) logStatus = do
+updateNode uId nId (UpdateNodeParamsGraph metric partitionMethod bridgeMethod strength nt1 nt2) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-
-  _ <- recomputeGraph uId nId method (Just metric) True
+  -- printDebug "Computing graph: " method
+  _ <- recomputeGraph uId nId partitionMethod bridgeMethod (Just metric) (Just strength) nt1 nt2 True
+  -- printDebug "Graph computed: " method
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
@@ -128,7 +134,7 @@ updateNode _uId nid1 (LinkNodeReq nt nid2) logStatus = do
     NodeAnnuaire -> pairing nid2 nid1 Nothing -- defaultList
     NodeCorpus   -> pairing nid1 nid2 Nothing -- defaultList
     _            -> panic $ "[G.API.N.Update.updateNode] NodeType not implemented"
-                           <> cs (show nt)
+                          <> cs (show nt <> " nid1: " <> show nid1 <> " nid2: " <> show nid2)
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
@@ -153,9 +159,9 @@ updateNode _uId lId (UpdateNodeParamsList Advanced) logStatus = do
 
   _ <- case corpusId of
     Just cId -> do
-      _ <- Metrics.updatePie' cId (Just lId) NgramsTypes.Authors Nothing
-      _ <- Metrics.updateTree' cId (Just lId) NgramsTypes.Institutes MapTerm
-      _ <- Metrics.updatePie' cId (Just lId) NgramsTypes.Sources Nothing
+      _ <- Metrics.updatePie cId (Just lId) NgramsTypes.Authors Nothing
+      _ <- Metrics.updateTree cId (Just lId) NgramsTypes.Institutes MapTerm
+      _ <- Metrics.updatePie cId (Just lId) NgramsTypes.Sources Nothing
       pure ()
     Nothing  -> pure ()
 
@@ -240,6 +246,7 @@ updateNode _uId tId (UpdateNodeParamsTexts _mode) logStatus = do
       _ <- reIndexWith cId lId NgramsTerms (Set.singleton MapTerm)
       _ <- updateNgramsOccurrences cId (Just lId)
       _ <- updateContextScore      cId (Just lId)
+      _ <- Metrics.updateChart     cId (Just lId) NgramsTypes.Docs Nothing
       -- printDebug "updateContextsScore" (cId, lId, u)
       pure ()
     Nothing  -> pure ()
@@ -264,12 +271,12 @@ instance FromJSON  UpdateNodeParams where
 
 instance ToJSON    UpdateNodeParams where
   toJSON = genericToJSON (defaultOptions { sumEncoding = GUA.defaultTaggedObject })
-  
+
 instance ToSchema  UpdateNodeParams
 instance Arbitrary UpdateNodeParams where
   arbitrary = do
     l <- UpdateNodeParamsList  <$> arbitrary
-    g <- UpdateNodeParamsGraph <$> arbitrary <*> arbitrary
+    g <- UpdateNodeParamsGraph <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
     t <- UpdateNodeParamsTexts <$> arbitrary
     b <- UpdateNodeParamsBoard <$> arbitrary
     elements [l,g,t,b]

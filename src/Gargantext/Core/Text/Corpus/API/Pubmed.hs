@@ -14,6 +14,7 @@ module Gargantext.Core.Text.Corpus.API.Pubmed
     where
 
 import Conduit
+import Control.Monad.Reader (runReaderT)
 import Data.Either (Either)
 import Data.Maybe
 import Data.Text (Text)
@@ -26,18 +27,27 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 
 import qualified PUBMED as PubMed
 import qualified PUBMED.Parser as PubMedDoc
+import PUBMED.Types (Config(..))
 
 
 type Query = Text
-type Limit = PubMed.Limit
+type Limit = Integer
 
 
 -- | TODO put default pubmed query in gargantext.ini
 -- by default: 10K docs
-get :: Query -> Maybe Limit -> IO (Either ClientError (Maybe Integer, ConduitT () HyperdataDocument IO ()))
-get q l = do
-  eRes <- PubMed.getMetadataWithC q l
-  pure $ (\(len, docsC) -> (len, docsC .| mapC (toDoc EN))) <$> eRes
+get :: Maybe Text
+    -> Query
+    -> Maybe Limit
+    -> IO (Either ClientError (Maybe Integer, ConduitT () HyperdataDocument IO ()))
+get mAPIKey q l = do
+  eRes <- runReaderT PubMed.getMetadataWithC (Config { apiKey = mAPIKey
+                                                     , query = q
+                                                     , perPage = Nothing })
+  let takeLimit = case l of
+        Nothing -> mapC identity
+        Just l' -> takeC $ fromIntegral l'
+  pure $ (\(len, docsC) -> (len, docsC .| takeLimit .| mapC (toDoc EN))) <$> eRes
   --either (\e -> panic $ "CRAWL: PubMed" <> e) (map (toDoc EN))
   --      <$> PubMed.getMetadataWithC q l
 
@@ -82,4 +92,3 @@ toDoc l (PubMedDoc.PubMed { pubmed_id
         abstract :: [Text] -> Maybe Text
         abstract [] = Nothing
         abstract as' = Just $ Text.intercalate ", " as'
-

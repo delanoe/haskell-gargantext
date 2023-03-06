@@ -95,4 +95,3 @@ textFlow' termType contexts = do
   g <- cooc2graph myCooc2
   pure g
 -}
-

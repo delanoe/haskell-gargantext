@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# 0 3 * * * pg_dump --dbname=$MYDB | gzip > ~/backup/db/$(date +%Y-%m-%d).psql.gz
+
+if [[ $1 == "" || $2 == "" ]]
+then echo "USAGE : ./bin/backup gargantext.ini backup_directory"
+else 
+
+INIFILE=$1
+
+getter () {
+  grep $1 $INIFILE | sed "s/^.*= //"
+}
+
+USER=$(getter "DB_USER")
+NAME=$(getter "DB_NAME")
+PASS=$(getter "DB_PASS")
+HOST=$(getter "DB_HOST")
+PORT=$(getter "DB_PORT")
+
+
+GARGDB="postgresql://${USER}:${PASS}@${HOST}:${PORT}/${NAME}"
+
+#echo "backuping $GARGDB"
+pg_dump --dbname=$GARGDB | gzip > $2/$(date +%Y-%m-%d).garg_dump.gz
+
+
+fi

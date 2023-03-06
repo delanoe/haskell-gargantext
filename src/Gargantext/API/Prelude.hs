@@ -24,11 +24,12 @@ import Control.Concurrent (threadDelay)
 import Control.Exception (Exception)
 import Control.Lens (Prism', (#))
 import Control.Lens.TH (makePrisms)
-import Control.Monad.Error.Class (MonadError(..))
 import Control.Monad.Except (ExceptT)
 import Control.Monad.Reader (ReaderT)
+import Control.Monad.Error.Class (MonadError(..))
 import Crypto.JOSE.Error as Jose
 import Data.Aeson.Types
+import qualified Data.Text as Text
 import Data.Typeable
 import Data.Validity
 import Gargantext.API.Admin.Orchestrator.Types
@@ -40,6 +41,7 @@ import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (NodeError(..), HasNodeError(..))
 import Gargantext.Database.Query.Tree
 import Gargantext.Prelude
+import qualified Gargantext.Utils.Jobs.Monad as Jobs
 import Servant
 import Servant.Job.Async
 import Servant.Job.Core (HasServerError(..), serverError)
@@ -72,11 +74,11 @@ type ErrC err =
   )
 
 type GargServerC env err m =
-  ( CmdRandom env err m
+  ( CmdRandom    env err m
   , HasNodeStory env err m
-  , EnvC  env
-  , ErrC      err
-  , ToJSON err
+  , EnvC         env
+  , ErrC             err
+  , ToJSON           err
   )
 
 type GargServerT env err m api = GargServerC env err m => ServerT api m
@@ -102,19 +104,19 @@ type GargNoServer' env err m =
   )
 
 -------------------------------------------------------------------
-
 data GargError
   = GargNodeError    NodeError
   | GargTreeError    TreeError
   | GargInvalidError Validation
   | GargJoseError    Jose.Error
   | GargServerError  ServerError
+  | GargJobError     Jobs.JobError
   deriving (Show, Typeable)
 
 makePrisms ''GargError
 
 instance ToJSON GargError where
-  toJSON _ = String "SomeGargErrorPleaseReport"
+  toJSON err = object [("error", String $ Text.pack $ show err)]
 
 instance Exception GargError
 
@@ -132,7 +134,6 @@ instance HasServerError GargError where
 
 instance HasJoseError GargError where
   _JoseError = _GargJoseError
-
 
 ------------------------------------------------------------------------
 -- | Utils
@@ -163,5 +164,5 @@ simuTask logStatus cur total = do
                        , _scst_remaining = (-) <$> Just total <*> Just cur
                        , _scst_events    = Just []
                        }
-  printDebug "status" status
+  -- printDebug "status" status
   logStatus status

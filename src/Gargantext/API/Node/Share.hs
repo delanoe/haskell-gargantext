@@ -27,14 +27,15 @@ import Gargantext.Database.Action.User
 import Gargantext.Database.Action.User.New
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude
-import Gargantext.Database.Query.Tree (findNodesWithType)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
+import Gargantext.Database.Query.Tree (findNodesWithType)
 import Gargantext.Prelude
-import qualified Gargantext.Utils.Aeson as GUA
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import qualified Data.List as List
+import qualified Data.Text as Text
+import qualified Gargantext.Utils.Aeson as GUA
 
 ------------------------------------------------------------------------
 data ShareNodeParams = ShareTeamParams   { username :: Text  }
@@ -61,19 +62,20 @@ api :: HasNodeError err
     -> ShareNodeParams
     -> CmdR err Int
 api userInviting nId (ShareTeamParams user') = do
-  user <- case guessUserName user' of
-    Nothing    -> pure user'
+  let user'' = Text.toLower user'
+  user <- case guessUserName user'' of
+    Nothing    -> pure user''
     Just (u,_) -> do
       isRegistered <- getUserId' (UserName u)
       case isRegistered of
         Just _  -> do
-          printDebug "[G.A.N.Share.api]" ("Team shared with " <> u)
+          -- printDebug "[G.A.N.Share.api]" ("Team shared with " <> u)
           pure u
         Nothing -> do
           username' <- getUsername userInviting
           _ <- case List.elem username' arbitraryUsername of
             True  -> do
-              printDebug "[G.A.N.Share.api]" ("Demo users are not allowed to invite" :: Text)
+              -- printDebug "[G.A.N.Share.api]" ("Demo users are not allowed to invite" :: Text)
               pure ()
             False -> do
               -- TODO better analysis of the composition of what is shared
@@ -84,11 +86,11 @@ api userInviting nId (ShareTeamParams user') = do
                                                            ]
               _ <- case List.null children of
                 True -> do
-                  printDebug "[G.A.N.Share.api]" ("Invitation is enabled if you share a corpus at least" :: Text)
+                  -- printDebug "[G.A.N.Share.api]" ("Invitation is enabled if you share a corpus at least" :: Text)
                   pure 0
                 False -> do 
-                  printDebug "[G.A.N.Share.api]" ("Your invitation is sent to: " <> user')
-                  newUsers [user']
+                  -- printDebug "[G.A.N.Share.api]" ("Your invitation is sent to: " <> user'')
+                  newUsers [user'']
               pure ()
           pure u
 

@@ -57,7 +57,8 @@ module Gargantext.Database.Query.Table.Node.Document.Insert
 import Control.Lens (set, view)
 import Control.Lens.Cons
 import Control.Lens.Prism
-import Data.Aeson (toJSON, encode, ToJSON)
+import Data.Aeson (toJSON, ToJSON)
+import Data.Char (isAlpha)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 -- import Data.ByteString (ByteString)
@@ -74,9 +75,10 @@ import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, runPGSQuery{-, formatPGSQuery-})
 import Gargantext.Database.Schema.Node (NodePoly(..))
+import qualified Gargantext.Defaults as Defaults
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (hash)
-import qualified Data.Text as DT (pack, concat, take)
+import qualified Data.Text as DT (pack, concat, take, filter, toLower)
 
 {-| To Print result query
 import Data.ByteString.Internal (ByteString)
@@ -91,14 +93,14 @@ import Database.PostgreSQL.Simple (formatQuery)
 -- ParentId : folder ID which is parent of the inserted documents
 -- Administrator of the database has to create a uniq index as following SQL command:
 -- `create unique index on contexts table (typename, parent_id, (hyperdata ->> 'uniqId'));`
-insertDb :: (InsertDb a, HasDBid NodeType) => UserId -> ParentId -> [a] -> Cmd err [ReturnId]
+insertDb :: (InsertDb a, HasDBid NodeType) => UserId -> Maybe ParentId -> [a] -> Cmd err [ReturnId]
 insertDb u p = runPGSQuery queryInsert . Only . Values fields . map (insertDb' u p)
       where
         fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
 
 class InsertDb a
   where
-    insertDb' :: HasDBid NodeType => UserId -> ParentId -> a -> [Action]
+    insertDb' :: HasDBid NodeType => UserId -> Maybe ParentId -> a -> [Action]
 
 
 instance InsertDb HyperdataDocument
@@ -109,7 +111,7 @@ instance InsertDb HyperdataDocument
                       , toField p
                       , toField $ maybe "No Title" (DT.take 255)  (_hd_title h)
                       , toField $ _hd_publication_date h -- TODO USE UTCTime
-                      , (toField . toJSON) h
+                      , (toField . toJSON) (addUniqId h)
                       ]
 
 instance InsertDb HyperdataContact
@@ -120,7 +122,7 @@ instance InsertDb HyperdataContact
                       , toField p
                       , toField $ maybe "Contact" (DT.take 255) (Just "Name") -- (_hc_name h)
                       , toField $ jour 0 1 1 -- TODO put default date
-                      , (toField . toJSON) h
+                      , (toField . toJSON) (addUniqId h)
                       ]
 
 instance ToJSON a => InsertDb (Node a)
@@ -195,6 +197,10 @@ class AddUniqId a
   where
     addUniqId :: a -> a
 
+class UniqParameters a
+  where
+    uniqParameters :: ParentId -> a -> Text
+
 instance AddUniqId HyperdataDocument
   where
     addUniqId = addUniqIdsDoc
@@ -206,42 +212,36 @@ instance AddUniqId HyperdataDocument
             shaUni = hash $ DT.concat $ map ($ doc) shaParametersDoc
             shaBdd = hash $ DT.concat $ map ($ doc) ([(\d -> maybeText (_hd_bdd d))] <> shaParametersDoc)
 
-        shaParametersDoc :: [(HyperdataDocument -> Text)]
-        shaParametersDoc = [ \d -> maybeText (_hd_title            d)
-                           , \d -> maybeText (_hd_abstract         d)
-                           , \d -> maybeText (_hd_source           d)
-                           , \d -> maybeText (_hd_publication_date d)
-                           ]
--- TODO put this elsewhere (fix bin/gargantext-init/Main.hs too)
-secret :: Text
-secret = "Database secret to change"
+            shaParametersDoc :: [(HyperdataDocument -> Text)]
+            shaParametersDoc = [ \d -> filterText $ maybeText (_hd_title            d)
+                               , \d -> filterText $ maybeText (_hd_abstract         d)
+                               , \d -> filterText $ maybeText (_hd_source           d)
+                        --       , \d -> maybeText (_hd_publication_date d)
+                               ]
 
-
-instance (AddUniqId a, ToJSON a, HasDBid NodeType) => AddUniqId (Node a)
+instance UniqParameters HyperdataDocument
   where
-    addUniqId (Node nid _ t u p n d h) = Node nid hashId t u p n d h
-                              where
-                                hashId = Just $ "\\x" <> (hash $ DT.concat params)
-                                params = [ secret
-                                         , cs $ show $ toDBid NodeDocument
-                                         , n
-                                         , cs $ show p
-                                         , cs $ encode h
-                                         ]
-    {-
-    addUniqId n@(Node nid _ t u p n d h)  =
-      case n of
-        Node HyperdataDocument -> Node nid hashId t u p n d h
-                              where
-                                hashId = "\\x" <> (hash $ DT.concat params)
-                                params = [ secret
-                                         , cs $ show $ toDBid NodeDocument
-                                         , n
-                                         , cs $ show p
-                                         , cs $ encode h
-                                         ]
-       _ -> undefined
--}
+    uniqParameters _ h = filterText $  DT.concat $ map maybeText $ [_hd_title h, _hd_abstract h, _hd_source h]
+
+instance UniqParameters HyperdataContact
+  where
+    uniqParameters _ _ = ""
+
+instance UniqParameters (Node a)
+  where
+    uniqParameters _ _ = undefined
+
+
+filterText :: Text -> Text
+filterText = DT.toLower . (DT.filter isAlpha)
+
+
+instance (UniqParameters a, ToJSON a, HasDBid NodeType) => AddUniqId (Node a)
+  where
+    addUniqId (Node nid _ t u p n d h)  = Node nid (Just newHash) t u p n d h
+      where
+        newHash = "\\x" <> (hash $ uniqParameters (fromMaybe 0 p) h)
+
 
     ---------------------------------------------------------------------------
 -- * Uniqueness of document definition
@@ -265,6 +265,7 @@ addUniqIdsContact hc = set (hc_uniqIdBdd) (Just shaBdd)
                            , \d -> maybeText $ view (hc_where . _head . cw_touch . _Just . ct_mail) d
                            ]
 
+
 maybeText :: Maybe Text -> Text
 maybeText = maybe (DT.pack "") identity
 
@@ -272,23 +273,23 @@ maybeText = maybe (DT.pack "") identity
 class ToNode a
   where
     -- TODO Maybe NodeId
-    toNode :: HasDBid NodeType => UserId -> ParentId -> a -> Node a
+    toNode :: HasDBid NodeType => UserId -> Maybe ParentId -> a -> Node a
 
 instance ToNode HyperdataDocument where
-  toNode u p h = Node 0 Nothing (toDBid NodeDocument) u (Just p) n date h
+  toNode u p h = Node 0 Nothing (toDBid NodeDocument) u p n date h
     where
       n    = maybe "No Title" (DT.take 255) (_hd_title h)
       date  = jour y m d
       -- NOTE: There is no year '0' in postgres, there is year 1 AD and beofre that year 1 BC:
       -- select '0001-01-01'::date, '0001-01-01'::date - '1 day'::interval;
       -- 0001-01-01    0001-12-31 00:00:00 BC
-      y = maybe 1 fromIntegral $ _hd_publication_year  h
-      m = fromMaybe 1 $ _hd_publication_month h
-      d = fromMaybe 1 $ _hd_publication_day   h
+      y = fromIntegral $ fromMaybe Defaults.day $ _hd_publication_year  h
+      m = fromMaybe Defaults.month $ _hd_publication_month h
+      d = fromMaybe (fromIntegral Defaults.year) $ _hd_publication_day   h
 
 -- TODO better Node
 instance ToNode HyperdataContact where
-  toNode u p h = Node 0 Nothing (toDBid NodeContact) u (Just p) "Contact" date h
+  toNode u p h = Node 0 Nothing (toDBid NodeContact) u p "Contact" date h
     where
       date  = jour 2020 01 01
 

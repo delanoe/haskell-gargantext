@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Core.Statistics
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -14,13 +14,13 @@ module Gargantext.Core.Statistics
   where
 
 
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Gargantext.Prelude
 import Numeric.Statistics.PCA (pcaReduceN)
 import Data.Array.IArray (Array, listArray, elems)
 import qualified Data.Vector.Storable as Vec
 import qualified Data.List as List
-import qualified Data.Map  as Map
+import qualified Data.Map.Strict  as Map
 
 
 data Dimension = Dimension Int
@@ -38,5 +38,3 @@ pcaReduceTo (Dimension d) m = Map.fromList
     m'' = listArray (1, List.length m') m'
 
     (txts,m') = List.unzip $ Map.toList m
-
-

@@ -80,4 +80,3 @@ main = do
 
   putStrLn $ "Starting with " <> show myMode <> " mode."
   start
-

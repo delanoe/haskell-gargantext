@@ -15,7 +15,7 @@ module Gargantext.Core.Viz.Chart
   where
 
 import Data.List (sortOn)
-import Data.Map (toList)
+import Data.Map.Strict (toList)
 import qualified Data.List as List
 import Data.Maybe (catMaybes)
 import qualified Data.Vector as V
@@ -59,9 +59,9 @@ chartData :: FlowCmdM env err m
 chartData cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
-  ts <- mapTermListRoot ls nt <$> getRepo' ls
+  ts <- mapTermListRoot ls nt <$> getRepo ls
   let
-    dico = filterListWithRoot lt ts
+    dico = filterListWithRoot [lt] ts
     terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ HashMap.toList dico
     group dico' x = case HashMap.lookup x dico' of
         Nothing -> x
@@ -83,14 +83,13 @@ treeData :: FlowCmdM env err m
 treeData cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
-  ts <- mapTermListRoot ls nt <$> getRepo' ls
+  ts <- mapTermListRoot ls nt <$> getRepo ls
 
   let
-    dico = filterListWithRoot lt ts
+    dico = filterListWithRoot [lt] ts
     terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ HashMap.toList dico
 
   cs' <- getContextsByNgramsOnlyUser cId (ls' <> ls) nt terms
 
   m  <- getListNgrams ls nt
   pure $ V.fromList $ toTree lt cs' m
-

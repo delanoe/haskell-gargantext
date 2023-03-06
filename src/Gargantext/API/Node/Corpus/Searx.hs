@@ -17,7 +17,7 @@ import GHC.Generics (Generic)
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 
-import qualified Prelude as Prelude
+import qualified Prelude
 import Protolude (catMaybes, encodeUtf8, rightToMaybe, Text)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config
@@ -120,23 +120,28 @@ insertSearxResponse :: (MonadBase IO m, FlowCmdM env err m)
                     -> m ()
 insertSearxResponse _ _ _ _ (Left _) = pure ()
 insertSearxResponse user cId listId l (Right (SearxResponse { _srs_results })) = do
+  -- docs :: [Either Text HyperdataDocument]
   let docs = hyperdataDocumentFromSearxResult l <$> _srs_results
   --printDebug "[triggerSearxSearch] docs" docs
-  -- docs :: [Either Text HyperdataDocument]
   let docs' = catMaybes $ rightToMaybe <$> docs
+    {- 
   Prelude.mapM_ (\(HyperdataDocument { _hd_title, _hd_publication_year, _hd_publication_date }) -> do
-    printDebug "[triggerSearxSearch] doc time" $
+      printDebug "[triggerSearxSearch] doc time" $
       "[title] " <> (show _hd_title) <>
       " :: [publication_year] " <> (show _hd_publication_year) <>
       " :: [publication_date] " <> (show _hd_publication_date)
     ) docs'
+    -}
   --_ <- flowDataText user (DataNew [docs']) (Multi l) cId Nothing logStatus
   let mCorpus = Nothing :: Maybe HyperdataCorpus
   ids <- insertMasterDocs mCorpus (Multi l) docs'
   _ <- Doc.add cId ids
   (_masterUserId, _masterRootId, masterCorpusId)
     <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") mCorpus
-  let gp = GroupWithPosTag l CoreNLP HashMap.empty 
+  let
+    gp = case l of
+      FR -> GroupWithPosTag l Spacy HashMap.empty
+      _       -> GroupWithPosTag l CoreNLP HashMap.empty
   ngs         <- buildNgramsLists user cId masterCorpusId Nothing gp
   _userListId <- flowList_DbRepo listId ngs
 
@@ -159,21 +164,21 @@ triggerSearxSearch user cId q l logStatus = do
                       }
   logStatus jobLog
 
-  printDebug "[triggerSearxSearch] cId" cId
-  printDebug "[triggerSearxSearch] q" q
-  printDebug "[triggerSearxSearch] l" l
+  -- printDebug "[triggerSearxSearch] cId" cId
+  -- printDebug "[triggerSearxSearch] q" q
+  -- printDebug "[triggerSearxSearch] l" l
   cfg <- view hasConfig
   uId <- getUserId user
   let surl = _gc_frame_searx_url cfg
-  printDebug "[triggerSearxSearch] surl" surl
+  -- printDebug "[triggerSearxSearch] surl" surl
   mListId <- defaultListMaybe cId
   listId <- case mListId of
     Nothing -> do
       listId <- getOrMkList cId uId
       pure listId
     Just listId -> pure listId
-    
-  printDebug "[triggerSearxSearch] listId" listId
+
+  -- printDebug "[triggerSearxSearch] listId" listId
 
   manager <- liftBase $ newManager tlsManagerSettings
   _ <- mapM (\page -> do
@@ -217,4 +222,3 @@ hyperdataDocumentFromSearxResult l (SearxResult { _sr_content, _sr_engine, _sr_p
                           , _hd_publication_minute = Nothing
                           , _hd_publication_second = Nothing
                           , _hd_language_iso2 = Just $ T.pack $ show l }
-

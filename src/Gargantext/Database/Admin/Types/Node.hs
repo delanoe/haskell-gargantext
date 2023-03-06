@@ -19,6 +19,7 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Node
   where
 
+import Database.PostgreSQL.Simple.ToRow (ToRow, toRow)
 import Codec.Serialise (Serialise())
 import Control.Monad (mzero)
 import Data.Aeson
@@ -30,8 +31,8 @@ import Data.Morpheus.Types (GQLType)
 import Data.Swagger
 import Data.Text (Text, unpack, pack)
 import Data.Time (UTCTime)
-import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import Database.PostgreSQL.Simple.ToField (ToField, toField)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField, fromJSONField)
+import Database.PostgreSQL.Simple.ToField (ToField, toField, toJSONField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Schema.Context
@@ -187,13 +188,13 @@ instance (Arbitrary hyperdata
                         ) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
     arbitrary = ContextSearch <$> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
-                           <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
 
 
 
@@ -211,17 +212,15 @@ pgContextId = pgNodeId
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
   deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
-
-
--- TODO make another type?
-type ContextId = NodeId
-
 instance GQLType NodeId
 instance Show NodeId where
   show (NodeId n) = "nodeId-" <> show n
 instance Serialise NodeId
 instance ToField NodeId where
   toField (NodeId n) = toField n
+instance ToRow NodeId where
+  toRow (NodeId i) = [toField i]
+
 instance FromField NodeId where
   fromField field mdata = do
     n <- fromField field mdata
@@ -229,6 +228,14 @@ instance FromField NodeId where
        then return $ NodeId n
        else mzero
 instance ToSchema NodeId
+
+-- TODO make another type
+type ContextId = NodeId
+
+newtype NodeContextId = NodeContextId Int
+  deriving (Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable, Csv.ToField)
+
+
 --instance Csv.ToField NodeId where
 --  toField (NodeId nodeId) = Csv.toField nodeId
 
@@ -353,6 +360,22 @@ data NodeType = NodeUser
 
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
+instance GQLType NodeType
+instance FromJSON NodeType
+instance ToJSON NodeType
+instance FromHttpApiData NodeType where
+  parseUrlPiece = Right . read . unpack
+instance ToHttpApiData NodeType where
+  toUrlPiece = pack . show
+instance ToParamSchema NodeType
+instance ToSchema      NodeType
+instance Arbitrary NodeType where
+  arbitrary = elements allNodeTypes
+instance FromField NodeType where
+  fromField = fromJSONField
+instance ToField NodeType where
+  toField = toJSONField
+
 
 allNodeTypes :: [NodeType]
 allNodeTypes = [minBound ..]
@@ -367,41 +390,26 @@ defaultName NodeAnnuaire   = "Annuaire"
 
 defaultName NodeDocument   = "Doc"
 defaultName NodeTexts      = "Docs"
-defaultName NodeList       = "List"
+defaultName NodeList       = "Terms"
 defaultName NodeListCooc   = "List"
 defaultName NodeModel      = "Model"
 
-defaultName NodeFolder     = "Folder"
-defaultName NodeFolderPrivate = "Private Folder"
-defaultName NodeFolderShared  = "Shared Folder"
-defaultName NodeTeam          = "Folder"
-defaultName NodeFolderPublic  = "Public Folder"
+defaultName NodeFolder        = "Folder"
+defaultName NodeFolderPrivate = "Private"
+defaultName NodeFolderShared  = "Share"
+defaultName NodeTeam          = "Team"
+defaultName NodeFolderPublic  = "Public"
 
 defaultName NodeDashboard     = "Board"
 defaultName NodeGraph         = "Graph"
 defaultName NodePhylo         = "Phylo"
 
-defaultName NodeFrameWrite    = "Frame Write"
-defaultName NodeFrameCalc     = "Frame Calc"
-defaultName NodeFrameVisio    = "Frame Visio"
-defaultName NodeFrameNotebook     = "Frame Code"
+defaultName NodeFrameWrite    = "Note"
+defaultName NodeFrameCalc     = "Calc"
+defaultName NodeFrameVisio    = "Visio"
+defaultName NodeFrameNotebook = "Code"
 
 defaultName NodeFile          = "File"
-
-
-instance FromJSON NodeType
-instance ToJSON NodeType
-
-instance FromHttpApiData NodeType where
-  parseUrlPiece = Right . read . unpack
-instance ToHttpApiData NodeType where
-  toUrlPiece = pack . show
-
-instance ToParamSchema NodeType
-instance ToSchema      NodeType
-
-instance Arbitrary NodeType where
-  arbitrary = elements allNodeTypes
 
 
 
@@ -446,4 +454,3 @@ instance DefaultFromField SqlText (Maybe Hash)
 
 context2node :: Context a -> Node a
 context2node (Context ci ch ct cu cp cn cd chy) = Node ci ch ct cu cp cn cd chy
-

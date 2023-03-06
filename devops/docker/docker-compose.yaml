@@ -1,18 +1,37 @@
 version: '3'
 
 services:
+  #postgres11:
+  #  #image: 'postgres:latest'
+  #  image: 'postgres:11'
+  #  network_mode: host
+  #  #command: ["postgres", "-c", "log_statement=all"]
+  #  #ports:
+  #    #- 5432:5432
+  #  environment:
+  #    POSTGRES_USER: gargantua
+  #    POSTGRES_PASSWORD: C8kdcUrAQy66U
+  #    POSTGRES_DB: gargandbV5
+  #  volumes:
+  #    - garg-pgdata:/var/lib/postgresql/data
+  #    - ../:/gargantext
+  #    - ../dbs:/dbs
+  #    - ../postgres/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+
   postgres:
     #image: 'postgres:latest'
-    image: 'postgres:11'
+    image: 'postgres:14'
+    shm_size: 1g  # https://stackoverflow.com/a/56754077
     network_mode: host
+    #command: ["postgres", "-c", "log_statement=all"]
     #ports:
-      #- 5432:5432
+    #  - 5432:5432
     environment:
       POSTGRES_USER: gargantua
       POSTGRES_PASSWORD: C8kdcUrAQy66U
       POSTGRES_DB: gargandbV5
     volumes:
-      - garg-pgdata:/var/lib/postgresql/data
+      - garg-pgdata14:/var/lib/postgresql/data
       - ../:/gargantext
       - ../dbs:/dbs
       - ../postgres/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
@@ -35,5 +54,14 @@ services:
     ports:
       - 9000:9000
 
+  johnsnownlp:
+    image: 'johnsnowlabs/nlp-server:latest'
+    volumes:
+      - js-cache:/home/johnsnowlabs/cache_pretrained
+    ports:
+      - 5000:5000
+
 volumes:
-  garg-pgdata:
+  #garg-pgdata:
+  garg-pgdata14:
+  js-cache:

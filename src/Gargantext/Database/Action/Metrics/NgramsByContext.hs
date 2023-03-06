@@ -19,8 +19,7 @@ module Gargantext.Database.Action.Metrics.NgramsByContext
 -- import Debug.Trace (trace)
 --import Data.Map.Strict.Patch (PatchMap, Replace, diff)
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map)
-import Data.Maybe (catMaybes)
+import Data.Map.Strict (Map)
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Tuple.Extra (first, second, swap)
@@ -31,13 +30,14 @@ import Gargantext.Core
 import Gargantext.Data.HashMap.Strict.Utils as HM
 import Gargantext.Database.Admin.Types.Node (ListId, CorpusId, NodeId(..), ContextId, MasterCorpusId, NodeType(NodeDocument), UserCorpusId, DocId)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
-import Gargantext.Database.Query.Table.Ngrams (selectNgramsId)
-import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..), NgramsId)
+import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Prelude
-import qualified Data.HashMap.Strict as HM
-import qualified Data.Map as Map
-import qualified Data.Set as Set
-import qualified Database.PostgreSQL.Simple as DPS
+import qualified Data.HashMap.Strict              as HM
+import qualified Data.List                        as List
+import qualified Data.Map.Strict                  as Map
+import qualified Data.Set                         as Set
+import qualified Database.PostgreSQL.Simple       as DPS
+import qualified Database.PostgreSQL.Simple.Types as DPST
 
 -- | fst is size of Supra Corpus
 --   snd is Texts and size of Occurrences (different docs)
@@ -107,48 +107,52 @@ getOccByNgramsOnlyFast_withSample cId int nt ngs =
   HM.fromListWith (+) <$> selectNgramsOccurrencesOnlyByContextUser_withSample cId int nt ngs
 
 
-getOccByNgramsOnlyFast' :: CorpusId
+getOccByNgramsOnlyFast :: CorpusId
                        -> ListId
                        -> NgramsType
-                       -> [NgramsTerm]
-                       -> Cmd err (HashMap NgramsTerm Int)
-getOccByNgramsOnlyFast' cId lId nt tms = do -- trace (show (cId, lId)) $
-  mapNgramsIds <- selectNgramsId $ map unNgramsTerm tms
-  HM.fromListWith (+) <$> catMaybes
-                      <$> map (\(nId, s) -> (,) <$> (NgramsTerm <$> (Map.lookup nId mapNgramsIds)) <*> (Just $ round s) )
-                      <$> run cId lId nt (Map.keys mapNgramsIds)
+                       -> Cmd err (HashMap NgramsTerm [ContextId])
+getOccByNgramsOnlyFast cId lId nt = do
+    --HM.fromList <$> map (\(t,n) -> (NgramsTerm t, round n)) <$> run cId lId nt
+    HM.fromList <$> map (\(t, ns) -> (NgramsTerm t, NodeId <$> DPST.fromPGArray ns)) <$> run cId lId nt
     where
 
       run :: CorpusId
            -> ListId
            -> NgramsType
-           -> [NgramsId]
-           -> Cmd err [(NgramsId, Double)]
-      run cId' lId' nt' tms' = runPGSQuery query
-                ( Values fields ((DPS.Only) <$> tms')
+           -> Cmd err [(Text, DPST.PGArray Int)]
+      run cId' lId' nt' = runPGSQuery query
+                ( cId'
                 , cId'
                 , lId'
                 , ngramsTypeId nt'
                 )
-      fields = [QualifiedIdentifier Nothing "int4"]
-
 
       query :: DPS.Query
       query = [sql|
-        WITH input_ngrams(id) AS (?)
-
-        SELECT ngi.id, nng.weight FROM nodes_contexts nc
-        JOIN node_node_ngrams nng ON nng.node1_id = nc.node_id
-        JOIN input_ngrams ngi ON nng.ngrams_id = ngi.id
-          WHERE nng.node1_id = ?
-          AND nng.node2_id = ?
-          AND nng.ngrams_type = ?
-          AND nc.category > 0
-        GROUP BY ngi.id, nng.weight
-
+              SELECT ng.terms
+                 --  , ng.id
+                     --, round(nng.weight)
+                     , ARRAY(
+                         SELECT DISTINCT context_node_ngrams.context_id
+                         FROM context_node_ngrams
+                         JOIN nodes_contexts
+                           ON context_node_ngrams.context_id = nodes_contexts.context_id
+                         WHERE ng.id = context_node_ngrams.ngrams_id
+                         AND nodes_contexts.node_id = ?
+                         ) AS context_ids
+                 -- , ns.version
+                 -- , nng.ngrams_type
+                 -- , ns.ngrams_type_id
+                FROM ngrams   ng
+                JOIN node_stories       ns ON ng.id = ns.ngrams_id
+                JOIN node_node_ngrams   nng ON ns.node_id   = nng.node2_id
+                WHERE nng.node1_id        = ?
+                      AND nng.node2_id    = ?
+                      AND nng.ngrams_type = ?
+                      AND nng.ngrams_id = ng.id
+                      AND nng.ngrams_type = ns.ngrams_type_id
+                ORDER BY ng.id ASC;
         |]
-  
-
 
 
 selectNgramsOccurrencesOnlyByContextUser_withSample :: HasDBid NodeType
@@ -163,7 +167,7 @@ selectNgramsOccurrencesOnlyByContextUser_withSample cId int nt tms =
                 ( int
                 , toDBid NodeDocument
                 , cId
-                , Values fields ((DPS.Only . unNgramsTerm) <$> tms)
+                , Values fields ((DPS.Only . unNgramsTerm) <$> (List.take 10000 tms))
                 , cId
                 , ngramsTypeId nt
                 )
@@ -172,7 +176,7 @@ selectNgramsOccurrencesOnlyByContextUser_withSample cId int nt tms =
 
 queryNgramsOccurrencesOnlyByContextUser_withSample :: DPS.Query
 queryNgramsOccurrencesOnlyByContextUser_withSample = [sql|
-  WITH nodes_sample AS (SELECT id FROM contexts n TABLESAMPLE SYSTEM_ROWS (?)
+  WITH nodes_sample AS (SELECT n.id FROM contexts n TABLESAMPLE SYSTEM_ROWS (?)
                           JOIN nodes_contexts nn ON n.id = nn.context_id
                             WHERE n.typename  = ?
                             AND nn.node_id = ?),
@@ -187,6 +191,43 @@ queryNgramsOccurrencesOnlyByContextUser_withSample = [sql|
       AND nn.category     > 0
       GROUP BY cng.node_id, ng.terms
   |]
+
+selectNgramsOccurrencesOnlyByContextUser_withSample' :: HasDBid NodeType
+                                      => CorpusId
+                                      -> Int
+                                      -> NgramsType
+                                      -> Cmd err [(NgramsTerm, Int)]
+selectNgramsOccurrencesOnlyByContextUser_withSample' cId int nt =
+  fmap (first NgramsTerm) <$>
+  runPGSQuery queryNgramsOccurrencesOnlyByContextUser_withSample
+                ( int
+                , toDBid NodeDocument
+                , cId
+                , cId
+                , ngramsTypeId nt
+                )
+
+queryNgramsOccurrencesOnlyByContextUser_withSample' :: DPS.Query
+queryNgramsOccurrencesOnlyByContextUser_withSample' = [sql|
+  WITH contexts_sample AS (SELECT c.id FROM contexts c TABLESAMPLE SYSTEM_ROWS (?)
+                          JOIN nodes_contexts nc ON c.id = nc.context_id
+                            WHERE c.typename  = ?
+                            AND nc.node_id = ?)
+  SELECT ng.terms, COUNT(cng.context_id) FROM context_node_ngrams cng
+    JOIN ngrams ng      ON cng.ngrams_id = ng.id
+    JOIN node_stories ns ON ns.ngrams_id = ng.id
+    JOIN nodes_contexts nc ON nc.context_id   = cng.context_id
+    JOIN contexts_sample c ON nc.context_id   = c.id
+    WHERE nc.node_id      = ? -- CorpusId
+      AND cng.ngrams_type = ? -- NgramsTypeId
+      AND nc.category     > 0
+      GROUP BY ng.id
+  |]
+
+
+
+
+
 
 
 ------------------------------------------------------------------------

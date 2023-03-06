@@ -39,11 +39,6 @@ type NodeNodeNgrams2Read  =
                          (Column SqlInt4  )
                          (Column SqlFloat8)
 
-type NodeNodeNgrams2ReadNull =
-     NodeNodeNgrams2Poly (Column (Nullable SqlInt4  ))
-                         (Column (Nullable SqlInt4  ))
-                         (Column (Nullable SqlFloat8))
-
 type NodeNodeNgrams2 =
   NodeNodeNgrams2Poly DocId NodeNgramsId Double
 
@@ -58,4 +53,3 @@ nodeNodeNgrams2Table  = Table "node_node_ngrams2"
                                , _nnng2_weight         = requiredTableField "weight"
                                }
                           )
-

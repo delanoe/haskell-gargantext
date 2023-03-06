@@ -11,7 +11,6 @@ import Data.Swagger
 import Data.Text
 import GHC.Generics (Generic)
 import Servant
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.MIME.Types as DMT
@@ -19,6 +18,7 @@ import qualified Gargantext.Database.GargDB as GargDB
 import qualified Network.HTTP.Media as M
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
+import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node.Types
 import Gargantext.API.Prelude
@@ -31,6 +31,7 @@ import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
+import Gargantext.Utils.Jobs (serveJobsAPI)
 import Data.Either
 
 data RESPONSE deriving Typeable
@@ -69,14 +70,14 @@ fileDownload :: (HasSettings env, FlowCmdM env err m)
              -> NodeId
              -> m (Headers '[Servant.Header "Content-Type" Text] BSResponse)
 fileDownload uId nId = do
-  printDebug "[fileDownload] uId" uId
-  printDebug "[fileDownload] nId" nId
+  -- printDebug "[fileDownload] uId" uId
+  -- printDebug "[fileDownload] nId" nId
 
   node <- getNodeWith nId (Proxy :: Proxy HyperdataFile)
   let (HyperdataFile { _hff_name = name'
                      , _hff_path = path }) = node ^. node_hyperdata
 
-  Contents c <- GargDB.readFile $ unpack path
+  Contents c <- GargDB.readGargFile $ unpack path
 
   let (mMime, _) = DMT.guessType DMT.defaultmtd False $ unpack name'
       mime = case mMime of
@@ -99,15 +100,14 @@ type FileAsyncApi = Summary "File Async Api"
                  :> "add"
                  :> AsyncJobs JobLog '[FormUrlEncoded] NewWithFile JobLog
 
-fileAsyncApi :: UserId -> NodeId -> GargServer FileAsyncApi
+fileAsyncApi :: UserId -> NodeId -> ServerT FileAsyncApi (GargM Env GargError)
 fileAsyncApi uId nId =
-  serveJobsAPI $
-    JobFunction (\i l ->
+  serveJobsAPI AddFileJob $ \i l ->
       let
         log' x = do
-          printDebug "addWithFile" x
+          -- printDebug "addWithFile" x
           liftBase $ l x
-      in addWithFile uId nId i log')
+      in addWithFile uId nId i log'
 
 
 addWithFile :: (HasSettings env, FlowCmdM env err m)
@@ -118,7 +118,7 @@ addWithFile :: (HasSettings env, FlowCmdM env err m)
             -> m JobLog
 addWithFile uId nId nwf@(NewWithFile _d _l fName) logStatus = do
 
-  printDebug "[addWithFile] Uploading file: " nId
+  -- printDebug "[addWithFile] Uploading file: " nId
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
                    , _scst_remaining = Just 1
@@ -126,7 +126,7 @@ addWithFile uId nId nwf@(NewWithFile _d _l fName) logStatus = do
                    }
 
   fPath <- GargDB.writeFile nwf
-  printDebug "[addWithFile] File saved as: " fPath
+  -- printDebug "[addWithFile] File saved as: " fPath
 
   nIds <- mkNodeWithParent NodeFile (Just nId) uId fName
 
@@ -137,10 +137,11 @@ addWithFile uId nId nwf@(NewWithFile _d _l fName) logStatus = do
         _ <- updateHyperdata nId' $ hl { _hff_name = fName
                                        , _hff_path = pack fPath }
 
-        printDebug "[addWithFile] Created node with id: " nId'
+        -- printDebug "[addWithFile] Created node with id: " nId'
+        pure ()
     _     -> pure ()
 
-  printDebug "[addWithFile] File upload finished: " nId
+  -- printDebug "[addWithFile] File upload finished: " nId
   pure $ JobLog { _scst_succeeded = Just 1
                 , _scst_failed    = Just 0
                 , _scst_remaining = Just 0

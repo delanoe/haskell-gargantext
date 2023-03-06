@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Database.Prelude
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -49,4 +49,3 @@ import Database.PostgreSQL.Simple.SqlQQ   (sql)
 import Database.PostgreSQL.Simple.ToField (toField, ToField)
 import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types   (Values(..), QualifiedIdentifier(..))
-

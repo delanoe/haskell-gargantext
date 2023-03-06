@@ -17,6 +17,7 @@ CREATE TABLE public.auth_user (
     is_staff     BOOLEAN NOT NULL,
     is_active    BOOLEAN NOT NULL,
     date_joined  TIMESTAMP with time zone DEFAULT now() NOT NULL,
+    forgot_password_uuid TEXT,
     PRIMARY KEY (id)
 );
 ALTER TABLE public.auth_user OWNER TO gargantua;
@@ -135,15 +136,26 @@ CREATE TABLE public.nodes_nodes (
 ALTER TABLE public.nodes_nodes OWNER TO gargantua;
 
 
+
 -- To attach contexts to a Corpus
 CREATE TABLE public.nodes_contexts (
+    id SERIAL                          ,
     node_id    INTEGER NOT NULL REFERENCES public.nodes(id)    ON DELETE CASCADE,
     context_id INTEGER NOT NULL REFERENCES public.contexts(id) ON DELETE CASCADE,
     score    REAL    ,
     category INTEGER ,
-    PRIMARY KEY (node_id, context_id)
+    PRIMARY KEY (id)
 );
 ALTER TABLE public.nodes_contexts OWNER TO gargantua;
+
+CREATE TABLE public.nodescontexts_nodescontexts (
+    nodescontexts1 INTEGER NOT NULL REFERENCES public.nodes_contexts(id) ON DELETE CASCADE,
+    nodescontexts2 INTEGER NOT NULL REFERENCES public.nodes_contexts(id) ON DELETE CASCADE,
+
+    PRIMARY KEY (nodescontexts1, nodescontexts2)
+);
+ALTER TABLE public.nodescontexts_nodescontexts OWNER TO gargantua;
+
 
 ---------------------------------------------------------------
 CREATE TABLE public.context_node_ngrams (
@@ -152,12 +164,13 @@ CREATE TABLE public.context_node_ngrams (
     ngrams_id     INTEGER NOT NULL REFERENCES public.ngrams   (id) ON DELETE CASCADE,
     ngrams_type   INTEGER  ,
     weight double precision,
+    doc_count     INTEGER DEFAULT 0,
     PRIMARY KEY (context_id, node_id, ngrams_id, ngrams_type)
   );
 ALTER TABLE public.context_node_ngrams OWNER TO gargantua;
 
 CREATE TABLE public.context_node_ngrams2 (
-    context_id      INTEGER NOT NULL REFERENCES public.contexts  (id)       ON DELETE CASCADE,
+    context_id      INTEGER NOT NULL REFERENCES public.contexts     (id) ON DELETE CASCADE,
     nodengrams_id   INTEGER NOT NULL REFERENCES public.node_ngrams  (id) ON DELETE CASCADE,
     weight double   precision,
     PRIMARY KEY (context_id, nodengrams_id)
@@ -185,8 +198,6 @@ PRIMARY KEY (node_id, nodengrams_id)
 ALTER TABLE public.node_node_ngrams2 OWNER TO gargantua;
 
 
-
-
 --------------------------------------------------------------
 
 --CREATE TABLE public.nodes_ngrams_repo (
@@ -209,6 +220,39 @@ CREATE TABLE public.rights (
 ALTER TABLE public.rights OWNER TO gargantua;
 
 ------------------------------------------------------------
+-- Node Story
+
+CREATE TABLE public.node_stories (
+  id SERIAL,
+  node_id INTEGER NOT NULL,
+  version INTEGER NOT NULL,
+  ngrams_type_id INTEGER NOT NULL,
+  ngrams_id INTEGER NOT NULL,
+  --children TEXT[],
+  ngrams_repo_element jsonb DEFAULT '{}'::jsonb NOT NULL,
+  PRIMARY KEY (id),
+  FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
+  FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE
+);
+ALTER TABLE public.node_stories OWNER TO gargantua;
+
+CREATE UNIQUE INDEX ON public.node_stories USING btree (node_id, ngrams_type_id, ngrams_id);
+
+
+create table public.node_story_archive_history (
+  id SERIAL,
+  node_id INTEGER NOT NULL,
+  ngrams_type_id INTEGER NOT NULL,
+  ngrams_id INTEGER NOT NULL,
+  patch jsonb DEFAULT '{}'::jsonb NOT NULL,
+  version INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
+  FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE
+);
+ALTER TABLE public.node_story_archive_history OWNER TO gargantua;
+
+
 ------------------------------------------------------------
 -- INDEXES
 CREATE INDEX        ON public.auth_user USING btree (username varchar_pattern_ops);
@@ -230,7 +274,7 @@ CREATE INDEX        ON public.contexts USING btree (id, typename, date DESC);
 CREATE INDEX        ON public.contexts USING btree (typename, id);
 CREATE UNIQUE INDEX ON public.contexts USING btree (hash_id);
 
-
+CREATE INDEX ON public.nodescontexts_nodescontexts USING btree (nodescontexts1, nodescontexts2);
 -- CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqId'::text)));
 -- CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqIdBdd'::text)));
 -- CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdata ->> 'uniqId'::text)));
@@ -248,6 +292,7 @@ CREATE UNIQUE INDEX ON public.node_ngrams USING btree (node_id,node_subtype, ngr
 -- To make the links between Nodes in Tree/Forest
 CREATE UNIQUE INDEX ON public.nodes_nodes  USING btree (node1_id, node2_id);
 CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, category);
+
 
 -- To make the links between Corpus Node and its contexts
 CREATE UNIQUE INDEX ON public.nodes_contexts  USING btree (node_id, context_id);
@@ -290,4 +335,3 @@ CREATE OR REPLACE function node_pos(int, int) returns bigint
 
 --drop index node_by_pos;
 --create index node_by_pos on nodes using btree(node_pos(id,typename));
-

@@ -24,7 +24,9 @@ Multiple Join functions with Opaleye.
 
 module Gargantext.Database.Query.Join ( leftJoin2
                                       , leftJoin3
+                                      , leftJoin3'
                                       , leftJoin4
+                                      , leftJoin4'
                                       , leftJoin5
                                       , leftJoin6
                                       , leftJoin7
@@ -41,7 +43,7 @@ import Opaleye.Internal.Join (NullMaker(..))
 import qualified Opaleye.Internal.Unpackspec()
 
 
-keepWhen :: (a -> Field SqlBool) -> SelectArr a a  
+keepWhen :: (a -> Field SqlBool) -> SelectArr a a
 keepWhen p = proc a -> do
   restrict  -< p a
   returnA -< a
@@ -59,9 +61,30 @@ leftJoin2 = leftJoin
 ------------------------------------------------------------------------
 -- | LeftJoin3 in two ways to write it
 leftJoin3 :: Select columnsA -> Select columnsB -> Select columnsC
-      -> ((columnsA, columnsB, columnsC) -> Column SqlBool) 
+      -> ((columnsA, columnsB, columnsC) -> Column SqlBool)
       -> Select (columnsA, columnsB, columnsC)
 leftJoin3 q1 q2 q3 cond = ((,,) <$> q1 <*> q2 <*> q3) >>> keepWhen cond
+
+
+leftJoin3' :: (Default Unpackspec b2 b2, Default Unpackspec b3 b3,
+               Default Unpackspec fieldsL fieldsL,
+               Default Unpackspec fieldsR fieldsR, Default NullMaker b3 b4,
+               Default NullMaker b2 b5, Default NullMaker fieldsR b2) =>
+              Select fieldsL
+              -> Select b3
+              -> Select fieldsR
+              -> ((fieldsL, (b3, b2)) -> Column SqlBool)
+              -> ((b3, fieldsR) -> Column SqlBool)
+              -> Select (fieldsL, (b4, b5))
+leftJoin3' q1 q2 q3 cond12 cond23 = leftJoin q1 (leftJoin q2 q3 cond23) cond12
+
+leftJoin4' :: Select columnsA
+           -> Select columnsB
+           -> Select columnsC
+           -> Select columnsD
+      -> ((columnsA, columnsB, columnsC, columnsD) -> Column SqlBool)
+      -> Select (columnsA, columnsB, columnsC, columnsD)
+leftJoin4' q1 q2 q3 q4 cond = ((,,,) <$> q1 <*> q2 <*> q3 <*> q4) >>> keepWhen cond
 
 
 leftJoin4 :: (Default Unpackspec b2 b2,
@@ -88,17 +111,17 @@ leftJoin4 q1 q2     q3     q4
               ) cond34
 
 
-leftJoin5 :: (Default Unpackspec b2 b2, Default Unpackspec b3 b3,
-            Default Unpackspec b4 b4, Default Unpackspec b5 b5,
-            Default Unpackspec b6 b6, Default Unpackspec b7 b7,
-            Default Unpackspec fieldsL fieldsL, Default Unpackspec b8 b8,
-            Default Unpackspec b9 b9, Default Unpackspec b10 b10,
-            Default Unpackspec fieldsR fieldsR, Default NullMaker b7 b6,
-            Default NullMaker b6 b11, Default NullMaker b8 b12,
-            Default NullMaker b3 b13, Default NullMaker b2 b14,
-            Default NullMaker b9 b3, Default NullMaker b10 b2,
-            Default NullMaker b5 b9, Default NullMaker b4 b10,
-            Default NullMaker fieldsR b4) =>
+leftJoin5 :: ( Default Unpackspec b2 b2, Default Unpackspec b3 b3
+             , Default Unpackspec b4 b4, Default Unpackspec b5 b5
+             , Default Unpackspec b6 b6, Default Unpackspec b7 b7
+             , Default Unpackspec fieldsL fieldsL, Default Unpackspec b8 b8
+             , Default Unpackspec b9 b9, Default Unpackspec b10 b10
+             , Default Unpackspec fieldsR fieldsR, Default NullMaker b7 b6
+             , Default NullMaker b6 b11, Default NullMaker b8 b12
+             , Default NullMaker b3 b13, Default NullMaker b2 b14
+             , Default NullMaker b9 b3, Default NullMaker b10 b2
+             , Default NullMaker b5 b9, Default NullMaker b4 b10
+             , Default NullMaker fieldsR b4) =>
            Select fieldsR
            -> Select b5
            -> Select b7
@@ -352,4 +375,3 @@ leftJoin9   q1 q2    q3     q4     q5     q6      q7    q8     q9
                   ) cond67
                 ) cond78
               ) cond89
-

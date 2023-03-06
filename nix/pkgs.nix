@@ -1,14 +1,15 @@
-{ pkgs ? import ./pinned-21.05.nix {} }:
+{ pkgs ? import ./pinned-22.05.nix {} }:
 
 rec {
   inherit pkgs;
-  ghc = pkgs.haskell.compiler.ghc8104;
+  ghc = pkgs.haskell.compiler.ghc8107;
   hsBuildInputs = [
     ghc
     pkgs.cabal-install
   ];
   nonhsBuildInputs = with pkgs; [
     bzip2
+    czmq
     docker-compose
     git
     gmp
@@ -16,6 +17,7 @@ rec {
     #haskell-language-server
     hlint
     igraph
+    libffi
     liblapack
     lzma
     pcre
@@ -29,7 +31,10 @@ rec {
     expat
     icu
     graphviz
-  ];
+    llvm_9
+  ] ++ ( lib.optionals stdenv.isDarwin [
+       darwin.apple_sdk.frameworks.Accelerate
+       ]);
   libPaths = pkgs.lib.makeLibraryPath nonhsBuildInputs;
   shellHook = ''
     export LD_LIBRARY_PATH="${pkgs.gfortran7.cc.lib}:${libPaths}:$LD_LIBRARY_PATH"

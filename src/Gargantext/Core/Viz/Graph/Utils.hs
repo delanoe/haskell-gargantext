@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Core.Viz.Graph.Utils
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -17,16 +17,19 @@ These functions are used for Vector.Matrix only.
 module Gargantext.Core.Viz.Graph.Utils
   where
 
-import Data.Map (Map)
-import Data.Matrix hiding (identity)
-import Data.Vector (Vector)
-import qualified Data.List   as L
-import qualified Data.Map    as Map
-import Gargantext.Prelude
 import Data.List (unzip)
-import qualified Data.Vector as V
+import Data.Map.Strict (Map)
+import Data.Matrix hiding (identity)
 import Data.Maybe (catMaybes)
-import qualified Data.Set    as Set
+import Data.Set (Set)
+import Data.Vector (Vector)
+import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
+import Gargantext.Prelude
+import qualified Data.List    as List
+import qualified Data.Map.Strict     as Map
+import qualified Data.Set     as Set
+import qualified Data.Vector  as Vector
+
 ------------------------------------------------------------------------
 -- | Some utils to build the matrix from cooccurrence results
 
@@ -42,13 +45,13 @@ type AxisId = Int
 
 -- Data.Vector.Additions
 dropAt :: Int -> Vector a -> Vector a
-dropAt n v = debut <> (V.tail fin)
+dropAt n v = debut <> (Vector.tail fin)
   where
-    debut = V.take n v
-    fin   = V.drop n v
+    debut = Vector.take n v
+    fin   = Vector.drop n v
 
 total :: Num a => Matrix a -> a
-total m = V.sum $ V.map (\c -> V.sum (getCol c m)) (V.enumFromTo 1 (nOf Col m))
+total m = Vector.sum $ Vector.map (\c -> Vector.sum (getCol c m)) (Vector.enumFromTo 1 (nOf Col m))
 
 nOf :: Axis -> Matrix a -> Int
 nOf Row = nrows
@@ -60,10 +63,10 @@ axis Row = getRow
 
 
 toListsWithIndex :: Matrix a ->  [((Int, Int), a)]
-toListsWithIndex m = concat' $ zip [1..] $ map (\c -> zip [1..] c) $ toLists m
+toListsWithIndex m = concat' $ zip [1..] $ List.map (\c -> zip [1..] c) $ toLists m
   where
     concat' :: [(Int, [(Int, a)])] -> [((Int, Int), a)]
-    concat' xs = L.concat $ map (\(x, ys) -> map (\(y, a) -> ((x,y), a)) ys ) xs
+    concat' xs = List.concat $ List.map (\(x, ys) -> List.map (\(y, a) -> ((x,y), a)) ys ) xs
 
 ------------------------------------------------------------------------
 -- Utils to manage Graphs
@@ -82,7 +85,19 @@ edgesFilter m = Map.fromList $ catMaybes results
     keys    = Set.toList $ Set.fromList (x <> y)
     (x,y)   = unzip $ Map.keys m
 
-
+nodesFilter :: (Show a, Show b, Ord a, Ord b, Num b) => (b -> Bool) -> Map (a,a) b -> (Map (a,a) b, Set a)
+nodesFilter f m = (m', toKeep)
+  where
+    m' = Map.filterWithKey (\(a,b) _ -> Set.member a toKeep && Set.member b toKeep) m
+    toKeep = Set.fromList
+           $ Map.keys
+           $ Map.filter f
+           $ occurrencesWith identity
+           $ tupleConcat
+           $ List.unzip
+           $ Map.keys m
+    tupleConcat :: ([a],[a]) -> [a]
+    tupleConcat (a,b) = a <> b
 
 
 getMax :: Ord b
@@ -95,5 +110,3 @@ getMax (i,j) Nothing (Just d)   = Just ((j,i), d)
 getMax ij   (Just di) (Just dj) = if di >= dj then getMax ij (Just di) Nothing
                                               else getMax ij Nothing   (Just dj)
 getMax _ _ _ = Nothing
-
-

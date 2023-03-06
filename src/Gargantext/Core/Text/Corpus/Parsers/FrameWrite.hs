@@ -1,20 +1,35 @@
-module Gargantext.Core.Text.Corpus.Parsers.FrameWrite where
+{-|
+Module      : Gargantext.Core.Text.Corpus.Parsers.FrameWrite
+Description : 
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+-}
+
+module Gargantext.Core.Text.Corpus.Parsers.FrameWrite
+  where
 
 import Control.Applicative ((*>))
 import Control.Monad (void)
 import Data.Either
 import Data.Maybe
 import Data.Text hiding (foldl)
+import Gargantext.Core.Text (sentences)
 import Gargantext.Prelude
 import Prelude ((++), read)
 import Text.Parsec hiding (Line)
 import Text.Parsec.String
+import qualified Data.Text as DT
+import qualified Data.List as List
 
 
 -- https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/331
 
--- title : everything above the first ==
--- Authors : default : anonymous ; except if the following line is encountered ^@@authors: FirstName1, LastName1 ; FirstName2, LastName2 ; etc.
+-- Authors : default : anonymous ; except if the following line is encountered 
+-- ^authors: FirstName1, LastName1 ; FirstName2, LastName2 ; etc.
 -- date : default : date of last change except if the following line is encountered  ^@@date: 2021-09-10
 -- source: Name of the root node except if the following line is encountered ^@@source:
 -- By default, 1 framawrite node = 1 document.  Option for further developments: allow to give a level at generation for the split within framawrite node : :
@@ -26,11 +41,11 @@ sample :: Text
 sample =
   unlines
     [ "title1"
-    , "title2"
-    , "=="
-    , "^@@authors: FirstName1, LastName1; FirstName2, LastName2"
-    , "^@@date: 2021-09-10"
-    , "^@@source: someSource"
+--    , "title2"
+--    , "=="
+--     , "^@@authors: FirstName1, LastName1; FirstName2, LastName2"
+    , "date: 2021-09-10"
+    , "source: someSource"
     , "document contents 1"
     , "document contents 2"
     ]
@@ -42,9 +57,9 @@ sampleUnordered =
     , "title2"
     , "=="
     , "document contents 1"
-    , "^@@date: 2021-09-10"
-    , "^@@authors: FirstName1, LastName1; FirstName2, LastName2"
-    , "^@@source: someSource"
+    , "date: 2021-09-10"
+    , "authors: FirstName1, LastName1; FirstName2, LastName2"
+    , "source: someSource"
     , "document contents 2"
     ]
 
@@ -79,7 +94,8 @@ emptyParsed =
 data Date =
   Date { year  :: Integer
        , month :: Integer
-       , day   :: Integer }
+       , day   :: Integer
+       }
   deriving (Show)
 
 data Line =
@@ -93,25 +109,33 @@ data Line =
 parseLines :: Text -> Either ParseError Parsed
 parseLines text = foldl f emptyParsed <$> lst
   where
-    lst = parse documentLinesP "" (unpack text)
-    f (Parsed { .. }) (LAuthors as) = Parsed { authors = as, .. }
-    f (Parsed { .. }) (LContents c) = Parsed { contents = concat [contents, c], .. }
-    f (Parsed { .. }) (LDate    d ) = Parsed { date = Just d, .. }
-    f (Parsed { .. }) (LSource  s ) = Parsed { source = Just s, .. }
-    f (Parsed { .. }) (LTitle   t ) = Parsed { title = t, .. }
+    lst = parse documentLines "" (unpack text)
+    f (Parsed { .. }) (LAuthors as) = Parsed { authors  = as                      , .. }
+    f (Parsed { .. }) (LContents c) = Parsed { contents = DT.unlines [contents, c], .. }
+    f (Parsed { .. }) (LDate    d ) = Parsed { date     = Just d                  , .. }
+    f (Parsed { .. }) (LSource  s ) = Parsed { source   = Just s                  , .. }
+    f (Parsed { .. }) (LTitle   t ) = Parsed { title    = t                       , .. }
 
+-- Source should be the name of the node
+-- First line of each Context should be the title.
 documentLinesP :: Parser [Line]
 documentLinesP = do
-  t <- titleP
+  t  <- titleP
   ls <- lineP `sepBy` newline
   pure $ [LTitle $ pack t] ++ ls
+
+documentLines :: Parser [Line]
+documentLines = do
+  ls <- lineP `sepBy` newline
+  pure ls
 
 lineP :: Parser Line
 lineP = do
   choice [ try authorsLineP
          , try dateLineP
          , try sourceLineP
-         , contentsLineP ]
+         , contentsLineP
+         ]
 
 authorsLineP :: Parser Line
 authorsLineP = do
@@ -150,14 +174,15 @@ contentsLineP = do
 titleDelimiterP :: Parser ()
 titleDelimiterP = do
   _ <- newline
-  _ <- string "=="
-  tokenEnd
+  -- _ <- try (string "==")
+  pure ()
+
 titleP :: Parser [Char]
 titleP = manyTill anyChar (try titleDelimiterP)
 
 authorsPrefixP :: Parser [Char]
 authorsPrefixP = do
-  _ <- string "^@@authors:"
+  _ <- string "authors:"
   many (char ' ')
 authorsP :: Parser [Author]
 authorsP = try authorsPrefixP *> sepBy authorP (char ';')
@@ -173,7 +198,7 @@ authorP = do
 
 datePrefixP :: Parser [Char]
 datePrefixP = do
-  _ <- string "^@@date:"
+  _ <- string "date:"
   many (char ' ')
 dateP :: Parser Date
 dateP = try datePrefixP
@@ -195,7 +220,7 @@ dateISOP = do
 
 sourcePrefixP :: Parser [Char]
 sourcePrefixP = do
-  _ <- string "^@@source:"
+  _ <- string "source:"
   many (char ' ')
 sourceP :: Parser [Char]
 sourceP = try sourcePrefixP
@@ -206,3 +231,23 @@ sourceP = try sourcePrefixP
 
 tokenEnd :: Parser ()
 tokenEnd = void (char '\n') <|> eof
+
+--- MISC Tools
+text2titleParagraphs :: Int -> Text -> [(Text, Text)]
+text2titleParagraphs n = catMaybes
+                       . List.map doTitle
+                       . (splitEvery n)
+                       . sentences
+                       . DT.intercalate ". "
+                       . List.filter (/= "")
+                       . DT.lines
+
+
+doTitle :: [Text] -> Maybe (Text, Text)
+doTitle (t:ts) = Just (t, DT.concat ts)
+doTitle [] = Nothing
+
+
+clean :: Text -> Text
+clean = DT.unwords . List.filter (\w -> DT.length w < 25) . DT.words
+

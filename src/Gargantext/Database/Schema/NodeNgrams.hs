@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Database.Schema.NodeNgrams
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -68,17 +68,6 @@ type NodeNgramsRead    = NodeNgramsPoly (Column SqlInt4)
                                       (Column SqlInt4)
                                       (Column SqlFloat8)
 
-
-type NodeNgramsReadNull = NodeNgramsPoly (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlInt4))
-
-                                         (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlInt4))
-                                         (Column (Nullable SqlFloat8))
 type NodeNgramsId = Int
 type NgramsField  = Int
 type NgramsTag    = Int
@@ -86,7 +75,7 @@ type NgramsClass  = Int
 type NgramsText   = Text
 
 -- Example of list Ngrams
--- type ListNgrams = NodeNgramsPoly (Maybe Int) ListType Text 
+-- type ListNgrams = NodeNgramsPoly (Maybe Int) ListType Text
 
 type NodeNgramsW =
   NodeNgramsPoly (Maybe NodeNgramsId) NodeId ListType NgramsText

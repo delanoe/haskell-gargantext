@@ -25,16 +25,21 @@ import Gargantext.Database.Prelude (Cmd, mkCmd, JSONB)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Error
 
+import Debug.Trace (trace)
+
 updateHyperdata :: ToJSON a => NodeId -> a -> Cmd err Int64
-updateHyperdata i h = mkCmd $ \c -> runUpdate_ c (updateHyperdataQuery i h)
+updateHyperdata i h = mkCmd $ \c -> putStrLn "before runUpdate_" >>
+                                    runUpdate_ c (updateHyperdataQuery i h) >>= \res ->
+                                    putStrLn "after runUpdate_" >> return res
 
 updateHyperdataQuery :: ToJSON a => NodeId -> a -> Update Int64
-updateHyperdataQuery i h = Update
+updateHyperdataQuery i h = seq h' $ trace "updateHyperdataQuery: encoded JSON" $ Update
    { uTable      = nodeTable
-   , uUpdateWith = updateEasy (\  (Node _ni _nh _nt _nu _np _nn _nd _h)
-                                -> Node _ni _nh _nt _nu _np _nn _nd h'
+   , uUpdateWith = updateEasy (\  (Node { .. })
+                                -> Node { _node_hyperdata = h', .. }
+                               -- -> trace "updating mate" $ Node _ni _nh _nt _nu _np _nn _nd h'
                               )
-   , uWhere      = (\row -> _node_id row .== pgNodeId i )
+   , uWhere      = (\row -> {-trace "uWhere" $-} _node_id row .== pgNodeId i )
    , uReturning  = rCount
    }
     where h' =  (sqlJSONB $ cs $ encode $ h)
@@ -59,7 +64,3 @@ updateNodesWithType_ :: ( HasNodeError err
 updateNodesWithType_ nt h = do
   ns <- getNodesIdWithType nt
   mapM (\n -> updateHyperdata n h) ns
-
-
-
-

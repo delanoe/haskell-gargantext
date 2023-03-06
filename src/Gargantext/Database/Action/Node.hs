@@ -86,7 +86,9 @@ mkNodeWithParent_ConfigureHyperdata NodeFrameVisio (Just i) uId name =
   mkNodeWithParent_ConfigureHyperdata' NodeFrameVisio (Just i) uId name
 
 mkNodeWithParent_ConfigureHyperdata NodeFrameNotebook (Just i) uId name =
-  insertNode NodeFrameNotebook  (Just "Notebook") (Just $ DefaultFrameCode $ HyperdataFrame "Notebook" name) i uId
+  insertNode NodeFrameNotebook  (Just "Notebook")
+                                (Just $ DefaultFrameCode $ HyperdataFrame { _hf_base = "Codebook"
+                                                                          , _hf_frame_id = name }) i uId
 
 mkNodeWithParent_ConfigureHyperdata    _ _ _ _ = nodeError NotImplYet
 

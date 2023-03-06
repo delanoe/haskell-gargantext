@@ -1,0 +1,907 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           gargantext
+version:        0.0.6.9.5
+synopsis:       Search, map, share
+description:    Please see README.md
+category:       Data
+homepage:       https://gargantext.org
+author:         Gargantext Team
+maintainer:     team@gargantext.org
+copyright:      Copyright: (c) 2017-Present: see git logs and README
+license:        AGPL-3
+license-file:   LICENSE
+build-type:     Simple
+data-files:
+    ekg-assets/index.html
+    ekg-assets/monitor.js
+    ekg-assets/monitor.css
+    ekg-assets/jquery.flot.min.js
+    ekg-assets/jquery-1.6.4.min.js
+    ekg-assets/bootstrap-1.4.0.min.css
+    ekg-assets/chart_line_add.png
+    ekg-assets/cross.png
+
+library
+  exposed-modules:
+      Gargantext
+      Gargantext.API
+      Gargantext.API.Admin.Auth.Types
+      Gargantext.API.Admin.EnvTypes
+      Gargantext.API.Admin.Settings
+      Gargantext.API.Admin.Types
+      Gargantext.API.Dev
+      Gargantext.API.HashedResponse
+      Gargantext.API.Ngrams
+      Gargantext.API.Ngrams.Prelude
+      Gargantext.API.Ngrams.Tools
+      Gargantext.API.Ngrams.Types
+      Gargantext.API.Node
+      Gargantext.API.Node.File
+      Gargantext.API.Node.Share
+      Gargantext.API.Prelude
+      Gargantext.Core
+      Gargantext.Core.Methods.Similarities
+      Gargantext.Core.NodeStory
+      Gargantext.Core.Text
+      Gargantext.Core.Text.Context
+      Gargantext.Core.Text.Corpus.API
+      Gargantext.Core.Text.Corpus.Parsers
+      Gargantext.Core.Text.Corpus.Parsers.CSV
+      Gargantext.Core.Text.Corpus.Parsers.Date.Parsec
+      Gargantext.Core.Text.List.Formats.CSV
+      Gargantext.Core.Text.Metrics
+      Gargantext.Core.Text.Metrics.CharByChar
+      Gargantext.Core.Text.Metrics.Count
+      Gargantext.Core.Text.Metrics.TFICF
+      Gargantext.Core.Text.Prepare
+      Gargantext.Core.Text.Search
+      Gargantext.Core.Text.Terms
+      Gargantext.Core.Text.Terms.Eleve
+      Gargantext.Core.Text.Terms.Mono
+      Gargantext.Core.Text.Terms.Multi.Lang.En
+      Gargantext.Core.Text.Terms.Multi.Lang.Fr
+      Gargantext.Core.Text.Terms.Multi.RAKE
+      Gargantext.Core.Text.Terms.WithList
+      Gargantext.Core.Types
+      Gargantext.Core.Types.Individu
+      Gargantext.Core.Types.Main
+      Gargantext.Core.Utils
+      Gargantext.Core.Utils.Prefix
+      Gargantext.Core.Viz.Graph
+      Gargantext.Core.Viz.Graph.Index
+      Gargantext.Core.Viz.Graph.Tools
+      Gargantext.Core.Viz.Graph.Tools.IGraph
+      Gargantext.Core.Viz.Graph.Types
+      Gargantext.Core.Viz.Phylo
+      Gargantext.Core.Viz.Phylo.API
+      Gargantext.Core.Viz.Phylo.API.Tools
+      Gargantext.Core.Viz.Phylo.PhyloExport
+      Gargantext.Core.Viz.Phylo.PhyloMaker
+      Gargantext.Core.Viz.Phylo.PhyloTools
+      Gargantext.Core.Viz.Phylo.SynchronicClustering
+      Gargantext.Core.Viz.Types
+      Gargantext.Database.Action.Flow
+      Gargantext.Database.Action.Flow.Types
+      Gargantext.Database.Action.User.New
+      Gargantext.Database.Admin.Config
+      Gargantext.Database.Admin.Trigger.Init
+      Gargantext.Database.Admin.Types.Hyperdata
+      Gargantext.Database.Admin.Types.Node
+      Gargantext.Database.Prelude
+      Gargantext.Database.Query.Table.NgramsPostag
+      Gargantext.Database.Query.Table.Node
+      Gargantext.Database.Query.Table.Node.UpdateOpaleye
+      Gargantext.Database.Query.Table.User
+      Gargantext.Database.Schema.Ngrams
+      Gargantext.Defaults
+      Gargantext.Utils.Jobs
+      Gargantext.Utils.Jobs.API
+      Gargantext.Utils.Jobs.Map
+      Gargantext.Utils.Jobs.Monad
+      Gargantext.Utils.Jobs.Queue
+      Gargantext.Utils.Jobs.Settings
+      Gargantext.Utils.Jobs.State
+      Gargantext.Utils.SpacyNLP
+      Gargantext.Utils.Tuple
+  other-modules:
+      Gargantext.API.Admin.Auth
+      Gargantext.API.Admin.FrontEnd
+      Gargantext.API.Admin.Orchestrator
+      Gargantext.API.Admin.Orchestrator.Scrapy.Schedule
+      Gargantext.API.Admin.Orchestrator.Types
+      Gargantext.API.Admin.Utils
+      Gargantext.API.Context
+      Gargantext.API.Count
+      Gargantext.API.EKG
+      Gargantext.API.Flow
+      Gargantext.API.GraphQL
+      Gargantext.API.GraphQL.Annuaire
+      Gargantext.API.GraphQL.AsyncTask
+      Gargantext.API.GraphQL.Context
+      Gargantext.API.GraphQL.IMT
+      Gargantext.API.GraphQL.Node
+      Gargantext.API.GraphQL.Team
+      Gargantext.API.GraphQL.TreeFirstLevel
+      Gargantext.API.GraphQL.User
+      Gargantext.API.GraphQL.UserInfo
+      Gargantext.API.GraphQL.Utils
+      Gargantext.API.Job
+      Gargantext.API.Members
+      Gargantext.API.Metrics
+      Gargantext.API.Ngrams.List
+      Gargantext.API.Ngrams.List.Types
+      Gargantext.API.Ngrams.NgramsTree
+      Gargantext.API.Node.Contact
+      Gargantext.API.Node.Corpus.Annuaire
+      Gargantext.API.Node.Corpus.Export
+      Gargantext.API.Node.Corpus.Export.Types
+      Gargantext.API.Node.Corpus.New
+      Gargantext.API.Node.Corpus.New.File
+      Gargantext.API.Node.Corpus.New.Types
+      Gargantext.API.Node.Corpus.Searx
+      Gargantext.API.Node.Corpus.Types
+      Gargantext.API.Node.Document.Export
+      Gargantext.API.Node.Document.Export.Types
+      Gargantext.API.Node.DocumentsFromWriteNodes
+      Gargantext.API.Node.DocumentUpload
+      Gargantext.API.Node.FrameCalcUpload
+      Gargantext.API.Node.Get
+      Gargantext.API.Node.New
+      Gargantext.API.Node.Types
+      Gargantext.API.Node.Update
+      Gargantext.API.Public
+      Gargantext.API.Routes
+      Gargantext.API.Search
+      Gargantext.API.Server
+      Gargantext.API.Swagger
+      Gargantext.API.Table
+      Gargantext.API.ThrowAll
+      Gargantext.API.Types
+      Gargantext.Core.Ext.IMT
+      Gargantext.Core.Ext.IMTUser
+      Gargantext.Core.Flow.Ngrams
+      Gargantext.Core.Flow.Types
+      Gargantext.Core.Mail
+      Gargantext.Core.Mail.Types
+      Gargantext.Core.Methods.Graph.BAC.Proxemy
+      Gargantext.Core.Methods.Graph.MaxClique
+      Gargantext.Core.Methods.Matrix.Accelerate.Utils
+      Gargantext.Core.Methods.Similarities.Accelerate.Conditional
+      Gargantext.Core.Methods.Similarities.Accelerate.Distributional
+      Gargantext.Core.Methods.Similarities.Accelerate.SpeGen
+      Gargantext.Core.Methods.Similarities.Conditional
+      Gargantext.Core.Methods.Similarities.Distributional
+      Gargantext.Core.NodeStoryFile
+      Gargantext.Core.Statistics
+      Gargantext.Core.Text.Convert
+      Gargantext.Core.Text.Corpus.API.Arxiv
+      Gargantext.Core.Text.Corpus.API.Hal
+      Gargantext.Core.Text.Corpus.API.Isidore
+      Gargantext.Core.Text.Corpus.API.Istex
+      Gargantext.Core.Text.Corpus.API.Pubmed
+      Gargantext.Core.Text.Corpus.Parsers.Date
+      Gargantext.Core.Text.Corpus.Parsers.Date.Attoparsec
+      Gargantext.Core.Text.Corpus.Parsers.FrameWrite
+      Gargantext.Core.Text.Corpus.Parsers.GrandDebat
+      Gargantext.Core.Text.Corpus.Parsers.Isidore
+      Gargantext.Core.Text.Corpus.Parsers.Json2Csv
+      Gargantext.Core.Text.Corpus.Parsers.RIS
+      Gargantext.Core.Text.Corpus.Parsers.RIS.Presse
+      Gargantext.Core.Text.Corpus.Parsers.Wikidata
+      Gargantext.Core.Text.Corpus.Parsers.Wikidata.Crawler
+      Gargantext.Core.Text.Corpus.Parsers.Wikimedia
+      Gargantext.Core.Text.Corpus.Parsers.WOS
+      Gargantext.Core.Text.Learn
+      Gargantext.Core.Text.List
+      Gargantext.Core.Text.List.Group
+      Gargantext.Core.Text.List.Group.Prelude
+      Gargantext.Core.Text.List.Group.WithScores
+      Gargantext.Core.Text.List.Group.WithStem
+      Gargantext.Core.Text.List.Learn
+      Gargantext.Core.Text.List.Merge
+      Gargantext.Core.Text.List.Social
+      Gargantext.Core.Text.List.Social.Find
+      Gargantext.Core.Text.List.Social.Patch
+      Gargantext.Core.Text.List.Social.Prelude
+      Gargantext.Core.Text.Metrics.FrequentItemSet
+      Gargantext.Core.Text.Metrics.SpeGen.IncExc
+      Gargantext.Core.Text.Metrics.Utils
+      Gargantext.Core.Text.Samples.CH
+      Gargantext.Core.Text.Samples.DE
+      Gargantext.Core.Text.Samples.EN
+      Gargantext.Core.Text.Samples.FR
+      Gargantext.Core.Text.Samples.SP
+      Gargantext.Core.Text.Terms.Mono.Stem
+      Gargantext.Core.Text.Terms.Mono.Stem.En
+      Gargantext.Core.Text.Terms.Mono.Token
+      Gargantext.Core.Text.Terms.Mono.Token.En
+      Gargantext.Core.Text.Terms.Multi
+      Gargantext.Core.Text.Terms.Multi.Group
+      Gargantext.Core.Text.Terms.Multi.PosTagging
+      Gargantext.Core.Text.Terms.Multi.PosTagging.Types
+      Gargantext.Core.Types.Phylo
+      Gargantext.Core.Types.Search
+      Gargantext.Core.Utils.DateUtils
+      Gargantext.Core.Viz
+      Gargantext.Core.Viz.Chart
+      Gargantext.Core.Viz.Graph.API
+      Gargantext.Core.Viz.Graph.Bridgeness
+      Gargantext.Core.Viz.Graph.FGL
+      Gargantext.Core.Viz.Graph.GEXF
+      Gargantext.Core.Viz.Graph.Legend
+      Gargantext.Core.Viz.Graph.PatriciaTreeTypes
+      Gargantext.Core.Viz.Graph.Tools.Infomap
+      Gargantext.Core.Viz.Graph.Utils
+      Gargantext.Core.Viz.LegacyPhylo
+      Gargantext.Core.Viz.Phylo.Example
+      Gargantext.Core.Viz.Phylo.Legacy.LegacyMain
+      Gargantext.Core.Viz.Phylo.TemporalMatching
+      Gargantext.Data.HashMap.Strict.Utils
+      Gargantext.Database
+      Gargantext.Database.Action.Delete
+      Gargantext.Database.Action.Flow.Annuaire
+      Gargantext.Database.Action.Flow.List
+      Gargantext.Database.Action.Flow.Pairing
+      Gargantext.Database.Action.Flow.Utils
+      Gargantext.Database.Action.Index
+      Gargantext.Database.Action.Learn
+      Gargantext.Database.Action.Mail
+      Gargantext.Database.Action.Metrics
+      Gargantext.Database.Action.Metrics.Lists
+      Gargantext.Database.Action.Metrics.NgramsByContext
+      Gargantext.Database.Action.Metrics.TFICF
+      Gargantext.Database.Action.Node
+      Gargantext.Database.Action.Search
+      Gargantext.Database.Action.Share
+      Gargantext.Database.Action.TSQuery
+      Gargantext.Database.Action.User
+      Gargantext.Database.Admin.Access
+      Gargantext.Database.Admin.Bashql
+      Gargantext.Database.Admin.Trigger.ContextNodeNgrams
+      Gargantext.Database.Admin.Trigger.Contexts
+      Gargantext.Database.Admin.Trigger.NodesContexts
+      Gargantext.Database.Admin.Types.Hyperdata.Any
+      Gargantext.Database.Admin.Types.Hyperdata.Contact
+      Gargantext.Database.Admin.Types.Hyperdata.Corpus
+      Gargantext.Database.Admin.Types.Hyperdata.CorpusField
+      Gargantext.Database.Admin.Types.Hyperdata.Dashboard
+      Gargantext.Database.Admin.Types.Hyperdata.Default
+      Gargantext.Database.Admin.Types.Hyperdata.Document
+      Gargantext.Database.Admin.Types.Hyperdata.File
+      Gargantext.Database.Admin.Types.Hyperdata.Folder
+      Gargantext.Database.Admin.Types.Hyperdata.Frame
+      Gargantext.Database.Admin.Types.Hyperdata.List
+      Gargantext.Database.Admin.Types.Hyperdata.Model
+      Gargantext.Database.Admin.Types.Hyperdata.Phylo
+      Gargantext.Database.Admin.Types.Hyperdata.Prelude
+      Gargantext.Database.Admin.Types.Hyperdata.Texts
+      Gargantext.Database.Admin.Types.Hyperdata.User
+      Gargantext.Database.Admin.Types.Metrics
+      Gargantext.Database.GargDB
+      Gargantext.Database.Query
+      Gargantext.Database.Query.Facet
+      Gargantext.Database.Query.Facet.Types
+      Gargantext.Database.Query.Filter
+      Gargantext.Database.Query.Join
+      Gargantext.Database.Query.Prelude
+      Gargantext.Database.Query.Table.Context
+      Gargantext.Database.Query.Table.ContextNodeNgrams
+      Gargantext.Database.Query.Table.ContextNodeNgrams2
+      Gargantext.Database.Query.Table.Ngrams
+      Gargantext.Database.Query.Table.Node.Children
+      Gargantext.Database.Query.Table.Node.Contact
+      Gargantext.Database.Query.Table.Node.Document.Add
+      Gargantext.Database.Query.Table.Node.Document.Insert
+      Gargantext.Database.Query.Table.Node.Error
+      Gargantext.Database.Query.Table.Node.Select
+      Gargantext.Database.Query.Table.Node.Update
+      Gargantext.Database.Query.Table.Node.User
+      Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
+      Gargantext.Database.Query.Table.NodeContext
+      Gargantext.Database.Query.Table.NodeContext_NodeContext
+      Gargantext.Database.Query.Table.NodeNgrams
+      Gargantext.Database.Query.Table.NodeNode
+      Gargantext.Database.Query.Table.NodeNodeNgrams
+      Gargantext.Database.Query.Table.NodesNgramsRepo
+      Gargantext.Database.Query.Tree
+      Gargantext.Database.Query.Tree.Error
+      Gargantext.Database.Query.Tree.Root
+      Gargantext.Database.Schema.Context
+      Gargantext.Database.Schema.ContextNodeNgrams
+      Gargantext.Database.Schema.ContextNodeNgrams2
+      Gargantext.Database.Schema.NgramsPostag
+      Gargantext.Database.Schema.Node
+      Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
+      Gargantext.Database.Schema.NodeContext
+      Gargantext.Database.Schema.NodeContext_NodeContext
+      Gargantext.Database.Schema.NodeNgrams
+      Gargantext.Database.Schema.NodeNode
+      Gargantext.Database.Schema.NodeNodeNgrams
+      Gargantext.Database.Schema.NodeNodeNgrams2
+      Gargantext.Database.Schema.NodesNgramsRepo
+      Gargantext.Database.Schema.Prelude
+      Gargantext.Database.Schema.User
+      Gargantext.Database.Types
+      Gargantext.Utils.Aeson
+      Gargantext.Utils.JohnSnowNLP
+      Gargantext.Utils.Servant
+      Gargantext.Utils.UTCTime
+      Paths_gargantext
+  hs-source-dirs:
+      src
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      StrictData
+  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wmissing-signatures -Wunused-binds -Wunused-imports -Werror -freduction-depth=300
+  build-depends:
+      HSvm
+    , KMP
+    , MissingH
+    , MonadRandom
+    , QuickCheck
+    , Unique
+    , accelerate
+    , accelerate-arithmetic
+    , accelerate-llvm-native
+    , accelerate-utility
+    , aeson
+    , aeson-lens
+    , aeson-pretty
+    , array
+    , async
+    , attoparsec
+    , auto-update
+    , base >=4.7 && <5
+    , base16-bytestring
+    , base64-bytestring
+    , blaze-html
+    , blaze-markup
+    , blaze-svg
+    , bytestring
+    , case-insensitive
+    , cassava
+    , cborg
+    , cereal
+    , conduit
+    , conduit-extra
+    , containers
+    , contravariant
+    , crawlerArxiv
+    , crawlerHAL
+    , crawlerISTEX
+    , crawlerIsidore
+    , crawlerPubMed
+    , cryptohash
+    , data-time-segment
+    , deepseq
+    , directory
+    , duckling
+    , ekg-core
+    , ekg-json
+    , exceptions
+    , extra
+    , fast-logger
+    , fclabels
+    , fgl
+    , filelock
+    , filepath
+    , formatting
+    , full-text-search
+    , fullstop
+    , gargantext-graph >=0.1.0.0
+    , gargantext-prelude
+    , graphviz
+    , hashable
+    , haskell-igraph
+    , hlcm
+    , hsinfomap
+    , hsparql
+    , hstatistics
+    , http-api-data
+    , http-client
+    , http-client-tls
+    , http-conduit
+    , http-media
+    , http-types
+    , hxt
+    , ihaskell
+    , ini
+    , insert-ordered-containers
+    , jose
+    , json-stream
+    , lens
+    , lifted-base
+    , listsafe
+    , located-base
+    , logging-effect
+    , matrix
+    , monad-control
+    , monad-logger
+    , morpheus-graphql
+    , morpheus-graphql-app
+    , morpheus-graphql-core
+    , morpheus-graphql-subscriptions
+    , mtl
+    , natural-transformation
+    , opaleye
+    , pandoc
+    , parallel
+    , parsec
+    , patches-class
+    , patches-map
+    , path
+    , path-io
+    , postgresql-simple
+    , pretty-simple
+    , probability
+    , process
+    , product-profunctors
+    , profunctors
+    , protolude
+    , pureMD5
+    , quickcheck-instances
+    , rake
+    , random
+    , rdf4h
+    , regex-compat
+    , regex-tdfa
+    , resource-pool
+    , resourcet
+    , safe
+    , scientific
+    , semigroups
+    , serialise
+    , servant
+    , servant-auth
+    , servant-auth-client
+    , servant-auth-server >=0.4.4.0
+    , servant-auth-swagger
+    , servant-blaze
+    , servant-cassava
+    , servant-client
+    , servant-ekg
+    , servant-flatten
+    , servant-job
+    , servant-mock
+    , servant-multipart
+    , servant-server
+    , servant-swagger
+    , servant-swagger-ui
+    , servant-xml
+    , simple-reflect
+    , singletons
+    , split
+    , stemmer
+    , stm
+    , swagger2
+    , taggy-lens
+    , tagsoup
+    , template-haskell
+    , temporary
+    , text
+    , text-conversions
+    , text-metrics
+    , time
+    , time-locale-compat
+    , timezone-series
+    , transformers
+    , transformers-base
+    , tuple
+    , unordered-containers
+    , uri-encode
+    , utf8-string
+    , uuid
+    , validity
+    , vector
+    , wai
+    , wai-app-static
+    , wai-cors
+    , wai-extra
+    , wai-websockets
+    , warp
+    , websockets
+    , wikiparsec
+    , wreq
+    , xml-conduit
+    , xml-types
+    , xmlbf
+    , yaml
+    , zip
+    , zlib
+  default-language: Haskell2010
+
+executable gargantext-admin
+  main-is: Main.hs
+  other-modules:
+      Paths_gargantext
+  hs-source-dirs:
+      bin/gargantext-admin
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      StrictData
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
+  build-depends:
+      base
+    , extra
+    , gargantext
+    , gargantext-prelude
+    , text
+  default-language: Haskell2010
+
+executable gargantext-cbor2json
+  main-is: Main.hs
+  other-modules:
+      Paths_gargantext
+  hs-source-dirs:
+      bin/gargantext-cbor2json
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      StrictData
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
+  build-depends:
+      aeson
+    , base
+    , bytestring
+    , extra
+    , gargantext
+    , gargantext-prelude
+    , serialise
+    , text
+  default-language: Haskell2010
+
+executable gargantext-cli
+  main-is: Main.hs
+  other-modules:
+      CleanCsvCorpus
+      Paths_gargantext
+  hs-source-dirs:
+      bin/gargantext-cli
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      StrictData
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
+  build-depends:
+      aeson
+    , async
+    , base
+    , bytestring
+    , cassava
+    , containers
+    , extra
+    , full-text-search
+    , gargantext
+    , gargantext-prelude
+    , ini
+    , optparse-generic
+    , split
+    , text
+    , unordered-containers
+    , vector
+  default-language: Haskell2010
+
+executable gargantext-import
+  main-is: Main.hs
+  other-modules:
+      Paths_gargantext
+  hs-source-dirs:
+      bin/gargantext-import
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      StrictData
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
+  build-depends:
+      base
+    , extra
+    , gargantext
+    , gargantext-prelude
+    , servant-server
+    , text
+  default-language: Haskell2010
+
+executable gargantext-init
+  main-is: Main.hs
+  other-modules:
+      Paths_gargantext
+  hs-source-dirs:
+      bin/gargantext-init
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      StrictData
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
+  build-depends:
+      base
+    , extra
+    , gargantext
+    , gargantext-prelude
+    , text
+  default-language: Haskell2010
+
+executable gargantext-invitations
+  main-is: Main.hs
+  other-modules:
+      Paths_gargantext
+  hs-source-dirs:
+      bin/gargantext-invitations
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      StrictData
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
+  build-depends:
+      base
+    , extra
+    , gargantext
+    , gargantext-prelude
+    , text
+  default-language: Haskell2010
+
+executable gargantext-phylo
+  main-is: Main.hs
+  other-modules:
+      Paths_gargantext
+  hs-source-dirs:
+      bin/gargantext-phylo
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      StrictData
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
+  build-depends:
+      aeson
+    , async
+    , base
+    , bytestring
+    , cassava
+    , containers
+    , cryptohash
+    , directory
+    , extra
+    , gargantext
+    , gargantext-prelude
+    , ini
+    , optparse-generic
+    , parallel
+    , split
+    , text
+    , time
+    , unordered-containers
+    , vector
+  default-language: Haskell2010
+
+executable gargantext-server
+  main-is: Main.hs
+  other-modules:
+      Paths_gargantext
+  hs-source-dirs:
+      bin/gargantext-server
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      StrictData
+  ghc-options: -Wall -O2 -Wcompat -Wmissing-signatures -rtsopts -threaded -with-rtsopts=-N -with-rtsopts=-T -fprof-auto
+  build-depends:
+      base
+    , cassava
+    , containers
+    , extra
+    , full-text-search
+    , gargantext
+    , gargantext-prelude
+    , ini
+    , optparse-generic
+    , text
+    , unordered-containers
+    , vector
+  default-language: Haskell2010
+
+executable gargantext-upgrade
+  main-is: Main.hs
+  other-modules:
+      Paths_gargantext
+  hs-source-dirs:
+      bin/gargantext-upgrade
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      StrictData
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
+  build-depends:
+      base
+    , extra
+    , gargantext
+    , gargantext-prelude
+    , postgresql-simple
+    , text
+  default-language: Haskell2010
+
+test-suite garg-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Core.Text
+      Core.Text.Examples
+      Core.Text.Flow
+      Core.Utils
+      Graph.Clustering
+      Graph.Distance
+      Ngrams.Lang
+      Ngrams.Lang.En
+      Ngrams.Lang.Fr
+      Ngrams.Lang.Occurrences
+      Ngrams.Metrics
+      Parsers.Date
+      Parsers.Types
+      Parsers.WOS
+      Utils.Crypto
+      Paths_gargantext
+  hs-source-dirs:
+      src-test
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      StrictData
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      QuickCheck
+    , base
+    , duckling
+    , extra
+    , gargantext
+    , gargantext-prelude
+    , hspec
+    , parsec
+    , quickcheck-instances
+    , text
+    , time
+    , unordered-containers
+  default-language: Haskell2010
+
+test-suite jobqueue-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Paths_gargantext
+  hs-source-dirs:
+      tests/queue
+  default-extensions:
+      DataKinds
+      DeriveGeneric
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      StrictData
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      async
+    , base
+    , extra
+    , gargantext
+    , hspec
+    , stm
+    , text
+  default-language: Haskell2010

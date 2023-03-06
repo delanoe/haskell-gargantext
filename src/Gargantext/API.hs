@@ -31,24 +31,28 @@ Pouillard (who mainly made it).
 module Gargantext.API
       where
 
-import Control.Exception (finally)
+import Control.Exception (catch, finally, SomeException)
 import Control.Lens
+import Control.Monad.Except
 import Control.Monad.Reader (runReaderT)
+import Data.Either
 import Data.List (lookup)
+import Data.Text (pack)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Text.IO (putStrLn)
 import Data.Validity
 import GHC.Base (Applicative)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Auth.Types (AuthContext)
+import Gargantext.API.Admin.EnvTypes (Env)
 import Gargantext.API.Admin.Settings (newEnv)
 import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, jwtSettings, settings)
 import Gargantext.API.EKG
-import Gargantext.API.Ngrams (saveNodeStory)
-import Gargantext.API.Prelude
+import Gargantext.API.Ngrams (saveNodeStoryImmediate)
 import Gargantext.API.Routes
 import Gargantext.API.Server (server)
 import Gargantext.Core.NodeStory
+import qualified Gargantext.Database.Prelude as DB
 import Gargantext.Prelude hiding (putStrLn)
 import Network.HTTP.Types hiding (Query)
 import Network.Wai
@@ -66,10 +70,20 @@ data Mode = Dev | Mock | Prod
 startGargantext :: Mode -> PortNumber -> FilePath -> IO ()
 startGargantext mode port file = do
   env <- newEnv port file
+  runDbCheck env
   portRouteInfo port
   app <- makeApp env
   mid <- makeDevMiddleware mode
   run port (mid app) `finally` stopGargantext env
+
+  where runDbCheck env = do
+          r <- runExceptT (runReaderT DB.dbCheck env) `catch`
+            (\(_ :: SomeException) -> return $ Right False)
+          case r of
+            Right True -> return ()
+            _ -> panic $
+              "You must run 'gargantext-init " <> pack file <>
+              "' before running gargantext-server (only the first time)."
 
 portRouteInfo :: PortNumber -> IO ()
 portRouteInfo port = do
@@ -78,10 +92,10 @@ portRouteInfo port = do
   putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
 
 -- TODO clean this Monad condition (more generic) ?
-stopGargantext :: HasNodeStorySaver env => env -> IO ()
+stopGargantext :: HasNodeStoryImmediateSaver env => env -> IO ()
 stopGargantext env = do
   putStrLn "----- Stopping gargantext -----"
-  runReaderT saveNodeStory env
+  runReaderT saveNodeStoryImmediate env
 
 {-
 startGargantextMock :: PortNumber -> IO ()
@@ -117,9 +131,9 @@ makeMockApp env = do
             blocking <- fireWall req (env ^. menv_firewall)
             case blocking  of
                 True  -> app req resp
-                False -> resp ( responseLBS status401 [] 
+                False -> resp ( responseLBS status401 []
                               "Invalid Origin or Host header")
-        
+
     let corsMiddleware = cors $ \_ -> Just CorsResourcePolicy
 --          { corsOrigins        = Just ([env^.settings.allowedOrigin], False)
             { corsOrigins        = Nothing --  == /*
@@ -135,7 +149,7 @@ makeMockApp env = do
 
     --let warpS = Warp.setPort (8008 :: Int)   -- (env^.settings.appPort)
     --          $ Warp.defaultSettings
-    
+
     --pure (warpS, logWare $ checkOriginAndHost $ corsMiddleware $ serverApp)
     pure $ logStdoutDev $ checkOriginAndHost $ corsMiddleware $ serverApp
 -}
@@ -149,7 +163,7 @@ makeDevMiddleware mode = do
 --            blocking <- fireWall req (env ^. menv_firewall)
 --            case blocking  of
 --                True  -> app req resp
---                False -> resp ( responseLBS status401 [] 
+--                False -> resp ( responseLBS status401 []
 --                              "Invalid Origin or Host header")
 --
     let corsMiddleware = cors $ \_ -> Just CorsResourcePolicy
@@ -193,7 +207,7 @@ serverGargAdminAPI =  roots
 --gargMock = mock apiGarg Proxy
 ---------------------------------------------------------------------
 
-makeApp :: (Typeable env, EnvC env) => env -> IO Application
+makeApp :: Env -> IO Application
 makeApp env = do
   serv <- server env
   (ekgStore, ekgMid) <- newEkgStore api

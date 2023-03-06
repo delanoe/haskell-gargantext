@@ -21,13 +21,15 @@ import Gargantext.Core.Viz.Graph.Index
 import Graph.Types (ClusterNode(..))
 import IGraph hiding (mkGraph, neighbors, edges, nodes, Node, Graph)
 import Protolude
+import Gargantext.Prelude (saveAsFileDebug)
 import qualified Data.List                   as List
-import qualified Data.Map                    as Map
+import qualified Data.Map.Strict             as Map
 import qualified IGraph                      as IG
 import qualified IGraph.Algorithms.Clique    as IG
 import qualified IGraph.Algorithms.Community as IG
 import qualified IGraph.Algorithms.Structure as IG
 import qualified IGraph.Random               as IG
+import qualified Data.Set                    as Set
 
 ------------------------------------------------------------------
 -- | Main Types
@@ -63,24 +65,44 @@ spinglass :: Seed -> Map (Int, Int) Double -> IO [ClusterNode]
 spinglass s g = toClusterNode
              <$> map catMaybes
              <$> map (map (\n -> Map.lookup n fromI))
-             <$> partitions_spinglass' s g'''
+             <$> List.concat
+             <$> mapM (partitions_spinglass' s) g'
   where
-    g'   = toIndex toI g
-    g''  = mkGraphUfromEdges (Map.keys g')
-    g''' = case IG.isConnected g'' of
-      True -> g''
-      False -> case head (IG.decompose g'') of
-        Nothing    -> panic "[G.C.V.G.T.Igraph: not connected graph]"
-        Just g'''' -> g''''
+    -- Not connected components of the graph make crash spinglass
+    g' = IG.decompose $ mkGraphUfromEdges
+                      $ Map.keys
+                      $ toIndex toI g
 
     (toI, fromI) = createIndices g
+
+spinglass' :: Seed -> Map (Int, Int) Double -> IO [Set Int]
+spinglass' s g = map Set.fromList
+             <$> map catMaybes
+             <$> map (map (\n -> Map.lookup n fromI))
+             <$> List.concat
+             <$> mapM (partitions_spinglass' s) g'
+  where
+    -- Not connected components of the graph make crash spinglass
+    g' = IG.decompose $ mkGraphUfromEdges
+                      $ Map.keys
+                      $ toIndex toI g
+
+    (toI, fromI) = createIndices g
+
+
+
+
 
 -- | Tools to analyze graphs
 partitions_spinglass' :: (Serialize v, Serialize e)
                          => Seed -> IG.Graph 'U v e -> IO [[Int]]
 partitions_spinglass' s g = do
   gen <- IG.withSeed s pure
-  IG.findCommunity g Nothing Nothing IG.spinglass gen
+  res <- IG.findCommunity g Nothing Nothing IG.spinglass gen
+  -- res <- IG.findCommunity g Nothing Nothing IG.leiden gen
+  -- res <- IG.findCommunity g Nothing Nothing IG.infomap  gen
+  saveAsFileDebug "/tmp/res" res
+  pure res
 
 
 toClusterNode :: [[Int]] -> [ClusterNode]

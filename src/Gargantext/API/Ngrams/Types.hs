@@ -1,4 +1,12 @@
--- |
+{-|
+Module      : Gargantext.API.Ngrams.Types
+Description : Ngrams List Types
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+-}
 
 {-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -28,11 +36,13 @@ import Data.String (IsString, fromString)
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text, pack, strip)
 import Data.Validity
-import Database.PostgreSQL.Simple.FromField (FromField, fromField, ResultError(ConversionFailed), returnError)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField, fromJSONField)
+import Database.PostgreSQL.Simple.ToField (ToField, toJSONField, toField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..), ListId, NodeId, TODO)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
+import Gargantext.Database.Admin.Types.Node (ContextId)
 import Gargantext.Database.Prelude (fromField', HasConnectionPool, HasConfig, CmdM')
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (IsHashable(..))
@@ -43,7 +53,6 @@ import Servant.Job.Utils (jsonOptions)
 import Test.QuickCheck (elements, frequency)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.HashMap.Strict.InsOrd             as InsOrdHashMap
-import qualified Data.List                              as List
 import qualified Data.Map.Strict                        as Map
 import qualified Data.Map.Strict.Patch                  as PM
 import qualified Data.Set                               as Set
@@ -123,30 +132,16 @@ instance (ToJSONKey a, ToSchema a) => ToSchema (MSet a) where
 
 ------------------------------------------------------------------------
 newtype NgramsTerm = NgramsTerm { unNgramsTerm :: Text }
-  deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema, Hashable, NFData)
-
+  deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema, Hashable, NFData, FromField, ToField)
 instance IsHashable NgramsTerm where
   hash (NgramsTerm t) = hash t
-
 instance Monoid NgramsTerm where
   mempty = NgramsTerm ""
-
 instance FromJSONKey NgramsTerm where
   fromJSONKey = FromJSONKeyTextParser $ \t -> pure $ NgramsTerm $ strip t
-
 instance IsString NgramsTerm where
   fromString s = NgramsTerm $ pack s
 
-instance FromField NgramsTerm
-  where
-    fromField field mb = do
-      v <- fromField field mb
-      case fromJSON v of
-        Success a -> pure $ NgramsTerm $ strip a
-        Error _err -> returnError ConversionFailed field
-                      $ List.intercalate " " [ "cannot parse hyperdata for JSON: "
-                                             , show v
-                                             ]
 
 data RootParent = RootParent
   { _rp_root   :: NgramsTerm
@@ -165,25 +160,26 @@ data NgramsRepoElement = NgramsRepoElement
   , _nre_children    :: !(MSet NgramsTerm)
   }
   deriving (Ord, Eq, Show, Generic)
-
 deriveJSON (unPrefix "_nre_") ''NgramsRepoElement
 -- TODO
 -- if ngrams & not size => size
 -- drop occurrences
-
 makeLenses ''NgramsRepoElement
-
 instance ToSchema NgramsRepoElement where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_nre_")
+instance Serialise NgramsRepoElement
+instance FromField NgramsRepoElement where
+  fromField = fromJSONField
+instance ToField NgramsRepoElement where
+  toField = toJSONField
 
 instance Serialise (MSet NgramsTerm)
-instance Serialise NgramsRepoElement
 
 data NgramsElement =
      NgramsElement { _ne_ngrams      :: NgramsTerm
                    , _ne_size        :: Int
                    , _ne_list        :: ListType
-                   , _ne_occurrences :: Int
+                   , _ne_occurrences :: [ContextId]
                    , _ne_root        :: Maybe NgramsTerm
                    , _ne_parent      :: Maybe NgramsTerm
                    , _ne_children    :: MSet  NgramsTerm
@@ -199,7 +195,7 @@ mkNgramsElement :: NgramsTerm
                 -> MSet NgramsTerm
                 -> NgramsElement
 mkNgramsElement ngrams list rp children =
-  NgramsElement ngrams (size (unNgramsTerm ngrams)) list 1 (_rp_root <$> rp) (_rp_parent <$> rp) children
+  NgramsElement ngrams (size (unNgramsTerm ngrams)) list [] (_rp_root <$> rp) (_rp_parent <$> rp) children
 
 newNgramsElement :: Maybe ListType -> NgramsTerm -> NgramsElement
 newNgramsElement mayList ngrams =
@@ -448,13 +444,16 @@ instance ToSchema NgramsPatch where
                 , ("old",      nreSch)
                 , ("new",      nreSch)
                 ]
-
 instance Arbitrary NgramsPatch where
   arbitrary = frequency [ (9, NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary))
                         , (1, NgramsReplace <$> arbitrary <*> arbitrary)
                         ]
-
 instance Serialise NgramsPatch
+instance FromField NgramsPatch where
+  fromField = fromJSONField
+instance ToField NgramsPatch where
+  toField = toJSONField
+
 instance Serialise (Replace ListType)
 
 instance Serialise ListType
@@ -512,7 +511,6 @@ instance Action (PairPatch (PatchMSet NgramsTerm) (Replace ListType)) NgramsRepo
 
 instance Applicable NgramsPatch (Maybe NgramsRepoElement) where
   applicable p = applicable (p ^. _NgramsPatch)
-
 instance Action NgramsPatch (Maybe NgramsRepoElement) where
   act p = act (p ^. _NgramsPatch)
 
@@ -524,7 +522,11 @@ instance Serialise (PatchMap NgramsTerm NgramsPatch)
 
 instance FromField NgramsTablePatch
   where
-    fromField = fromField'
+    fromField = fromJSONField
+    --fromField = fromField'
+instance ToField NgramsTablePatch
+  where
+    toField = toJSONField
 
 instance FromField (PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTablePatch))
   where
@@ -578,7 +580,7 @@ ngramsElementFromRepo
                 , _ne_parent      = p
                 , _ne_children    = c
                 , _ne_ngrams      = ngrams
-                , _ne_occurrences = 0 -- panic $ "API.Ngrams.Types._ne_occurrences"
+                , _ne_occurrences = [] -- panic $ "API.Ngrams.Types._ne_occurrences"
                 {-
                 -- Here we could use 0 if we want to avoid any `panic`.
                 -- It will not happen using getTableNgrams if
@@ -751,4 +753,3 @@ instance ToSchema UpdateTableNgramsCharts where
 
 ------------------------------------------------------------------------
 type NgramsList = (Map TableNgrams.NgramsType (Versioned NgramsTableMap))
-

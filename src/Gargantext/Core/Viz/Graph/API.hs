@@ -9,6 +9,7 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedLists   #-}   -- allows to write Map and HashMap as lists
 {-# LANGUAGE TypeOperators     #-}
 
@@ -22,15 +23,16 @@ import Data.Swagger
 import Data.Text hiding (head)
 import Debug.Trace (trace)
 import GHC.Generics (Generic)
+import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Prelude
-import Gargantext.Core.Methods.Distances (Distance(..), GraphMetric(..), withMetric)
+import Gargantext.Core.Methods.Similarities (Similarity(..), GraphMetric(..), withMetric)
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Types.Main
-import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.GEXF ()
 import Gargantext.Core.Viz.Graph.Tools -- (cooc2graph)
+import Gargantext.Core.Viz.Graph.Types
 import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOnlyUser)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
@@ -45,8 +47,9 @@ import Gargantext.Database.Query.Table.Node.User (getNodeUser)
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Prelude
+import Gargantext.Utils.Jobs (serveJobsAPI)
 import Servant
-import Servant.Job.Async
+import Servant.Job.Async (AsyncJobsAPI)
 import Servant.XML
 import qualified Data.HashMap.Strict as HashMap
 
@@ -71,7 +74,7 @@ instance FromJSON GraphVersions
 instance ToJSON GraphVersions
 instance ToSchema GraphVersions
 
-graphAPI :: UserId -> NodeId -> GargServer GraphAPI
+graphAPI :: UserId -> NodeId -> ServerT GraphAPI (GargM Env GargError)
 graphAPI u n = getGraph         u n
           :<|> graphAsync       u n
           :<|> graphClone       u n
@@ -94,17 +97,19 @@ getGraph _uId nId = do
   mcId <- getClosestParentIdByType nId NodeCorpus
   let cId = maybe (panic "[G.V.G.API] Node has no parent") identity mcId
 
-  printDebug "[getGraph] getting list for cId" cId
+  -- printDebug "[getGraph] getting list for cId" cId
   listId <- defaultList cId
-  repo <- getRepo' [listId]
+  repo <- getRepo [listId]
 
-  -- TODO Distance in Graph params
+  -- TODO Similarity in Graph params
   case graph of
     Nothing     -> do
         let defaultMetric          = Order1
         let defaultPartitionMethod = Spinglass
-        graph' <- computeGraph cId defaultPartitionMethod (withMetric defaultMetric) NgramsTerms repo
-        mt     <- defaultGraphMetadata cId "Title" repo defaultMetric
+        let defaultEdgesStrength   = Strong
+        let defaultBridgenessMethod = BridgenessMethod_Basic
+        graph' <- computeGraph cId defaultPartitionMethod defaultBridgenessMethod (withMetric defaultMetric) defaultEdgesStrength (NgramsTerms, NgramsTerms) repo
+        mt     <- defaultGraphMetadata cId "Title" repo defaultMetric defaultEdgesStrength
         let
           graph'' = set graph_metadata (Just mt) graph'
           hg = HyperdataGraphAPI graph'' camera
@@ -121,39 +126,49 @@ recomputeGraph :: FlowCmdM env err m
                => UserId
                -> NodeId
                -> PartitionMethod
+               -> BridgenessMethod
                -> Maybe GraphMetric
+               -> Maybe Strength
+               -> NgramsType
+               -> NgramsType
                -> Bool
                -> m Graph
-recomputeGraph _uId nId method maybeDistance force = do
+recomputeGraph _uId nId partitionMethod bridgeMethod maybeSimilarity maybeStrength nt1 nt2 force = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
     camera = nodeGraph ^. node_hyperdata . hyperdataCamera
     graphMetadata = graph ^? _Just . graph_metadata . _Just
     listVersion   = graph ^? _Just . graph_metadata . _Just . gm_list . lfg_version
-    graphMetric   = case maybeDistance of
+    graphMetric   = case maybeSimilarity of
                       Nothing -> graph ^? _Just . graph_metadata . _Just . gm_metric
-                      _       -> maybeDistance
+                      Just _  -> maybeSimilarity
     similarity = case graphMetric of
                    Nothing -> withMetric Order1
                    Just m  -> withMetric m
+
+    strength = case maybeStrength of
+                   Nothing -> case graph ^? _Just . graph_metadata . _Just . gm_edgesStrength of
+                        Nothing  -> Strong
+                        Just  mr -> fromMaybe Strong mr
+                   Just r  -> r
 
   mcId <- getClosestParentIdByType nId NodeCorpus
   let cId = maybe (panic "[G.V.G.API] Node has no parent") identity mcId
 
   listId  <- defaultList cId
-  repo <- getRepo' [listId]
+  repo <- getRepo [listId]
   let v   = repo ^. unNodeStory . at listId . _Just . a_version
 
   let computeG mt = do
-        g <- computeGraph cId method similarity NgramsTerms repo
+        !g <- computeGraph cId partitionMethod bridgeMethod similarity strength (nt1,nt2) repo
         let g' = set graph_metadata mt g
-        _ <- updateHyperdata nId (HyperdataGraph (Just g') camera)
+        _nentries <- updateHyperdata nId (HyperdataGraph (Just g') camera)
         pure g'
 
   case graph of
     Nothing     -> do
-      mt     <- defaultGraphMetadata cId "Title" repo (fromMaybe Order1 maybeDistance)
+      mt     <- defaultGraphMetadata cId "Title" repo (fromMaybe Order1 maybeSimilarity) strength
       g <- computeG $ Just mt
       pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" g
     Just graph' -> if (listVersion == Just v) && (not force)
@@ -163,38 +178,50 @@ recomputeGraph _uId nId method maybeDistance force = do
                        pure $ trace "[G.V.G.API] Graph exists, recomputing" g
 
 
+-- TODO remove repo
 computeGraph :: FlowCmdM env err m
              => CorpusId
              -> PartitionMethod
-             -> Distance
-             -> NgramsType
+             -> BridgenessMethod
+             -> Similarity
+             -> Strength
+             -> (NgramsType, NgramsType)
              -> NodeListStory
              -> m Graph
-computeGraph cId method d nt repo = do
-  lId  <- defaultList cId
+computeGraph corpusId partitionMethod bridgeMethod similarity strength (nt1,nt2) repo = do
+  -- Getting the Node parameters
+  lId  <- defaultList corpusId
   lIds <- selectNodesWithUsername NodeList userMaster
 
-  let ngs = filterListWithRoot MapTerm
-          $ mapTermListRoot [lId] nt repo
+  -- Getting the Ngrams to compute with and grouping it according to the lists
+  let
+    groupedContextsByNgrams nt corpusId' (lists_master, lists_user) = do
+      let
+        ngs = filterListWithRoot [MapTerm] $ mapTermListRoot lists_user nt repo
+      groupNodesByNgrams ngs <$> getContextsByNgramsOnlyUser corpusId'
+                                     (lists_user <> lists_master) nt (HashMap.keys ngs)
 
-  myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)
-         -- <$> HashMap.filterWithKey (\(x,y) _ -> x /= y)
-         -- <$> getCoocByNgrams (if d == Conditional then Diagonal True else Diagonal False)
-         <$> getCoocByNgrams (Diagonal True)
-         <$> groupNodesByNgrams ngs
-         <$> getContextsByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
+  -- Optim if nt1 == nt2 : do not compute twice
+  (m1,m2) <- do
+    m1 <- groupedContextsByNgrams nt1 corpusId (lIds, [lId])
+    if nt1 == nt2
+      then
+        pure (m1,m1)
+      else do
+        m2 <- groupedContextsByNgrams nt2 corpusId (lIds, [lId])
+        pure (m1,m2)
 
-  -- printDebug "myCooc" myCooc
-  -- saveAsFileDebug "debug/my-cooc" myCooc
+            -- Removing the hapax (ngrams with 1 cooc)
+  let !myCooc = {- HashMap.filter (>0)
+              $ -} getCoocByNgrams'' (Diagonal True) (identity, identity) (m1,m2)
 
-  listNgrams <- getListNgrams [lId] nt
+  -- TODO MultiPartite Here
+  liftBase
+        $ cooc2graphWith partitionMethod bridgeMethod (MultiPartite (Partite (HashMap.keysSet m1) nt1)
+                                              (Partite (HashMap.keysSet m2) nt2)
+                                              )
+                                similarity 0 strength myCooc
 
-  -- graph <- liftBase $ cooc2graphWith Confluence d 0 myCooc
-  -- graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
-  graph <- liftBase $ cooc2graphWith method d 0 myCooc
-  -- saveAsFileDebug "debug/graph" graph
-
-  pure $ mergeGraphNgrams graph (Just listNgrams)
 
 
 defaultGraphMetadata :: HasNodeError err
@@ -202,23 +229,24 @@ defaultGraphMetadata :: HasNodeError err
                      -> Text
                      -> NodeListStory
                      -> GraphMetric
+                     -> Strength
                      -> Cmd err GraphMetadata
-defaultGraphMetadata cId t repo gm = do
+defaultGraphMetadata cId t repo gm str = do
   lId  <- defaultList cId
 
-  pure $ GraphMetadata {
-      _gm_title = t
-    , _gm_metric = gm
-    , _gm_corpusId = [cId]
-    , _gm_legend = [
-          LegendField 1 "#FFF" "Cluster1"
-        , LegendField 2 "#FFF" "Cluster2"
-        , LegendField 3 "#FFF" "Cluster3"
-        , LegendField 4 "#FFF" "Cluster4"
-        ]
-      , _gm_list = (ListForGraph lId (repo ^. unNodeStory . at lId . _Just . a_version))
-      , _gm_startForceAtlas = True
-    }
+  pure $ GraphMetadata { _gm_title         = t
+                       , _gm_metric        = gm
+                       , _gm_edgesStrength = Just str
+                       , _gm_corpusId      = [cId]
+                       , _gm_legend = [
+                             LegendField 1 "#FFF" "Cluster1"
+                           , LegendField 2 "#FFF" "Cluster2"
+                           , LegendField 3 "#FFF" "Cluster3"
+                           , LegendField 4 "#FFF" "Cluster4"
+                           ]
+                       , _gm_list  = ListForGraph lId (repo ^. unNodeStory . at lId . _Just . a_version)
+                       , _gm_startForceAtlas = True
+                       }
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
 
 ------------------------------------------------------------
@@ -227,16 +255,17 @@ type GraphAsyncAPI = Summary "Recompute graph"
                      :> AsyncJobsAPI JobLog () JobLog
 
 
-graphAsync :: UserId -> NodeId -> GargServer GraphAsyncAPI
+graphAsync :: UserId -> NodeId -> ServerT GraphAsyncAPI (GargM Env GargError)
 graphAsync u n =
-  serveJobsAPI $
-    JobFunction (\_ log' -> graphRecompute u n (liftBase . log'))
+  serveJobsAPI RecomputeGraphJob $ \_ log' ->
+    graphRecompute u n (liftBase . log')
 
 
 --graphRecompute :: UserId
 --               -> NodeId
 --               -> (JobLog -> GargNoServer ())
 --               -> GargNoServer JobLog
+-- TODO get Graph Metadata to recompute
 graphRecompute :: FlowCmdM env err m
                => UserId
                -> NodeId
@@ -248,7 +277,7 @@ graphRecompute u n logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _g <- trace (show u) $ recomputeGraph u n Spinglass Nothing False
+  _g <- recomputeGraph u n Spinglass BridgenessMethod_Basic Nothing Nothing NgramsTerms NgramsTerms False
   pure  JobLog { _scst_succeeded = Just 1
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
@@ -291,9 +320,9 @@ graphVersions n nId = do
                       else panic "[G.V.G.API] list not found after iterations"
 
     Just listId -> do
-      repo <- getRepo' [listId]
+      repo <- getRepo [listId]
       let v = repo ^. unNodeStory . at listId . _Just . a_version
-      printDebug "graphVersions" v
+      -- printDebug "graphVersions" v
 
       pure $ GraphVersions { gv_graph = listVersion
                            , gv_repo = v }
@@ -303,7 +332,7 @@ recomputeVersions :: FlowCmdM env err m
                   => UserId
                   -> NodeId
                   -> m Graph
-recomputeVersions uId nId = recomputeGraph uId nId Spinglass Nothing False
+recomputeVersions uId nId = recomputeGraph uId nId Spinglass BridgenessMethod_Basic Nothing Nothing NgramsTerms NgramsTerms False
 
 ------------------------------------------------------------
 graphClone :: UserId
@@ -338,4 +367,3 @@ getGraphGexf :: FlowCmdM env err m
 getGraphGexf uId nId = do
   HyperdataGraphAPI { _hyperdataAPIGraph = graph } <- getGraph uId nId
   pure $ addHeader "attachment; filename=graph.gexf" graph
-

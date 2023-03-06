@@ -57,7 +57,7 @@ getTficf cId mId nt = do
     ) mapTextDoubleLocal
 -}
 
-getTficf_withSample :: HasDBid NodeType 
+getTficf_withSample :: HasDBid NodeType
          => UserCorpusId
          -> MasterCorpusId
          -> NgramsType
@@ -68,7 +68,8 @@ getTficf_withSample cId mId nt = do
      <$> getContextsByNgramsUser cId nt
 
   countLocal  <- selectCountDocs cId
-  let countGlobal = countLocal * 10
+  let countGlobal = countLocal
+      -- * 10
 
   mapTextDoubleGlobal <- HM.map fromIntegral
                      <$> getOccByNgramsOnlyFast_withSample mId countGlobal nt

@@ -1,17 +1,14 @@
 # Contributing
 
-## Main repo
+## Code contribution
 
-https://gitlab.iscpif.fr/gargantext/haskell-gargantext
+We use Git to share and merge our code.
 
+## Style
 
-## Stack by default
+We are using the common Haskell Style: 
+https://github.com/tibbe/haskell-style-guide/blob/master/haskell-style.md
 
-stack install
+## Code Of Conduct
 
-
-## REPL
-
-stack ghci at the root of the project (it will load right paths of
-static resources).
-
+Be constructive as sharing our code of conduct

@@ -31,10 +31,12 @@ module Gargantext.Core.Methods.Matrix.Accelerate.Utils
   where
 
 import qualified Data.Foldable as P (foldl1)
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 import Data.Array.Accelerate
 import Data.Array.Accelerate.Interpreter (run)
 import qualified Gargantext.Prelude as P
+
+import Debug.Trace (trace)
 
 -- | Matrix cell by cell multiplication
 (.*) :: ( Shape ix
@@ -70,7 +72,7 @@ termDivNan :: ( Shape ix
      => Acc (Array ((ix :. Int) :. Int) a)
      -> Acc (Array ((ix :. Int) :. Int) a)
      -> Acc (Array ((ix :. Int) :. Int) a)
-termDivNan = zipWith (\i j -> cond ((==) j 0) 0 ((/) i j))
+termDivNan = trace "termDivNan" $ zipWith (\i j -> cond ((==) j 0) 0 ((/) i j))
 
 (.-) :: ( Shape ix
         , Slice ix
@@ -108,7 +110,7 @@ matrixIdentity n' =
             ones  = fill (index1 n)   1
             n = constant n'
         in
-        permute const zeros (\(unindex1 -> i) -> index2 i i) ones
+        permute const zeros (\(unindex1 -> i) -> Just_ $ index2 i i) ones
 
 
 matrixEye :: Num a => Dim -> Acc (Matrix a)
@@ -117,11 +119,11 @@ matrixEye n' =
             zeros  = fill (index1 n)   0
             n = constant n'
         in
-        permute const ones (\(unindex1 -> i) -> index2 i i) zeros
+        permute const ones (\(unindex1 -> i) -> Just_ $ index2 i i) zeros
 
 
 diagNull :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
-diagNull n m = zipWith (*) m (matrixEye n)
+diagNull n m = trace ("diagNull") $ zipWith (*) m (matrixEye n)
 
 
 -- Returns an N-dimensional array with the values of x for the indices where
@@ -132,7 +134,7 @@ condOrDefault
 condOrDefault theCond def x = permute const zeros filterInd x
   where 
     zeros = fill (shape x) (def)
-    filterInd ix = (cond (theCond ix)) ix ignore
+    filterInd ix = (cond (theCond ix)) (Just_ ix) Nothing_
 
 -----------------------------------------------------------------------
 _runExp :: Elt e => Exp e -> e
@@ -161,7 +163,7 @@ matrix n l = fromList (Z :. n :. n) l
 -- >>> rank (matrix 3 ([1..] :: [Int]))
 -- 2
 rank :: (Matrix a) -> Int
-rank m = arrayRank $ arrayShape m
+rank m = arrayRank m
 
 -----------------------------------------------------------------------
 -- | Dimension of a square Matrix
@@ -190,6 +192,9 @@ dim m = n
 matSumCol :: (Elt a, P.Num (Exp a)) => Dim -> Acc (Matrix a) -> Acc (Matrix a)
 matSumCol r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum $ transpose mat
 
+matSumLin :: (Elt a, P.Num (Exp a)) => Dim -> Acc (Matrix a) -> Acc (Matrix a)
+matSumLin r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum mat
+
 matSumCol' :: (Elt a, P.Num (Exp a)) => Matrix a -> Matrix a
 matSumCol' m = run $ matSumCol n m'
   where
@@ -207,6 +212,8 @@ matSumCol' m = run $ matSumCol n m'
 --       0.5833333333333334,  0.5333333333333333,                 0.5]
 matProba :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 matProba d mat = zipWith (/) mat (matSumCol d mat)
+
+
 
 -- | Diagonal of the matrix
 --
@@ -240,9 +247,19 @@ divByDiag d mat = zipWith (/) mat (replicate (constant (Z :. (d :: Int) :. All))
 matMiniMax :: (Elt a, Ord a, P.Num a)
            => Acc (Matrix a)
            -> Acc (Matrix a)
-matMiniMax m = filterWith' miniMax' (constant 0) m
+matMiniMax m = filterWith' (>=) miniMax' (constant 0) m
+  where
+    miniMax' = the $ minimum $ maximum m
+
+matMaxMini :: (Elt a, Ord a, P.Num a)
+           => Acc (Matrix a)
+           -> Acc (Matrix a)
+matMaxMini m = filterWith' (>) miniMax' (constant 0) m
   where
     miniMax' = the $ maximum $ minimum m
+
+
+
 
 
 -- | Filters the matrix with a constant
@@ -258,15 +275,12 @@ filter' t m = filterWith t 0 m
 filterWith :: Double -> Double -> Acc (Matrix Double) -> Acc (Matrix Double)
 filterWith t v m = map (\x -> ifThenElse (x > (constant t)) x (constant v)) (transpose m)
 
-filterWith' :: (Elt a, Ord a) => Exp a -> Exp a -> Acc (Matrix a) -> Acc (Matrix a)
-filterWith' t v m = map (\x -> ifThenElse (x > t) x v) m
+filterWith' :: (Elt a, Ord a) => (Exp a -> Exp a -> Exp Bool) -> Exp a -> Exp a -> Acc (Matrix a) -> Acc (Matrix a)
+filterWith' f t v m = map (\x -> ifThenElse (f x t) x v) m
 
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-
-
-
 -- | TODO use Lenses
 data Direction = MatCol (Exp Int) | MatRow (Exp Int) | Diag
 
@@ -276,7 +290,7 @@ nullOf n' dir =
             zeros  = fill (index2 n n) 0
             n = constant n'
         in
-        permute const ones ( lift1 ( \(Z :. (i :: Exp Int) :. (_j:: Exp Int))
+        permute const ones ( Just_ . lift1 ( \(Z :. (i :: Exp Int) :. (_j:: Exp Int))
                                                 -> case dir of 
                                                      MatCol m -> (Z :. i :. m)
                                                      MatRow m -> (Z :. m :. i)
@@ -306,7 +320,7 @@ sumRowMin n m = {-trace (P.show $ run m') $-} m'
        $ P.map (\z -> sumRowMin1 n (constant z) m) [0..n-1]
 
 sumRowMin1 :: (Num a, Ord a) => Dim -> Exp Int -> Acc (Matrix a) -> Acc (Vector a)
-sumRowMin1 n x m = trace (P.show (run m,run $ transpose m)) $ m''
+sumRowMin1 n x m = {-trace (P.show (run m,run $ transpose m)) $-} m''
   where
     m'' = sum $ zipWith min (transpose m) m
     _m'  = zipWith (*) (zipWith (*) (nullOf n (MatCol x)) $ nullOfWithDiag n (MatRow x)) m
