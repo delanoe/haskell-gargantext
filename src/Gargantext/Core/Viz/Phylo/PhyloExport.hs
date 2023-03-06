@@ -19,7 +19,7 @@ import Data.GraphViz.Attributes.Complete hiding (EdgeType, Order)
 import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.GraphViz.Types.Monadic
 import Data.List ((++), sort, nub, null, concat, sortOn, groupBy, union, (\\), (!!), init, partition, notElem, unwords, nubBy, inits, elemIndex)
-import Data.Map.Strict (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList, member)
+import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList, member)
 import Data.Text.Lazy (fromStrict, pack, unpack)
 import Data.Vector (Vector)
 import Debug.Trace (trace)
@@ -375,7 +375,7 @@ processSort sort' elev export = case sort' of
     ByBirthDate o -> sortByBirthDate o export
     ByHierarchy _ -> case elev of
             Constante  s s' ->  export & export_branches .~ (branchToIso' s s' $ sortByHierarchy 0 (export ^. export_branches))
-            Adaptative _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches))
+            Adaptative _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches))       
 
 -----------------
 -- | Metrics | --
@@ -546,10 +546,9 @@ processLabels labels foundations freq export =
 -- | Dynamics | --
 ------------------
 
--- utiliser & creer une Map FdtId [PhyloGroup]
--- n = index of the current term
-toDynamics :: FdtId -> [PhyloGroup] -> PhyloGroup -> Map FdtId (Date,Date) -> Double
-toDynamics n elders g m =
+
+toDynamics :: Int -> [PhyloGroup] -> PhyloGroup -> Map Int (Date,Date) -> Double
+toDynamics n parents g m =
     let prd = g ^. phylo_groupPeriod
         end = last' "dynamics" (sort $ map snd $ elems m)
     in  if (((snd prd) == (snd $ m ! n)) && (snd prd /= end))
@@ -565,18 +564,18 @@ toDynamics n elders g m =
     where
         --------------------------------------
         isNew :: Bool
-        isNew = not $ elem n $ concat $ map _phylo_groupNgrams elders
+        isNew = not $ elem n $ concat $ map _phylo_groupNgrams parents
 
-type FdtId = Int
+
 processDynamics :: [PhyloGroup] -> [PhyloGroup]
 processDynamics groups =
     map (\g ->
-        let elders = filter (\g' -> (g ^. phylo_groupBranchId == g' ^. phylo_groupBranchId)
+        let parents = filter (\g' -> (g ^. phylo_groupBranchId == g' ^. phylo_groupBranchId)
                                   && ((fst $ g ^. phylo_groupPeriod) > (fst $ g' ^. phylo_groupPeriod))) groups
-        in  g & phylo_groupMeta %~ insert "dynamics" (map (\n -> toDynamics n elders g mapNgrams) $ g ^. phylo_groupNgrams) ) groups
+        in  g & phylo_groupMeta %~ insert "dynamics" (map (\n -> toDynamics n parents g mapNgrams) $ g ^. phylo_groupNgrams) ) groups
     where
         --------------------------------------
-        mapNgrams :: Map FdtId (Date,Date)
+        mapNgrams :: Map Int (Date,Date)
         mapNgrams = map (\dates ->
                         let dates' = sort dates
                         in (head' "dynamics" dates', last' "dynamics" dates'))
@@ -622,7 +621,7 @@ toHorizon phylo =
                               $ concat
                               $ tracePhyloAncestors newGroups) phylo
       reBranched = fromList $ map (\g -> (getGroupId g, g)) $ concat
-                 $ groupsToBranches' $ fromList $ map (\g -> (getGroupId g, g)) $ getGroupsFromScale scale phyloAncestor
+                 $ groupsToBranches' $ fromList $ map (\g -> (getGroupId g, g)) $ getGroupsFromLevel scale phyloAncestor
    in updatePhyloGroups scale reBranched phylo
   where
     -- | 1) for each periods
@@ -637,7 +636,7 @@ toHorizon phylo =
     -- | 2) find ancestors between groups without parents
     mapGroups :: [[PhyloGroup]]
     mapGroups = map (\prd ->
-      let groups  = getGroupsFromScalePeriods scale [prd] phylo
+      let groups  = getGroupsFromLevelPeriods scale [prd] phylo
           childs  = getPreviousChildIds scale frame prd periods phylo
               -- maybe add a better filter for non isolated  ancestors
           heads   = filter (\g -> (not . null) $ (g ^. phylo_groupPeriodChilds))
@@ -661,7 +660,7 @@ toHorizon phylo =
 getPreviousChildIds :: Scale -> Int -> Period -> [Period] -> Phylo -> [PhyloGroupId]
 getPreviousChildIds lvl frame curr prds phylo =
     concat $ map ((map fst) . _phylo_groupPeriodChilds)
-           $ getGroupsFromScalePeriods lvl (getNextPeriods ToParents frame curr prds) phylo
+           $ getGroupsFromLevelPeriods lvl (getNextPeriods ToParents frame curr prds) phylo
 
 ---------------------
 -- | phyloExport | --
@@ -696,10 +695,10 @@ toPhyloExport phylo = exportToDot phylo
         --------------------------------------
         groups :: [PhyloGroup]
         groups = traceExportGroups
-               -- necessaire ?
                $ processDynamics
-               $ getGroupsFromScale (phyloScale $ getConfig phylo)
+               $ getGroupsFromLevel (phyloScale $ getConfig phylo)
                $ tracePhyloInfo phylo
+               -- \$ toHorizon phylo
 
 
 traceExportBranches :: [PhyloBranch] -> [PhyloBranch]
@@ -722,3 +721,4 @@ traceExportGroups groups = trace ("\n" <> "-- | Export "
     <> show(length groups) <> " groups and "
     <> show(length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) groups) <> " terms"
   ) groups
+

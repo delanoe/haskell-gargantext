@@ -14,7 +14,7 @@ module Gargantext.Core.Viz.Phylo.PhyloTools where
 
 import Control.Lens hiding (Level)
 import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition, tails, nubBy, group, notElem)
-import Data.Map.Strict (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty, restrictKeys)
+import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty, restrictKeys)
 import Data.Set (Set, disjoint)
 import Data.String (String)
 import Data.Text (Text,unpack)
@@ -25,6 +25,7 @@ import Gargantext.Prelude
 import Prelude (floor,read)
 import Text.Printf
 import qualified Data.List as List
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
@@ -139,7 +140,6 @@ periodsToYears periods = (Set.fromList . sort . concat)
 
 
 findBounds :: [Date] -> (Date,Date)
-findBounds [] = panic "[G.C.V.P.PhyloTools] empty dates for find bounds"
 findBounds dates =
     let dates' = sort dates
     in  (head' "findBounds" dates', last' "findBounds" dates')
@@ -387,10 +387,10 @@ getLevelParentId :: PhyloGroup -> PhyloGroupId
 getLevelParentId g = fst $ head' "getLevelParentId" $ g ^. phylo_groupScaleParents
 
 getLastLevel :: Phylo -> Scale
-getLastLevel phylo = last' "lastLevel" $ getScales phylo
+getLastLevel phylo = last' "lastLevel" $ getLevels phylo
 
-getScales :: Phylo -> [Scale]
-getScales phylo = nub
+getLevels :: Phylo -> [Scale]
+getLevels phylo = nub
                 $ map snd
                 $ keys $ view ( phylo_periods
                        .  traverse
@@ -408,7 +408,7 @@ getPhyloSeaRiseStart phylo = case (getSeaElevation phylo) of
 getPhyloSeaRiseSteps :: Phylo -> Double
 getPhyloSeaRiseSteps phylo = case (getSeaElevation phylo) of
     Constante  _ s -> s
-    Adaptative s -> s
+    Adaptative s -> s    
 
 
 getConfig :: Phylo -> PhyloConfig
@@ -431,16 +431,14 @@ getRoots phylo = (phylo ^. phylo_foundations) ^. foundations_roots
 getSources :: Phylo -> Vector Text
 getSources phylo = _sources (phylo ^. phylo_sources)
 
-
--- get the groups distributed by branches at the last scale
-phyloLastScale :: Phylo -> [[PhyloGroup]]
-phyloLastScale phylo = elems
+phyloToLastBranches :: Phylo -> [[PhyloGroup]]
+phyloToLastBranches phylo = elems
     $ fromListWith (++)
     $ map (\g -> (g ^. phylo_groupBranchId, [g]))
-    $ getGroupsFromScale (last' "byBranches" $ getScales phylo) phylo
+    $ getGroupsFromLevel (last' "byBranches" $ getLevels phylo) phylo
 
-getGroupsFromScale :: Scale -> Phylo -> [PhyloGroup]
-getGroupsFromScale lvl phylo =
+getGroupsFromLevel :: Scale -> Phylo -> [PhyloGroup]
+getGroupsFromLevel lvl phylo =
     elems $ view ( phylo_periods
                  .  traverse
                  . phylo_periodScales
@@ -449,8 +447,8 @@ getGroupsFromScale lvl phylo =
                  . phylo_scaleGroups ) phylo
 
 
-getGroupsFromScalePeriods :: Scale -> [Period] -> Phylo -> [PhyloGroup]
-getGroupsFromScalePeriods lvl periods phylo =
+getGroupsFromLevelPeriods :: Scale -> [Period] -> Phylo -> [PhyloGroup]
+getGroupsFromLevelPeriods lvl periods phylo =
     elems $ view ( phylo_periods
                  .  traverse
                  .  filtered (\phyloPrd -> elem (phyloPrd ^. phylo_periodPeriod) periods)
@@ -496,14 +494,14 @@ updatePeriods periods' phylo =
                 ) phylo
 
 updateQuality :: Double -> Phylo -> Phylo
-updateQuality quality phylo = phylo { _phylo_quality = quality }
+updateQuality quality phylo = phylo { _phylo_quality = quality }           
 
 
 traceToPhylo :: Scale -> Phylo -> Phylo
 traceToPhylo lvl phylo =
     trace ("\n" <> "-- | End of phylo making at level " <> show (lvl) <> " with "
-                <> show (length $ getGroupsFromScale lvl phylo) <> " groups and "
-                <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromScale lvl phylo) <> " branches" <> "\n") phylo
+                <> show (length $ getGroupsFromLevel lvl phylo) <> " groups and "
+                <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel lvl phylo) <> " branches" <> "\n") phylo
 
 --------------------
 -- | Clustering | --
@@ -566,15 +564,15 @@ toRelatedComponents nodes edges =
 traceSynchronyEnd :: Phylo -> Phylo
 traceSynchronyEnd phylo =
     trace ( "-- | End synchronic clustering at level " <> show (getLastLevel phylo)
-                 <> " with " <> show (length $ getGroupsFromScale (getLastLevel phylo) phylo) <> " groups"
-                 <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromScale (getLastLevel phylo) phylo) <> " branches"
+                 <> " with " <> show (length $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " groups"
+                 <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " branches"
                  <> "\n" ) phylo
 
 traceSynchronyStart :: Phylo -> Phylo
 traceSynchronyStart phylo =
     trace ( "\n" <> "-- | Start synchronic clustering at level " <> show (getLastLevel phylo)
-                 <> " with " <> show (length $ getGroupsFromScale (getLastLevel phylo) phylo) <> " groups"
-                 <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromScale (getLastLevel phylo) phylo) <> " branches"
+                 <> " with " <> show (length $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " groups"
+                 <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " branches"
                  <> "\n" ) phylo
 
 
@@ -592,7 +590,7 @@ getMinSharedNgrams :: Proximity -> Int
 getMinSharedNgrams proxi = case proxi of
     WeightedLogJaccard _ m -> m
     WeightedLogSim     _ m -> m
-    Hamming            _ _ -> undefined
+    Hamming            _ _ -> undefined    
 
 ----------------
 -- | Branch | --
@@ -661,6 +659,6 @@ traceTemporalMatching groups =
     trace ( "\n" <> "-- | Start temporal matching for " <> show(length groups) <> " groups" <> "\n") groups
 
 
-traceGroupsProxi :: [Double] -> [Double]
-traceGroupsProxi l =
-    trace ( "\n" <> "-- | " <> show(List.length l) <> " computed pairs of groups proximity" <> "\n") l
+traceGroupsProxi :: Map (PhyloGroupId,PhyloGroupId) Double -> Map (PhyloGroupId,PhyloGroupId) Double
+traceGroupsProxi m =
+    trace ( "\n" <> "-- | " <> show(Map.size m) <> " computed pairs of groups proximity" <> "\n") m

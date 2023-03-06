@@ -30,8 +30,7 @@ import Control.DeepSeq (NFData)
 import Control.Lens (makeLenses)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
-import Data.Map.Strict (Map)
-import Data.Set (Set)
+import Data.Map (Map)
 import Data.Swagger
 import Data.Text   (Text, pack)
 import Data.Vector (Vector)
@@ -64,9 +63,9 @@ instance ToSchema ListParser
 data SeaElevation =
       Constante
       { _cons_start :: Double
-      , _cons_gap   :: Double }
+      , _cons_step  :: Double }
     | Adaptative
-      { _adap_steps :: Double }
+      { _adap_granularity :: Double }
     deriving (Show,Generic,Eq)
 
 instance ToSchema SeaElevation
@@ -78,8 +77,8 @@ data Proximity =
     | WeightedLogSim
       { _wls_sensibility     :: Double
       , _wls_minSharedNgrams :: Int }
-    | Hamming
-      { _hmg_sensibility     :: Double
+    | Hamming 
+      { _hmg_sensibility     :: Double 
       , _hmg_minSharedNgrams :: Int}
 
     deriving (Show,Generic,Eq)
@@ -205,7 +204,7 @@ data PhyloSubConfig =
 
 
 subConfig2config :: PhyloSubConfig -> PhyloConfig
-subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard (_sc_phyloProximity subConfig) 1
+subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard (_sc_phyloProximity subConfig) 1 
                                            , phyloSynchrony = ByProximityThreshold (_sc_phyloSynchrony subConfig) 0 AllBranches MergeAllGroups
                                            , phyloQuality   = Quality (_sc_phyloQuality   subConfig) 1
                                            , timeUnit       = _sc_timeUnit       subConfig
@@ -307,8 +306,8 @@ instance ToSchema Software where
 
 defaultSoftware :: Software
 defaultSoftware =
-      Software { _software_name    = pack "GarganText"
-               , _software_version = pack "v5" }
+      Software { _software_name    = pack "Gargantext"
+               , _software_version = pack "v4" }
 
 
 -- | Global parameters of a Phylo
@@ -325,7 +324,7 @@ instance ToSchema PhyloParam where
 
 defaultPhyloParam :: PhyloParam
 defaultPhyloParam =
-      PhyloParam { _phyloParam_version  = pack "v3"
+      PhyloParam { _phyloParam_version  = pack "v2.adaptative"
                  , _phyloParam_software = defaultSoftware
                  , _phyloParam_config   = defaultConfig }
 
@@ -410,7 +409,8 @@ data Phylo =
            , _phylo_timeDocs     :: !(Map Date Double)
            , _phylo_termFreq     :: !(Map Int Double)
            , _phylo_lastTermFreq :: !(Map Int Double)
-           , _phylo_diaSimScan   :: Set Double
+           , _phylo_horizon      :: !(Map (PhyloGroupId,PhyloGroupId) Double)
+           , _phylo_groupsProxi  :: !(Map (PhyloGroupId,PhyloGroupId) Double)
            , _phylo_param        :: PhyloParam
            , _phylo_periods      :: Map Period PhyloPeriod
            , _phylo_quality      :: Double
