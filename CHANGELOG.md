@@ -1,3 +1,8 @@
+## Version 0.0.6.9.6
+
+* [BACK][FEAT] Phylo in 1 click
+* [FRONT][ERGO][](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
+
 ## Version 0.0.6.9.5
 
 * [FRONT][DESIGN][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
