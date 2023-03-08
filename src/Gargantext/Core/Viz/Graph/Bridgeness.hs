@@ -115,6 +115,7 @@ data Bridgeness = Bridgeness_Basic { bridgeness_partitions :: [ClusterNode]
                                       }
                 | Bridgeness_Recursive { br_partitions :: [[Set NodeId]]
                                        , br_filter     :: Double
+                                       , br_similarity :: Similarity
                                        }
 
 
@@ -126,8 +127,8 @@ type Confluence = Map (NodeId, NodeId) Double
 bridgeness :: Bridgeness
             -> Map (NodeId, NodeId) Double
             -> Map (NodeId, NodeId) Double
-bridgeness (Bridgeness_Recursive sn f) m =
-  Map.unions $ [linksBetween] <> map (\s -> bridgeness (Bridgeness_Basic (setNodes2clusterNodes s) (pi*f)) m') sn
+bridgeness (Bridgeness_Recursive sn f sim) m =
+  Map.unions $ [linksBetween] <> map (\s -> bridgeness (Bridgeness_Basic (setNodes2clusterNodes s) (if sim == Conditional then pi*f else f)) m') sn
     where
       (linksBetween, m') = Map.partitionWithKey (\(n1,n2) _v -> Map.lookup n1 mapNodeIdClusterId
                                                              /= Map.lookup n2 mapNodeIdClusterId

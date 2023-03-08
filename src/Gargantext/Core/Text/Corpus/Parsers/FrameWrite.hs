@@ -238,7 +238,7 @@ text2titleParagraphs n = catMaybes
                        . List.map doTitle
                        . (splitEvery n)
                        . sentences
-                       . DT.intercalate ". "
+                       . DT.intercalate " " -- ". "
                        . List.filter (/= "")
                        . DT.lines
 
