@@ -22,12 +22,12 @@ import System.FilePath (FilePath()) -- , takeExtension)
 
 import Gargantext.Prelude
 import Gargantext.Core.Text.Corpus.Parsers.CSV (writeDocs2Csv)
-import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat(..))
+import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat(..), FileType(..))
 
 
 risPress2csvWrite :: FilePath -> IO ()
 risPress2csvWrite f = do
-  eContents <- parseFile RisPresse    (f <> ".ris")
+  eContents <- parseFile RisPresse Plain (f <> ".ris")
   case eContents of
     Right contents -> writeDocs2Csv (f <> ".csv") contents
     Left e         -> panic $ "Error: " <> (T.pack e)

@@ -9,7 +9,6 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE Arrows                 #-}
@@ -27,7 +26,6 @@ import Control.Lens (set, view)
 import Data.Aeson
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
-import qualified Database.PostgreSQL.Simple as DPS
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Opaleye hiding (FromField)
 import Prelude hiding (null, id, map, sum)
@@ -41,6 +39,8 @@ import Gargantext.Database.Query.Filter (limit', offset')
 import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum, head)
+
+import qualified Database.PostgreSQL.Simple as PGS
 
 
 queryNodeSearchTable :: Select NodeSearchRead
@@ -125,7 +125,7 @@ getClosestParentIdByType :: HasDBid NodeType
                          -> NodeType
                          -> Cmd err (Maybe NodeId)
 getClosestParentIdByType nId nType = do
-  result <- runPGSQuery query (nId, 0 :: Int)
+  result <- runPGSQuery query (PGS.Only nId)
   case result of
     [(NodeId parentId, pTypename)] -> do
       if toDBid nType == pTypename then
@@ -134,12 +134,12 @@ getClosestParentIdByType nId nType = do
         getClosestParentIdByType (NodeId parentId) nType
     _ -> pure Nothing
   where
-    query :: DPS.Query
+    query :: PGS.Query
     query = [sql|
       SELECT n2.id, n2.typename
       FROM nodes n1
         JOIN nodes n2 ON n1.parent_id = n2.id
-        WHERE n1.id = ? AND 0 = ?;
+        WHERE n1.id = ?;
     |]
 
 -- | Similar to `getClosestParentIdByType` but includes current node
@@ -149,7 +149,7 @@ getClosestParentIdByType' :: HasDBid NodeType
                           -> NodeType
                           -> Cmd err (Maybe NodeId)
 getClosestParentIdByType' nId nType = do
-  result <- runPGSQuery query (nId, 0 :: Int)
+  result <- runPGSQuery query (PGS.Only nId)
   case result of
     [(NodeId id, pTypename)] -> do
       if toDBid nType == pTypename then
@@ -158,11 +158,11 @@ getClosestParentIdByType' nId nType = do
         getClosestParentIdByType nId nType
     _ -> pure Nothing
   where
-    query :: DPS.Query
+    query :: PGS.Query
     query = [sql|
       SELECT n.id, n.typename
       FROM nodes n
-      WHERE n.id = ? AND 0 = ?;
+      WHERE n.id = ?;
     |]
 
 -- | Given a node id, find all it's children (no matter how deep) of
@@ -172,15 +172,15 @@ getChildrenByType :: HasDBid NodeType
                   -> NodeType
                   -> Cmd err [NodeId]
 getChildrenByType nId nType = do
-  result <- runPGSQuery query (nId, 0 :: Int)
+  result <- runPGSQuery query (PGS.Only nId)
   children_lst <- mapM (\(id, _) -> getChildrenByType id nType) result
   pure $ concat $ [fst <$> filter (\(_, pTypename) -> pTypename == toDBid nType) result] ++ children_lst
   where
-    query :: DPS.Query
+    query :: PGS.Query
     query = [sql|
       SELECT n.id, n.typename
       FROM nodes n
-      WHERE n.parent_id = ? AND 0 = ?;
+      WHERE n.parent_id = ?;
     |]
 
 ------------------------------------------------------------------------
@@ -232,6 +232,9 @@ selectNodesIdWithType nt = proc () -> do
 
 ------------------------------------------------------------------------
 
+nodeExists :: (HasNodeError err) => NodeId -> Cmd err Bool
+nodeExists nId = (== [PGS.Only True])
+  <$> runPGSQuery [sql|SELECT true FROM nodes WHERE id = ? |] (PGS.Only nId)
 
 getNode :: HasNodeError err => NodeId -> Cmd err (Node Value)
 getNode nId = do
@@ -396,4 +399,3 @@ defaultListMaybe cId = headMay <$> map (view node_id ) <$> getListsWithParentId 
 
 getListsWithParentId :: HasDBid NodeType => NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
-

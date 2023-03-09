@@ -23,7 +23,7 @@ import Data.Vector (Vector)
 import Debug.Trace (trace)
 import Prelude (floor)
 
-import Gargantext.Core.Methods.Distances (Distance(Conditional))
+import Gargantext.Core.Methods.Similarities (Similarity(Conditional))
 import Gargantext.Core.Methods.Graph.MaxClique (getMaxCliques)
 import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, fisWithSizePolyMap', Size(..))
 import Gargantext.Core.Viz.Phylo

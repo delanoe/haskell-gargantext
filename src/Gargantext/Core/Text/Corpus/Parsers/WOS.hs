@@ -47,11 +47,12 @@ notice = start *> many (fieldWith field) <* end
 
 
 keys :: ByteString -> ByteString
-keys champs
-            | champs == "AF" = "authors"
-            | champs == "TI" = "title"
-            | champs == "SO" = "source"
-            | champs == "DI" = "doi"
-            | champs == "PD" = "publication_date"
-            | champs == "AB" = "abstract"
-            | otherwise  = champs
+keys field
+            | field == "AF" = "authors"
+            | field == "TI" = "title"
+            | field == "SO" = "source"
+            | field == "DI" = "doi"
+            | field == "PD" = "publication_date"
+            | field == "SP" = "institutes"
+            | field == "AB" = "abstract"
+            | otherwise  = field

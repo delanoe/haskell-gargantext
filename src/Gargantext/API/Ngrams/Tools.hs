@@ -19,36 +19,44 @@ import Control.Lens (_Just, (^.), at, view, At, Index, IxValue)
 import Control.Monad.Reader
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
+import Data.Pool (withResource)
 import Data.Set (Set)
 import Data.Validity
 import Gargantext.API.Ngrams.Types
-import Gargantext.Core.Types (ListType(..), NodeId, ListId)
+import Gargantext.Core.NodeStory
+import Gargantext.Core.Types (ListType(..), NodeId, NodeType(..), ListId)
+import Gargantext.Database.Prelude (CmdM, HasConnectionPool(..))
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
-import Gargantext.Core.NodeStory
+import qualified Gargantext.Core.NodeStoryFile as NSF
+
 
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
 mergeNgramsElement _neOld neNew = neNew
 
 type RootTerm = NgramsTerm
 
-{-
-getRepo :: RepoCmdM env err m => m NgramsRepo
-getRepo = do
-  v <- view repoVar
-  liftBase $ readMVar v
--}
 
-getRepo' :: HasNodeStory env err m
+getRepo :: HasNodeStory env err m
          => [ListId] -> m NodeListStory
-getRepo' listIds = do
+getRepo listIds = do
   f <- getNodeListStory
   v  <- liftBase $ f listIds
   v' <- liftBase $ readMVar v
   pure $ v'
+
+
+repoSize :: Ord k1 => NodeStory (Map.Map k1 (Map.Map k2 a)) p
+                   -> NodeId
+                   -> Map.Map k1 Int
+repoSize repo node_id = Map.map Map.size state
+  where
+    state = repo ^. unNodeStory
+                  . at node_id . _Just
+                  . a_state
 
 
 getNodeStoryVar :: HasNodeStory env err m
@@ -83,8 +91,6 @@ listNgramsFromRepo nodeIds ngramsType repo =
                 | nodeId <- nodeIds
                 ]
 
-
-
 -- TODO-ACCESS: We want to do the security check before entering here.
 --              Add a static capability parameter would be nice.
 --              Ideally this is the access to `repoVar` which needs to
@@ -93,7 +99,7 @@ getListNgrams :: HasNodeStory env err m
               => [ListId] -> NgramsType
               -> m (HashMap NgramsTerm NgramsRepoElement)
 getListNgrams nodeIds ngramsType = listNgramsFromRepo nodeIds ngramsType
-                                 <$> getRepo' nodeIds
+                                 <$> getRepo nodeIds
 
 
 getTermsWith :: (HasNodeStory env err m, Eq a, Hashable a)
@@ -105,7 +111,7 @@ getTermsWith f ls ngt lts  = HM.fromListWith (<>)
                       <$> HM.toList
                       <$> HM.filter (\f' -> Set.member (fst f') lts)
                       <$> mapTermListRoot ls ngt
-                      <$> getRepo' ls
+                      <$> getRepo ls
   where
     toTreeWith (t, (_lt, maybeRoot)) = case maybeRoot of
       Nothing -> (f t, [])
@@ -135,16 +141,16 @@ filterListWithRootHashMap lt m = snd <$> HM.filter isMapTerm m
         Nothing -> panic $ "[Garg.API.Ngrams.Tools] filterWithRoot, unknown key: " <> unNgramsTerm r
         Just  (l',_) -> l' == lt
 
-filterListWithRoot :: ListType
+filterListWithRoot :: [ListType]
                    -> HashMap NgramsTerm (ListType, Maybe NgramsTerm)
                    -> HashMap NgramsTerm (Maybe RootTerm)
 filterListWithRoot lt m = snd <$> HM.filter isMapTerm m
   where
     isMapTerm (l, maybeRoot) = case maybeRoot of
-      Nothing -> l == lt
+      Nothing -> elem l lt
       Just  r -> case HM.lookup r m of
         Nothing -> panic $ "[Garg.API.Ngrams.Tools] filterWithRoot, unknown key: " <> unNgramsTerm r
-        Just  (l',_) -> l' == lt
+        Just  (l',_) -> elem l' lt
 
 groupNodesByNgrams :: ( At root_map
                       , Index root_map ~ NgramsTerm
@@ -181,13 +187,62 @@ getCoocByNgrams' f (Diagonal diag) m =
                                  <$> (fmap f $ HM.lookup t1 m)
                                  <*> (fmap f $ HM.lookup t2 m)
                )
-              | (t1,t2) <- if diag then
-                             [ (x,y) | x <- ks, y <- ks, x <= y] -- TODO if we keep a Data.Map here it might be
-                                                                 -- more efficient to enumerate all the y <= x.
-                           else
-                             listToCombi identity ks
+              | (t1,t2) <- if diag
+                              then [ (x,y) | x <- ks, y <- ks, x <= y]
+                                   -- TODO if we keep a Data.Map here it might be
+                                   -- more efficient to enumerate all the y <= x.
+                              else
+                                listToCombi identity ks
               ]
 
-  where ks = HM.keys m
+  where
+    ks = HM.keys m
+
+-- TODO k could be either k1 or k2 here
+getCoocByNgrams'' :: (Hashable k, Ord k, Ord contexts)
+                  => Diagonal
+                  -> (contextA -> Set contexts, contextB -> Set contexts)
+                  -> (HashMap k contextA, HashMap k contextB)
+                  -> HashMap (k, k) Int
+getCoocByNgrams'' (Diagonal diag) (f1,f2) (m1,m2) =
+  HM.fromList [( (t1,t2)
+               , maybe 0 Set.size $ Set.intersection
+                                 <$> (fmap f1 $ HM.lookup t1 m1)
+                                 <*> (fmap f2 $ HM.lookup t2 m2)
+               )
+              | (t1,t2) <- if diag
+                              then
+                                [ (x,y) | x <- ks1, y <- ks2, x <= y]
+                                   -- TODO if we keep a Data.Map here it might be
+                                   -- more efficient to enumerate all the y <= x.
+                              else
+                                [ (x,y) | x <- ks1, y <- ks2, x < y]
+                                -- TODO check optim
+                                -- listToCombi identity ks1
+              ]
+  where
+    ks1 = HM.keys m1
+    ks2 = HM.keys m2
+
+
 
 ------------------------------------------
+
+
+migrateFromDirToDb :: (CmdM env err m) -- , HasNodeStory env err m)
+                   => m ()
+migrateFromDirToDb = do
+  pool <- view connPool
+  withResource pool $ \c -> do
+    listIds <- liftBase $ getNodesIdWithType c NodeList
+    -- printDebug "[migrateFromDirToDb] listIds" listIds
+    (NodeStory nls) <- NSF.getRepoReadConfig listIds
+    -- printDebug "[migrateFromDirToDb] nls" nls
+    _ <- mapM (\(nId, a) -> do
+                  n <- liftBase $ nodeExists c nId
+                  case n of
+                    False -> pure ()
+                    True  -> liftBase $ upsertNodeStories c nId a
+              ) $ Map.toList nls
+    --_ <- nodeStoryIncs (Just $ NodeStory nls) listIds
+    pure ()

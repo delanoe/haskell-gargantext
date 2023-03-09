@@ -1,4 +1,3 @@
-
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 
@@ -22,7 +21,7 @@ import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import qualified Gargantext.Database.Schema.Node as N
 import Gargantext.Prelude
 import GHC.Generics (Generic)
-import qualified Prelude as Prelude
+import qualified Prelude
 import Text.Read (readEither)
 
 data Node = Node

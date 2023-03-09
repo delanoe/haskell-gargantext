@@ -20,25 +20,28 @@ Ngrams connection to the Database.
 module Gargantext.Database.Schema.Ngrams
   where
 
-import Data.Maybe (fromMaybe)
-import Data.HashMap.Strict (HashMap)
-import Data.Hashable (Hashable)
 import Codec.Serialise (Serialise())
 import Control.Lens (over)
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.Aeson.Types (toJSONKeyText)
-import Data.Map (fromList, lookup)
+import Data.HashMap.Strict (HashMap)
+import Data.Hashable (Hashable)
+import Data.Map.Strict (fromList, lookup)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text, splitOn, pack, strip)
+import Database.PostgreSQL.Simple.FromField (returnError, ResultError(..))
+import Gargantext.Core (HasDBid(..))
 import Gargantext.Core.Types (TODO(..), Typed(..))
+import Gargantext.Database.Schema.Prelude hiding (over)
+import Gargantext.Database.Types
 import Gargantext.Prelude
 import Servant (FromHttpApiData(..), Proxy(..), ToHttpApiData(..))
+import Test.QuickCheck (elements)
 import Text.Read (read)
-import Gargantext.Core (HasDBid(..))
-import Gargantext.Database.Types
-import Gargantext.Database.Schema.Prelude
-import qualified Database.PostgreSQL.Simple as PGS
+import qualified Data.ByteString.Char8 as B
 import qualified Data.HashMap.Strict as HashMap
+import qualified Database.PostgreSQL.Simple as PGS
 
 
 type NgramsId  = Int
@@ -49,17 +52,13 @@ data NgramsPoly id terms n = NgramsDB { _ngrams_id    :: !id
                                       , _ngrams_n     :: !n
                                       } deriving (Show)
 
-type NgramsWrite = NgramsPoly (Maybe (Column SqlInt4))
-                                   (Column SqlText)
-                                   (Column SqlInt4)
+type NgramsWrite = NgramsPoly (Maybe (Field SqlInt4))
+                                   (Field SqlText)
+                                   (Field SqlInt4)
 
-type NgramsRead  = NgramsPoly (Column SqlInt4)
-                              (Column SqlText)
-                              (Column SqlInt4)
-
-type NgramsReadNull = NgramsPoly (Column (Nullable SqlInt4))
-                                 (Column (Nullable SqlText))
-                                 (Column (Nullable SqlInt4))
+type NgramsRead  = NgramsPoly (Field SqlInt4)
+                              (Field SqlText)
+                              (Field SqlInt4)
 
 type NgramsDB = NgramsPoly Int Text Int
 
@@ -84,6 +83,51 @@ data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Read, Ord, Enum, Bounded, Generic)
 
 instance Serialise NgramsType
+instance FromJSON NgramsType
+  where
+    parseJSON (String "Authors")     = pure Authors
+    parseJSON (String "Institutes")  = pure Institutes
+    parseJSON (String "Sources")     = pure Sources
+    parseJSON (String "Terms")       = pure NgramsTerms
+    parseJSON (String "NgramsTerms") = pure NgramsTerms
+    parseJSON _                      = mzero
+
+instance FromJSONKey NgramsType where
+   fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
+
+instance ToJSON NgramsType
+  where
+    toJSON Authors     = String "Authors"
+    toJSON Institutes  = String "Institutes"
+    toJSON Sources     = String "Sources"
+    toJSON NgramsTerms = String "Terms"
+
+instance ToJSONKey NgramsType where
+   toJSONKey = toJSONKeyText (pack . show)
+instance FromHttpApiData NgramsType where
+  parseUrlPiece n = pure $ (read . cs) n
+instance ToHttpApiData NgramsType where
+  toUrlPiece = pack . show
+instance ToParamSchema NgramsType where
+  toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
+instance Arbitrary NgramsType where
+  arbitrary = elements [ minBound .. maxBound ]
+
+-- map NgramsType to its assigned id
+instance FromField NgramsType where
+  fromField fld mdata =
+    case B.unpack `fmap` mdata of
+      Nothing -> returnError UnexpectedNull fld ""
+      Just dat -> do
+        n <- fromField fld mdata
+        if (n :: Int) > 0 then
+          case fromNgramsTypeId (NgramsTypeId n) of
+            Nothing -> returnError ConversionFailed fld dat
+            Just nt -> pure nt
+        else
+          returnError ConversionFailed fld dat
+instance ToField NgramsType where
+  toField nt = toField $ ngramsTypeId nt
 
 
 ngramsTypes :: [NgramsType]
@@ -96,41 +140,21 @@ instance ToSchema NgramsType
 
 newtype NgramsTypeId = NgramsTypeId Int
   deriving (Eq, Show, Ord, Num)
-
 instance ToField NgramsTypeId where
   toField (NgramsTypeId n) = toField n
-
 instance FromField NgramsTypeId where
   fromField fld mdata = do
     n <- fromField fld mdata
     if (n :: Int) > 0 then return $ NgramsTypeId n
                       else mzero
-
-instance FromJSON NgramsType
-instance FromJSONKey NgramsType where
-   fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
-
-instance ToJSON NgramsType
-instance ToJSONKey NgramsType where
-   toJSONKey = toJSONKeyText (pack . show)
-
-instance FromHttpApiData NgramsType where
-  parseUrlPiece n = pure $ (read . cs) n
-instance ToHttpApiData NgramsType where
-  toUrlPiece = pack . show
-
-instance ToParamSchema NgramsType where
-  toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
-
-
 instance DefaultFromField (Nullable SqlInt4) NgramsTypeId
   where
     defaultFromField = fromPGSFromField
 
-pgNgramsType :: NgramsType -> Column SqlInt4
+pgNgramsType :: NgramsType -> Field SqlInt4
 pgNgramsType = pgNgramsTypeId . ngramsTypeId
 
-pgNgramsTypeId :: NgramsTypeId -> Column SqlInt4
+pgNgramsTypeId :: NgramsTypeId -> Field SqlInt4
 pgNgramsTypeId (NgramsTypeId n) = sqlInt4 n
 
 ngramsTypeId :: NgramsType -> NgramsTypeId

@@ -44,10 +44,10 @@ getPriors :: HasDBid NodeType => FavOrTrash -> CorpusId -> Cmd err (Events Bool)
 getPriors ft cId = do
 
   docs_fav   <- filter (\(FacetDoc _ _ _ _ f _ _) -> f == Just 2)
-              <$> runViewDocuments cId False Nothing Nothing Nothing Nothing
+              <$> runViewDocuments cId False Nothing Nothing Nothing Nothing Nothing
 
   docs_trash <- List.take (List.length docs_fav)
-            <$> runViewDocuments cId True Nothing Nothing Nothing Nothing
+            <$> runViewDocuments cId True Nothing Nothing Nothing Nothing Nothing
 
 
   let priors = priorEventsWith text (fav2bool ft) (  List.zip (repeat False) docs_fav
@@ -62,7 +62,7 @@ moreLikeWith :: HasDBid NodeType
 moreLikeWith cId o l order ft priors = do
 
   docs_test  <- filter (\(FacetDoc _ _ _ _ f _ _) -> f == Just 1)
-            <$> runViewDocuments cId False o Nothing order Nothing
+            <$> runViewDocuments cId False o Nothing order Nothing Nothing
 
   let results = map fst
        $ filter ((==) (Just $ not $ fav2bool ft) . snd)

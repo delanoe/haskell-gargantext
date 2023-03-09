@@ -24,6 +24,7 @@ import Gargantext.API.Admin.EnvTypes (DevEnv)
 import Gargantext.API.Dev (withDevEnv, runCmdDev)
 import Gargantext.API.Node () -- instances only
 import Gargantext.API.Prelude (GargError)
+import Gargantext.API.Ngrams.Tools (migrateFromDirToDb)
 import Gargantext.Core (HasDBid(toDBid))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow (getOrMk_RootWithCorpus)
@@ -32,7 +33,6 @@ import Gargantext.Database.Admin.Trigger.Init
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataCorpus)
 import Gargantext.Database.Admin.Types.Node (NodeType(NodeDocument, NodeContact))
 import Gargantext.Database.Prelude (Cmd'', Cmd, execPGSQuery)
-import Gargantext.Database.Query.Table.Node (getOrMkList)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..), readConfig)
 import Prelude (getLine)
@@ -42,10 +42,13 @@ import qualified Data.List as List (cycle, concat, take, unlines)
 main :: IO ()
 main = do
 
-  let ___ = putStrLn $ List.concat $ List.take 72 $ List.cycle ["_"]
+  let ___ = putStrLn
+          $ List.concat
+          $ List.take 72
+          $ List.cycle ["_"]
 
   ___
-  putStrLn "GarganText upgrade to version 0.0.5"
+  putStrLn "GarganText upgrade to version 0.0.6"
   ___
 
   params@[iniPath] <- getArgs
@@ -57,42 +60,17 @@ main = do
            [ "Your Database defined in gargantext.ini will be upgraded."
            , "We stronlgy recommend you to make a backup using pg_dump."
            , ""
-           , "If you encounter issues, please report your bugs here:"
-           , "https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/101"
-           , ""
            , "Press ENTER if you want to continue, CTRL+C if you want to stop."
            ]
-  
+
   _ok  <- getLine
 
   cfg       <- readConfig         iniPath
-  let secret = _gc_secretkey cfg
-
-  let
-    contextsTriggers :: Cmd GargError ()
-    contextsTriggers = do
-      (masterUserId, _masterRootId, masterCorpusId)
-                  <- getOrMk_RootWithCorpus (UserName userMaster)
-                                            (Left corpusMasterName)
-                                            (Nothing :: Maybe HyperdataCorpus)
-      masterListId <- getOrMkList masterCorpusId masterUserId
-      _triggers    <- initLastTriggers masterListId
-      pure ()
-
+  let _secret = _gc_secretkey cfg
 
   withDevEnv iniPath $ \env -> do
     -- First upgrade the Database Schema
-    _ <- runCmdDev env sqlSchema
-
-    -- Then upgrade the triggers
-    _ <- runCmdDev env (initFirstTriggers secret :: Cmd GargError [Int64])
-    _ <- runCmdDev env (contextsTriggers         :: Cmd GargError ())
-
-   -- Move nodes to contexts table 
-    _ <- runCmdDev env sqlNodes2Contexts
-
-   -- Update the hashes
-    _ <- runCmdDev env sqlUpdateTriggerHash
+    _ <- runCmdDev env (migrateFromDirToDb :: Cmd GargError ())
 
     ___
     putStrLn "Uprade done with success !"
@@ -100,7 +78,7 @@ main = do
     pure ()
 
 
-
+{-
 sqlUpdateTriggerHash :: Cmd'' DevEnv IOException Int64
 sqlUpdateTriggerHash = do
   execPGSQuery query ()
@@ -284,5 +262,4 @@ sqlSchema = do
 
   |]
 
-
-
+-}

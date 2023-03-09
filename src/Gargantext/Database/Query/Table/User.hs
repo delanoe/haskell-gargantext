@@ -25,6 +25,10 @@ module Gargantext.Database.Query.Table.User
   , queryUserTable
   , getUserHyperdata
   , getUsersWithHyperdata
+  , getUsersWithNodeHyperdata
+  , updateUserEmail
+  , updateUserPassword
+  , updateUserForgotPasswordUUID
   , getUser
   , insertNewUsers
   , selectUsersLightWith
@@ -32,6 +36,8 @@ module Gargantext.Database.Query.Table.User
   , userWithId
   , userLightWithId
   , getUsersWith
+  , getUsersWithEmail
+  , getUsersWithForgotPasswordUUID
   , getUsersWithId
   , module Gargantext.Database.Schema.User
   )
@@ -39,14 +45,18 @@ module Gargantext.Database.Query.Table.User
 
 import Control.Arrow (returnA)
 import Control.Lens ((^.))
+import Data.Maybe (fromMaybe)
 import Data.List (find)
 import Data.Text (Text)
 import Data.Time (UTCTime)
+import qualified Data.UUID as UUID
 import Gargantext.Core.Types.Individu
 import qualified Gargantext.Prelude.Crypto.Auth as Auth
+import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataUser)
+import Gargantext.Database.Admin.Types.Node (NodeType(NodeUser), Node)
 import Gargantext.Database.Prelude
-import Gargantext.Database.Schema.Node (node_hyperdata, node_id, queryNodeTable)
+import Gargantext.Database.Schema.Node (NodeRead, node_hyperdata, queryNodeTable, node_user_id, node_typename)
 import Gargantext.Database.Schema.User
 import Gargantext.Prelude
 import Opaleye
@@ -71,25 +81,34 @@ updateUserDB us = mkCmd $ \c -> runUpdate_ c (updateUserQuery us)
     updateUserQuery :: UserWrite -> Update Int64
     updateUserQuery us' = Update
       { uTable      = userTable
-      , uUpdateWith = updateEasy (\ (UserDB _id _p ll su un fn ln _em is ia dj)
-                                  -> UserDB _id p' ll su un fn ln em' is ia dj
+      , uUpdateWith = updateEasy (\ (UserDB { .. })
+                                  -> UserDB { user_password = p'
+                                            , user_email = em'
+                                            , .. }
                                  )
       , uWhere      = (\row -> user_username row .== un')
       , uReturning  = rCount
       }
         where
-          UserDB _ p' _ _ un' _ _ em' _ _ _ = us'
+          UserDB { user_password = p'
+                 , user_username = un'
+                 , user_email = em' } = us'
 
 -----------------------------------------------------------------------
 toUserWrite :: NewUser HashPassword -> UserWrite
-toUserWrite (NewUser u m (Auth.PasswordHash p)) = 
-  UserDB (Nothing) (sqlStrictText p)
-         (Nothing) (sqlBool True) (sqlStrictText u)
-         (sqlStrictText "first_name")
-         (sqlStrictText "last_name")
-         (sqlStrictText m)
-         (sqlBool True)
-         (sqlBool True) Nothing
+toUserWrite (NewUser u m (Auth.PasswordHash p)) =
+  UserDB { user_id = Nothing
+         , user_password = sqlStrictText p
+         , user_lastLogin = Nothing
+         , user_isSuperUser = sqlBool True
+         , user_username = sqlStrictText u
+         , user_firstName = sqlStrictText "first_name"
+         , user_lastName = sqlStrictText "last_name"
+         , user_email = sqlStrictText m
+         , user_isStaff = sqlBool True
+         , user_isActive = sqlBool True
+         , user_dateJoined = Nothing
+         , user_forgot_password_uuid = Nothing }
 
 ------------------------------------------------------------------
 getUsersWith :: Username -> Cmd err [UserLight]
@@ -99,6 +118,24 @@ selectUsersLightWith :: Username -> Select UserRead
 selectUsersLightWith u = proc () -> do
       row      <- queryUserTable -< ()
       restrict -< user_username row .== sqlStrictText u
+      returnA  -< row
+
+getUsersWithEmail :: Text -> Cmd err [UserLight]
+getUsersWithEmail e = map toUserLight <$> runOpaQuery (selectUsersLightWithEmail e)
+
+selectUsersLightWithEmail :: Text -> Select UserRead
+selectUsersLightWithEmail e = proc () -> do
+      row      <- queryUserTable -< ()
+      restrict -< user_email row .== sqlStrictText e
+      returnA  -< row
+
+getUsersWithForgotPasswordUUID :: UUID.UUID -> Cmd err [UserLight]
+getUsersWithForgotPasswordUUID uuid = map toUserLight <$> runOpaQuery (selectUsersLightWithForgotPasswordUUID uuid)
+
+selectUsersLightWithForgotPasswordUUID :: UUID.UUID -> Select UserRead
+selectUsersLightWithForgotPasswordUUID uuid = proc () -> do
+      row      <- queryUserTable -< ()
+      restrict -< user_forgot_password_uuid row .== sqlStrictText (UUID.toText uuid)
       returnA  -< row
 
 ----------------------------------------------------------
@@ -123,14 +160,68 @@ getUserHyperdata i = do
     selectUserHyperdataWithId :: Int -> Select (Column SqlJsonb)
     selectUserHyperdataWithId i' = proc () -> do
       row      <- queryNodeTable -< ()
-      restrict -< row^.node_id .== (sqlInt4 i')
+      restrict -< row^.node_user_id .== (sqlInt4 i')
+      restrict -< row^.node_typename .== (sqlInt4 $ nodeTypeId NodeUser)
       returnA  -< row^.node_hyperdata
+
+getUserNodeHyperdata :: Int -> Cmd err [Node HyperdataUser]
+getUserNodeHyperdata i = do
+  runOpaQuery (selectUserHyperdataWithId i)
+  where
+    selectUserHyperdataWithId :: Int -> Select NodeRead
+    selectUserHyperdataWithId i' = proc () -> do
+      row      <- queryNodeTable -< ()
+      restrict -< row^.node_user_id .== (sqlInt4 i')
+      restrict -< row^.node_typename .== (sqlInt4 $ nodeTypeId NodeUser)
+      returnA  -< row
+
+
 
 getUsersWithHyperdata :: Int -> Cmd err [(UserLight, HyperdataUser)]
 getUsersWithHyperdata i = do
   u <- getUsersWithId i
   h <- getUserHyperdata i
+  -- printDebug "[getUsersWithHyperdata]" (u,h)
   pure $ zip u h
+
+getUsersWithNodeHyperdata :: Int -> Cmd err [(UserLight, Node HyperdataUser)]
+getUsersWithNodeHyperdata i = do
+  u <- getUsersWithId i
+  h <- getUserNodeHyperdata i
+  -- printDebug "[getUsersWithHyperdata]" (u,h)
+  pure $ zip u h
+
+
+updateUserEmail :: UserLight -> Cmd err Int64
+updateUserEmail (UserLight { .. }) = mkCmd $ \c -> runUpdate_ c updateUserQuery
+  where
+    updateUserQuery :: Update Int64
+    updateUserQuery = Update
+      { uTable      = userTable
+      , uUpdateWith = updateEasy (\ (UserDB { .. }) -> UserDB { user_email = sqlStrictText userLight_email, .. } )
+      , uWhere      = (\row -> user_id row .== (sqlInt4 userLight_id))
+      , uReturning  = rCount }
+
+updateUserPassword :: UserLight -> Cmd err Int64
+updateUserPassword (UserLight { userLight_password = GargPassword password, .. }) = mkCmd $ \c -> runUpdate_ c updateUserQuery
+  where
+    updateUserQuery :: Update Int64
+    updateUserQuery = Update
+      { uTable      = userTable
+      , uUpdateWith = updateEasy (\ (UserDB { .. }) -> UserDB { user_password = sqlStrictText password, .. } )
+      , uWhere      = (\row -> user_id row .== (sqlInt4 userLight_id))
+      , uReturning  = rCount }
+
+updateUserForgotPasswordUUID :: UserLight -> Cmd err Int64
+updateUserForgotPasswordUUID (UserLight { .. }) = mkCmd $ \c -> runUpdate_ c updateUserQuery
+  where
+    pass = sqlStrictText $ fromMaybe "" userLight_forgot_password_uuid
+    updateUserQuery :: Update Int64
+    updateUserQuery = Update
+      { uTable      = userTable
+      , uUpdateWith = updateEasy (\ (UserDB { .. }) -> UserDB { user_forgot_password_uuid = pass, .. })
+      , uWhere      = (\row -> user_id row .== (sqlInt4 userLight_id))
+      , uReturning  = rCount }
 ------------------------------------------------------------------
 -- | Select User with some parameters
 -- Not optimized version

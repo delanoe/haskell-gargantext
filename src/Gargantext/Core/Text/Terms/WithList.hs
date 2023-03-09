@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Core.Text.Terms.WithList
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -21,6 +21,8 @@ import Data.Text (Text, concat, unwords)
 import Gargantext.Prelude
 import Gargantext.Core.Text.Context
 import Gargantext.Core.Text.Terms.Mono (monoTextsBySentence)
+import Gargantext.Core.Types (TermsCount)
+import Gargantext.Core.Utils (groupWithCounts)
 import Prelude (error)
 import qualified Data.Algorithms.KMP as KMP
 import qualified Data.IntMap.Strict  as IntMap
@@ -35,8 +37,11 @@ data Pattern = Pattern
 type Patterns = [Pattern]
 
 ------------------------------------------------------------------------
-replaceTerms :: Patterns -> [Text] -> [[Text]]
-replaceTerms pats terms = go 0
+
+data ReplaceTerms = KeepAll | LongestOnly
+
+replaceTerms :: ReplaceTerms -> Patterns -> [Text] -> [[Text]]
+replaceTerms rplaceTerms pats terms = go 0
   where
     terms_len = length terms
 
@@ -47,14 +52,16 @@ replaceTerms pats terms = go 0
         Just (len, term) ->
           term : go (ix + len)
 
-
-    merge (len1, lab1) (len2, lab2) =
-      if len2 < len1 then (len1, lab1) else (len2, lab2)
-
-    m =
-      IntMap.fromListWith merge
+    m = toMap
         [ (ix, (len, term))
         | Pattern pat len term <- pats, ix <- KMP.match pat terms ]
+
+    toMap = case rplaceTerms of
+      KeepAll -> IntMap.fromList
+      LongestOnly -> IntMap.fromListWith merge
+        where
+          merge (len1, lab1) (len2, lab2) =
+            if len2 < len1 then (len1, lab1) else (len2, lab2)
 
 buildPatterns :: TermList -> Patterns
 buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern
@@ -70,10 +77,9 @@ buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern
 
 --------------------------------------------------------------------------
 -- Utils
-type BlockText   = Text
 type MatchedText = Text
-termsInText :: Patterns -> BlockText -> [MatchedText]
-termsInText pats txt = List.nub
+termsInText :: Patterns -> Text -> [(MatchedText, TermsCount)]
+termsInText pats txt = groupWithCounts
                      $ List.concat
                      $ map (map unwords)
                      $ extractTermsWithList pats txt
@@ -81,14 +87,14 @@ termsInText pats txt = List.nub
 --------------------------------------------------------------------------
 
 extractTermsWithList :: Patterns -> Text -> Corpus [Text]
-extractTermsWithList pats = map (replaceTerms pats) . monoTextsBySentence
+extractTermsWithList pats = map (replaceTerms KeepAll pats) . monoTextsBySentence
 
 -- | Extract terms
 -- >>> let termList = [(["chat blanc"], [["chat","blanc"]])] :: TermList
 -- extractTermsWithList' (buildPatterns termList) "Le chat blanc"["chat blanc"]
 -- ["chat blanc"]
 extractTermsWithList' :: Patterns -> Text -> [Text]
-extractTermsWithList' pats = map (concat . map concat . replaceTerms pats)
+extractTermsWithList' pats = map (concat . map concat . replaceTerms KeepAll pats)
                            . monoTextsBySentence
 
 --------------------------------------------------------------------------
@@ -96,7 +102,7 @@ extractTermsWithList' pats = map (concat . map concat . replaceTerms pats)
 {- | Not used
 filterWith :: TermList
            -> (a -> Text)
-           -> [a] 
+           -> [a]
            -> [(a, [Text])]
 filterWith termList f xs = filterWith' termList f zip xs
 
@@ -104,7 +110,7 @@ filterWith termList f xs = filterWith' termList f zip xs
 filterWith' :: TermList
            -> (a -> Text)
            -> ([a] -> [[Text]] -> [b])
-           -> [a] 
+           -> [a]
            -> [b]
 filterWith' termList f f' xs = f' xs
                             $ map (extractTermsWithList' pats)

@@ -38,3 +38,5 @@ repos
 repo.json*
 tmp*repo*json
 data
+
+devops/docker/js-cache

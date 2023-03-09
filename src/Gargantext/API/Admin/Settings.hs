@@ -1,4 +1,4 @@
-{-| 
+{-|
 Module      : Gargantext.API.Admin.Settings
 Description : Settings of the API (Server and Client)
 Copyright   : (c) CNRS, 2017-Present
@@ -21,13 +21,13 @@ module Gargantext.API.Admin.Settings
 -- import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Codec.Serialise (Serialise(), serialise)
 import Control.Lens
-import Control.Monad.Logger
+import Control.Monad.Logger (LogLevel(..))
 import Control.Monad.Reader
 import Data.Maybe (fromMaybe)
 import Data.Pool (Pool, createPool)
 import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
 import Gargantext.Core.NodeStory
-import Gargantext.Prelude.Config (GargConfig(..), {-gc_repofilepath,-} readConfig)
+import Gargantext.Prelude.Config ({-GargConfig(..),-} {-gc_repofilepath,-} readConfig)
 import Network.HTTP.Client.TLS (newTlsManager)
 import Servant.Auth.Server (defaultJWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
 import Servant.Client (parseBaseUrl)
@@ -43,10 +43,14 @@ import qualified Data.ByteString.Lazy as L
 import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Admin.Types
 -- import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
-import Gargantext.Database.Prelude (databaseParameters)
+import Gargantext.Database.Prelude (databaseParameters, hasConfig)
 import Gargantext.Prelude
--- import Gargantext.Prelude.Config (gc_repofilepath)
+import Gargantext.Prelude.Config (gc_js_job_timeout, gc_js_id_timeout)
 import qualified Gargantext.Prelude.Mail as Mail
+import qualified Gargantext.Utils.Jobs       as Jobs
+import qualified Gargantext.Utils.Jobs.Monad as Jobs
+import qualified Gargantext.Utils.Jobs.Queue as Jobs
+import qualified Gargantext.Utils.Jobs.Settings as Jobs
 
 devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
@@ -177,11 +181,22 @@ newEnv port file = do
     panic "TODO: conflicting settings of port"
 
   config_env    <- readConfig file
+  prios         <- Jobs.readPrios (file <> ".jobs")
+  let prios' = Jobs.applyPrios prios Jobs.defaultPrios
+  putStrLn $ "Overrides: " <> show prios
+  putStrLn $ "New priorities: " <> show prios'
   self_url_env  <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   dbParam       <- databaseParameters file
   pool          <- newPool dbParam
-  nodeStory_env <- readNodeStoryEnv (_gc_repofilepath config_env)
+  --nodeStory_env <- readNodeStoryEnv (_gc_repofilepath config_env)
+  nodeStory_env <- readNodeStoryEnv pool
   scrapers_env  <- newJobEnv defaultSettings manager_env
+
+  secret        <- Jobs.genSecret
+  let jobs_settings = (Jobs.defaultJobSettings 1 secret)
+                        & Jobs.l_jsJobTimeout .~ (fromIntegral $ config_env ^. hasConfig ^. gc_js_job_timeout)
+                        & Jobs.l_jsIDTimeout  .~ (fromIntegral $ config_env ^. hasConfig ^. gc_js_id_timeout)
+  jobs_env      <- Jobs.newJobEnv jobs_settings prios' manager_env
   logger        <- newStderrLoggerSet defaultBufSize
   config_mail   <- Mail.readConfig file
 
@@ -192,6 +207,7 @@ newEnv port file = do
     , _env_nodeStory = nodeStory_env
     , _env_manager   = manager_env
     , _env_scrapers  = scrapers_env
+    , _env_jobs      = jobs_env
     , _env_self_url  = self_url_env
     , _env_config    = config_env
     , _env_mail      = config_mail

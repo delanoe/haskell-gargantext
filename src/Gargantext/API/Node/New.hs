@@ -26,11 +26,11 @@ import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Servant
-import Servant.Job.Async
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import Web.FormUrlEncoded          (FromForm, ToForm)
 
+import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Prelude
 import Gargantext.Database.Action.Flow.Types
@@ -41,6 +41,7 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
+import Gargantext.Utils.Jobs (serveJobsAPI)
 
 ------------------------------------------------------------------------
 data PostNode = PostNode { pn_name     :: Text
@@ -73,10 +74,11 @@ type PostNodeAsync = Summary "Post Node"
    :> AsyncJobs JobLog '[FormUrlEncoded] PostNode JobLog
 
 
-postNodeAsyncAPI :: UserId -> NodeId -> GargServer PostNodeAsync
+postNodeAsyncAPI
+  :: UserId -> NodeId -> ServerT PostNodeAsync (GargM Env GargError)
 postNodeAsyncAPI uId nId =
-  serveJobsAPI $
-    JobFunction (\p logs -> postNodeAsync uId nId p (liftBase . logs))
+  serveJobsAPI NewNodeJob $ \p logs ->
+    postNodeAsync uId nId p (liftBase . logs)
 
 ------------------------------------------------------------------------
 postNodeAsync :: FlowCmdM env err m
@@ -87,7 +89,7 @@ postNodeAsync :: FlowCmdM env err m
     -> m JobLog
 postNodeAsync uId nId (PostNode nodeName tn) logStatus = do
 
-  printDebug "postNodeAsync" nId
+  -- printDebug "postNodeAsync" nId
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
                    , _scst_remaining = Just 2

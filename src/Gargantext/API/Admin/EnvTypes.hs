@@ -5,6 +5,9 @@
 module Gargantext.API.Admin.EnvTypes where
 
 import Control.Lens
+import Control.Monad.Except
+import Control.Monad.Reader
+import Data.Monoid
 import Data.Pool (Pool)
 import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
@@ -16,12 +19,34 @@ import qualified Servant.Job.Core
 
 import Gargantext.API.Admin.Types
 import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.API.Prelude (GargError)
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Mail.Types (HasMail, mailSettings)
 import Gargantext.Database.Prelude (HasConnectionPool(..), HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..))
 import Gargantext.Prelude.Mail.Types (MailConfig)
+
+import qualified Gargantext.Utils.Jobs.Monad as Jobs
+
+data GargJob
+  = TableNgramsJob
+  | ForgotPasswordJob
+  | UpdateNgramsListJobJSON
+  | UpdateNgramsListJobCSV
+  | AddContactJob
+  | AddFileJob
+  | DocumentFromWriteNodeJob
+  | UpdateNodeJob
+  | UploadFrameCalcJob
+  | UploadDocumentJob
+  | NewNodeJob
+  | AddCorpusQueryJob
+  | AddCorpusFormJob
+  | AddCorpusFileJob
+  | AddAnnuaireFormJob
+  | RecomputeGraphJob
+  deriving (Show, Eq, Ord, Enum, Bounded)
 
 data Env = Env
   { _env_settings  :: !Settings
@@ -31,6 +56,7 @@ data Env = Env
   , _env_manager   :: !Manager
   , _env_self_url  :: !BaseUrl
   , _env_scrapers  :: !ScrapersEnv
+  , _env_jobs      :: !(Jobs.JobEnv GargJob (Dual [JobLog]) JobLog)
   , _env_config    :: !GargConfig
   , _env_mail      :: !MailConfig
   }
@@ -53,18 +79,26 @@ instance HasNodeStoryVar Env where
 instance HasNodeStorySaver Env where
   hasNodeStorySaver = hasNodeStory . nse_saver
 
+instance HasNodeStoryImmediateSaver Env where
+  hasNodeStoryImmediateSaver = hasNodeStory . nse_saver_immediate
+
+instance HasNodeArchiveStoryImmediateSaver Env where
+  hasNodeArchiveStoryImmediateSaver = hasNodeStory . nse_archive_saver_immediate
+
 instance HasSettings Env where
   settings = env_settings
 
 instance HasMail Env where
   mailSettings = env_mail
 
-
 instance Servant.Job.Core.HasEnv Env (Job JobLog JobLog) where
   _env = env_scrapers . Servant.Job.Core._env
 
 instance HasJobEnv Env JobLog JobLog where
   job_env = env_scrapers
+
+instance Jobs.MonadJob (ReaderT Env (ExceptT GargError IO)) GargJob (Dual [JobLog]) JobLog where
+  getJobEnv = asks (view env_jobs)
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall
@@ -103,6 +137,12 @@ instance HasNodeStoryVar DevEnv where
 
 instance HasNodeStorySaver DevEnv where
   hasNodeStorySaver = hasNodeStory . nse_saver
+
+instance HasNodeStoryImmediateSaver DevEnv where
+  hasNodeStoryImmediateSaver = hasNodeStory . nse_saver_immediate
+
+instance HasNodeArchiveStoryImmediateSaver DevEnv where
+  hasNodeArchiveStoryImmediateSaver = hasNodeStory . nse_archive_saver_immediate
 
 instance HasMail DevEnv where
   mailSettings = dev_env_mail

@@ -1,0 +1,48 @@
+FROM gibiansky/ihaskell
+
+USER 0
+
+# gargantext stuff
+RUN apt-get update && \
+    apt-get install -y libblas-dev \
+    libbz2-dev \
+    libcairo2-dev \
+    libgsl-dev \
+    liblapack-dev \
+    liblzma-dev \
+    libmagic-dev \
+    libpq-dev \
+    librust-pangocairo-dev \
+    lzma-dev \
+    libzmq3-dev \
+    pkg-config    && \
+    rm -rf /var/lib/apt/lists/*
+
+# ADD . /home/joyvan/src
+# RUN chown -R 1000 /home/joyvan/src
+
+USER 1000
+
+# WORKDIR /home/joyvan/src
+# RUN stack install --fast
+
+RUN stack install aeson aeson-lens aeson-pretty array \
+    blaze-html blaze-markup bytestring \
+    conduit conduit-extra containers \
+    deepseq directory duckling \
+    ekg-core ekg-json exceptions \
+    fgl filepath formatting \
+    hashable hsparql http-api-data http-client http-client-tls http-conduit \
+    ini json-stream lens monad-control monad-logger \
+    morpheus-graphql morpheus-graphql-app morpheus-graphql-core morpheus-graphql-subscriptions \
+    mtl natural-transformation opaleye pandoc parallel parsec rdf4h \
+    postgresql-simple profunctors protolude semigroups \
+    servant servant-auth servant-auth-swagger servant-server \
+    tagsoup template-haskell time transformers transformers-base \
+    tuple unordered-containers uuid vector \
+    wai wai-app-static wai-cors wai-extra wai-websockets warp wreq \
+    xml-conduit xml-types yaml zip zlib --fast
+
+#CMD ["jupyter", "notebook", "--ip", "0.0.0.0"]
+CMD ["stack", "exec", "jupyter", "--", "notebook", "--ip", "0.0.0.0"]
+

@@ -16,7 +16,7 @@ module Gargantext.API.Ngrams.Prelude
 
 import Data.Maybe (catMaybes)
 import Control.Lens (view)
-import Data.Map (fromList)
+import Data.Map.Strict (fromList)
 import Data.Hashable (Hashable)
 import Data.Validity
 import Gargantext.API.Ngrams.Types
@@ -71,10 +71,10 @@ toTermList lt nt nl = toTermList' lt <$> Map.lookup nt nl
 
         children' = catMaybes
                   $ map (\(t,nre) -> (,) <$> view nre_root nre
-                                         <*> Just (map toTerm $ [t] 
+                                         <*> Just (map toTerm $ [t]
                                                              <> (unMSet $ view nre_children nre)
                                                   )
-                        ) children 
+                        ) children
 
 ------------------------------------------
 patchMSet_toList :: (Ord a, Hashable a) => PatchMSet a -> [(a,AddRem)]

@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Types
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -16,7 +16,8 @@ commentary with @some markup@.
 
 module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , module Gargantext.Database.Admin.Types.Node
-                             , Term, Terms(..)
+                             , DebugMode(..), withDebugMode
+                             , Term, Terms(..), TermsCount, TermsWithCount
                              , TokenTag(..), POS(..), NER(..)
                              , Label, Stems
                              , HasInvalidError(..), assertValid
@@ -29,6 +30,7 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
 
 import Control.Lens (Prism', (#), makeLenses, over)
 import Control.Monad.Except (MonadError(throwError))
+import Debug.Trace (trace)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Hashable (Hashable)
@@ -48,6 +50,14 @@ import Gargantext.Prelude
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
+
+data DebugMode = DebugMode { activated :: Bool }
+
+withDebugMode :: (Show a) => DebugMode -> Text -> a -> b -> b
+withDebugMode (DebugMode True ) msg var a = trace (cs $ "DEBUG" <> msg <> (cs $ show var)) a
+withDebugMode (DebugMode False) _   _ a = a
+
+------------------------------------------------------------------------
 data Ordering = Down | Up
   deriving (Enum, Show, Eq, Bounded)
 
@@ -59,10 +69,13 @@ type Label = [Text]
 
 data Terms = Terms { _terms_label :: Label
                    , _terms_stem  :: Stems
-                   } deriving (Ord)
-
+                   } deriving (Ord, Show)
 instance Eq Terms where
   (==) (Terms _ s1) (Terms _ s2) = s1 == s2
+
+type TermsCount = Int
+
+type TermsWithCount = (Terms, TermsCount)
 
 ------------------------------------------------------------------------
 data Tag = POS | NER
@@ -71,34 +84,53 @@ data Tag = POS | NER
 data POS = NP
          | JJ  | VB
          | CC  | IN | DT
-         | NoPos
+         | ADV
+         | NotFound { not_found :: [Char] }
   deriving (Show, Generic, Eq, Ord)
 ------------------------------------------------------------------------
+-- https://pythonprogramming.net/part-of-speech-tagging-nltk-tutorial/
 instance FromJSON POS where
   parseJSON = withText "String" (\x -> pure (pos $ unpack x))
     where
       pos :: [Char] -> POS
-      pos "NP"  = NP
-      pos "NN"  = NP
-      pos "NC"  = NP
-      pos "NNS" = NP
-      pos "NNP" = NP
-      pos "JJ"  = JJ
-      pos "ADJ" = JJ
-      pos "VB"  = VB
-      pos "VBN" = VB
-      pos "VBG" = VB
-      pos "CC"  = CC
-      pos "IN"  = IN
-      pos "DT"  = DT
+      pos "ADJ"  = JJ
+      pos "CC"   = CC
+      pos "CCONJ"= CC
+      pos "DT"   = DT
+      pos "DET"  = DT
+      pos "IN"   = IN
+      pos "JJ"    = JJ
+      pos "PROPN" = JJ
+      pos "JJR"  = JJ
+      pos "JJS"  = JJ
+      pos "NC"   = NP
+      pos "NN"   = NP
+      pos "NOUN" = NP
+      pos "NNS"  = NP
+      pos "NNP"  = NP
+      pos "NNPS" = NP
+      pos "NP"   = NP
+      pos "VB"   = VB
+      pos "VERB" = VB
+      pos "VBD"  = VB
+      pos "VBG"  = VB
+      pos "VBN"  = VB
+      pos "VBP"  = VB
+      pos "VBZ"  = VB
+      pos "RB"   = ADV
+      pos "ADV"  = ADV
+      pos "RBR"  = ADV
+      pos "RBS"  = ADV
+      pos "WRB"  = ADV
       -- French specific
-      pos "P"   = IN
-      pos  _    = NoPos
+      pos "P"     = IN
+      pos "PUNCT" = IN
+      pos  x      = NotFound x
 
 instance ToJSON POS
 instance Hashable POS
 ------------------------------------------------------------------------
-data NER = PERSON | ORGANIZATION | LOCATION | NoNER
+data NER = PERSON | ORGANIZATION | LOCATION | NoNER { noNer :: !Text }
   deriving (Show, Generic)
 ------------------------------------------------------------------------
 instance FromJSON NER where
@@ -106,9 +138,11 @@ instance FromJSON NER where
     where
       ner :: [Char] -> NER
       ner "PERSON"       = PERSON
+      ner "PER"          = PERSON
       ner "ORGANIZATION" = ORGANIZATION
       ner "LOCATION"     = LOCATION
-      ner  _             = NoNER
+      ner "LOC"          = LOCATION
+      ner  x             = NoNER (cs x)
 
 instance ToJSON NER
 
@@ -177,5 +211,3 @@ data TODO = TODO
 instance ToSchema TODO where
 instance ToParamSchema TODO where
 ----------------------------------------------------------------------------
-
-

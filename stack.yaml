@@ -1,12 +1,15 @@
 resolver:
- url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/18.yaml
-flags: {}
+ url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
+flags:
+    accelerate:
+        debug: false
 extra-package-dbs: []
 skip-ghc-check: true
 packages:
 - .
-  #- 'deps/gargantext-graph'
-  #- 'deps/haskell-opaleye'
+  # - 'deps/haskell-igraph'
+  # - 'deps/crawlers/arxiv-api'
+  # - 'deps/haskell-opaleye'
 
 docker:
   enable: false
@@ -25,23 +28,25 @@ nix:
 
 allow-newer: true
 
-#ghc-options:
+ghc-options:
+  "$everything": -fprint-potential-instances
 #  "$everything": -haddock
 
 extra-deps:
+- hstatistics-0.3.1
+- HSvm-0.1.1.3.22
+- hsparql-0.3.8
+
 - git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-  commit: 220f32810f988a5a121f110a7d557fc7d0721712
+  commit: 791c2a7046a3760f8ae5fabdbd708f61caa63741
+  #- git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude
 - git: https://gitlab.iscpif.fr/gargantext/gargantext-graph.git
-  commit: f68f9e78ff4302f53d0855190574c2d818a00b4d
+  commit: 588e104fe7593210956610cab0041fd16584a4ce
   # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
 - git: https://gitlab.iscpif.fr/gargantext/hlcm.git
   commit: 6f0595d2421005837d59151a8b26eee83ebb67b5
-- git: https://github.com/delanoe/hstatistics.git
-  commit: 90eef7604bb230644c2246eccd094d7bfefcb135
-- git: https://github.com/paulrzcz/HSvm.git
-  commit: 3fe28b683aba5ddf05e3b5f8eced0bd05c5a29f9
 
   # API libs
 - git: https://github.com/haskell-servant/servant.git
@@ -54,52 +59,64 @@ extra-deps:
     - servant-auth/servant-auth/
     - servant-auth/servant-auth-client/
     - servant-auth/servant-auth-server/
-- git: https://github.com/delanoe/servant-static-th.git
-  commit: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
 - git: https://github.com/alpmestan/ekg-json.git
   commit: fd7e5d7325939103cd87d0dc592faf644160341c
 
   # Databases libs
-- git: https://github.com/delanoe/haskell-opaleye.git
-  commit: 756cb90f4ce725463d957bc899d764e0ed73738c
-- git: https://github.com/delanoe/hsparql.git
-  commit: 2acbbc55ac9bbd4bf1a713c586b8b8e8b82892eb
+- git: https://github.com/garganscript/haskell-opaleye.git
+  commit: 18c4958e076f5f8f82a4e4a3fc9ec659d2bd8766
 - git: https://github.com/robstewart57/rdf4h.git
   commit: 4fd2edf30c141600ffad6d730cc4c1c08a6dbce4
 
   # External Data API connectors
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed.git
-  commit: 12cb16c391577bff4295e3dd1b126281d78037b4
+  commit: 4ade495751eaf31d3ca1ac8b0ae13d3538c6e18c
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/istex.git
-  commit: daeae80365250c4bd539f0a65e271f9aa37f731f
+  commit: a34bb341236d82cf3d488210bc1d8448a98f5808
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
-  commit: 3bf77f28d3dc71d2e8349cbf422a34cf4c23cd11
+  commit: ac1bec2628cd2d6c8357b4af2f853f450c7b6123
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
   commit: 3db385e767d2100d8abe900833c6e7de3ac55e1b
+- git: https://gitlab.iscpif.fr/gargantext/crawlers/arxiv-api.git
+  commit: 2d7e5753cbbce248b860b571a0e9885415c846f7
+#- git: https://gitlab.iscpif.fr/gargantext/crawlers/arxiv-api.git
+    #commit: a2d78abeaec9315be765b90d5e51a4a50c48e7b8
+#- git: https://gitlab.iscpif.fr/cgenie/arxiv-api.git
+#- arxiv-0.0.3@sha256:02de1114091d11f1f3ab401d104d125ad4301260806feb7f63b3dcefc7db88cf,1588
 
   # NP libs
-  #- git: https://github.com/np/servant-job.git # waiting for PR
 - git: https://github.com/alpmestan/servant-job.git
-  commit: ceb251b91e8ec1804198422a3cdbdab08d843b79
+  commit: b4182487cfe479777c11ca19f3c0d47840b376f6
   #- git: https://github.com/np/patches-map
 - git: https://github.com/delanoe/patches-map
   commit: 76cae88f367976ff091e661ee69a5c3126b94694
   #- git: https://gitlab.com/npouillard/patches-class.git  
-- git: https://gitlab.iscpif.fr/gargantext/patches-class.git
-  commit: d3e971d4e78d1dfcc853f2fb86bde1995faf22ae
+#- git: https://gitlab.iscpif.fr/gargantext/patches-class.git
+#  commit: d3e971d4e78d1dfcc853f2fb86bde1995faf22ae
+- git: https://gitlab.iscpif.fr/cgenie/patches-class.git
+  commit: 125c7cb90ab8f0cd6ac4a526dbdf302d10c945e9
 
   # Graph libs
 #- git: https://github.com/kaizhang/haskell-igraph.git
-- git: https://github.com/alpmestan/haskell-igraph.git
-  commit: 9f55eb36639c8e0965c8bc539a57738869f33e9a
+#- git: https://github.com/alpmestan/haskell-igraph.git
+#  commit: 9f55eb36639c8e0965c8bc539a57738869f33e9a
+- git: https://gitlab.iscpif.fr/gargantext/haskell-igraph.git
+  commit: 03c8885d0166255ed7bf0b624a07610ea68ec02c
+- git: https://gitlab.iscpif.fr/gargantext/haskell-infomap.git
+  commit: 6d1d60b952b9b2b272b58fc5539700fd8890ac88
 
   # Accelerate Linear Algebra and specific instances
-  # (UndecidableInstances for newer GHC version)
-- git: https://gitlab.iscpif.fr/anoe/accelerate.git
-  commit: f5c0e0071ec7b6532f9a9cd3eb33d14f340fbcc9
-- git: https://gitlab.iscpif.fr/anoe/accelerate-utility.git
-  commit: 83ada76e78ac10d9559af8ed6bd4064ec81308e4
-- accelerate-arithmetic-1.0.0.1@sha256:555639232aa5cad411e89247b27871d09352b987a754230a288c690b6de6d888,2096
+- git: https://github.com/alpmestan/accelerate.git
+  commit: 640b5af87cea94b61c7737d878e6f7f2fca5c015
+- git: https://github.com/alpmestan/accelerate-arithmetic.git
+  commit: a110807651036ca2228a76507ee35bbf7aedf87a
+- git: https://gitlab.iscpif.fr/amestanogullari/accelerate-utility.git
+  commit: a3875fe652d3bb5acb522674c22c6c814c1b4ad0
+- git: https://github.com/alpmestan/accelerate-llvm.git
+  commit: 944f5a4aea35ee6aedb81ea754bf46b131fce9e3
+  subdirs:
+    - accelerate-llvm/
+    - accelerate-llvm-native/
 - git: https://github.com/rspeer/wikiparsec.git
   commit: 9637a82344bb70f7fa8f02e75db3c081ccd434ce
 
@@ -113,6 +130,12 @@ extra-deps:
   commit: b9fca8beee0f23c17a6b2001ec834d071709e6e7
   subdirs:
     - packages/base
+
+- monad-logger-aeson-0.2.0.0
+# required by monad-logger-aeson
+- context-0.2.0.0@sha256:6b643adb4a64fe521873d08df0497f71f88e18b9ecff4b68b4eef938e446cfc9,1886
+
+- random-1.2.1
 
       # Others dependencies (using stack resolver)
 - constraints-extras-0.3.1.0@sha256:12016ebb91ad5ed2c82bf7e48c6bd6947d164d33c9dca5ac3965de1bb6c780c0,1777
@@ -149,9 +172,9 @@ extra-deps:
 
 - servant-ekg-0.3.1@sha256:19bd9dc3943983da8e79d6f607614c68faea4054fb889d508c8a2b67b6bdd448,2203
 
-
 # For the graph clustering
 ghc-options:
   hmatrix: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
   sparse-linear: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
   gargantext-graph: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
+  "$locals": -fwrite-ide-info -hiedir=".stack-work/hiedb"

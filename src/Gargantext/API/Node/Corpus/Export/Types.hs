@@ -42,6 +42,6 @@ type API = Summary "Corpus Export"
             :> "export"
             :> QueryParam "listId"     ListId
             :> QueryParam "ngramsType" NgramsType
-            :> Get '[JSON] Corpus
+            :> Get '[JSON] (Headers '[Servant.Header "Content-Disposition" Text] Corpus)
 
 $(deriveJSON (unPrefix "_c_") ''Corpus)

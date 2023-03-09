@@ -26,8 +26,8 @@ import Data.ByteString.Lazy (writeFile)
 import Data.Either (Either(..))
 import Data.List (cycle, concat, unwords)
 import Data.List.Split (chunksOf)
-import Data.Map (Map)
-import qualified Data.Map    as DM
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict    as DM
 import Data.Text (pack, Text)
 import qualified Data.Text as DT
 import Data.Tuple.Extra (both)
@@ -42,7 +42,7 @@ import Gargantext.Core.Types
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Context
 import Gargantext.Core.Text.Terms.WithList
-import Gargantext.Core.Text.Corpus.Parsers.CSV (readFile, csv_title, csv_abstract, csv_publication_year, unIntOrDec, fromMIntOrDec, defaultYear)
+import Gargantext.Core.Text.Corpus.Parsers.CSV (readCSVFile, csv_title, csv_abstract, csv_publication_year, unIntOrDec, fromMIntOrDec, defaultYear)
 import Gargantext.Core.Text.List.Formats.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms (terms)
 import Gargantext.Core.Text.Metrics.Count (coocOnContexts, Coocs)
@@ -86,7 +86,7 @@ main = do
   [corpusFile, termListFile, outputFile] <- getArgs
 
   --corpus :: IO (DM.IntMap [[Text]])
-  eCorpusFile <- readFile corpusFile
+  eCorpusFile <- readCSVFile corpusFile
   case eCorpusFile of
     Right cf -> do
       let corpus = DM.fromListWith (<>)
@@ -142,8 +142,8 @@ terms' pats txt = pure $ concat $ extractTermsWithList pats txt
 
 testCorpus :: [(Int, [Text])]
 testCorpus = [ (1998, [pack "The beees"])
-             , (1999, [ pack "The bees and the flowers" 
-                      --, pack "The bees and the flowers" 
+             , (1999, [ pack "The bees and the flowers"
+                      --, pack "The bees and the flowers"
                       ])
              ]
 
@@ -151,4 +151,3 @@ testTermList :: TermList
 testTermList = [ ([pack "bee"], [[pack "bees"]])
                , ([pack "flower"], [[pack "flowers"]])
                ]
-

@@ -25,14 +25,15 @@ import Data.Validity
 import Servant
 import Servant.Auth as SA
 import Servant.Auth.Swagger ()
-import Servant.Job.Async
 import Servant.Swagger.UI
 
-import Gargantext.API.Admin.Auth (withAccess)
+import Gargantext.API.Admin.Auth (ForgotPasswordAPI, ForgotPasswordAsyncAPI, withAccess)
 import Gargantext.API.Admin.Auth.Types (AuthRequest, AuthResponse, AuthenticatedUser(..), PathId(..))
+import Gargantext.API.Admin.EnvTypes (Env, GargJob(..))
 import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
 import Gargantext.API.Context
 import Gargantext.API.Count  (CountAPI, count, Query)
+import Gargantext.API.Members (MembersAPI, members)
 import Gargantext.API.Job (jobLogInit)
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
@@ -44,6 +45,7 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (gc_max_docs_scrapers)
+import Gargantext.Utils.Jobs (serveJobsAPI)
 import qualified Gargantext.API.GraphQL                    as GraphQL
 import qualified Gargantext.API.Ngrams.List                as List
 import qualified Gargantext.API.Node.Contact               as Contact
@@ -72,6 +74,8 @@ type GargAPI' =
                 "auth"  :> Summary "AUTH API"
                         :> ReqBody '[JSON] AuthRequest
                         :> Post    '[JSON] AuthResponse
+          :<|> "forgot-password" :> ForgotPasswordAPI
+          :<|> "async" :> "forgot-password" :> ForgotPasswordAsyncAPI
           :<|> GargVersion
                    -- TODO-ACCESS here we want to request a particular header for
            -- auth and capabilities.
@@ -160,6 +164,9 @@ type GargPrivateAPI' =
                           :> Capture "tree_id" NodeId
                           :> TreeAPI
 
+           :<|> "members" :> Summary "Team node members"
+                          :> MembersAPI
+
            -- :<|> New.Upload
            :<|> New.AddWithForm
 --           :<|> New.AddWithFile
@@ -217,7 +224,8 @@ serverGargAdminAPI =  roots
                  :<|> nodesAPI
 
 
-serverPrivateGargAPI' :: AuthenticatedUser -> GargServer GargPrivateAPI'
+serverPrivateGargAPI'
+  :: AuthenticatedUser -> ServerT GargPrivateAPI' (GargM Env GargError)
 serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
        =  serverGargAdminAPI
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAny)      uid
@@ -244,6 +252,8 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
 
      :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid
           <$> PathNode <*> treeAPI
+
+     :<|> members uid
      -- TODO access
      :<|> addCorpusWithForm  (RootId (NodeId uid))
     -- :<|> addCorpusWithFile  (RootId (NodeId uid))
@@ -270,47 +280,35 @@ waitAPI n = do
   pure $ "Waited: " <> (cs $ show n)
 ----------------------------------------
 
-addCorpusWithQuery :: User -> GargServer New.AddWithQuery
+addCorpusWithQuery :: User -> ServerT New.AddWithQuery (GargM Env GargError)
 addCorpusWithQuery user cid =
-  serveJobsAPI $
-    JobFunction (\q log' -> do
-      limit <- view $ hasConfig . gc_max_docs_scrapers
-      New.addToCorpusWithQuery user cid q (Just limit) (liftBase . log')
+  serveJobsAPI AddCorpusQueryJob $ \q log' -> do
+    limit <- view $ hasConfig . gc_max_docs_scrapers
+    New.addToCorpusWithQuery user cid q (Just limit) (liftBase . log')
       {- let log' x = do
         printDebug "addToCorpusWithQuery" x
         liftBase $ log x
       -}
-      )
 
-{-
-addWithFile :: GargServer New.AddWithFile
-addWithFile cid i f =
-  serveJobsAPI $
-    JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftBase . log))
--}
-
-addCorpusWithForm :: User -> GargServer New.AddWithForm
+addCorpusWithForm :: User -> ServerT New.AddWithForm (GargM Env GargError)
 addCorpusWithForm user cid =
-  serveJobsAPI $
-    JobFunction (\i log' ->
+  serveJobsAPI AddCorpusFormJob $ \i log' ->
       let
         log'' x = do
-          printDebug "[addToCorpusWithForm] " x
+          --printDebug "[addToCorpusWithForm] " x
           liftBase $ log' x
-      in New.addToCorpusWithForm user cid i log'' (jobLogInit 3))
+      in New.addToCorpusWithForm user cid i log'' (jobLogInit 3)
 
-addCorpusWithFile :: User -> GargServer New.AddWithFile
+addCorpusWithFile :: User -> ServerT New.AddWithFile (GargM Env GargError)
 addCorpusWithFile user cid =
-  serveJobsAPI $
-    JobFunction (\i log' ->
+  serveJobsAPI AddCorpusFileJob $ \i log' ->
       let
         log'' x = do
-          printDebug "[addToCorpusWithFile]" x
+          -- printDebug "[addToCorpusWithFile]" x
           liftBase $ log' x
-      in New.addToCorpusWithFile user cid i log'')
+      in New.addToCorpusWithFile user cid i log''
 
-addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
+addAnnuaireWithForm :: ServerT Annuaire.AddWithForm (GargM Env GargError)
 addAnnuaireWithForm cid =
-  serveJobsAPI $
-    JobFunction (\i log' -> Annuaire.addToAnnuaireWithForm cid i (liftBase . log'))
-
+  serveJobsAPI AddAnnuaireFormJob $ \i log' ->
+    Annuaire.addToAnnuaireWithForm cid i (liftBase . log')

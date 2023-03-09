@@ -26,68 +26,41 @@ module Gargantext.Core.Text.Terms.Multi.PosTagging
   where
 
 import Data.Aeson
-import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy.Internal (ByteString)
 import Data.Set (fromList)
 import Data.Text (Text, splitOn, pack, toLower)
-import GHC.Generics
 import Gargantext.Core (Lang(..))
+import Gargantext.Core.Text.Terms.Multi.PosTagging.Types
 import Gargantext.Core.Types
-import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 import Network.HTTP.Simple
 
-------------------------------------------------------------------------
-------------------------------------------------------------------------
-data Token = Token { _tokenIndex                :: Int
-                   , _tokenWord                 :: Text
-                   , _tokenOriginalText         :: Text
-                   , _tokenLemma                :: Text
-                   , _tokenCharacterOffsetBegin :: Int
-                   , _tokenCharacterOffsetEnd   :: Int
-                   , _tokenPos                  :: Maybe POS
-                   , _tokenNer                  :: Maybe NER
-                   , _tokenBefore               :: Maybe Text
-                   , _tokenAfter                :: Maybe Text
-                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "_token") ''Token)
+-- import qualified Gargantext.Utils.SpacyNLP as SpacyNLP
+
+
+
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 tokens2tokensTags :: [Token] -> [TokenTag]
 tokens2tokensTags ts = filter' $ map tokenTag ts
 ------------------------------------------------------------------------
 tokenTag :: Token -> TokenTag
-tokenTag (Token _ _ w l _ _ p n _ _) = TokenTag w' l' p n
+tokenTag (Token { .. }) = TokenTag { _my_token_word = w'
+                                   , _my_token_lemma = l'
+                                   , _my_token_pos = _tokenPos
+                                   , _my_token_ner = _tokenNer }
   where
-    w' = split w
-    l' = fromList (split l)
+    w' = split _tokenWord
+    l' = fromList (split _tokenLemma)
     split = splitOn (pack " ") . toLower
 
 filter' :: [TokenTag] -> [TokenTag]
 filter' xs = filter isNgrams xs
     where
-      isNgrams (TokenTag _ _ p n) = isJust p || isJust n
+      isNgrams (TokenTag { .. }) = isJust _my_token_pos || isJust _my_token_ner
 
 ------------------------------------------------------------------------
-data Sentence  = Sentence { _sentenceIndex  :: Int
-                          , _sentenceTokens :: [Token]
-                          } deriving (Show, Generic)
-
-$(deriveJSON (unPrefix "_sentence") ''Sentence)
-
-data Properties = Properties { _propertiesAnnotators  :: Text
-                             , _propertiesOutputFormat :: Text
-                             } deriving (Show, Generic)
-
-$(deriveJSON (unPrefix "_properties") ''Properties)
-
-data PosSentences = PosSentences { _sentences :: [Sentence]}
-  deriving (Show, Generic)
-
-$(deriveJSON (unPrefix "_") ''PosSentences)
-
-
--- request = 
+-- request =
 -- "fr" : {
 --                 "tokenize.language" : "fr",
 --                 "pos.model" : "edu/stanford/nlp/models/pos-tagger/french/french.tagger",
@@ -96,9 +69,9 @@ $(deriveJSON (unPrefix "_") ''PosSentences)
 --                 "depparse.model" : "edu/stanford/nlp/models/parser/nndep/UD_French.gz",
 --                 "depparse.language" : "french",
 --                 "ner.model":  DATA_ROOT+"/eunews.fr.crf.gz",
---                 "ssplit.newlineIsSentenceBreak": "always" 
+--                 "ssplit.newlineIsSentenceBreak": "always"
 --             },
--- 
+--
 
 corenlp' :: ( FromJSON a
             , ConvertibleStrings p ByteString
@@ -107,17 +80,12 @@ corenlp' :: ( FromJSON a
 corenlp' lang txt = do
     let properties = case lang of
             EN -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
-            -- FR -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
             FR -> "{\"annotators\": \"tokenize,ssplit,pos,lemma,ner\", \"parse.model\":\"edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz\", \"pos.model\":\"edu/stanford/nlp/models/pos-tagger/french/french.tagger\", \"tokenize.language\":\"fr\", \"outputFormat\": \"json\"}"
             _  -> panic $ pack "not implemented yet"
     url <- parseRequest $ "POST http://localhost:9000/?properties=" <> properties
+    -- curl -XPOST 'http://localhost:9000/?properties=%7B%22annotators%22:%20%22tokenize,ssplit,pos,ner%22,%20%22outputFormat%22:%20%22json%22%7D' -d 'hello world, hello' | jq .
     let request = setRequestBodyLBS (cs txt) url
     httpJSON request
-
-corenlpRaw :: Lang -> Text -> IO Value
-corenlpRaw lang txt = do
-  response <- corenlp' lang txt
-  pure (getResponseBody response)
 
 
 corenlp :: Lang -> Text -> IO PosSentences
@@ -139,4 +107,8 @@ tokenWith f lang s = map (map (\t -> (_tokenWord t, f t)))
                   <$> _sentences
                   <$> corenlp lang s
 
-
+----------------------------------------------------------------------------------
+-- Here connect to the JohnSnow Server as it has been done above with the corenlp'
+-- We need the PosTagging according to the language and the lems
+serverNLP :: Lang -> Text -> IO PosSentences
+serverNLP = undefined

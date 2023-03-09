@@ -17,17 +17,17 @@ module Gargantext.Database.Action.Metrics
 
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Set (Set)
 import Database.PostgreSQL.Simple (Query, Only(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Data.Vector (Vector)
 import Gargantext.Core (HasDBid(toDBid))
-import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo')
+import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo)
 import Gargantext.Database.Prelude (runPGSQuery{-, formatPGSQuery-})
 import Gargantext.API.Ngrams.Types (TabType(..), ngramsTypeFromTabType, NgramsTerm(..))
 import Gargantext.Core.Mail.Types (HasMail)
-import Gargantext.Core.NodeStory
+import Gargantext.Core.NodeStory hiding (runPGSQuery)
 import Gargantext.Core.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
 import Database.PostgreSQL.Simple.ToField (toField, Action{-, ToField-})
 import Gargantext.Core.Types (ListType(..), Limit, NodeType(..), ContextId)
@@ -39,7 +39,7 @@ import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
-import qualified Data.Map            as Map
+import qualified Data.Map.Strict     as Map
 import qualified Data.Set            as Set
 import qualified Data.List           as List
 import qualified Data.Text           as Text
@@ -88,7 +88,7 @@ updateNgramsOccurrences cId mlId = do
 
 
 updateNgramsOccurrences' :: (FlowCmdM env err m)
-             => CorpusId -> Maybe ListId -> Maybe Limit -> TabType 
+             => CorpusId -> Maybe ListId -> Maybe Limit -> TabType
              -> m [Int]
 updateNgramsOccurrences' cId maybeListId maybeLimit tabType = do
 
@@ -97,7 +97,7 @@ updateNgramsOccurrences' cId maybeListId maybeLimit tabType = do
     Just lId' -> pure lId'
 
   result <- getNgramsOccurrences cId lId tabType maybeLimit
-  
+
   let
     toInsert :: [[Action]]
     toInsert =  map (\(ngramsTerm, score)
@@ -121,7 +121,7 @@ updateNgramsOccurrences' cId maybeListId maybeLimit tabType = do
                   RETURNING 1
                   |]
 
-  let fields = map (\t-> QualifiedIdentifier Nothing t) 
+  let fields = map (\t-> QualifiedIdentifier Nothing t)
              $ map Text.pack ["int4", "int4","text","int4","int4"]
 
   map (\(Only a) -> a) <$> runPGSQuery queryInsert (Only $ Values fields toInsert)
@@ -163,7 +163,7 @@ updateContextScore cId maybeListId = do
     Just lId' -> pure lId'
 
   result <- getContextsNgramsScore cId lId Terms MapTerm Nothing
-  
+
   let
     toInsert :: [[Action]]
     toInsert =  map (\(contextId, score)
@@ -185,7 +185,7 @@ updateContextScore cId maybeListId = do
                     RETURNING 1
                   |]
 
-  let fields = map (\t-> QualifiedIdentifier Nothing t) 
+  let fields = map (\t-> QualifiedIdentifier Nothing t)
              $ map Text.pack ["int4", "int4","int4"]
 
   map (\(Only a) -> a) <$> runPGSQuery queryInsert (Only $ Values fields toInsert)
@@ -233,15 +233,13 @@ getNgrams :: (HasMail env, HasNodeStory env err m)
                  )
 getNgrams lId tabType = do
 
-  lists <- mapTermListRoot [lId] (ngramsTypeFromTabType tabType) <$> getRepo' [lId]
+  lists <- mapTermListRoot [lId] (ngramsTypeFromTabType tabType) <$> getRepo [lId]
+  -- TODO filterListWithRoot [MapTerm, StopTerm, CandidateTerm] lists
   let maybeSyn = HM.unions $ map (\t -> filterListWithRoot t lists)
-                                 [MapTerm, StopTerm, CandidateTerm]
+                                 [[MapTerm], [StopTerm], [CandidateTerm]]
   pure (lists, maybeSyn)
 
 -- Some useful Tools
 take' :: Maybe Int -> [a] -> [a]
 take' Nothing  xs = xs
 take' (Just n) xs = take n xs
-
-
-

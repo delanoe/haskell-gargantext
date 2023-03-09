@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Database.Action.Share
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -10,22 +10,32 @@ Portability : POSIX
 -}
 
 
+{-# LANGUAGE Arrows                 #-}
+
 module Gargantext.Database.Action.Share
   where
 
-import Control.Lens (view)
-import Gargantext.Database
+import Control.Arrow (returnA)
+import Control.Lens (view, (^.))
+import Data.Maybe (catMaybes)
+import Data.Text (Text)
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database
 import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Admin.Config (hasNodeType, isInNodeTypes)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAny(..))
 import Gargantext.Database.Admin.Types.Node
+-- import Gargantext.Database.Query.Join (leftJoin3')
 import Gargantext.Database.Query.Table.Node (getNode, getNodesWith)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError, errorWith)
-import Gargantext.Database.Query.Table.NodeNode (deleteNodeNode)
+import Gargantext.Database.Query.Table.NodeNode (deleteNodeNode, queryNodeNodeTable)
+import Gargantext.Database.Query.Table.User
 import Gargantext.Database.Query.Tree.Root (getRootId)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
+import Gargantext.Utils.Tuple (uncurryMaybe)
+import Opaleye hiding (not)
+import qualified Opaleye as O
 
 -- | TODO move in PhyloConfig of Gargantext
 publicNodeTypes :: [NodeType]
@@ -39,6 +49,48 @@ data ShareNodeWith = ShareNodeWith_User { snwu_nodetype :: NodeType
                                         , snwn_node_id  :: NodeId
                                         }
 ------------------------------------------------------------------------
+deleteMemberShip :: HasNodeError err => [(SharedFolderId, TeamNodeId)] -> Cmd err [Int]
+deleteMemberShip xs = mapM (\(s,t) -> deleteNodeNode s t) xs
+
+------------------------------------------------------------------------
+
+type SharedFolderId = NodeId
+type TeamNodeId     = NodeId
+
+-- List members of a Team
+-- Result gives the username and its SharedFolderId that has to be eventually
+-- used for the membership
+membersOf :: HasNodeError err
+          => TeamNodeId -> Cmd err [(Text, SharedFolderId)]
+membersOf nId = do
+  res <- runOpaQuery $ membersOfQuery nId
+  pure $ catMaybes (uncurryMaybe <$> res)
+
+
+membersOfQuery :: TeamNodeId
+               -> SelectArr () (MaybeFields (Field SqlText), MaybeFields (Field SqlInt4))
+membersOfQuery (NodeId teamId) = proc () -> do
+  (nn, n, u) <- nodeNode_node_User -< ()
+  restrict -< (nn ^. nn_node2_id) .== sqlInt4 teamId
+  returnA -< ( user_username <$> u
+             , view node_id <$> n)
+
+
+nodeNode_node_User :: O.Select ( NodeNodeRead
+                               , MaybeFields NodeRead
+                               , MaybeFields UserRead )
+nodeNode_node_User = proc () -> do
+  nn <- queryNodeNodeTable -< ()
+  n <- optionalRestrict queryNodeTable -<
+    \n' -> (n' ^. node_id) .== (nn ^. nn_node1_id)
+  u <- optionalRestrict queryUserTable -<
+    \u' -> (view node_user_id <$> n) .=== justFields (user_id u')
+
+  returnA -< (nn, n, u)
+
+------------------------------------------------------------------------
+-- To Share a Node Team with a user, use this function
+-- basically used with the invitation to a team
 shareNodeWith :: HasNodeError err
               => ShareNodeWith
               -> NodeId
@@ -95,4 +147,3 @@ unPublish :: HasNodeError err
           => ParentId -> NodeId
           -> Cmd err Int
 unPublish p n = deleteNodeNode p n
-

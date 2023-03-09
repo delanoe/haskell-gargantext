@@ -40,8 +40,8 @@ words = monoTexts
 isSep :: Char -> Bool
 isSep = (`elem` (",.:;?!(){}[]\"\'" :: String))
 
-monoTerms :: Lang -> Text -> [Terms]
-monoTerms l txt = map (monoText2term l) $ monoTexts txt
+monoTerms :: Lang -> Text -> [TermsWithCount]
+monoTerms l txt = map (\t -> (monoText2term l t, 1)) $ monoTexts txt
 
 monoTexts :: Text -> [Text]
 monoTexts = L.concat . monoTextsBySentence

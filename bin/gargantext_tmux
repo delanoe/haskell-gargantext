@@ -3,4 +3,5 @@
 tmux new -d -s gargantext './server' \; \
             split-window -h -d 'cd ./purescript-gargantext ; ./server' \; \
             select-pane -t 1 \; \
-            split-window -d    'cd deps/CoreNLP ; ./startServer.sh' \; \
+            split-window -d    'cd deps/nlp/CoreNLP ; ./startServer.sh' \; \
+            split-window -d    'cd deps/nlp/spacy-server ; source env/bin/activate ; ./server' \; \

@@ -23,7 +23,7 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 import Gargantext.Core.Types.Individu (Username, GargPassword(..), arbitraryUsername, arbitraryPassword)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Admin.Types.Node (NodeId(..), ListId, DocId)
+import Gargantext.Database.Admin.Types.Node (NodeId(..), ListId, DocId, UserId)
 import Gargantext.Prelude hiding (reverse)
 
 ---------------------------------------------------
@@ -45,13 +45,14 @@ data AuthInvalid = AuthInvalid { _authInv_message :: Text }
 
 data AuthValid = AuthValid { _authVal_token   :: Token
                            , _authVal_tree_id :: TreeId
+                           , _authVal_user_id :: UserId
                            }
   deriving (Generic)
 
 type Token  = Text
 type TreeId = NodeId
 
-data CheckAuth = InvalidUser | InvalidPassword | Valid Token TreeId
+data CheckAuth = InvalidUser | InvalidPassword | Valid Token TreeId UserId
   deriving (Eq)
 
 newtype AuthenticatedUser = AuthenticatedUser
@@ -99,9 +100,34 @@ $(deriveJSON (unPrefix "_authVal_") ''AuthValid)
 instance ToSchema AuthValid where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_authVal_")
 instance Arbitrary AuthValid where
-  arbitrary = elements [ AuthValid to tr
+  arbitrary = elements [ AuthValid to tr u
                        | to <- ["token0", "token1"]
                        , tr <- [1..3]
+                       , u <-  [1..3]
                        ]
 
 data PathId = PathNode NodeId | PathNodeNode ListId DocId
+
+
+---------------------------
+
+type Email = Text
+type Password = Text
+
+data ForgotPasswordRequest = ForgotPasswordRequest { _fpReq_email :: Email }
+  deriving (Generic )
+$(deriveJSON (unPrefix "_fpReq_") ''ForgotPasswordRequest)
+instance ToSchema ForgotPasswordRequest where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_fpReq_")
+
+data ForgotPasswordResponse = ForgotPasswordResponse { _fpRes_status :: Text }
+  deriving (Generic )
+$(deriveJSON (unPrefix "_fpRes_") ''ForgotPasswordResponse)
+instance ToSchema ForgotPasswordResponse where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_fpRes_")
+
+data ForgotPasswordGet = ForgotPasswordGet {_fpGet_password :: Password}
+  deriving (Generic )
+$(deriveJSON (unPrefix "_fpGet_") ''ForgotPasswordGet)
+instance ToSchema ForgotPasswordGet where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_fpGet_") 

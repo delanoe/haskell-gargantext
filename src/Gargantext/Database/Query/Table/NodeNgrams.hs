@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Database.Query.Table.NodeNgrams
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -18,7 +18,7 @@ NodeNgrams register Context of Ngrams (named Cgrams then)
 {-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Query.Table.NodeNgrams 
+module Gargantext.Database.Query.Table.NodeNgrams
   ( getCgramsId
   , listInsertDb
   , module Gargantext.Database.Schema.NodeNgrams
@@ -27,7 +27,7 @@ module Gargantext.Database.Query.Table.NodeNgrams
   where
 
 import Data.List.Extra (nubOrd)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Gargantext.Core
@@ -38,7 +38,7 @@ import Gargantext.Database.Schema.NodeNgrams
 import Gargantext.Database.Schema.Prelude (Select, FromRow, sql, fromRow, toField, field, Values(..), QualifiedIdentifier(..), selectTable)
 import Gargantext.Prelude
 import qualified Data.List as List
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
 
 

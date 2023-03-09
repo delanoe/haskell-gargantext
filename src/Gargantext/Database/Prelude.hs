@@ -9,13 +9,16 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE Arrows #-}
+{-# LANGUAGE ConstraintKinds, ScopedTypeVariables #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Gargantext.Database.Prelude where
 
 import Control.Exception
 import Control.Lens (Getter, view)
 import Control.Monad.Except
+--import Control.Monad.Logger (MonadLogger)
 import Control.Monad.Random
 import Control.Monad.Reader
 import Control.Monad.Trans.Control (MonadBaseControl)
@@ -29,19 +32,19 @@ import Data.Word (Word16)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
+import Database.PostgreSQL.Simple.Types (Query(..))
 import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Prelude
-import Gargantext.Prelude.Config (readIniFile', val)
-import Opaleye (Unpackspec, showSql, FromFields, Select, runSelect, SqlJsonb, DefaultFromField)
+import Gargantext.Prelude.Config (GargConfig(), readIniFile', val)
+import Opaleye (Unpackspec, showSql, FromFields, Select, runSelect, SqlJsonb, DefaultFromField, toFields, matchMaybe, MaybeFields)
 import Opaleye.Aggregate (countRows)
-import System.IO (FilePath)
-import System.IO (stderr)
+import qualified Opaleye.Internal.Constant
+import qualified Opaleye.Internal.Operators
+import System.IO (FilePath, stderr)
 import Text.Read (readMaybe)
 import qualified Data.ByteString      as DB
 import qualified Data.List as DL
 import qualified Database.PostgreSQL.Simple as PGS
-
-import Gargantext.Prelude.Config (GargConfig())
 
 -------------------------------------------------------
 class HasConnectionPool env where
@@ -65,12 +68,14 @@ type CmdM'' env err m =
   , MonadError          err m
   , MonadBaseControl IO     m
   , MonadRandom             m
+  --, MonadLogger             m
   )
 
 type CmdM' env err m =
   ( MonadReader     env     m
   , MonadError          err m
   , MonadBaseControl IO     m
+  --, MonadLogger             m
   -- , MonadRandom             m
   )
 
@@ -164,9 +169,8 @@ runPGSQuery_ :: ( CmdM env err m
 runPGSQuery_ q = mkCmd $ \conn -> catch (PGS.query_ conn q) printError
   where
     printError (SomeException e) = do
-      printDebug "[G.D.P.runPGSQuery_]" ("TODO: format query error" :: Text)
+      hPutStrLn stderr (fromQuery q)
       throw (SomeException e)
-
 
 execPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err Int64
 execPGSQuery q a = mkCmd $ \conn -> PGS.execute conn q a
@@ -206,3 +210,16 @@ fromField' field mb = do
 printSqlOpa :: Default Unpackspec a a => Select a -> IO ()
 printSqlOpa = putStrLn . maybe "Empty query" identity . showSql
 
+dbCheck :: CmdM env err m => m Bool
+dbCheck = do
+  r :: [PGS.Only Text] <- runPGSQuery_ "select username from public.auth_user"
+  case r of
+    [] -> return False
+    _  -> return True
+
+restrictMaybe :: ( Default Opaleye.Internal.Operators.IfPP b b
+                 , (Default Opaleye.Internal.Constant.ToFields Bool b))
+              => MaybeFields a -> (a -> b) -> b
+restrictMaybe v cond = matchMaybe v $ \case
+  Nothing -> toFields True
+  Just v' -> cond v'

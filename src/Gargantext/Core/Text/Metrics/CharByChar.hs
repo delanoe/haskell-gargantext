@@ -39,7 +39,7 @@ import Gargantext.Prelude
 -- starting as an API rexporting main functions of the great lib
 -- text-metrics of Mark Karpov
 
--- | Levenshtein Distance
+-- | Levenshtein Similarity
 -- In information theory, Linguistics and computer science, 
 -- the Levenshtein distance is a string metric for measuring 
 -- the difference between two sequences.
@@ -86,7 +86,7 @@ overlap = DTM.overlap
 jaccard :: Text -> Text -> Ratio Int
 jaccard = DTM.jaccard
 
--- | Hamming Distance
+-- | Hamming Similarity
 -- In information theory, the Hamming distance between two strings of
 -- equal length is the number of positions at which the corresponding
 -- symbols are different. In other words, it measures the minimum number of

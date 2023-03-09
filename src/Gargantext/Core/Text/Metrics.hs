@@ -19,17 +19,17 @@ module Gargantext.Core.Text.Metrics
 --import Data.Array.Accelerate ((:.)(..), Z(..))
 --import Math.KMeans (kmeans, euclidSq, elements)
 import Control.Lens (makeLenses)
-import Data.Map (Map)
+import Data.Map.Strict (Map)
 import Data.Monoid (Monoid, mempty)
 import Data.HashMap.Strict (HashMap)
 import Data.Semigroup (Semigroup)
-import Gargantext.Core.Methods.Distances.Accelerate.SpeGen
+import Gargantext.Core.Methods.Similarities.Accelerate.SpeGen
 import Gargantext.Core.Statistics (pcaReduceTo, Dimension(..))
 import Gargantext.Core.Viz.Graph.Index
 import Gargantext.Prelude
 import qualified Data.Array.Accelerate as DAA
 import qualified Data.Array.Accelerate.Interpreter as DAA
-import qualified Data.Map  as Map
+import qualified Data.Map.Strict  as Map
 import qualified Data.Vector as V
 import qualified Data.Vector.Storable as Vec
 import qualified Data.HashMap.Strict as HashMap

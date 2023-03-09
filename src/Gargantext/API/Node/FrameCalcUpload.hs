@@ -14,16 +14,17 @@ import GHC.Generics (Generic)
 import Network.HTTP.Client (newManager, httpLbs, parseRequest, responseBody)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Servant
-import Servant.Job.Async
 import Web.FormUrlEncoded (FromForm)
 
+import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Job (jobLogInit, jobLogSuccess, jobLogFail)
 import Gargantext.API.Node.Corpus.New (addToCorpusWithForm)
-import Gargantext.API.Node.Corpus.New.File (FileType(..))
+import Gargantext.API.Node.Corpus.New.Types (FileFormat(..), FileType(..))
 import Gargantext.API.Node.Types (NewWithForm(..))
 import Gargantext.API.Prelude
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Core.Text.List.Social (FlowSocialListWith(..))
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Admin.Types.Hyperdata.Frame
 import Gargantext.Database.Admin.Types.Node
@@ -31,8 +32,13 @@ import Gargantext.Database.Prelude (HasConfig)
 import Gargantext.Database.Query.Table.Node (getClosestParentIdByType, getNodeWith)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
+import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Core (Lang)
 
-data FrameCalcUpload = FrameCalcUpload ()
+data FrameCalcUpload = FrameCalcUpload {
+  _wf_lang      :: !(Maybe Lang)
+, _wf_selection :: !FlowSocialListWith
+}
   deriving (Generic)
 
 instance FromForm FrameCalcUpload
@@ -46,12 +52,11 @@ type API = Summary " FrameCalc upload"
            :> "async"
            :> AsyncJobs JobLog '[JSON] FrameCalcUpload JobLog
 
-api :: UserId -> NodeId -> GargServer API
+api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI $ 
-    JobFunction (\p logs ->
-                   frameCalcUploadAsync uId nId p (liftBase . logs) (jobLogInit 5)
-                )
+  serveJobsAPI UploadFrameCalcJob $ \p logs ->
+    frameCalcUploadAsync uId nId p (liftBase . logs) (jobLogInit 5)
+
 
 
 frameCalcUploadAsync :: (HasConfig env, FlowCmdM env err m)
@@ -61,7 +66,7 @@ frameCalcUploadAsync :: (HasConfig env, FlowCmdM env err m)
                      -> (JobLog -> m ())
                      -> JobLog
                      -> m JobLog
-frameCalcUploadAsync uId nId _f logStatus jobLog = do
+frameCalcUploadAsync uId nId (FrameCalcUpload _wf_lang _wf_selection) logStatus jobLog = do
   logStatus jobLog
 
   -- printDebug "[frameCalcUploadAsync] uId" uId
@@ -87,6 +92,6 @@ frameCalcUploadAsync uId nId _f logStatus jobLog = do
   jobLog2 <- case mCId of
     Nothing -> pure $ jobLogFail jobLog
     Just cId ->
-      addToCorpusWithForm (RootId (NodeId uId)) cId (NewWithForm CSV body Nothing "calc-upload.csv") logStatus jobLog
+      addToCorpusWithForm (RootId (NodeId uId)) cId (NewWithForm CSV Plain body _wf_lang "calc-upload.csv" _wf_selection) logStatus jobLog
 
   pure $ jobLogSuccess jobLog2

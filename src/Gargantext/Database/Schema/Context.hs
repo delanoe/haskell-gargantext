@@ -72,69 +72,48 @@ contextTable = Table "contexts" (pContext Context { _context_id         = option
 queryContextTable :: Query ContextRead
 queryContextTable = selectTable contextTable
 ------------------------------------------------------------------------
-type ContextWrite = ContextPoly (Maybe (Column SqlInt4)      )
-                          (Maybe (Column SqlText)      )
-                                 (Column SqlInt4)
-                                 (Column SqlInt4)
-                          (Maybe (Column SqlInt4)      )
-                                 (Column SqlText)
-                          (Maybe (Column SqlTimestamptz))
-                                 (Column SqlJsonb)
+type ContextWrite = ContextPoly (Maybe (Field SqlInt4)      )
+                          (Maybe (Field SqlText)      )
+                                 (Field SqlInt4)
+                                 (Field SqlInt4)
+                          (Maybe (Field SqlInt4)      )
+                                 (Field SqlText)
+                          (Maybe (Field SqlTimestamptz))
+                                 (Field SqlJsonb)
 
-type ContextRead = ContextPoly (Column SqlInt4        )
-                         (Column SqlText        )
-                         (Column SqlInt4        )
-                         (Column SqlInt4        )
-                         (Column SqlInt4        )
-                         (Column SqlText        )
-                         (Column SqlTimestamptz )
-                         (Column SqlJsonb       )
-
-type ContextReadNull = ContextPoly (Column (Nullable SqlInt4))
-                             (Column (Nullable SqlText))
-                             (Column (Nullable SqlInt4))
-                             (Column (Nullable SqlInt4))
-                             (Column (Nullable SqlInt4))
-                             (Column (Nullable SqlText))
-                             (Column (Nullable SqlTimestamptz))
-                             (Column (Nullable SqlJsonb))
+type ContextRead = ContextPoly (Field SqlInt4        )
+                         (Field SqlText        )
+                         (Field SqlInt4        )
+                         (Field SqlInt4        )
+                         (Field SqlInt4        )
+                         (Field SqlText        )
+                         (Field SqlTimestamptz )
+                         (Field SqlJsonb       )
 ------------------------------------------------------------------------
 -- | Context(Read|Write)Search is slower than Context(Write|Read) use it
 -- for full text search only
 
 type ContextSearchWrite =
   ContextPolySearch
-    (Maybe  (Column  SqlInt4)      )
-    (Column  SqlInt4               )
-    (Column  SqlInt4               )
-    (Column (Nullable SqlInt4)     )
-    (Column SqlText                )
-    (Maybe  (Column SqlTimestamptz))
-    (Column  SqlJsonb              )
-    (Maybe  (Column SqlTSVector)   )
+    (Maybe  (Field  SqlInt4)      )
+    (Field  SqlInt4               )
+    (Field  SqlInt4               )
+    (FieldNullable SqlInt4)
+    (Field SqlText                )
+    (Maybe  (Field SqlTimestamptz))
+    (Field  SqlJsonb              )
+    (Maybe  (Field SqlTSVector)   )
 
 type ContextSearchRead =
   ContextPolySearch
-    (Column  SqlInt4           )
-    (Column  SqlInt4           )
-    (Column  SqlInt4           )
-    (Column (Nullable SqlInt4 ))
-    (Column  SqlText           )
-    (Column  SqlTimestamptz    )
-    (Column  SqlJsonb          )
-    (Column  SqlTSVector       )
-
-type ContextSearchReadNull =
-  ContextPolySearch
-    (Column (Nullable SqlInt4)       )
-    (Column (Nullable SqlInt4)       )
-    (Column (Nullable SqlInt4)       )
-    (Column (Nullable SqlInt4)       )
-    (Column (Nullable SqlText)       )
-    (Column (Nullable SqlTimestamptz))
-    (Column (Nullable SqlJsonb)      )
-    (Column (Nullable SqlTSVector)   )
-
+    (Field  SqlInt4           )
+    (Field  SqlInt4           )
+    (Field  SqlInt4           )
+    (FieldNullable SqlInt4 )
+    (Field  SqlText           )
+    (Field  SqlTimestamptz    )
+    (Field  SqlJsonb          )
+    (Field  SqlTSVector       )
 
 data ContextPolySearch id
                     typename

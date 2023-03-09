@@ -72,68 +72,48 @@ nodeTable = Table "nodes" (pNode Node { _node_id         = optionalTableField "i
 queryNodeTable :: Query NodeRead
 queryNodeTable = selectTable nodeTable
 ------------------------------------------------------------------------
-type NodeWrite = NodePoly (Maybe (Column SqlInt4)      )
-                          (Maybe (Column SqlText)      )
-                                 (Column SqlInt4)
-                                 (Column SqlInt4)
-                          (Maybe (Column SqlInt4)      )
-                                 (Column SqlText)
-                          (Maybe (Column SqlTimestamptz))
-                                 (Column SqlJsonb)
+type NodeWrite = NodePoly (Maybe (Field SqlInt4)      )
+                          (Maybe (Field SqlText)      )
+                                 (Field SqlInt4)
+                                 (Field SqlInt4)
+                          (Maybe (Field SqlInt4)      )
+                                 (Field SqlText)
+                          (Maybe (Field SqlTimestamptz))
+                                 (Field SqlJsonb)
 
-type NodeRead = NodePoly (Column SqlInt4        )
-                         (Column SqlText        )
-                         (Column SqlInt4        )
-                         (Column SqlInt4        )
-                         (Column SqlInt4        )
-                         (Column SqlText        )
-                         (Column SqlTimestamptz )
-                         (Column SqlJsonb       )
-
-type NodeReadNull = NodePoly (Column (Nullable SqlInt4))
-                             (Column (Nullable SqlText))
-                             (Column (Nullable SqlInt4))
-                             (Column (Nullable SqlInt4))
-                             (Column (Nullable SqlInt4))
-                             (Column (Nullable SqlText))
-                             (Column (Nullable SqlTimestamptz))
-                             (Column (Nullable SqlJsonb))
+type NodeRead = NodePoly (Field SqlInt4        )
+                         (Field SqlText        )
+                         (Field SqlInt4        )
+                         (Field SqlInt4        )
+                         (Field SqlInt4        )
+                         (Field SqlText        )
+                         (Field SqlTimestamptz )
+                         (Field SqlJsonb       )
 ------------------------------------------------------------------------
 -- | Node(Read|Write)Search is slower than Node(Write|Read) use it
 -- for full text search only
 
 type NodeSearchWrite =
   NodePolySearch
-    (Maybe  (Column  SqlInt4)      )
-    (Column  SqlInt4               )
-    (Column  SqlInt4               )
-    (Column (Nullable SqlInt4)     )
-    (Column SqlText                )
-    (Maybe  (Column SqlTimestamptz))
-    (Column  SqlJsonb              )
-    (Maybe  (Column SqlTSVector)   )
+    (Maybe  (Field  SqlInt4)      )
+    (Field  SqlInt4               )
+    (Field  SqlInt4               )
+    (FieldNullable SqlInt4)
+    (Field SqlText                )
+    (Maybe  (Field SqlTimestamptz))
+    (Field  SqlJsonb              )
+    (Maybe  (Field SqlTSVector)   )
 
 type NodeSearchRead =
   NodePolySearch
-    (Column  SqlInt4           )
-    (Column  SqlInt4           )
-    (Column  SqlInt4           )
-    (Column (Nullable SqlInt4 ))
-    (Column  SqlText           )
-    (Column  SqlTimestamptz    )
-    (Column  SqlJsonb          )
-    (Column  SqlTSVector       )
-
-type NodeSearchReadNull =
-  NodePolySearch
-    (Column (Nullable SqlInt4)       )
-    (Column (Nullable SqlInt4)       )
-    (Column (Nullable SqlInt4)       )
-    (Column (Nullable SqlInt4)       )
-    (Column (Nullable SqlText)       )
-    (Column (Nullable SqlTimestamptz))
-    (Column (Nullable SqlJsonb)      )
-    (Column (Nullable SqlTSVector)   )
+    (Field  SqlInt4           )
+    (Field  SqlInt4           )
+    (Field  SqlInt4           )
+    (FieldNullable SqlInt4 )
+    (Field  SqlText           )
+    (Field  SqlTimestamptz    )
+    (Field  SqlJsonb          )
+    (Field  SqlTSVector       )
 
 
 data NodePolySearch id

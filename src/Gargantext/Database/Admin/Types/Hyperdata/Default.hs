@@ -27,7 +27,7 @@ import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 
 
 data DefaultHyperdata =
-    DefaultUser    HyperdataUser 
+    DefaultUser    HyperdataUser
   | DefaultContact HyperdataContact
 
   | DefaultCorpus    HyperdataCorpus

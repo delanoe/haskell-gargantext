@@ -11,6 +11,8 @@ Portability : POSIX
 
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
+
+import qualified Core.Utils as Utils
 --import qualified Ngrams.Lang.Fr as Fr
 --import qualified Ngrams.Lang as Lang
 import qualified Ngrams.Lang.Occurrences as Occ
@@ -22,11 +24,12 @@ import qualified Utils.Crypto            as Crypto
 
 main :: IO ()
 main = do
+  Utils.test
 --    Occ.parsersTest
 --    Lang.ngramsExtractionTest FR
 --    Lang.ngramsExtractionTest EN
 --    Metrics.main
-  Graph.test 
+  Graph.test
   PD.testFromRFC3339
 --    GD.test
   Crypto.test

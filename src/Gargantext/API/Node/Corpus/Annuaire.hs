@@ -25,7 +25,7 @@ import Servant.Job.Types
 import Servant.Job.Utils (jsonOptions)
 import Web.FormUrlEncoded (FromForm)
 
-import qualified Gargantext.API.Node.Corpus.New.File as NewFile
+import qualified Gargantext.API.Node.Corpus.New.Types as NewTypes
 import Gargantext.API.Admin.Orchestrator.Types hiding (AsyncJobs)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
@@ -40,7 +40,7 @@ type Api = Summary "New Annuaire endpoint"
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 data AnnuaireWithForm = AnnuaireWithForm
-  { _wf_filetype :: !NewFile.FileType
+  { _wf_filetype :: !NewTypes.FileType
   , _wf_data     :: !Text
   , _wf_lang     :: !(Maybe Lang)
   } deriving (Eq, Show, Generic)
@@ -76,7 +76,7 @@ addToAnnuaireWithForm :: FlowCmdM env err m
                     -> m JobLog
 addToAnnuaireWithForm _cid (AnnuaireWithForm { _wf_filetype }) logStatus = do
 
-  printDebug "ft" _wf_filetype
+  -- printDebug "ft" _wf_filetype
 
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
@@ -88,4 +88,3 @@ addToAnnuaireWithForm _cid (AnnuaireWithForm { _wf_filetype }) logStatus = do
                    , _scst_remaining = Just 0
                    , _scst_events    = Just []
                    }
-

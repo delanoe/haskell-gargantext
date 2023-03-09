@@ -8,7 +8,7 @@ Stability   : experimental
 Portability : POSIX
 
 Add Documents/Contact to a Corpus/Annuaire.
- 
+
 -}
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveDataTypeable   #-}
@@ -78,4 +78,3 @@ instance ToRow InputData where
                     , toField (0 :: Int)
                     , toField (1 :: Int)
                     ]
-

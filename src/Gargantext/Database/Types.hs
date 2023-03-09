@@ -9,11 +9,13 @@ Portability : POSIX
 
 -}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Types
   where
 
+import Data.Text (Text)
 import Data.Hashable (Hashable)
 import Gargantext.Core.Text (HasText(..))
 import Gargantext.Database.Schema.Prelude
@@ -40,3 +42,21 @@ instance HasText a => HasText (Indexed i a)
     hasText (Indexed _ a) = hasText a
 
 instance (Hashable a, Hashable b) => Hashable (Indexed a b)
+
+instance DefaultFromField (Nullable SqlInt4)   Int            where
+    defaultFromField = fromPGSFromField
+
+instance DefaultFromField (Nullable SqlFloat8) Int            where
+    defaultFromField = fromPGSFromField
+
+instance DefaultFromField (Nullable SqlFloat8) Double         where
+    defaultFromField = fromPGSFromField
+
+instance DefaultFromField SqlFloat8            (Maybe Double) where
+    defaultFromField = fromPGSFromField
+
+instance DefaultFromField SqlInt4              (Maybe Int)    where
+    defaultFromField = fromPGSFromField
+
+instance DefaultFromField (Nullable SqlText)  Text  where
+    defaultFromField = fromPGSFromField

@@ -20,7 +20,7 @@ module Gargantext.Database.Action.Flow.List
 import Control.Concurrent
 import Control.Lens ((^.), (+~), (%~), at, (.~), _Just)
 import Control.Monad.Reader
-import Data.Map (Map, toList)
+import Data.Map.Strict (Map, toList)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (saveNodeStory)
 import Gargantext.API.Ngrams.Tools (getNodeStoryVar)
@@ -35,7 +35,7 @@ import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgram
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.List as List
-import qualified Data.Map  as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Map.Strict.Patch as PM
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
@@ -210,4 +210,3 @@ putListNgrams nodeId ngramsType nes = putListNgrams' nodeId ngramsType m
                  & unNodeStory . at listId . _Just . a_history %~ (p :)
                  & unNodeStory . at listId . _Just . a_state . at ngramsType' .~ Just ns
       saveNodeStory
-

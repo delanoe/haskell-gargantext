@@ -21,8 +21,6 @@ Node API
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -38,6 +36,7 @@ import Data.Text (Text())
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Auth (withAccess)
 import Gargantext.API.Admin.Auth.Types (PathId(..))
+import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableCorpus)
 import Gargantext.API.Ngrams.Types (TabType(..))
@@ -198,10 +197,10 @@ nodeAPI :: forall proxy a.
        ) => proxy a
          -> UserId
          -> NodeId
-         -> GargServer (NodeAPI a)
+         -> ServerT (NodeAPI a) (GargM Env GargError)
 nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id') nodeAPI'
   where
-    nodeAPI' :: GargServer (NodeAPI a)
+    nodeAPI' :: ServerT (NodeAPI a) (GargM Env GargError)
     nodeAPI' =  getNodeWith   id' p
            :<|> rename        id'
            :<|> postNode  uId id'
@@ -264,10 +263,11 @@ instance ToJSON    NodesToCategory
 instance ToSchema  NodesToCategory
 
 catApi :: CorpusId -> GargServer CatApi
-catApi = putCat
-  where
-    putCat :: CorpusId -> NodesToCategory -> Cmd err [Int]
-    putCat cId cs' = nodeContextsCategory $ map (\n -> (cId, n, ntc_category cs')) (ntc_nodesId cs')
+catApi cId cs' = do
+  ret <- nodeContextsCategory $ map (\n -> (cId, n, ntc_category cs')) (ntc_nodesId cs')
+  lId <- defaultList cId
+  _ <- updateChart cId (Just lId) Docs Nothing
+  pure ret
 
 ------------------------------------------------------------------------
 type ScoreApi =  Summary " To Score NodeNodes"
@@ -312,7 +312,7 @@ pairs cId = do
 type PairWith = Summary "Pair a Corpus with an Annuaire"
               :> "annuaire" :> Capture "annuaire_id" AnnuaireId
               :> QueryParam "list_id"     ListId
-              :> Post '[JSON] Int
+              :> Post '[JSON] [Int]
 
 pairWith :: CorpusId -> GargServer PairWith
 pairWith cId aId lId = do

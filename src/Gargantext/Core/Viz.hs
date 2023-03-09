@@ -14,4 +14,3 @@ Vizualisation of text stats
 
 module Gargantext.Core.Viz
   where
-

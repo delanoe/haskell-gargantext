@@ -23,7 +23,7 @@ import Data.List (lookup)
 import Control.Applicative
 import Data.Attoparsec.ByteString (Parser, try, takeTill, take, many1)
 import Data.Attoparsec.ByteString.Char8 (isEndOfLine)
-import Data.ByteString (ByteString, concat)
+import Data.ByteString (ByteString, intercalate)
 import Gargantext.Prelude hiding (takeWhile, take)
 import qualified Data.List as DL
 -------------------------------------------------------------
@@ -55,7 +55,7 @@ fieldWith n = do
     let txts' = case DL.length txts > 0 of
             True  -> txts
             False -> []
-    pure (name, concat ([txt] <> txts'))
+    pure (name, intercalate ";" ([txt] <> txts'))
 
 
 lines :: Parser [ByteString]
@@ -69,6 +69,4 @@ lines = many line
 onField :: ByteString -> (ByteString -> [(ByteString, ByteString)])
        -> [(ByteString, ByteString)] -> [(ByteString, ByteString)]
 onField k f m = m <> ( maybe [] f (lookup k m) )
-
-
 
