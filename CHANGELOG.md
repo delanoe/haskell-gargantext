@@ -1,3 +1,8 @@
+## Version 0.0.6.9.7
+
+* [FRONT][FEAT][Label Shape in Graph Explorer (#501)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/501)
+* [BACK][DOC][Welcome: Door To enter the project (#177)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/177)
+
 ## Version 0.0.6.9.6
 
 * [BACK][FEAT] Phylo in 1 click
