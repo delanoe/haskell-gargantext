@@ -596,7 +596,7 @@ getGroupThr step g =
         breaks = (g ^. phylo_groupMeta) ! "breaks"
      in (last' "export" (take (round $ (last' "export" breaks) + 1) seaLvl)) - step
 
-toAncestor :: Double -> Map Int Double -> Similarity -> Double -> [PhyloGroup] -> PhyloGroup -> PhyloGroup
+toAncestor :: Double -> Map Int Double -> PhyloSimilarity -> Double -> [PhyloGroup] -> PhyloGroup -> PhyloGroup
 toAncestor nbDocs diago similarity step candidates ego =
   let curr = ego ^. phylo_groupAncestors
    in ego & phylo_groupAncestors .~ (curr ++ (map (\(g,w) -> (getGroupId g,w))
@@ -605,7 +605,7 @@ toAncestor nbDocs diago similarity step candidates ego =
          $ filter (\g -> g ^. phylo_groupBranchId /= ego ^. phylo_groupBranchId ) candidates))
 
 
-headsToAncestors :: Double -> Map Int Double -> Similarity -> Double -> [PhyloGroup] -> [PhyloGroup] -> [PhyloGroup]
+headsToAncestors :: Double -> Map Int Double -> PhyloSimilarity -> Double -> [PhyloGroup] -> [PhyloGroup] -> [PhyloGroup]
 headsToAncestors nbDocs diago similarity step heads acc =
   if (null heads)
     then acc

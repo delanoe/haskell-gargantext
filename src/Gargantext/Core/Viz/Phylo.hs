@@ -71,7 +71,7 @@ data SeaElevation =
 
 instance ToSchema SeaElevation
 
-data Similarity =
+data PhyloSimilarity =
       WeightedLogJaccard
       { _wlj_sensibility     :: Double
       , _wlj_minSharedNgrams :: Int }
@@ -84,7 +84,7 @@ data Similarity =
 
     deriving (Show,Generic,Eq)
 
-instance ToSchema Similarity where
+instance ToSchema PhyloSimilarity where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
 
@@ -179,7 +179,7 @@ data PhyloConfig =
             , listParser     :: ListParser
             , phyloName      :: Text
             , phyloScale     :: Int
-            , similarity     :: Similarity
+            , similarity     :: PhyloSimilarity
             , seaElevation   :: SeaElevation
             , defaultMode    :: Bool
             , findAncestors  :: Bool
@@ -253,8 +253,8 @@ instance ToJSON CorpusParser
 instance FromJSON ListParser
 instance ToJSON ListParser
 
-instance FromJSON Similarity
-instance ToJSON Similarity
+instance FromJSON PhyloSimilarity
+instance ToJSON PhyloSimilarity
 
 instance FromJSON SeaElevation
 instance ToJSON SeaElevation
@@ -601,7 +601,7 @@ instance ToSchema PhyloExport where
 
 makeLenses ''PhyloConfig
 makeLenses ''PhyloSubConfig
-makeLenses ''Similarity
+makeLenses ''PhyloSimilarity
 makeLenses ''SeaElevation
 makeLenses ''Quality
 makeLenses ''Cluster

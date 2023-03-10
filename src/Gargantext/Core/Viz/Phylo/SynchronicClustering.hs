@@ -124,13 +124,13 @@ toDiamonds groups = foldl' (\acc groups' ->
                   $ foldl' (\acc g -> acc ++ (map (\(id,_) -> (id,[g]) ) $ g ^. phylo_groupPeriodParents)  ) [] groups
 
 
-groupsToEdges :: Similarity -> Synchrony -> Double -> Map Int Double -> [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)]
+groupsToEdges :: PhyloSimilarity -> Synchrony -> Double -> Map Int Double -> [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)]
 groupsToEdges prox sync nbDocs diago groups =
     case sync of
         ByProximityThreshold  thr sens _ strat ->
             filter (\(_,w) -> w >= thr)
           $ toEdges sens
-          $ toPairs strat groups         
+          $ toPairs strat groups
         ByProximityDistribution sens strat -> 
             let diamonds = sortOn snd 
                          $ toEdges sens $ concat
@@ -146,14 +146,14 @@ groupsToEdges prox sync nbDocs diago groups =
                 WeightedLogSim _ _     -> map (\(g,g') -> 
                                                      ((g,g'), weightedLogJaccard' (1 / sens) nbDocs diago
                                                                   (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
-                
-                _ -> undefined  
+
+                _ -> undefined
 
 toParentId :: PhyloGroup -> PhyloGroupId
 toParentId child = ((child ^. phylo_groupPeriod, child ^. phylo_groupScale + 1), child ^. phylo_groupIndex) 
 
 
-reduceGroups :: Similarity -> Synchrony -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
+reduceGroups :: PhyloSimilarity -> Synchrony -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
 reduceGroups prox sync docs diagos branch =
     --  1) reduce a branch as a set of periods & groups
     let periods = fromListWith (++)
