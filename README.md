@@ -74,8 +74,12 @@ nix-env (Nix) 2.11.0
 
 > **NOTE INFO (upgrade/downgrade if needed)**
 > Gargantext works with Nix 2.11.0 (older version than current 2.13.2). To downgrade your Nix version:
+> 
 > `nix-channel --update; nix-env -iA nixpkgs.nixVersions.nix_2_11 nixpkgs.cacert; systemctl daemon-reload; systemctl restart nix-daemon`
+> 
 > Upgrading Nix: https://nixos.org/manual/nix/unstable/installation/upgrading.html
+> 
+> **Then, don't forget to exit Terminal and reload to take into account the version change**
 
 
 #### 3. Build Core Code
