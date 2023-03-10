@@ -406,14 +406,14 @@ getPeriodPointers fil g =
         ToChildsMemory  -> undefined
         ToParentsMemory -> undefined
 
-filterSimilarity :: Similarity -> Double -> Double -> Bool
+filterSimilarity :: PhyloSimilarity -> Double -> Double -> Bool
 filterSimilarity similarity thr local =
     case similarity of
         WeightedLogJaccard _ _ -> local >= thr
         WeightedLogSim     _ _ -> local >= thr
         Hamming            _ _ -> undefined
 
-getSimilarityName :: Similarity -> String
+getSimilarityName :: PhyloSimilarity -> String
 getSimilarityName similarity =
     case similarity of
         WeightedLogJaccard _ _ -> "WLJaccard"
@@ -474,7 +474,7 @@ getScales phylo = nub
 getSeaElevation :: Phylo -> SeaElevation
 getSeaElevation phylo = seaElevation (getConfig phylo)
 
-getSimilarity :: Phylo -> Similarity
+getSimilarity :: Phylo -> PhyloSimilarity
 getSimilarity phylo = similarity (getConfig phylo)
 
 
@@ -687,13 +687,13 @@ traceSynchronyStart phylo =
 -- | Similarity | --
 -------------------
 
-getSensibility :: Similarity -> Double
+getSensibility :: PhyloSimilarity -> Double
 getSensibility proxi = case proxi of
     WeightedLogJaccard s _ -> s
     WeightedLogSim     s _ -> s
     Hamming            _ _ -> undefined
 
-getMinSharedNgrams :: Similarity -> Int
+getMinSharedNgrams :: PhyloSimilarity -> Int
 getMinSharedNgrams proxi = case proxi of
     WeightedLogJaccard _ m -> m
     WeightedLogSim     _ m -> m
