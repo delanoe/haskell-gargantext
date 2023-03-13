@@ -1,4 +1,9 @@
-module Gargantext.Utils.Jobs where
+module Gargantext.Utils.Jobs (
+  -- * Serving the JOBS API
+    serveJobsAPI
+  -- * Parsing and reading @GargJob@s from disk
+  , readPrios
+  ) where
 
 import Control.Monad.Except
 import Control.Monad.Reader
@@ -9,7 +14,7 @@ import Text.Read (readMaybe)
 import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Admin.Orchestrator.Types (JobLog)
 import Gargantext.API.Prelude
-import qualified Gargantext.Utils.Jobs.API as API
+import qualified Gargantext.Utils.Jobs.Internal as Internal
 import Gargantext.Utils.Jobs.Map
 import Gargantext.Utils.Jobs.Monad
 
@@ -24,7 +29,7 @@ serveJobsAPI
   => GargJob
   -> (input -> Logger JobLog -> GargM Env GargError JobLog)
   -> JobsServerAPI ctI ctO callbacks input
-serveJobsAPI t f = API.serveJobsAPI ask t jobErrorToGargError $ \env i l -> do
+serveJobsAPI t f = Internal.serveJobsAPI ask t jobErrorToGargError $ \env i l -> do
   putStrLn ("Running job of type: " ++ show t)
   runExceptT $ runReaderT (f i l) env
 

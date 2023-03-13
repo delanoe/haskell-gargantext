@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeFamilies, ScopedTypeVariables #-}
-module Gargantext.Utils.Jobs.API where
+module Gargantext.Utils.Jobs.Internal (serveJobsAPI) where
 
 import Control.Concurrent
 import Control.Concurrent.Async

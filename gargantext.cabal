@@ -101,7 +101,7 @@ library
       Gargantext.Database.Schema.Ngrams
       Gargantext.Defaults
       Gargantext.Utils.Jobs
-      Gargantext.Utils.Jobs.API
+      Gargantext.Utils.Jobs.Internal
       Gargantext.Utils.Jobs.Map
       Gargantext.Utils.Jobs.Monad
       Gargantext.Utils.Jobs.Queue
