@@ -1,3 +1,8 @@
+## Version 0.0.6.9.7.2
+
+* [FRONT][FEAT][Label Shape in Graph Explorer (#501)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/501)
+* [FRONT][FIX] Spatialization of Graph improved
+
 ## Version 0.0.6.9.7.1
 
 * [BACK][FEAT] Phylo in 1 click really merged (backend only for now).
