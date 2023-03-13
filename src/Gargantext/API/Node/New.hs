@@ -77,7 +77,7 @@ type PostNodeAsync = Summary "Post Node"
 postNodeAsyncAPI
   :: UserId -> NodeId -> ServerT PostNodeAsync (GargM Env GargError)
 postNodeAsyncAPI uId nId =
-  serveJobsAPI NewNodeJob $ \p logs ->
+  serveJobsAPI NewNodeJob $ \_jHandle p logs ->
     postNodeAsync uId nId p (liftBase . logs)
 
 ------------------------------------------------------------------------

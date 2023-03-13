@@ -1,6 +1,7 @@
 -- |
 
 {-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeFamilies        #-}
 
 module Gargantext.API.Admin.EnvTypes where
 
@@ -104,6 +105,12 @@ instance HasJobEnv Env JobLog JobLog where
 
 instance Jobs.MonadJob (ReaderT Env (ExceptT GargError IO)) GargJob (Dual [JobLog]) JobLog where
   getJobEnv = asks (view env_jobs)
+
+instance Jobs.MonadJobStatus (ReaderT Env (ExceptT GargError IO)) Dual where
+  type JobType        (ReaderT Env (ExceptT GargError IO)) = GargJob
+  type JobOutputType  (ReaderT Env (ExceptT GargError IO)) = JobLog
+  type JobEventType   (ReaderT Env (ExceptT GargError IO)) = JobLog
+  type JobErrorType   (ReaderT Env (ExceptT GargError IO)) = GargError
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall

@@ -102,7 +102,7 @@ type FileAsyncApi = Summary "File Async Api"
 
 fileAsyncApi :: UserId -> NodeId -> ServerT FileAsyncApi (GargM Env GargError)
 fileAsyncApi uId nId =
-  serveJobsAPI AddFileJob $ \i l ->
+  serveJobsAPI AddFileJob $ \_jHandle i l ->
       let
         log' x = do
           -- printDebug "addWithFile" x

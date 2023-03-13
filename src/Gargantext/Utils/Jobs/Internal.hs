@@ -1,5 +1,8 @@
 {-# LANGUAGE TypeFamilies, ScopedTypeVariables #-}
-module Gargantext.Utils.Jobs.Internal (serveJobsAPI) where
+module Gargantext.Utils.Jobs.Internal (
+    serveJobsAPI
+  , JobHandle -- opaque
+  ) where
 
 import Control.Concurrent
 import Control.Concurrent.Async
@@ -22,6 +25,12 @@ import qualified Servant.Job.Async as SJ
 import qualified Servant.Job.Client as SJ
 import qualified Servant.Job.Types as SJ
 
+-- | An opaque handle that abstracts over the concrete identifier for
+-- a job. The constructor for this type is deliberately not exported.
+newtype JobHandle =
+  JobHandle { _jh_id :: SJ.JobID 'SJ.Safe }
+  deriving (Eq, Ord)
+
 serveJobsAPI
   :: ( Ord t, Exception e, MonadError e m
      , MonadJob m t (Dual [event]) output
@@ -31,7 +40,7 @@ serveJobsAPI
   => m env
   -> t
   -> (JobError -> e)
-  -> (env -> input -> Logger event -> IO (Either e output))
+  -> (env -> JobHandle -> input -> Logger event -> IO (Either e output))
   -> SJ.AsyncJobsServerT' ctI ctO callback event input output m
 serveJobsAPI getenv t joberr f
      = newJob getenv t f (SJ.JobInput undefined Nothing)
@@ -67,7 +76,7 @@ newJob
      )
   => m env
   -> t
-  -> (env -> input -> Logger event -> IO (Either e output))
+  -> (env -> JobHandle -> input -> Logger event -> IO (Either e output))
   -> SJ.JobInput callbacks input
   -> m (SJ.JobStatus 'SJ.Safe event)
 newJob getenv jobkind f input = do
@@ -81,8 +90,8 @@ newJob getenv jobkind f input = do
         postCallback (SJ.mkChanEvent e)
         logF e
 
-      f' inp logF = do
-        r <- f env inp (pushLog logF . Dual . (:[]))
+      f' jId inp logF = do
+        r <- f env (JobHandle jId) inp (pushLog logF . Dual . (:[]))
         case r of
           Left e  -> postCallback (SJ.mkChanError e) >> throwIO e
           Right a -> postCallback (SJ.mkChanResult a) >> return a

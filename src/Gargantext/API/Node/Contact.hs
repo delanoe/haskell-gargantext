@@ -73,7 +73,7 @@ data AddContactParams = AddContactParams         { firstname :: !Text, lastname 
 ----------------------------------------------------------------------
 api_async :: User -> NodeId -> ServerT API_Async (GargM Env GargError)
 api_async u nId =
-  serveJobsAPI AddContactJob $ \p log ->
+  serveJobsAPI AddContactJob $ \_jHandle p log ->
       let
         log' x = do
           -- printDebug "addContact" x

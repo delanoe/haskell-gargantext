@@ -94,7 +94,7 @@ data Charts = Sources | Authors | Institutes | Ngrams | All
 ------------------------------------------------------------------------
 api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI UpdateNodeJob $ \p log'' ->
+  serveJobsAPI UpdateNodeJob $ \_jHandle p log'' ->
       let
         log' x = do
           -- printDebug "updateNode" x

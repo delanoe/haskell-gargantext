@@ -268,7 +268,7 @@ type ForgotPasswordAsyncAPI = Summary "Forgot password asnc"
 
 forgotPasswordAsync :: ServerT ForgotPasswordAsyncAPI (GargM Env GargError)
 forgotPasswordAsync =
-  serveJobsAPI ForgotPasswordJob $ \p log' ->
+  serveJobsAPI ForgotPasswordJob $ \_jHandle p log' ->
     forgotPasswordAsync' p (liftBase . log')
 
 forgotPasswordAsync' :: (FlowCmdM env err m)

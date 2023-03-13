@@ -830,7 +830,7 @@ apiNgramsTableDoc dId =  getTableNgramsDoc          dId
 
 apiNgramsAsync :: NodeId -> ServerT TableNgramsAsyncApi (GargM Env GargError)
 apiNgramsAsync _dId =
-  serveJobsAPI TableNgramsJob $ \i log ->
+  serveJobsAPI TableNgramsJob $ \_jHandle i log ->
       let
         log' x = do
           printDebug "tableNgramsPostChartsAsync" x

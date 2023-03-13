@@ -1,5 +1,28 @@
-{-# LANGUAGE MultiWayIf, FunctionalDependencies, MultiParamTypeClasses #-}
-module Gargantext.Utils.Jobs.Monad where
+{-# LANGUAGE MultiWayIf, FunctionalDependencies, MultiParamTypeClasses, TypeFamilies #-}
+module Gargantext.Utils.Jobs.Monad (
+  -- * Types and classes
+    JobEnv(..)
+  , NumRunners
+  , JobError(..)
+
+  , MonadJob(..)
+  , MonadJobStatus(..)
+
+  -- * Functions
+  , newJobEnv
+  , defaultJobSettings
+  , genSecret
+  , getJobsSettings
+  , getJobsState
+  , getJobsMap
+  , getJobsQueue
+  , queueJob
+  , findJob
+  , checkJID
+  , withJob
+  , handleIDError
+  , removeJob
+  ) where
 
 import Gargantext.Utils.Jobs.Settings
 import Gargantext.Utils.Jobs.Map
@@ -9,6 +32,7 @@ import Gargantext.Utils.Jobs.State
 import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad.Except
+import Data.Kind (Type)
 import Data.Map.Strict (Map)
 import Data.Time.Clock
 import Network.HTTP.Client (Manager)
@@ -64,7 +88,7 @@ queueJob
   :: (MonadJob m t w a, Ord t)
   => t
   -> i
-  -> (i -> Logger w -> IO a)
+  -> (SJ.JobID 'SJ.Safe -> i -> Logger w -> IO a)
   -> m (SJ.JobID 'SJ.Safe)
 queueJob jobkind input f = do
   js <- getJobsSettings
@@ -136,3 +160,14 @@ removeJob queued t jid = do
     when queued $
       deleteQueue t jid q
     deleteJob jid m
+
+--
+-- Tracking jobs status
+--
+
+-- | A monad to query for the status of a particular job /and/ submit updates for in-progress jobs.
+class MonadJob m (JobType m) (t [JobEventType m]) (JobOutputType m) => MonadJobStatus m t where
+  type JobType        m :: Type
+  type JobOutputType  m :: Type
+  type JobEventType   m :: Type
+  type JobErrorType   m :: Type

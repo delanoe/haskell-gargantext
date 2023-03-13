@@ -192,7 +192,7 @@ toIndexedNgrams m t = Indexed <$> i <*> n
 ------------------------------------------------------------------------
 jsonPostAsync :: ServerT JSONAPI (GargM Env GargError)
 jsonPostAsync lId =
-  serveJobsAPI UpdateNgramsListJobJSON $ \f log' ->
+  serveJobsAPI UpdateNgramsListJobJSON $ \_jHandle f log' ->
       let
         log'' x = do
           -- printDebug "postAsync ListId" x
@@ -288,7 +288,7 @@ csvPost l m  = do
 ------------------------------------------------------------------------
 csvPostAsync :: ServerT CSVAPI (GargM Env GargError)
 csvPostAsync lId =
-  serveJobsAPI UpdateNgramsListJobCSV $ \f@(WithTextFile _ft _ _n) log' -> do
+  serveJobsAPI UpdateNgramsListJobCSV $ \_jHandle f@(WithTextFile _ft _ _n) log' -> do
       let log'' x = do
             -- printDebug "[csvPostAsync] filetype" ft
             -- printDebug "[csvPostAsync] name" n

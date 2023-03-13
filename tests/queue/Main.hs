@@ -36,7 +36,7 @@ testMaxRunners = do
   let settings = defaultJobSettings 2 k
   st :: JobsState JobT [String] () <- newJobsState settings defaultPrios
   runningJs <- newTVarIO []
-  let j num _inp _l = do
+  let j num _jHandle _inp _l = do
         atomically $ modifyTVar runningJs (\xs -> ("Job #" ++ show num) : xs)
         threadDelay jobDuration
         atomically $ modifyTVar runningJs (\xs -> filter (/=("Job #" ++ show num)) xs)
@@ -59,7 +59,7 @@ testPrios = do
   st :: JobsState JobT [String] () <- newJobsState settings $
     applyPrios [(B, 10)] defaultPrios -- B has higher priority
   runningJs <- newTVarIO (Counts 0 0)
-  let j jobt _inp _l = do
+  let j jobt _jHandle _inp _l = do
         atomically $ modifyTVar runningJs (inc jobt)
         threadDelay jobDuration
         atomically $ modifyTVar runningJs (dec jobt)
@@ -86,7 +86,7 @@ testExceptions = do
   let settings = defaultJobSettings 2 k
   st :: JobsState JobT [String] () <- newJobsState settings defaultPrios
   jid <- pushJob A ()
-    (\_inp _log -> readFile "/doesntexist.txt" >>= putStrLn)
+    (\_jHandle _inp _log -> readFile "/doesntexist.txt" >>= putStrLn)
     settings st
   threadDelay initialDelay
   mjob <- lookupJob jid (jobsData st)
@@ -103,7 +103,7 @@ testFairness = do
   let settings = defaultJobSettings 2 k
   st :: JobsState JobT [String] () <- newJobsState settings defaultPrios
   runningJs <- newTVarIO (Counts 0 0)
-  let j jobt _inp _l = do
+  let j jobt _jHandle _inp _l = do
         atomically $ modifyTVar runningJs (inc jobt)
         threadDelay jobDuration
         atomically $ modifyTVar runningJs (dec jobt)

@@ -70,7 +70,7 @@ instance ToSchema Params
 ------------------------------------------------------------------------
 api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI DocumentFromWriteNodeJob $ \p log'' ->
+  serveJobsAPI DocumentFromWriteNodeJob $ \_jHandle p log'' ->
       let
         log' x = do
           liftBase $ log'' x

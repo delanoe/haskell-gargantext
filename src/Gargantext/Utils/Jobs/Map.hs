@@ -1,5 +1,27 @@
 {-# LANGUAGE GADTs #-}
-module Gargantext.Utils.Jobs.Map where
+module Gargantext.Utils.Jobs.Map (
+  -- * Types
+    JobMap(..)
+  , JobEntry(..)
+  , J(..)
+  , QueuedJob(..)
+  , RunningJob(..)
+  , Logger
+
+  -- * Functions
+  , newJobMap
+  , lookupJob
+  , gcThread
+  , jobLog
+  , addJobEntry
+  , deleteJob
+  , runJob
+  , waitJobDone
+  , runJ
+  , waitJ
+  , pollJ
+  , killJ
+  ) where
 
 import Control.Concurrent
 import Control.Concurrent.Async
@@ -99,14 +121,14 @@ addJobEntry
   :: Ord jid
   => jid
   -> a
-  -> (a -> Logger w -> IO r)
+  -> (jid -> a -> Logger w -> IO r)
   -> JobMap jid w r
   -> IO (JobEntry jid w r)
 addJobEntry jid input f (JobMap mvar) = do
   now <- getCurrentTime
   let je = JobEntry
         { jID = jid
-        , jTask = QueuedJ (QueuedJob input f)
+        , jTask = QueuedJ (QueuedJob input (f jid))
         , jRegistered = now
         , jTimeoutAfter = Nothing
         , jStarted = Nothing

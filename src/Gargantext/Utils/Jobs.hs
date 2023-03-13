@@ -29,19 +29,19 @@ jobErrorToGargError = GargJobError
 serveJobsAPI
   :: (
      Foldable callbacks
-   , Ord jobType
-   , Show jobType
-   , ToJSON event
-   , ToJSON result
-   , MonadJob m jobType (Dual [event]) result
+   , Ord (JobType m)
+   , Show (JobType m)
+   , ToJSON (JobEventType m)
+   , ToJSON (JobOutputType m)
+   , MonadJobStatus m Dual
    , m ~ (GargM env GargError)
    )
-  => jobType
-  -> (input -> Logger event -> m result)
-  -> SJ.AsyncJobsServerT' ctI ctO callbacks event input result m
-serveJobsAPI jobType f = Internal.serveJobsAPI ask jobType jobErrorToGargError $ \env i l -> do
+  => JobType m
+  -> (Internal.JobHandle -> input -> Logger (JobEventType m) -> m (JobOutputType m))
+  -> SJ.AsyncJobsServerT' ctI ctO callbacks (JobEventType m) input (JobOutputType m) m
+serveJobsAPI jobType f = Internal.serveJobsAPI ask jobType jobErrorToGargError $ \env jHandle i l -> do
   putStrLn ("Running job of type: " ++ show jobType)
-  runExceptT $ runReaderT (f i l) env
+  runExceptT $ runReaderT (f jHandle i l) env
 
 parseGargJob :: String -> Maybe GargJob
 parseGargJob s = case s of

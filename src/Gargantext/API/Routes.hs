@@ -282,7 +282,7 @@ waitAPI n = do
 
 addCorpusWithQuery :: User -> ServerT New.AddWithQuery (GargM Env GargError)
 addCorpusWithQuery user cid =
-  serveJobsAPI AddCorpusQueryJob $ \q log' -> do
+  serveJobsAPI AddCorpusQueryJob $ \_jHandle q log' -> do
     limit <- view $ hasConfig . gc_max_docs_scrapers
     New.addToCorpusWithQuery user cid q (Just limit) (liftBase . log')
       {- let log' x = do
@@ -292,7 +292,7 @@ addCorpusWithQuery user cid =
 
 addCorpusWithForm :: User -> ServerT New.AddWithForm (GargM Env GargError)
 addCorpusWithForm user cid =
-  serveJobsAPI AddCorpusFormJob $ \i log' ->
+  serveJobsAPI AddCorpusFormJob $ \_jHandle i log' ->
       let
         log'' x = do
           --printDebug "[addToCorpusWithForm] " x
@@ -301,7 +301,7 @@ addCorpusWithForm user cid =
 
 addCorpusWithFile :: User -> ServerT New.AddWithFile (GargM Env GargError)
 addCorpusWithFile user cid =
-  serveJobsAPI AddCorpusFileJob $ \i log' ->
+  serveJobsAPI AddCorpusFileJob $ \_jHandle i log' ->
       let
         log'' x = do
           -- printDebug "[addToCorpusWithFile]" x
@@ -310,5 +310,5 @@ addCorpusWithFile user cid =
 
 addAnnuaireWithForm :: ServerT Annuaire.AddWithForm (GargM Env GargError)
 addAnnuaireWithForm cid =
-  serveJobsAPI AddAnnuaireFormJob $ \i log' ->
+  serveJobsAPI AddAnnuaireFormJob $ \_jHandle i log' ->
     Annuaire.addToAnnuaireWithForm cid i (liftBase . log')

@@ -54,7 +54,7 @@ type API = Summary " FrameCalc upload"
 
 api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI UploadFrameCalcJob $ \p logs ->
+  serveJobsAPI UploadFrameCalcJob $ \_jHandle p logs ->
     frameCalcUploadAsync uId nId p (liftBase . logs) (jobLogInit 5)
 
 
