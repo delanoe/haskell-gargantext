@@ -1,3 +1,7 @@
+## Version 0.0.6.9.7.3
+
+* [FRONT][FIX][[hackathon] GraphExplorer fixes (#489)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/489)
+
 ## Version 0.0.6.9.7.2
 
 * [FRONT][FEAT][Label Shape in Graph Explorer (#501)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/501)
