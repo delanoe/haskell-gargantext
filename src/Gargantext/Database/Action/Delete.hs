@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Database.Action.Delete
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -22,13 +22,12 @@ import Data.Text
 import Servant
 
 import Gargantext.Core
-import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Share (delFolderTeam)
 import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Admin.Types.Hyperdata.File
 import Gargantext.Database.Admin.Types.Node -- (NodeType(..))
-import Gargantext.Database.Prelude (Cmd', HasConfig, HasConnectionPool)
+import Gargantext.Database.Prelude (Cmd', CmdCommon)
 import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Schema.Node
@@ -40,7 +39,7 @@ import qualified Gargantext.Database.Query.Table.Node as N (getNode, deleteNode)
 -- TODO
 -- Delete Corpus children accoring its types
 -- Delete NodeList (NodeStory + cbor file)
-deleteNode :: (HasMail env, HasConfig env, HasConnectionPool env, HasNodeError err)
+deleteNode :: (CmdCommon env, HasNodeError err)
            => User
            -> NodeId
            -> Cmd' env err Int
@@ -59,7 +58,7 @@ deleteNode u nodeId = do
       GargDB.rmFile $ unpack path
       N.deleteNode nodeId
     _                             -> N.deleteNode nodeId
-   
+
   -- if hasNodeType node' NodeUser
   --    then panic "Not allowed to delete NodeUser (yet)"
   --    else if hasNodeType node' NodeTeam

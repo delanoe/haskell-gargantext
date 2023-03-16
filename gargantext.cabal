@@ -46,6 +46,7 @@ library
       Gargantext.API.Prelude
       Gargantext.Core
       Gargantext.Core.Methods.Similarities
+      Gargantext.Core.NLP
       Gargantext.Core.NodeStory
       Gargantext.Core.Text
       Gargantext.Core.Text.Context
@@ -438,6 +439,7 @@ library
     , morpheus-graphql-subscriptions
     , mtl
     , natural-transformation
+    , network-uri
     , opaleye
     , pandoc
     , parallel

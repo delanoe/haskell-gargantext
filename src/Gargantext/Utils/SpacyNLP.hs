@@ -27,6 +27,7 @@ import Gargantext.Core.Types (POS(..), NER(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 import Network.HTTP.Simple (parseRequest, httpJSON, setRequestBodyLBS, getResponseBody, Response)
+import Network.URI (URI(..))
 
 
 data SpacyData = SpacyData { _spacy_data :: ![SpacyText]}
@@ -79,10 +80,10 @@ data SpacyTags =
 data SpacyRequest = SpacyRequest { _spacyRequest_text :: !Text }
   deriving (Show)
 
-spacyRequest :: Text -> IO SpacyData
-spacyRequest txt = do
-  url <- parseRequest $ unpack "POST http://localhost:8001/pos"
-  let request = setRequestBodyLBS (encode $ SpacyRequest txt) url
+spacyRequest :: URI -> Text -> IO SpacyData
+spacyRequest uri txt = do
+  req <- parseRequest $ "POST " <> show (uri { uriPath = "/pos" })
+  let request = setRequestBodyLBS (encode $ SpacyRequest txt) req
   result <- httpJSON request :: IO (Response SpacyData)
   pure $ getResponseBody result
 
@@ -119,8 +120,8 @@ spacyDataToPosSentences (SpacyData ds) = PosSentences
 
 -----------------------------------------------------------------
 
-nlp :: Lang -> Text -> IO PosSentences
-nlp FR txt  = spacyDataToPosSentences <$> spacyRequest txt
-nlp _  _ = panic "Make sure you have the right model for your lang for spacy Server"
-
-
+nlp :: URI -> Lang -> Text -> IO PosSentences
+nlp uri FR txt = spacyDataToPosSentences <$> spacyRequest uri txt
+nlp _ _ _ = panic "Make sure you have the right model for your lang for spacy Server"
+-- nlp FR txt  = spacyDataToPosSentences <$> spacyRequest txt
+-- nlp _  _ = panic "Make sure you have the right model for your lang for spacy Server"

@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Database.Action.Mail
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -33,4 +33,3 @@ sendMail u = do
                      , mailInfo_address  = userLight_email    userLight
                      }
            )
-

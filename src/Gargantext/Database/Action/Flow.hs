@@ -78,6 +78,7 @@ import Gargantext.Core (Lang(..), PosTagAlgo(..))
 -- import Gargantext.Core.Ext.IMT (toSchoolName)
 import Gargantext.Core.Ext.IMTUser (readFile_Annuaire)
 import Gargantext.Core.Flow.Types
+import Gargantext.Core.NLP (nlpServerGet)
 import Gargantext.Core.Text
 import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat, FileType, splitOn)
 import Gargantext.Core.Text.List (buildNgramsLists)
@@ -346,6 +347,7 @@ flowCorpusUser :: ( FlowCmdM env err m
                -> Maybe FlowSocialListWith
                -> m CorpusId
 flowCorpusUser l user userCorpusId listId ctype mfslw = do
+  server <- view (nlpServerGet l)
   -- User List Flow
   (masterUserId, _masterRootId, masterCorpusId)
     <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
@@ -358,7 +360,7 @@ flowCorpusUser l user userCorpusId listId ctype mfslw = do
            pure ()
          _ -> do
            ngs  <- buildNgramsLists user userCorpusId masterCorpusId mfslw
-                     $ GroupWithPosTag l CoreNLP HashMap.empty
+                   $ GroupWithPosTag l server HashMap.empty
 
          -- printDebug "flowCorpusUser:ngs" ngs
 
@@ -558,10 +560,11 @@ instance ExtractNgramsT HyperdataDocument
                          $ maybe ["Nothing"] (splitOn Authors (doc^. hd_bdd))
                          $ _hd_authors doc
 
+          ncs <- view (nlpServerGet $ lang' ^. tt_lang)
 
           termsWithCounts' <- map (\(t, cnt) -> (enrichedTerms (lang' ^. tt_lang) CoreNLP NP t, cnt))
                               <$> concat
-                              <$> liftBase (extractTerms lang' $ hasText doc)
+                              <$> liftBase (extractTerms ncs lang' $ hasText doc)
 
           pure $ HashMap.fromList
                $  [(SimpleNgrams source, (Map.singleton Sources     1, 1))                    ]

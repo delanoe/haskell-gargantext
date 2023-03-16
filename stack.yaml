@@ -37,9 +37,10 @@ extra-deps:
 - HSvm-0.1.1.3.22
 - hsparql-0.3.8
 
-- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-  commit: 791c2a7046a3760f8ae5fabdbd708f61caa63741
-  #- git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude
+#- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
+#  commit: 791c2a7046a3760f8ae5fabdbd708f61caa63741
+- git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude
+  commit: 175d4b295be2a0f56edc4eb6c7d8227d81bc2841
 - git: https://gitlab.iscpif.fr/gargantext/gargantext-graph.git
   commit: 588e104fe7593210956610cab0041fd16584a4ce
   # Data Mining Libs

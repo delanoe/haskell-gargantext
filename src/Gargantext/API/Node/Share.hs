@@ -20,6 +20,7 @@ import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Prelude
+import Gargantext.Core.NLP (HasNLPServer)
 import Gargantext.Core.Types.Individu (User(..), arbitraryUsername)
 import Gargantext.Database.Action.Share (ShareNodeWith(..))
 import Gargantext.Database.Action.Share as DB (shareNodeWith, unPublish)
@@ -56,11 +57,11 @@ instance Arbitrary ShareNodeParams where
 -- TODO permission
 -- TODO refactor userId which is used twice
 -- TODO change return type for better warning/info/success/error handling on the front
-api :: HasNodeError err
+api :: (HasNodeError err, HasNLPServer env, CmdRandom env err m)
     => User
     -> NodeId
     -> ShareNodeParams
-    -> CmdR err Int
+    -> m Int
 api userInviting nId (ShareTeamParams user') = do
   let user'' = Text.toLower user'
   user <- case guessUserName user'' of
@@ -88,7 +89,7 @@ api userInviting nId (ShareTeamParams user') = do
                 True -> do
                   -- printDebug "[G.A.N.Share.api]" ("Invitation is enabled if you share a corpus at least" :: Text)
                   pure 0
-                False -> do 
+                False -> do
                   -- printDebug "[G.A.N.Share.api]" ("Your invitation is sent to: " <> user'')
                   newUsers [user'']
               pure ()

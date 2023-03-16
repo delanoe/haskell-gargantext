@@ -139,8 +139,8 @@ getGroupParams :: ( HasNodeError err
                   , HasTreeError err
                   )
                => GroupParams -> HashSet Ngrams -> m GroupParams
-getGroupParams gp@(GroupWithPosTag l a _m) ng = do
-  !hashMap <- HashMap.fromList <$> selectLems l a (HashSet.toList ng)
+getGroupParams gp@(GroupWithPosTag l nsc _m) ng = do
+  !hashMap <- HashMap.fromList <$> selectLems l nsc (HashSet.toList ng)
   -- printDebug "hashMap" hashMap
   pure $ over gwl_map (\x -> x <> hashMap) gp
 getGroupParams gp _ = pure gp

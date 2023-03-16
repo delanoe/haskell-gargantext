@@ -15,10 +15,10 @@ Portability : POSIX
 
 module Gargantext.Database.Prelude where
 
+--import Control.Monad.Logger (MonadLogger)
 import Control.Exception
 import Control.Lens (Getter, view)
 import Control.Monad.Except
---import Control.Monad.Logger (MonadLogger)
 import Control.Monad.Random
 import Control.Monad.Reader
 import Control.Monad.Trans.Control (MonadBaseControl)
@@ -34,17 +34,18 @@ import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(Conversion
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Database.PostgreSQL.Simple.Types (Query(..))
 import Gargantext.Core.Mail.Types (HasMail)
+import Gargantext.Core.NLP (HasNLPServer)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(), readIniFile', val)
 import Opaleye (Unpackspec, showSql, FromFields, Select, runSelect, SqlJsonb, DefaultFromField, toFields, matchMaybe, MaybeFields)
 import Opaleye.Aggregate (countRows)
-import qualified Opaleye.Internal.Constant
-import qualified Opaleye.Internal.Operators
 import System.IO (FilePath, stderr)
 import Text.Read (readMaybe)
 import qualified Data.ByteString      as DB
 import qualified Data.List as DL
 import qualified Database.PostgreSQL.Simple as PGS
+import qualified Opaleye.Internal.Constant
+import qualified Opaleye.Internal.Operators
 
 -------------------------------------------------------
 class HasConnectionPool env where
@@ -79,11 +80,15 @@ type CmdM' env err m =
   -- , MonadRandom             m
   )
 
-type CmdM env err m =
-  ( CmdM'             env err m
-  , HasConnectionPool env
+type CmdCommon env =
+  ( HasConnectionPool env
   , HasConfig         env
   , HasMail           env
+  , HasNLPServer      env )
+
+type CmdM env err m =
+  ( CmdM'     env err m
+  , CmdCommon env
   )
 
 type CmdRandom env err m =

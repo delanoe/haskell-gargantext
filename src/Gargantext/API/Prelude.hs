@@ -34,6 +34,7 @@ import Data.Typeable
 import Data.Validity
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Admin.Types
+import Gargantext.Core.NLP (HasNLPServer)
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types
@@ -61,6 +62,7 @@ type EnvC env =
   , HasConfig         env
   , HasNodeStoryEnv   env
   , HasMail           env
+  , HasNLPServer      env
   )
 
 type ErrC err =

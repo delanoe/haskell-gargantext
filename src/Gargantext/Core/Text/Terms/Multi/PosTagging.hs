@@ -34,6 +34,7 @@ import Gargantext.Core.Text.Terms.Multi.PosTagging.Types
 import Gargantext.Core.Types
 import Gargantext.Prelude
 import Network.HTTP.Simple
+import Network.URI (URI(..))
 
 -- import qualified Gargantext.Utils.SpacyNLP as SpacyNLP
 
@@ -76,21 +77,21 @@ filter' xs = filter isNgrams xs
 corenlp' :: ( FromJSON a
             , ConvertibleStrings p ByteString
             )
-          => Lang -> p -> IO (Response a)
-corenlp' lang txt = do
+          => URI -> Lang -> p -> IO (Response a)
+corenlp' uri lang txt = do
     let properties = case lang of
             EN -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
             FR -> "{\"annotators\": \"tokenize,ssplit,pos,lemma,ner\", \"parse.model\":\"edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz\", \"pos.model\":\"edu/stanford/nlp/models/pos-tagger/french/french.tagger\", \"tokenize.language\":\"fr\", \"outputFormat\": \"json\"}"
             _  -> panic $ pack "not implemented yet"
-    url <- parseRequest $ "POST http://localhost:9000/?properties=" <> properties
+    req <- parseRequest $ "POST " <> show (uri { uriQuery = "?properties=" <> properties })
     -- curl -XPOST 'http://localhost:9000/?properties=%7B%22annotators%22:%20%22tokenize,ssplit,pos,ner%22,%20%22outputFormat%22:%20%22json%22%7D' -d 'hello world, hello' | jq .
-    let request = setRequestBodyLBS (cs txt) url
+    let request = setRequestBodyLBS (cs txt) req
     httpJSON request
 
 
-corenlp :: Lang -> Text -> IO PosSentences
-corenlp lang txt = do
-  response <- corenlp' lang txt
+corenlp :: URI -> Lang -> Text -> IO PosSentences
+corenlp uri lang txt = do
+  response <- corenlp' uri lang txt
   pure (getResponseBody response)
 
 -- | parseWith
@@ -101,11 +102,11 @@ corenlp lang txt = do
 -- Named Entity Recognition example
 -- parseWith  _tokenNer     "Hello world of Peter."
 -- [[("``","O"),("Hello","O"),("world","O"),("of","O"),("Peter","PERSON"),(".","O"),("''","O")]]
-tokenWith :: (Token -> t) -> Lang -> Text -> IO [[(Text, t)]]
-tokenWith f lang s = map (map (\t -> (_tokenWord t, f t)))
+tokenWith :: URI -> (Token -> t) -> Lang -> Text -> IO [[(Text, t)]]
+tokenWith uri f lang s = map (map (\t -> (_tokenWord t, f t)))
                   <$> map _sentenceTokens
                   <$> _sentences
-                  <$> corenlp lang s
+                  <$> corenlp uri lang s
 
 ----------------------------------------------------------------------------------
 -- Here connect to the JohnSnow Server as it has been done above with the corenlp'
