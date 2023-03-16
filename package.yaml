@@ -222,6 +222,7 @@ library:
   - morpheus-graphql-subscriptions
   - mtl
   - natural-transformation
+  - network-uri
   - opaleye
   - pandoc
   - parallel

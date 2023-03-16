@@ -13,11 +13,10 @@ import Data.Morpheus.Types
 import Data.Text (Text)
 import qualified Data.Text as T
 import Gargantext.API.Prelude (GargM, GargError)
-import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Database.Admin.Types.Node (NodeId(..), NodeType)
 import qualified Gargantext.Database.Admin.Types.Node as NN
 import Gargantext.Database.Query.Table.Node (getClosestParentIdByType, getNode)
-import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
+import Gargantext.Database.Prelude (CmdCommon)
 import qualified Gargantext.Database.Schema.Node as N
 import Gargantext.Prelude
 import GHC.Generics (Generic)
@@ -40,12 +39,12 @@ type GqlM e env = Resolver QUERY e (GargM env GargError)
 
 -- | Function to resolve user from a query.
 resolveNodes
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (CmdCommon env)
   => NodeArgs -> GqlM e env [Node]
 resolveNodes NodeArgs { node_id } = dbNodes node_id
 
 dbNodes
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (CmdCommon env)
   => Int -> GqlM e env [Node]
 dbNodes node_id = do
   node <- lift $ getNode $ NodeId node_id
@@ -58,12 +57,12 @@ data NodeParentArgs
     } deriving (Generic, GQLType)
 
 resolveNodeParent
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (CmdCommon env)
   => NodeParentArgs -> GqlM e env [Node]
 resolveNodeParent NodeParentArgs { node_id, parent_type } = dbParentNodes node_id parent_type
 
 dbParentNodes
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (CmdCommon env)
   => Int -> Text -> GqlM e env [Node]
 dbParentNodes node_id parent_type = do
   let mParentType = readEither (T.unpack parent_type) :: Either Prelude.String NodeType

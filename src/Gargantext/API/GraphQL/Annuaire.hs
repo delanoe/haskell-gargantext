@@ -13,7 +13,6 @@ import Data.Morpheus.Types
 import Data.Proxy
 import Data.Text (Text)
 import Gargantext.API.Prelude (GargM, GargError)
-import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Database.Admin.Types.Hyperdata.Contact
   ( HyperdataContact
   , ContactWho
@@ -21,7 +20,7 @@ import Gargantext.Database.Admin.Types.Hyperdata.Contact
   , cw_lastName
   , hc_who, ContactWhere, hc_where, cw_organization, cw_labTeamDepts, cw_role, cw_office, cw_country, cw_city, cw_touch, ct_mail, ct_phone, ct_url, hc_title, hc_source)
 import Gargantext.Database.Admin.Types.Node (NodeId(..))
-import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
+import Gargantext.Database.Prelude (CmdCommon)
 import Gargantext.Database.Query.Table.Context (getContextWith)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
@@ -55,13 +54,13 @@ type GqlM e env = Resolver QUERY e (GargM env GargError)
 
 -- | Function to resolve user from a query.
 resolveAnnuaireContacts
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (CmdCommon env)
   => AnnuaireContactArgs -> GqlM e env [AnnuaireContact]
 resolveAnnuaireContacts AnnuaireContactArgs { contact_id } = dbAnnuaireContacts contact_id
 
 -- | Inner function to fetch the user from DB.
 dbAnnuaireContacts
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: CmdCommon env
   => Int -> GqlM e env [AnnuaireContact]
 dbAnnuaireContacts contact_id = do
   -- lift $ printDebug "[dbUsers]" user_id

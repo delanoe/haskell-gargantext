@@ -9,8 +9,7 @@ import Gargantext.Core.Types (UserId)
 import Gargantext.Database.Admin.Types.Node (NodeType(NodeTeam))
 import Gargantext.Database.Query.Table.Node (getNodesIdWithType)
 import Gargantext.Database.Action.Share (membersOf)
-import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
-import Gargantext.Core.Mail.Types (HasMail)
+import Gargantext.Database.Prelude (CmdCommon)
 import Control.Monad.Extra (concatMapM)
 
 type MembersAPI = Get '[JSON] [Text]
@@ -19,7 +18,8 @@ members :: UserId -> ServerT MembersAPI (GargM Env GargError)
 members _ = do
   getMembers
 
-getMembers :: (HasConnectionPool env, HasConfig env, HasMail env) => GargM env GargError [Text]
+getMembers :: (CmdCommon env) =>
+              GargM env GargError [Text]
 getMembers = do
   teamNodeIds <- getNodesIdWithType NodeTeam
   m <- concatMapM membersOf teamNodeIds

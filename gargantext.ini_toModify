@@ -84,3 +84,8 @@ MAIL_PASSWORD =
 MAIL_FROM     = 
 # NoAuth | Normal | SSL | TLS | STARTTLS
 MAIL_LOGIN_TYPE = Normal
+
+[nlp]
+EN = corenlp://localhost:9000
+FR = spacy://localhost:8001
+All = corenlp://localhost:9000

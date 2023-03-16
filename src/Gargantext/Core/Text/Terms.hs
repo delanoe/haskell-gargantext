@@ -83,13 +83,13 @@ makeLenses ''TermType
 ------------------------------------------------------------------------
 -- | Sugar to extract terms from text (hidding 'mapM' from end user).
 --extractTerms :: Traversable t => TermType Lang -> t Text -> IO (t [Terms])
-extractTerms :: TermType Lang -> [Text] -> IO [[TermsWithCount]]
-extractTerms (Unsupervised {..}) xs = mapM (terms (Unsupervised { _tt_model = Just m', .. })) xs
+extractTerms :: NLPServerConfig -> TermType Lang -> [Text] -> IO [[TermsWithCount]]
+extractTerms ncs (Unsupervised {..}) xs = mapM (terms ncs (Unsupervised { _tt_model = Just m', .. })) xs
   where
     m' = case _tt_model of
       Just m''-> m''
       Nothing -> newTries _tt_windowSize (Text.intercalate " " xs)
-extractTerms termTypeLang xs = mapM (terms termTypeLang) xs
+extractTerms ncs termTypeLang xs = mapM (terms ncs termTypeLang) xs
 
 
 ------------------------------------------------------------------------
@@ -170,11 +170,11 @@ isSimpleNgrams _                = False
 -- 'Multi' : multi terms
 -- 'MonoMulti' : mono and multi
 -- TODO : multi terms should exclude mono (intersection is not empty yet)
-terms :: TermType Lang -> Text -> IO [TermsWithCount]
-terms (Mono      lang) txt = pure $ monoTerms lang txt
-terms (Multi     lang) txt = multiterms lang txt
-terms (MonoMulti lang) txt = terms (Multi lang) txt
-terms (Unsupervised { .. }) txt = pure $ termsUnsupervised (Unsupervised { _tt_model = Just m', .. }) txt
+terms :: NLPServerConfig -> TermType Lang -> Text -> IO [TermsWithCount]
+terms _   (Mono      lang) txt = pure $ monoTerms lang txt
+terms ncs (Multi     lang) txt = multiterms ncs lang txt
+terms ncs (MonoMulti lang) txt = terms ncs (Multi lang) txt
+terms _   (Unsupervised { .. }) txt = pure $ termsUnsupervised (Unsupervised { _tt_model = Just m', .. }) txt
   where
     m' = maybe (newTries _tt_ngramsSize txt) identity _tt_model
 -- terms (WithList  list) txt = pure . concat $ extractTermsWithList list txt
