@@ -4,10 +4,13 @@ module Gargantext.Utils.Jobs.Monad (
     JobEnv(..)
   , NumRunners
   , JobError(..)
-  , JobHandle(..)
+  , JobHandle -- opaque
 
   , MonadJob(..)
+
+  -- * Tracking jobs status
   , MonadJobStatus(..)
+  , getLatestJobStatus
 
   -- * Functions
   , newJobEnv
@@ -24,7 +27,6 @@ module Gargantext.Utils.Jobs.Monad (
   , handleIDError
   , removeJob
   , unsafeMkJobHandle
-  , getLatestJobStatus
   ) where
 
 import Gargantext.Utils.Jobs.Settings
@@ -188,7 +190,12 @@ class MonadJob m (JobType m) (Seq (JobEventType m)) (JobOutputType m) => MonadJo
   type JobType        m :: Type
   type JobOutputType  m :: Type
   type JobEventType   m :: Type
-  type JobErrorType   m :: Type
+
+instance MonadIO m => MonadJobStatus (ReaderT (JobEnv t (Seq event) a) m) where
+  type JobType        (ReaderT (JobEnv t (Seq event) a) m) = t
+  type JobOutputType  (ReaderT (JobEnv t (Seq event) a) m) = a
+  type JobEventType   (ReaderT (JobEnv t (Seq event) a) m) = event
+
 
 --
 -- Tracking jobs status API

@@ -110,7 +110,6 @@ instance Jobs.MonadJobStatus (ReaderT Env (ExceptT GargError IO)) where
   type JobType        (ReaderT Env (ExceptT GargError IO)) = GargJob
   type JobOutputType  (ReaderT Env (ExceptT GargError IO)) = JobLog
   type JobEventType   (ReaderT Env (ExceptT GargError IO)) = JobLog
-  type JobErrorType   (ReaderT Env (ExceptT GargError IO)) = GargError
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall

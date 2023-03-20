@@ -899,11 +899,17 @@ test-suite jobqueue-test
       StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      async
+      aeson
+    , async
     , base
+    , containers
     , extra
     , gargantext
     , hspec
+    , http-client
+    , http-client-tls
+    , mtl
+    , servant-job
     , stm
     , text
   default-language: Haskell2010

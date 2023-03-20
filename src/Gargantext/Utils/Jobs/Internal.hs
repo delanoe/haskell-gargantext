@@ -1,6 +1,8 @@
 {-# LANGUAGE TypeFamilies, ScopedTypeVariables #-}
 module Gargantext.Utils.Jobs.Internal (
     serveJobsAPI
+  -- * Internals for testing
+  , newJob
   ) where
 
 import Control.Concurrent

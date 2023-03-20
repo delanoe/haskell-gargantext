@@ -1,16 +1,33 @@
+{-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE NumericUnderscores  #-}
 module Main where
 
 import Control.Concurrent
 import Control.Concurrent.STM
+import Control.Exception
 import Control.Monad
+import Control.Monad.Reader
+import Control.Monad.Except
+import Data.Aeson
 import Data.Either
 import Data.List
+import Data.Sequence (Seq)
+import GHC.Generics
+import GHC.Stack
 import Prelude
+import System.IO.Unsafe
+import Network.HTTP.Client.TLS (newTlsManager)
+import Network.HTTP.Client (Manager)
 import Test.Hspec
+import qualified Servant.Job.Types as SJ
+import qualified Servant.Job.Core  as SJ
 
+import Gargantext.Utils.Jobs.Internal (newJob)
 import Gargantext.Utils.Jobs.Map
-import Gargantext.Utils.Jobs.Monad
+import Gargantext.Utils.Jobs.Monad hiding (withJob)
 import Gargantext.Utils.Jobs.Queue (applyPrios, defaultPrios)
 import Gargantext.Utils.Jobs.State
 
@@ -130,6 +147,108 @@ testFairness = do
   r4 <- readTVarIO runningJs
   r4 `shouldBe` (Counts 0 0)
 
+data MyDummyJob
+  = MyDummyJob
+  deriving (Show, Eq, Ord, Enum, Bounded)
+
+data MyDummyError
+  = SomethingWentWrong JobError
+  deriving (Show)
+
+instance Exception MyDummyError where
+  toException _ = toException (userError "SomethingWentWrong")
+
+instance ToJSON MyDummyError where
+  toJSON (SomethingWentWrong _) = String "SomethingWentWrong"
+
+data MyDummyLog =
+    Step_0
+  | Step_1
+  deriving (Show, Eq, Ord, Generic)
+
+instance ToJSON MyDummyLog
+
+newtype MyDummyEnv = MyDummyEnv { _MyDummyEnv :: JobEnv MyDummyJob (Seq MyDummyLog) () }
+
+newtype MyDummyMonad a =
+  MyDummyMonad { _MyDummyMonad :: ReaderT MyDummyEnv (ExceptT MyDummyError IO) a }
+  deriving (Functor, Applicative, Monad, MonadIO, MonadReader MyDummyEnv, MonadError MyDummyError)
+
+instance MonadJob MyDummyMonad MyDummyJob (Seq MyDummyLog) () where
+  getJobEnv = asks _MyDummyEnv
+
+instance MonadJobStatus MyDummyMonad where
+  type JobType        MyDummyMonad = MyDummyJob
+  type JobOutputType  MyDummyMonad = ()
+  type JobEventType   MyDummyMonad = MyDummyLog
+
+testTlsManager :: Manager
+testTlsManager = unsafePerformIO newTlsManager
+{-# NOINLINE testTlsManager #-}
+
+shouldBeE :: (MonadIO m, HasCallStack, Show a, Eq a) => a -> a -> m ()
+shouldBeE a b = liftIO (shouldBe a b)
+
+type TheEnv = JobEnv MyDummyJob (Seq MyDummyLog) ()
+
+withJob :: TheEnv
+        -> (TheEnv -> JobHandle -> () -> Logger MyDummyLog -> IO (Either MyDummyError ()))
+        -> IO (Either MyDummyError (SJ.JobStatus 'SJ.Safe MyDummyLog))
+withJob myEnv f = do
+  runExceptT $ flip runReaderT (MyDummyEnv myEnv) $ _MyDummyMonad $ do
+    newJob @_ @MyDummyError getJobEnv MyDummyJob (\env hdl input logStatus ->
+      f env hdl input logStatus) (SJ.JobInput () Nothing)
+
+withJob_ :: TheEnv -> (TheEnv -> JobHandle -> () -> Logger MyDummyLog -> IO (Either MyDummyError ())) -> IO ()
+withJob_ env f = void (withJob env f)
+
+testFetchJobStatus :: IO ()
+testFetchJobStatus = do
+  k <- genSecret
+  let settings = defaultJobSettings 2 k
+  myEnv <- newJobEnv settings defaultPrios testTlsManager
+  evts <- newMVar []
+
+  withJob_ myEnv $ \env hdl _input logStatus -> do
+    mb_status <- runReaderT (getLatestJobStatus hdl) env
+
+    -- now let's log something
+    logStatus Step_0
+    mb_status' <- runReaderT (getLatestJobStatus hdl) env
+
+    modifyMVar_ evts (\xs -> pure $ mb_status : mb_status' : xs)
+    pure $ Right ()
+
+  threadDelay 500_000
+  -- Check the events
+  readMVar evts >>= \expected -> expected `shouldBe` [Nothing, Just Step_0]
+
+testFetchJobStatusNoContention :: IO ()
+testFetchJobStatusNoContention = do
+  k <- genSecret
+  let settings = defaultJobSettings 2 k
+  myEnv <- newJobEnv settings defaultPrios testTlsManager
+
+  evts1 <- newMVar []
+  evts2 <- newMVar []
+
+  withJob_ myEnv $ \env hdl _input logStatus -> do
+      logStatus Step_1
+      mb_status <- runReaderT (getLatestJobStatus hdl) env
+      modifyMVar_ evts1 (\xs -> pure $ mb_status : xs)
+      pure $ Right ()
+
+  withJob_ myEnv $ \env hdl _input logStatus -> do
+      logStatus Step_0
+      mb_status <- runReaderT (getLatestJobStatus hdl) env
+      modifyMVar_ evts2 (\xs -> pure $ mb_status : xs)
+      pure $ Right ()
+
+  threadDelay 500_000
+  -- Check the events
+  readMVar evts1 >>= \expected -> expected `shouldBe` [Just Step_1]
+  readMVar evts2 >>= \expected -> expected `shouldBe` [Just Step_0]
+
 main :: IO ()
 main = hspec $ do
   describe "job queue" $ do
@@ -141,3 +260,8 @@ main = hspec $ do
       testExceptions
     it "fairly picks equal-priority-but-different-kind jobs" $
       testFairness
+  describe "job status update and tracking" $ do
+    it "can fetch the latest job status" $
+      testFetchJobStatus
+    it "can spin two separate jobs and track their status separately" $
+      testFetchJobStatusNoContention
