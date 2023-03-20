@@ -71,9 +71,8 @@ rec {
     gsl
     #haskell-language-server
     hlint
-    igraph_0_10_4
     libffi
-    liblapack
+    lapack
     lzma
     pcre
     pkgconfig
@@ -87,6 +86,7 @@ rec {
     icu
     graphviz
     llvm_9
+    igraph_0_10_4
   ] ++ ( lib.optionals stdenv.isDarwin [
        darwin.apple_sdk.frameworks.Accelerate
        ]);
