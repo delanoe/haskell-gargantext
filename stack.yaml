@@ -101,7 +101,8 @@ extra-deps:
 #- git: https://github.com/alpmestan/haskell-igraph.git
 #  commit: 9f55eb36639c8e0965c8bc539a57738869f33e9a
 - git: https://gitlab.iscpif.fr/gargantext/haskell-igraph.git
-  commit: 03c8885d0166255ed7bf0b624a07610ea68ec02c
+  # 0.10.4-rc1
+  commit: 2a28524134b68421f30f6e97961063018f814a82
 - git: https://gitlab.iscpif.fr/gargantext/haskell-infomap.git
   commit: 6d1d60b952b9b2b272b58fc5539700fd8890ac88
 
