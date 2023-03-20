@@ -212,6 +212,7 @@ subConfig2config subConfig = defaultConfig { similarity     = WeightedLogJaccard
                                            , timeUnit       = _sc_timeUnit       subConfig
                                            , clique         = _sc_clique         subConfig
                                            , exportFilter   = [ByBranchSize $ _sc_exportFilter   subConfig]
+                                           , defaultMode    = True
                                            }
 
 ------------------------------------------------------------------------
