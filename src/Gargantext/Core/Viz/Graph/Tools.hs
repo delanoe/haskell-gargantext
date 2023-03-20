@@ -117,12 +117,11 @@ cooc2graphWith' :: Partitions
                 -> Strength
                 -> HashMap (NgramsTerm, NgramsTerm) Int
                 -> IO Graph
-cooc2graphWith' _doPartitions _bridgenessMethod multi similarity@Conditional threshold strength myCooc = do
+cooc2graphWith' _doPartitions _bridgenessMethod multi similarity threshold strength myCooc = do
   let (distanceMap, diag, ti) = doSimilarityMap similarity threshold strength myCooc
   distanceMap `seq` diag `seq` ti `seq` return ()
 
   partitions <- if (Map.size distanceMap > 0)
-      -- then recursiveClustering doPartitions distanceMap
       then recursiveClustering' (spinglass' 1) distanceMap
       else panic $ Text.unlines [ "[Gargantext.C.V.Graph.Tools] Similarity Matrix is empty"
                                 , "Maybe you should add more Map Terms in your list"
@@ -133,35 +132,7 @@ cooc2graphWith' _doPartitions _bridgenessMethod multi similarity@Conditional thr
   let
     !confluence' = BAC.computeConfluences 3 (Map.keys distanceMap) True
     !bridgeness' = bridgeness (Bridgeness_Recursive partitions 1.0 similarity) distanceMap
-{-
-    !bridgeness' = if bridgenessMethod == BridgenessMethod_Basic
-                      then bridgeness (Bridgeness_Basic partitions 1.0) distanceMap
-                      else bridgeness (Bridgeness_Advanced similarity confluence') distanceMap
--}
-  pure $ data2graph multi ti diag bridgeness' confluence' (setNodes2clusterNodes $ List.concat partitions)
 
-cooc2graphWith' _doPartitions _bridgenessMethod multi similarity@Distributional threshold strength myCooc = do
-  let (distanceMap, diag, ti) = doSimilarityMap Distributional threshold strength myCooc
-  distanceMap `seq` diag `seq` ti `seq` return ()
-
-  partitions <- if (Map.size distanceMap > 0)
-      --then recursiveClustering doPartitions distanceMap
-      then recursiveClustering' (spinglass' 1) distanceMap
-      else panic $ Text.unlines [ "[Gargantext.C.V.Graph.Tools] Similarity Matrix is empty"
-                                , "Maybe you should add more Map Terms in your list"
-                                , "Tutorial: TODO"
-                                ]
-  length partitions `seq` return ()
-
-  let
-    !confluence' = BAC.computeConfluences 3 (Map.keys distanceMap) True
-    !bridgeness' = bridgeness (Bridgeness_Recursive partitions 1.0 similarity) distanceMap
-{-
-    !bridgeness' = if bridgenessMethod == BridgenessMethod_Basic
-                      then bridgeness (Bridgeness_Basic partitions 1.0) distanceMap
-                      else bridgeness (Bridgeness_Advanced Distributional confluence') distanceMap
-  pure $ data2graph multi ti diag bridgeness' confluence' partitions
--}
   pure $ data2graph multi ti diag bridgeness' confluence' (setNodes2clusterNodes $ List.concat partitions)
 
 
@@ -238,7 +209,6 @@ nodeTypeWith (MultiPartite (Partite s1 t1) (Partite _s2 t2)) t =
   if HashSet.member t s1
      then t1
      else t2
-
 
 data2graph :: MultiPartite
            -> Map NgramsTerm Int
