@@ -34,6 +34,7 @@ import Control.Exception
 import Control.Monad.Except
 import Data.Kind (Type)
 import Data.Map.Strict (Map)
+import Data.Sequence (Seq)
 import Data.Time.Clock
 import Network.HTTP.Client (Manager)
 import Prelude
@@ -166,7 +167,7 @@ removeJob queued t jid = do
 --
 
 -- | A monad to query for the status of a particular job /and/ submit updates for in-progress jobs.
-class MonadJob m (JobType m) (t [JobEventType m]) (JobOutputType m) => MonadJobStatus m t where
+class MonadJob m (JobType m) (Seq (JobEventType m)) (JobOutputType m) => MonadJobStatus m where
   type JobType        m :: Type
   type JobOutputType  m :: Type
   type JobEventType   m :: Type

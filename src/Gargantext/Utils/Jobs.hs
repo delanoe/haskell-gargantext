@@ -9,7 +9,6 @@ module Gargantext.Utils.Jobs (
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Aeson (ToJSON)
-import Data.Monoid (Dual)
 import Prelude
 import System.Directory (doesFileExist)
 import Text.Read (readMaybe)
@@ -33,7 +32,7 @@ serveJobsAPI
    , Show (JobType m)
    , ToJSON (JobEventType m)
    , ToJSON (JobOutputType m)
-   , MonadJobStatus m Dual
+   , MonadJobStatus m
    , m ~ (GargM env GargError)
    )
   => JobType m
