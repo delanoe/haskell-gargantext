@@ -1,7 +1,6 @@
 {-# LANGUAGE TypeFamilies, ScopedTypeVariables #-}
 module Gargantext.Utils.Jobs.Internal (
     serveJobsAPI
-  , JobHandle -- opaque
   ) where
 
 import Control.Concurrent
@@ -27,12 +26,6 @@ import qualified Servant.Client as C
 import qualified Servant.Job.Async as SJ
 import qualified Servant.Job.Client as SJ
 import qualified Servant.Job.Types as SJ
-
--- | An opaque handle that abstracts over the concrete identifier for
--- a job. The constructor for this type is deliberately not exported.
-newtype JobHandle =
-  JobHandle { _jh_id :: SJ.JobID 'SJ.Safe }
-  deriving (Eq, Ord)
 
 serveJobsAPI
   :: ( Ord t, Exception e, MonadError e m
@@ -94,7 +87,7 @@ newJob getenv jobkind f input = do
         logF e
 
       f' jId inp logF = do
-        r <- f env (JobHandle jId) inp (pushLog logF . Seq.singleton)
+        r <- f env (unsafeMkJobHandle jId) inp (pushLog logF . Seq.singleton)
         case r of
           Left e  -> postCallback (SJ.mkChanError e) >> throwIO e
           Right a -> postCallback (SJ.mkChanResult a) >> return a

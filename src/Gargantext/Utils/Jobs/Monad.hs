@@ -4,6 +4,7 @@ module Gargantext.Utils.Jobs.Monad (
     JobEnv(..)
   , NumRunners
   , JobError(..)
+  , JobHandle(..)
 
   , MonadJob(..)
   , MonadJobStatus(..)
@@ -22,6 +23,8 @@ module Gargantext.Utils.Jobs.Monad (
   , withJob
   , handleIDError
   , removeJob
+  , unsafeMkJobHandle
+  , getLatestJobStatus
   ) where
 
 import Gargantext.Utils.Jobs.Settings
@@ -32,9 +35,11 @@ import Gargantext.Utils.Jobs.State
 import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad.Except
+import Control.Monad.Reader
+import Data.Functor ((<&>))
 import Data.Kind (Type)
 import Data.Map.Strict (Map)
-import Data.Sequence (Seq)
+import Data.Sequence (Seq, viewr, ViewR(..))
 import Data.Time.Clock
 import Network.HTTP.Client (Manager)
 import Prelude
@@ -72,6 +77,9 @@ genSecret = SJ.generateSecretKey
 
 class MonadIO m => MonadJob m t w a | m -> t w a where
   getJobEnv :: m (JobEnv t w a)
+
+instance MonadIO m => MonadJob (ReaderT (JobEnv t w a) m) t w a where
+  getJobEnv = ask
 
 getJobsSettings :: MonadJob m t w a => m JobSettings
 getJobsSettings = jeSettings <$> getJobEnv
@@ -166,9 +174,39 @@ removeJob queued t jid = do
 -- Tracking jobs status
 --
 
+-- | An opaque handle that abstracts over the concrete identifier for
+-- a job. The constructor for this type is deliberately not exported.
+newtype JobHandle =
+  JobHandle { _jh_id :: SJ.JobID 'SJ.Safe }
+  deriving (Eq, Ord)
+
+unsafeMkJobHandle :: SJ.JobID 'SJ.Safe -> JobHandle
+unsafeMkJobHandle = JobHandle
+
 -- | A monad to query for the status of a particular job /and/ submit updates for in-progress jobs.
 class MonadJob m (JobType m) (Seq (JobEventType m)) (JobOutputType m) => MonadJobStatus m where
   type JobType        m :: Type
   type JobOutputType  m :: Type
   type JobEventType   m :: Type
   type JobErrorType   m :: Type
+
+--
+-- Tracking jobs status API
+--
+
+-- | Retrevies the latest 'JobEventType' from the underlying monad. It can be
+-- used to query the latest status for a particular job, given its 'JobHandle' as input.
+getLatestJobStatus :: MonadJobStatus m => JobHandle -> m (Maybe (JobEventType m))
+getLatestJobStatus (JobHandle jId) = do
+  mb_jb <- findJob jId
+  case mb_jb of
+    Nothing -> pure Nothing
+    Just j  -> case jTask j of
+      QueuedJ _   -> pure Nothing
+      RunningJ rj -> liftIO (rjGetLog rj) <&>
+                       \lgs -> case viewr lgs of
+                                 EmptyR -> Nothing
+                                 _ :> l -> Just l
+      DoneJ lgs _ -> pure $ case viewr lgs of
+                                 EmptyR -> Nothing
+                                 _ :> l -> Just l

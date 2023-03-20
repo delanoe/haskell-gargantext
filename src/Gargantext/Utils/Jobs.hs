@@ -36,7 +36,7 @@ serveJobsAPI
    , m ~ (GargM env GargError)
    )
   => JobType m
-  -> (Internal.JobHandle -> input -> Logger (JobEventType m) -> m (JobOutputType m))
+  -> (JobHandle -> input -> Logger (JobEventType m) -> m (JobOutputType m))
   -> SJ.AsyncJobsServerT' ctI ctO callbacks (JobEventType m) input (JobOutputType m) m
 serveJobsAPI jobType f = Internal.serveJobsAPI ask jobType jobErrorToGargError $ \env jHandle i l -> do
   putStrLn ("Running job of type: " ++ show jobType)
