@@ -86,6 +86,13 @@ MAIL_FROM     =
 MAIL_LOGIN_TYPE = Normal
 
 [nlp]
+# Possible choices (see Gargantext.Core.NLP):
+# - spacy:// (for http:// Spacy)
+# - spacys:// (for https:// Spacy)
+# - corenlp:// (for http:// CoreNLP)
+# - corenlps:// (for https:// CoreNLP)
+# - johnsnow:// (for http:// JohnSnow)
+# - johnsnows:// (for https:// JohnSnow)
 EN = corenlp://localhost:9000
 FR = spacy://localhost:8001
 All = corenlp://localhost:9000

@@ -28,13 +28,25 @@ nlpServerConfigFromURI uri@(URI { uriScheme = "corenlp:" }) =
   Just $ NLPServerConfig { server = CoreNLP
                          , url = uri { uriScheme = "http:" }
                          }
+nlpServerConfigFromURI uri@(URI { uriScheme = "corenlps:" }) =
+  Just $ NLPServerConfig { server = CoreNLP
+                         , url = uri { uriScheme = "https:" }
+                         }
 nlpServerConfigFromURI uri@(URI { uriScheme = "johnsnow:" }) =
   Just $ NLPServerConfig { server = JohnSnowServer
                          , url = uri { uriScheme = "http:" }
                          }
+nlpServerConfigFromURI uri@(URI { uriScheme = "johnsnows:" }) =
+  Just $ NLPServerConfig { server = JohnSnowServer
+                         , url = uri { uriScheme = "https:" }
+                         }
 nlpServerConfigFromURI uri@(URI { uriScheme = "spacy:" }) =
   Just $ NLPServerConfig { server = Spacy
                          , url = uri { uriScheme = "http:" }
+                         }
+nlpServerConfigFromURI uri@(URI { uriScheme = "spacys:" }) =
+  Just $ NLPServerConfig { server = Spacy
+                         , url = uri { uriScheme = "https:" }
                          }
 nlpServerConfigFromURI _ = Nothing
 
