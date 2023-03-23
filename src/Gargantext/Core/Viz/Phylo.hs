@@ -201,6 +201,7 @@ data PhyloSubConfig =
                  , _sc_timeUnit       :: TimeUnit
                  , _sc_clique         :: Cluster
                  , _sc_exportFilter   :: Double
+                 , _sc_defaultMode    :: Bool
                  }
   deriving (Show,Generic,Eq)
 

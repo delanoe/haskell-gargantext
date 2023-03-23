@@ -6,7 +6,7 @@ name: gargantext
 #         | | | +-----  Layers * : New versions with API additions
 #         | | | | +---  Layers * : New versions without API breaking changes
 #         | | | | |
-version: '0.0.6.9.7.4'
+version: '0.0.6.9.8.1'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -70,6 +70,7 @@ library:
   - Gargantext.API.Node.Share
   - Gargantext.API.Prelude
   - Gargantext.Core
+  - Gargantext.Core.NLP
   - Gargantext.Core.Methods.Similarities
   - Gargantext.Core.NodeStory
   - Gargantext.Core.Text
