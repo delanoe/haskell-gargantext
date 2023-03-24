@@ -169,8 +169,8 @@ distributional m' = run $ result
     result = termDivNan z_1 z_2
 
 logDistributional2 :: Matrix Int -> Matrix Double
-logDistributional2 m = trace ("logDistributional, dim=" `mappend` show n) . run
-                    -- $ diagNull n
+logDistributional2 m = trace ("logDistributional2, dim=" `mappend` show n) . run
+                    $ diagNull n
                     $ matMaxMini
                     $ logDistributional' n m
   where
@@ -263,7 +263,7 @@ logDistributional' n m' = trace ("logDistributional'") result
 --
 
 logDistributional :: Matrix Int -> Matrix Double
-logDistributional m' = run result
+logDistributional m' = run $ diagNull n $ result
  where
     m = map fromIntegral $ use m'
     n = dim m'

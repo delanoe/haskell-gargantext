@@ -25,7 +25,7 @@ import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Methods.Similarities (Similarity(..), measure)
 -- import Gargantext.Core.Methods.Similarities.Conditional (conditional)
 import Gargantext.Core.Statistics
-import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Bridgeness(..), Partitions, nodeId2comId, recursiveClustering, recursiveClustering', setNodes2clusterNodes)
+import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Bridgeness(..), Partitions, nodeId2comId, {-recursiveClustering,-} recursiveClustering', setNodes2clusterNodes)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass, spinglass')
 import Gargantext.Core.Viz.Graph.Tools.Infomap (infomap)
@@ -117,7 +117,7 @@ cooc2graphWith' :: Partitions
                 -> Strength
                 -> HashMap (NgramsTerm, NgramsTerm) Int
                 -> IO Graph
-cooc2graphWith' _doPartitions _bridgenessMethod multi similarity@Conditional threshold strength myCooc = do
+cooc2graphWith' _doPartitions _bridgenessMethod multi similarity threshold strength myCooc = do
   let (distanceMap, diag, ti) = doSimilarityMap similarity threshold strength myCooc
   distanceMap `seq` diag `seq` ti `seq` return ()
 
@@ -135,6 +135,7 @@ cooc2graphWith' _doPartitions _bridgenessMethod multi similarity@Conditional thr
 
   pure $ data2graph multi ti diag bridgeness' confluence' (setNodes2clusterNodes $ List.concat partitions)
 
+{-
 cooc2graphWith' _doPartitions _bridgenessMethod multi similarity@Distributional threshold strength myCooc = do
   let (distanceMap, diag, ti) = doSimilarityMap similarity threshold strength myCooc
   distanceMap `seq` diag `seq` ti `seq` return ()
@@ -152,7 +153,7 @@ cooc2graphWith' _doPartitions _bridgenessMethod multi similarity@Distributional 
     !bridgeness' = bridgeness (Bridgeness_Basic partitions 1.0) distanceMap
 
   pure $ data2graph multi ti diag bridgeness' confluence' partitions
-
+-}
 
 
 
