@@ -137,8 +137,8 @@ import qualified Prelude
 --     8.333333333333333e-2,             4.6875e-2,                1.0,               0.25,
 --       0.3333333333333333, 5.7692307692307696e-2,                1.0,                1.0]
 --
-distributional :: Matrix Int -> Acc (Matrix Double)
-distributional m' = result
+distributional :: Matrix Int -> Matrix Double
+distributional m' = run $ result
  where
     m = map A.fromIntegral $ use m'
     n = dim m'
@@ -170,7 +170,7 @@ distributional m' = result
 
 logDistributional2 :: Matrix Int -> Matrix Double
 logDistributional2 m = trace ("logDistributional, dim=" `mappend` show n) . run
-                    $ diagNull n
+                    -- $ diagNull n
                     $ matMaxMini
                     $ logDistributional' n m
   where
@@ -263,7 +263,7 @@ logDistributional' n m' = trace ("logDistributional'") result
 --
 
 logDistributional :: Matrix Int -> Matrix Double
-logDistributional m' = run $ diagNull n result
+logDistributional m' = run result
  where
     m = map fromIntegral $ use m'
     n = dim m'
@@ -362,9 +362,12 @@ rIJ n m = matMaxMini $ divide a b
 -- * For Tests (to be removed)
 -- | Test perfermance with this matrix
 -- TODO : add this in a benchmark folder
-distriTest :: Int -> Matrix Double
-distriTest n = logDistributional (theMatrixInt n)
-
+{-
+distriTest :: Int -> Bool
+distriTest n = logDistributional m == distributional m
+  where
+    m = theMatrixInt n
+-}
 
 -- * sparse utils
 

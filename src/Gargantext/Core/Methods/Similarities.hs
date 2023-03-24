@@ -20,7 +20,7 @@ import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Core.Methods.Similarities.Accelerate.Conditional (measureConditional)
-import Gargantext.Core.Methods.Similarities.Accelerate.Distributional (logDistributional)
+import Gargantext.Core.Methods.Similarities.Accelerate.Distributional (logDistributional2)
 -- import Gargantext.Core.Text.Metrics.Count (coocOn)
 -- import Gargantext.Core.Viz.Graph.Index
 import Gargantext.Prelude (Ord, Eq, Int, Double, Show, map)
@@ -36,7 +36,7 @@ data Similarity = Conditional | Distributional
 
 measure :: Similarity -> Matrix Int -> Matrix Double
 measure Conditional    x = measureConditional x
-measure Distributional x = logDistributional  x
+measure Distributional x = logDistributional2  x
 
 ------------------------------------------------------------------------
 withMetric :: GraphMetric -> Similarity

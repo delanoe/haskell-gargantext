@@ -92,5 +92,3 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
     n :: Exp Double
     n = P.fromIntegral r
 
-
-
