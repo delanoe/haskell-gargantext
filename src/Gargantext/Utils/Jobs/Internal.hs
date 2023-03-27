@@ -1,4 +1,6 @@
-{-# LANGUAGE TypeFamilies, ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
 module Gargantext.Utils.Jobs.Internal (
     serveJobsAPI
   -- * Internals for testing
@@ -38,7 +40,7 @@ serveJobsAPI
   => m env
   -> t
   -> (JobError -> e)
-  -> (env -> JobHandle -> input -> Logger event -> IO (Either e output))
+  -> (env -> JobHandle event -> input -> IO (Either e output))
   -> SJ.AsyncJobsServerT' ctI ctO callback event input output m
 serveJobsAPI getenv t joberr f
      = newJob getenv t f (SJ.JobInput undefined Nothing)
@@ -74,7 +76,7 @@ newJob
      )
   => m env
   -> t
-  -> (env -> JobHandle -> input -> Logger event -> IO (Either e output))
+  -> (env -> JobHandle event -> input -> IO (Either e output))
   -> SJ.JobInput callbacks input
   -> m (SJ.JobStatus 'SJ.Safe event)
 newJob getenv jobkind f input = do
@@ -84,12 +86,12 @@ newJob getenv jobkind f input = do
         C.runClientM (SJ.clientMCallback m)
                      (C.mkClientEnv (jeManager je) (url  ^. SJ.base_url))
 
-      pushLog logF e = do
-        postCallback (SJ.mkChanEvent e)
-        logF e
+      pushLog logF = \w -> do
+        postCallback (SJ.mkChanEvent w)
+        logF w
 
       f' jId inp logF = do
-        r <- f env (unsafeMkJobHandle jId) inp (pushLog logF . Seq.singleton)
+        r <- f env (mkJobHandle jId (pushLog logF . Seq.singleton)) inp
         case r of
           Left e  -> postCallback (SJ.mkChanError e) >> throwIO e
           Right a -> postCallback (SJ.mkChanResult a) >> return a

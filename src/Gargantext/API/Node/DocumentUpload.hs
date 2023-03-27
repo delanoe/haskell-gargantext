@@ -28,7 +28,7 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getClosestParentIdByType')
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Corpus (HyperdataCorpus(..))
-import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
 
 
 data DocumentUpload = DocumentUpload
@@ -69,8 +69,8 @@ type API = Summary " Document upload"
 
 api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI UploadDocumentJob $ \_jHandle q log' -> do
-      documentUploadAsync uId nId q (liftBase . log')
+  serveJobsAPI UploadDocumentJob $ \jHandle q -> do
+      documentUploadAsync uId nId q (liftBase . jobHandleLogger jHandle)
 
 documentUploadAsync :: (FlowCmdM env err m)
                => UserId

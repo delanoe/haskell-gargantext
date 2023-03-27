@@ -6,6 +6,7 @@
 module Main where
 
 import Control.Concurrent
+import qualified Control.Concurrent.Async as Async
 import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad
@@ -192,14 +193,14 @@ shouldBeE a b = liftIO (shouldBe a b)
 type TheEnv = JobEnv MyDummyJob (Seq MyDummyLog) ()
 
 withJob :: TheEnv
-        -> (TheEnv -> JobHandle -> () -> Logger MyDummyLog -> IO (Either MyDummyError ()))
+        -> (TheEnv -> JobHandle MyDummyLog -> () -> IO (Either MyDummyError ()))
         -> IO (Either MyDummyError (SJ.JobStatus 'SJ.Safe MyDummyLog))
 withJob myEnv f = do
   runExceptT $ flip runReaderT (MyDummyEnv myEnv) $ _MyDummyMonad $ do
-    newJob @_ @MyDummyError getJobEnv MyDummyJob (\env hdl input logStatus ->
-      f env hdl input logStatus) (SJ.JobInput () Nothing)
+    newJob @_ @MyDummyError getJobEnv MyDummyJob (\env hdl input ->
+      f env hdl input) (SJ.JobInput () Nothing)
 
-withJob_ :: TheEnv -> (TheEnv -> JobHandle -> () -> Logger MyDummyLog -> IO (Either MyDummyError ())) -> IO ()
+withJob_ :: TheEnv -> (TheEnv -> JobHandle MyDummyLog -> () -> IO (Either MyDummyError ())) -> IO ()
 withJob_ env f = void (withJob env f)
 
 testFetchJobStatus :: IO ()
@@ -209,11 +210,11 @@ testFetchJobStatus = do
   myEnv <- newJobEnv settings defaultPrios testTlsManager
   evts <- newMVar []
 
-  withJob_ myEnv $ \env hdl _input logStatus -> do
+  withJob_ myEnv $ \env hdl _input -> do
     mb_status <- runReaderT (getLatestJobStatus hdl) env
 
     -- now let's log something
-    logStatus Step_0
+    jobHandleLogger hdl Step_0
     mb_status' <- runReaderT (getLatestJobStatus hdl) env
 
     modifyMVar_ evts (\xs -> pure $ mb_status : mb_status' : xs)
@@ -232,18 +233,19 @@ testFetchJobStatusNoContention = do
   evts1 <- newMVar []
   evts2 <- newMVar []
 
-  withJob_ myEnv $ \env hdl _input logStatus -> do
-      logStatus Step_1
-      mb_status <- runReaderT (getLatestJobStatus hdl) env
-      modifyMVar_ evts1 (\xs -> pure $ mb_status : xs)
-      pure $ Right ()
+  let job1 = \() -> withJob_ myEnv $ \env hdl _input -> do
+        jobHandleLogger hdl Step_1
+        mb_status <- runReaderT (getLatestJobStatus hdl) env
+        modifyMVar_ evts1 (\xs -> pure $ mb_status : xs)
+        pure $ Right ()
 
-  withJob_ myEnv $ \env hdl _input logStatus -> do
-      logStatus Step_0
-      mb_status <- runReaderT (getLatestJobStatus hdl) env
-      modifyMVar_ evts2 (\xs -> pure $ mb_status : xs)
-      pure $ Right ()
+  let job2 = \() -> withJob_ myEnv $ \env hdl _input -> do
+        jobHandleLogger hdl Step_0
+        mb_status <- runReaderT (getLatestJobStatus hdl) env
+        modifyMVar_ evts2 (\xs -> pure $ mb_status : xs)
+        pure $ Right ()
 
+  Async.forConcurrently_ [job1, job2] ($ ())
   threadDelay 500_000
   -- Check the events
   readMVar evts1 >>= \expected -> expected `shouldBe` [Just Step_1]

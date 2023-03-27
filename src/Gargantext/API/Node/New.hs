@@ -41,7 +41,7 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
-import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
 
 ------------------------------------------------------------------------
 data PostNode = PostNode { pn_name     :: Text
@@ -77,8 +77,8 @@ type PostNodeAsync = Summary "Post Node"
 postNodeAsyncAPI
   :: UserId -> NodeId -> ServerT PostNodeAsync (GargM Env GargError)
 postNodeAsyncAPI uId nId =
-  serveJobsAPI NewNodeJob $ \_jHandle p logs ->
-    postNodeAsync uId nId p (liftBase . logs)
+  serveJobsAPI NewNodeJob $ \jHandle p ->
+    postNodeAsync uId nId p (liftBase . jobHandleLogger jHandle)
 
 ------------------------------------------------------------------------
 postNodeAsync :: FlowCmdM env err m

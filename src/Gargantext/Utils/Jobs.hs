@@ -4,6 +4,8 @@ module Gargantext.Utils.Jobs (
     serveJobsAPI
   -- * Parsing and reading @GargJob@s from disk
   , readPrios
+  -- * Handy re-exports
+  , jobHandleLogger
   ) where
 
 import Control.Monad.Except
@@ -16,7 +18,6 @@ import Text.Read (readMaybe)
 import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Prelude
 import qualified Gargantext.Utils.Jobs.Internal as Internal
-import Gargantext.Utils.Jobs.Map
 import Gargantext.Utils.Jobs.Monad
 
 import qualified Servant.Job.Async as SJ
@@ -36,11 +37,11 @@ serveJobsAPI
    , m ~ (GargM env GargError)
    )
   => JobType m
-  -> (JobHandle -> input -> Logger (JobEventType m) -> m (JobOutputType m))
+  -> (JobHandle (JobEventType m) -> input -> m (JobOutputType m))
   -> SJ.AsyncJobsServerT' ctI ctO callbacks (JobEventType m) input (JobOutputType m) m
-serveJobsAPI jobType f = Internal.serveJobsAPI ask jobType jobErrorToGargError $ \env jHandle i l -> do
+serveJobsAPI jobType f = Internal.serveJobsAPI ask jobType jobErrorToGargError $ \env jHandle i -> do
   putStrLn ("Running job of type: " ++ show jobType)
-  runExceptT $ runReaderT (f jHandle i l) env
+  runExceptT $ runReaderT (f jHandle i) env
 
 parseGargJob :: String -> Maybe GargJob
 parseGargJob s = case s of

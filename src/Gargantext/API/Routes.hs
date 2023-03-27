@@ -45,7 +45,7 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (gc_max_docs_scrapers)
-import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
 import qualified Gargantext.API.GraphQL                    as GraphQL
 import qualified Gargantext.API.Ngrams.List                as List
 import qualified Gargantext.API.Node.Contact               as Contact
@@ -282,9 +282,9 @@ waitAPI n = do
 
 addCorpusWithQuery :: User -> ServerT New.AddWithQuery (GargM Env GargError)
 addCorpusWithQuery user cid =
-  serveJobsAPI AddCorpusQueryJob $ \_jHandle q log' -> do
+  serveJobsAPI AddCorpusQueryJob $ \jHandle q -> do
     limit <- view $ hasConfig . gc_max_docs_scrapers
-    New.addToCorpusWithQuery user cid q (Just limit) (liftBase . log')
+    New.addToCorpusWithQuery user cid q (Just limit) (liftBase . jobHandleLogger jHandle)
       {- let log' x = do
         printDebug "addToCorpusWithQuery" x
         liftBase $ log x
@@ -292,23 +292,23 @@ addCorpusWithQuery user cid =
 
 addCorpusWithForm :: User -> ServerT New.AddWithForm (GargM Env GargError)
 addCorpusWithForm user cid =
-  serveJobsAPI AddCorpusFormJob $ \_jHandle i log' ->
+  serveJobsAPI AddCorpusFormJob $ \jHandle i ->
       let
         log'' x = do
           --printDebug "[addToCorpusWithForm] " x
-          liftBase $ log' x
+          liftBase $ (jobHandleLogger jHandle) x
       in New.addToCorpusWithForm user cid i log'' (jobLogInit 3)
 
 addCorpusWithFile :: User -> ServerT New.AddWithFile (GargM Env GargError)
 addCorpusWithFile user cid =
-  serveJobsAPI AddCorpusFileJob $ \_jHandle i log' ->
+  serveJobsAPI AddCorpusFileJob $ \jHandle i ->
       let
         log'' x = do
           -- printDebug "[addToCorpusWithFile]" x
-          liftBase $ log' x
+          liftBase $ (jobHandleLogger jHandle) x
       in New.addToCorpusWithFile user cid i log''
 
 addAnnuaireWithForm :: ServerT Annuaire.AddWithForm (GargM Env GargError)
 addAnnuaireWithForm cid =
-  serveJobsAPI AddAnnuaireFormJob $ \_jHandle i log' ->
-    Annuaire.addToAnnuaireWithForm cid i (liftBase . log')
+  serveJobsAPI AddAnnuaireFormJob $ \jHandle i ->
+    Annuaire.addToAnnuaireWithForm cid i (liftBase . jobHandleLogger jHandle)

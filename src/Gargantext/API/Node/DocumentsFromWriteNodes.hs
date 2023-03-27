@@ -43,7 +43,7 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getChildrenByType, getClosestParentIdByType', getNodeWith)
 import Gargantext.Database.Schema.Node (node_hyperdata, node_name, node_date)
 import Gargantext.Prelude
-import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
 import Gargantext.Core.Text.Corpus.Parsers.Date (split')
 import Servant
 import Text.Read (readMaybe)
@@ -70,10 +70,10 @@ instance ToSchema Params
 ------------------------------------------------------------------------
 api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI DocumentFromWriteNodeJob $ \_jHandle p log'' ->
+  serveJobsAPI DocumentFromWriteNodeJob $ \jHandle p ->
       let
         log' x = do
-          liftBase $ log'' x
+          liftBase $ (jobHandleLogger jHandle) x
       in documentsFromWriteNodes uId nId p (liftBase . log')
 
 documentsFromWriteNodes :: (HasSettings env, FlowCmdM env err m)

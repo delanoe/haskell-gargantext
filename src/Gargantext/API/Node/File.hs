@@ -31,7 +31,7 @@ import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
-import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
 import Data.Either
 
 data RESPONSE deriving Typeable
@@ -102,11 +102,11 @@ type FileAsyncApi = Summary "File Async Api"
 
 fileAsyncApi :: UserId -> NodeId -> ServerT FileAsyncApi (GargM Env GargError)
 fileAsyncApi uId nId =
-  serveJobsAPI AddFileJob $ \_jHandle i l ->
+  serveJobsAPI AddFileJob $ \jHandle i ->
       let
         log' x = do
           -- printDebug "addWithFile" x
-          liftBase $ l x
+          liftBase $ (jobHandleLogger jHandle) x
       in addWithFile uId nId i log'
 
 

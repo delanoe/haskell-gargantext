@@ -26,7 +26,8 @@ module Gargantext.Utils.Jobs.Monad (
   , withJob
   , handleIDError
   , removeJob
-  , unsafeMkJobHandle
+  , mkJobHandle
+  , jobHandleLogger
   ) where
 
 import Gargantext.Utils.Jobs.Settings
@@ -178,12 +179,18 @@ removeJob queued t jid = do
 
 -- | An opaque handle that abstracts over the concrete identifier for
 -- a job. The constructor for this type is deliberately not exported.
-newtype JobHandle =
-  JobHandle { _jh_id :: SJ.JobID 'SJ.Safe }
-  deriving (Eq, Ord)
+data JobHandle event = JobHandle {
+      _jh_id     :: !(SJ.JobID 'SJ.Safe)
+    , _jh_logger :: Logger event
+    }
 
-unsafeMkJobHandle :: SJ.JobID 'SJ.Safe -> JobHandle
-unsafeMkJobHandle = JobHandle
+-- | Creates a new 'JobHandle', given its underlying 'JobID' and the logging function to
+-- be used to report the status.
+mkJobHandle :: SJ.JobID 'SJ.Safe -> Logger event -> JobHandle event
+mkJobHandle jId = JobHandle jId
+
+jobHandleLogger :: JobHandle event -> Logger event
+jobHandleLogger (JobHandle _ lgr) = lgr
 
 -- | A monad to query for the status of a particular job /and/ submit updates for in-progress jobs.
 class MonadJob m (JobType m) (Seq (JobEventType m)) (JobOutputType m) => MonadJobStatus m where
@@ -203,8 +210,8 @@ instance MonadIO m => MonadJobStatus (ReaderT (JobEnv t (Seq event) a) m) where
 
 -- | Retrevies the latest 'JobEventType' from the underlying monad. It can be
 -- used to query the latest status for a particular job, given its 'JobHandle' as input.
-getLatestJobStatus :: MonadJobStatus m => JobHandle -> m (Maybe (JobEventType m))
-getLatestJobStatus (JobHandle jId) = do
+getLatestJobStatus :: MonadJobStatus m => JobHandle (JobEventType m) -> m (Maybe (JobEventType m))
+getLatestJobStatus (JobHandle jId _) = do
   mb_jb <- findJob jId
   case mb_jb of
     Nothing -> pure Nothing

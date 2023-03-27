@@ -47,7 +47,7 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node (_node_parent_id)
 import Gargantext.Database.Types (Indexed(..))
 import Gargantext.Prelude
-import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
 import Servant
 -- import Servant.Job.Async
 import qualified Data.ByteString.Lazy as BSL
@@ -192,11 +192,11 @@ toIndexedNgrams m t = Indexed <$> i <*> n
 ------------------------------------------------------------------------
 jsonPostAsync :: ServerT JSONAPI (GargM Env GargError)
 jsonPostAsync lId =
-  serveJobsAPI UpdateNgramsListJobJSON $ \_jHandle f log' ->
+  serveJobsAPI UpdateNgramsListJobJSON $ \jHandle f ->
       let
         log'' x = do
           -- printDebug "postAsync ListId" x
-          liftBase $ log' x
+          liftBase $ (jobHandleLogger jHandle) x
       in postAsync' lId f log''
 
 postAsync' :: FlowCmdM env err m
@@ -288,11 +288,11 @@ csvPost l m  = do
 ------------------------------------------------------------------------
 csvPostAsync :: ServerT CSVAPI (GargM Env GargError)
 csvPostAsync lId =
-  serveJobsAPI UpdateNgramsListJobCSV $ \_jHandle f@(WithTextFile _ft _ _n) log' -> do
+  serveJobsAPI UpdateNgramsListJobCSV $ \jHandle f@(WithTextFile _ft _ _n) -> do
       let log'' x = do
             -- printDebug "[csvPostAsync] filetype" ft
             -- printDebug "[csvPostAsync] name" n
-            liftBase $ log' x
+            liftBase $ (jobHandleLogger jHandle) x
       csvPostAsync' lId f log''
 
 
