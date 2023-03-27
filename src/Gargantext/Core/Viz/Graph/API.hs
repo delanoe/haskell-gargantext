@@ -258,7 +258,7 @@ type GraphAsyncAPI = Summary "Recompute graph"
 graphAsync :: UserId -> NodeId -> ServerT GraphAsyncAPI (GargM Env GargError)
 graphAsync u n =
   serveJobsAPI RecomputeGraphJob $ \jHandle _ ->
-    graphRecompute u n (liftBase . jobHandleLogger jHandle)
+    graphRecompute u n (jobHandleLogger jHandle)
 
 
 --graphRecompute :: UserId

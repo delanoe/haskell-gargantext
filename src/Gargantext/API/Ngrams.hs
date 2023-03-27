@@ -834,7 +834,7 @@ apiNgramsAsync _dId =
       let
         log' x = do
           printDebug "tableNgramsPostChartsAsync" x
-          liftBase $ (jobHandleLogger jHandle) x
+          jobHandleLogger jHandle x
       in tableNgramsPostChartsAsync i log'
 
 -- Did the given list of ngrams changed since the given version?

@@ -71,10 +71,7 @@ instance ToSchema Params
 api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
   serveJobsAPI DocumentFromWriteNodeJob $ \jHandle p ->
-      let
-        log' x = do
-          liftBase $ (jobHandleLogger jHandle) x
-      in documentsFromWriteNodes uId nId p (liftBase . log')
+    documentsFromWriteNodes uId nId p (jobHandleLogger jHandle)
 
 documentsFromWriteNodes :: (HasSettings env, FlowCmdM env err m)
     => UserId

@@ -196,7 +196,7 @@ jsonPostAsync lId =
       let
         log'' x = do
           -- printDebug "postAsync ListId" x
-          liftBase $ (jobHandleLogger jHandle) x
+          jobHandleLogger jHandle x
       in postAsync' lId f log''
 
 postAsync' :: FlowCmdM env err m
@@ -292,7 +292,7 @@ csvPostAsync lId =
       let log'' x = do
             -- printDebug "[csvPostAsync] filetype" ft
             -- printDebug "[csvPostAsync] name" n
-            liftBase $ (jobHandleLogger jHandle) x
+            jobHandleLogger jHandle x
       csvPostAsync' lId f log''
 
 

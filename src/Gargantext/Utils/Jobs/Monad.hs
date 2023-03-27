@@ -11,6 +11,7 @@ module Gargantext.Utils.Jobs.Monad (
   -- * Tracking jobs status
   , MonadJobStatus(..)
   , getLatestJobStatus
+  , updateJobProgress
 
   -- * Functions
   , newJobEnv
@@ -179,17 +180,17 @@ removeJob queued t jid = do
 
 -- | An opaque handle that abstracts over the concrete identifier for
 -- a job. The constructor for this type is deliberately not exported.
-data JobHandle event = JobHandle {
+data JobHandle m event = JobHandle {
       _jh_id     :: !(SJ.JobID 'SJ.Safe)
-    , _jh_logger :: Logger event
+    , _jh_logger :: LoggerM m event
     }
 
 -- | Creates a new 'JobHandle', given its underlying 'JobID' and the logging function to
 -- be used to report the status.
-mkJobHandle :: SJ.JobID 'SJ.Safe -> Logger event -> JobHandle event
+mkJobHandle :: SJ.JobID 'SJ.Safe -> LoggerM m event -> JobHandle m event
 mkJobHandle jId = JobHandle jId
 
-jobHandleLogger :: JobHandle event -> Logger event
+jobHandleLogger :: JobHandle m event -> LoggerM m event
 jobHandleLogger (JobHandle _ lgr) = lgr
 
 -- | A monad to query for the status of a particular job /and/ submit updates for in-progress jobs.
@@ -198,19 +199,13 @@ class MonadJob m (JobType m) (Seq (JobEventType m)) (JobOutputType m) => MonadJo
   type JobOutputType  m :: Type
   type JobEventType   m :: Type
 
-instance MonadIO m => MonadJobStatus (ReaderT (JobEnv t (Seq event) a) m) where
-  type JobType        (ReaderT (JobEnv t (Seq event) a) m) = t
-  type JobOutputType  (ReaderT (JobEnv t (Seq event) a) m) = a
-  type JobEventType   (ReaderT (JobEnv t (Seq event) a) m) = event
-
-
 --
 -- Tracking jobs status API
 --
 
 -- | Retrevies the latest 'JobEventType' from the underlying monad. It can be
 -- used to query the latest status for a particular job, given its 'JobHandle' as input.
-getLatestJobStatus :: MonadJobStatus m => JobHandle (JobEventType m) -> m (Maybe (JobEventType m))
+getLatestJobStatus :: MonadJobStatus m => JobHandle m (JobEventType m) -> m (Maybe (JobEventType m))
 getLatestJobStatus (JobHandle jId _) = do
   mb_jb <- findJob jId
   case mb_jb of
@@ -224,3 +219,19 @@ getLatestJobStatus (JobHandle jId _) = do
       DoneJ lgs _ -> pure $ case viewr lgs of
                                  EmptyR -> Nothing
                                  _ :> l -> Just l
+
+updateJobProgress :: (Monoid (JobEventType m), MonadJobStatus m)
+                  => JobHandle m (JobEventType m)
+                  -- ^ The handle that uniquely identifies this job.
+                  -> (JobEventType m -> JobEventType m)
+                  -- ^ A /pure/ function to update the 'JobEventType'. The input
+                  -- is the /latest/ event, i.e. the current progress status. If
+                  -- this is the first time we report progress and therefore there
+                  -- is no previous progress status, this function will be applied
+                  -- over 'mempty', thus the 'Monoid' constraint.
+                  -> m ()
+updateJobProgress hdl@(JobHandle _jId logStatus) updateJobStatus = do
+  latestStatus <- getLatestJobStatus hdl
+  case latestStatus of
+    Nothing -> logStatus (updateJobStatus mempty)
+    Just s  -> logStatus (updateJobStatus s)

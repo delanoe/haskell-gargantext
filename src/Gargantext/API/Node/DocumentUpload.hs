@@ -70,7 +70,7 @@ type API = Summary " Document upload"
 api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
   serveJobsAPI UploadDocumentJob $ \jHandle q -> do
-      documentUploadAsync uId nId q (liftBase . jobHandleLogger jHandle)
+      documentUploadAsync uId nId q (jobHandleLogger jHandle)
 
 documentUploadAsync :: (FlowCmdM env err m)
                => UserId

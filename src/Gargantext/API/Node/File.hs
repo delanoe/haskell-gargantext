@@ -106,7 +106,7 @@ fileAsyncApi uId nId =
       let
         log' x = do
           -- printDebug "addWithFile" x
-          liftBase $ (jobHandleLogger jHandle) x
+          jobHandleLogger jHandle x
       in addWithFile uId nId i log'
 
 

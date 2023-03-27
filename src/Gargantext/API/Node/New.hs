@@ -78,7 +78,7 @@ postNodeAsyncAPI
   :: UserId -> NodeId -> ServerT PostNodeAsync (GargM Env GargError)
 postNodeAsyncAPI uId nId =
   serveJobsAPI NewNodeJob $ \jHandle p ->
-    postNodeAsync uId nId p (liftBase . jobHandleLogger jHandle)
+    postNodeAsync uId nId p (jobHandleLogger jHandle)
 
 ------------------------------------------------------------------------
 postNodeAsync :: FlowCmdM env err m

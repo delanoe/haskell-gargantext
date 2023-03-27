@@ -6,6 +6,7 @@ module Gargantext.Utils.Jobs.Map (
   , J(..)
   , QueuedJob(..)
   , RunningJob(..)
+  , LoggerM
   , Logger
 
   -- * Functions
@@ -75,9 +76,12 @@ data RunningJob w a = RunningJob
   , rjGetLog :: IO w
   }
 
+-- | Polymorphic logger over any monad @m@.
+type LoggerM m w = w -> m ()
+
 -- | A @'Logger' w@ is a function that can do something with "messages" of type
 --   @w@ in IO.
-type Logger w = w -> IO ()
+type Logger w = LoggerM IO w
 
 newJobMap :: IO (JobMap jid w a)
 newJobMap = JobMap <$> newTVarIO Map.empty
