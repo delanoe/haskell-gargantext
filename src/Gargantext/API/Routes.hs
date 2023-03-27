@@ -34,7 +34,6 @@ import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
 import Gargantext.API.Context
 import Gargantext.API.Count  (CountAPI, count, Query)
 import Gargantext.API.Members (MembersAPI, members)
-import Gargantext.API.Job (jobLogInit)
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
 import Gargantext.API.Prelude
@@ -45,7 +44,7 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (gc_max_docs_scrapers)
-import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
+import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
 import qualified Gargantext.API.GraphQL                    as GraphQL
 import qualified Gargantext.API.Ngrams.List                as List
 import qualified Gargantext.API.Node.Contact               as Contact
@@ -284,7 +283,7 @@ addCorpusWithQuery :: User -> ServerT New.AddWithQuery (GargM Env GargError)
 addCorpusWithQuery user cid =
   serveJobsAPI AddCorpusQueryJob $ \jHandle q -> do
     limit <- view $ hasConfig . gc_max_docs_scrapers
-    New.addToCorpusWithQuery user cid q (Just limit) (jobHandleLogger jHandle)
+    New.addToCorpusWithQuery user cid q (Just limit) jHandle
       {- let log' x = do
         printDebug "addToCorpusWithQuery" x
         liftBase $ log x
@@ -292,23 +291,18 @@ addCorpusWithQuery user cid =
 
 addCorpusWithForm :: User -> ServerT New.AddWithForm (GargM Env GargError)
 addCorpusWithForm user cid =
-  serveJobsAPI AddCorpusFormJob $ \jHandle i ->
-      let
-        log'' x = do
-          --printDebug "[addToCorpusWithForm] " x
-          jobHandleLogger jHandle x
-      in New.addToCorpusWithForm user cid i log'' (jobLogInit 3)
+  serveJobsAPI AddCorpusFormJob $ \jHandle i -> do
+    -- /NOTE(adinapoli)/ Track the initial steps outside 'addToCorpusWithForm', because it's
+    -- called in a few places, and the job status might be different between invocations.
+    markStarted 3 jHandle
+    New.addToCorpusWithForm user cid i jHandle
 
 addCorpusWithFile :: User -> ServerT New.AddWithFile (GargM Env GargError)
 addCorpusWithFile user cid =
   serveJobsAPI AddCorpusFileJob $ \jHandle i ->
-      let
-        log'' x = do
-          -- printDebug "[addToCorpusWithFile]" x
-          jobHandleLogger jHandle x
-      in New.addToCorpusWithFile user cid i log''
+    New.addToCorpusWithFile user cid i jHandle
 
 addAnnuaireWithForm :: ServerT Annuaire.AddWithForm (GargM Env GargError)
 addAnnuaireWithForm cid =
   serveJobsAPI AddAnnuaireFormJob $ \jHandle i ->
-    Annuaire.addToAnnuaireWithForm cid i (jobHandleLogger jHandle)
+    Annuaire.addToAnnuaireWithForm cid i jHandle

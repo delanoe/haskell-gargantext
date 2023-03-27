@@ -49,7 +49,6 @@ import Gargantext.API.Admin.Auth.Types
 import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types
-import Gargantext.API.Job (jobLogSuccess)
 import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC, GargServer, _ServerError, GargM, GargError)
 import Gargantext.Core.Mail (MailModel(..), mail)
 import Gargantext.Core.Mail.Types (mailSettings)
@@ -64,7 +63,7 @@ import Gargantext.Database.Action.User.New (guessUserName)
 import Gargantext.Database.Schema.Node (NodePoly(_node_id))
 import Gargantext.Prelude hiding (reverse)
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
-import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
+import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
 import Servant
 import Servant.Auth.Server
 import qualified Data.Text as Text
@@ -275,23 +274,19 @@ type ForgotPasswordAsyncAPI = Summary "Forgot password asnc"
 
 forgotPasswordAsync :: ServerT ForgotPasswordAsyncAPI (GargM Env GargError)
 forgotPasswordAsync =
-  serveJobsAPI ForgotPasswordJob $ \jHandle p ->
-    forgotPasswordAsync' p (jobHandleLogger jHandle)
+  serveJobsAPI ForgotPasswordJob $ \jHandle p -> forgotPasswordAsync' p jHandle
 
-forgotPasswordAsync' :: (FlowCmdM env err m)
+forgotPasswordAsync' :: (FlowCmdM env err m, MonadJobStatus m)
   => ForgotPasswordAsyncParams
-  -> (JobLog -> m ())
-  -> m JobLog
-forgotPasswordAsync' (ForgotPasswordAsyncParams { email }) logStatus = do
-  let jobLog = JobLog { _scst_succeeded = Just 1
-                      , _scst_failed    = Just 0
-                      , _scst_remaining = Just 1
-                      , _scst_events    = Just []
-                      }
-  logStatus jobLog
+  -> JobHandle m
+  -> m ()
+forgotPasswordAsync' (ForgotPasswordAsyncParams { email }) jobHandle = do
+
+  markStarted 2 jobHandle
+  markProgress 1 jobHandle
 
   -- printDebug "[forgotPasswordAsync'] email" email
 
   _ <- forgotPasswordPost $ ForgotPasswordRequest { _fpReq_email = email }
 
-  pure $ jobLogSuccess jobLog
+  markComplete jobHandle

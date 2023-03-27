@@ -25,6 +25,7 @@ default-extensions:
   - DeriveGeneric
   - FlexibleContexts
   - FlexibleInstances
+  - GADTs
   - GeneralizedNewtypeDeriving
   - MultiParamTypeClasses
   - NamedFieldPuns
@@ -58,6 +59,7 @@ library:
   - Gargantext.API.Admin.Auth.Types
   - Gargantext.API.Admin.EnvTypes
   - Gargantext.API.Admin.Settings
+  - Gargantext.API.Admin.Orchestrator.Types
   - Gargantext.API.Admin.Types
   - Gargantext.API.Dev
   - Gargantext.API.HashedResponse

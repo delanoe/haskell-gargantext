@@ -1,17 +1,14 @@
-{-# LANGUAGE MultiWayIf, FunctionalDependencies, MultiParamTypeClasses, TypeFamilies #-}
+{-# LANGUAGE MultiWayIf, FunctionalDependencies, MultiParamTypeClasses, TypeFamilies, TypeFamilyDependencies #-}
 module Gargantext.Utils.Jobs.Monad (
   -- * Types and classes
     JobEnv(..)
   , NumRunners
   , JobError(..)
-  , JobHandle -- opaque
 
   , MonadJob(..)
 
   -- * Tracking jobs status
   , MonadJobStatus(..)
-  , getLatestJobStatus
-  , updateJobProgress
 
   -- * Functions
   , newJobEnv
@@ -27,8 +24,6 @@ module Gargantext.Utils.Jobs.Monad (
   , withJob
   , handleIDError
   , removeJob
-  , mkJobHandle
-  , jobHandleLogger
   ) where
 
 import Gargantext.Utils.Jobs.Settings
@@ -40,11 +35,11 @@ import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad.Except
 import Control.Monad.Reader
-import Data.Functor ((<&>))
 import Data.Kind (Type)
 import Data.Map.Strict (Map)
-import Data.Sequence (Seq, viewr, ViewR(..))
+import Data.Sequence (Seq)
 import Data.Time.Clock
+import qualified Data.Text as T
 import Network.HTTP.Client (Manager)
 import Prelude
 
@@ -178,60 +173,42 @@ removeJob queued t jid = do
 -- Tracking jobs status
 --
 
--- | An opaque handle that abstracts over the concrete identifier for
--- a job. The constructor for this type is deliberately not exported.
-data JobHandle m event = JobHandle {
-      _jh_id     :: !(SJ.JobID 'SJ.Safe)
-    , _jh_logger :: LoggerM m event
-    }
-
--- | Creates a new 'JobHandle', given its underlying 'JobID' and the logging function to
--- be used to report the status.
-mkJobHandle :: SJ.JobID 'SJ.Safe -> LoggerM m event -> JobHandle m event
-mkJobHandle jId = JobHandle jId
-
-jobHandleLogger :: JobHandle m event -> LoggerM m event
-jobHandleLogger (JobHandle _ lgr) = lgr
-
 -- | A monad to query for the status of a particular job /and/ submit updates for in-progress jobs.
 class MonadJob m (JobType m) (Seq (JobEventType m)) (JobOutputType m) => MonadJobStatus m where
+
+  -- | This is type family for the concrete 'JobHandle' that is associated to
+  -- a job when it starts and it can be used to query for its completion status. Different environment
+  -- can decide how this will look like.
+  type JobHandle      m :: Type
+
   type JobType        m :: Type
   type JobOutputType  m :: Type
   type JobEventType   m :: Type
 
---
--- Tracking jobs status API
---
+  -- | Retrevies the latest 'JobEventType' from the underlying monad. It can be
+  -- used to query the latest status for a particular job, given its 'JobHandle' as input.
+  getLatestJobStatus :: MonadJobStatus m => JobHandle m -> m (JobEventType m)
 
--- | Retrevies the latest 'JobEventType' from the underlying monad. It can be
--- used to query the latest status for a particular job, given its 'JobHandle' as input.
-getLatestJobStatus :: MonadJobStatus m => JobHandle m (JobEventType m) -> m (Maybe (JobEventType m))
-getLatestJobStatus (JobHandle jId _) = do
-  mb_jb <- findJob jId
-  case mb_jb of
-    Nothing -> pure Nothing
-    Just j  -> case jTask j of
-      QueuedJ _   -> pure Nothing
-      RunningJ rj -> liftIO (rjGetLog rj) <&>
-                       \lgs -> case viewr lgs of
-                                 EmptyR -> Nothing
-                                 _ :> l -> Just l
-      DoneJ lgs _ -> pure $ case viewr lgs of
-                                 EmptyR -> Nothing
-                                 _ :> l -> Just l
+  -- | Adds an extra \"tracer\" that logs events to the passed action. Produces
+  -- a new 'JobHandle'.
+  withTracer :: Logger (JobEventType m) -> JobHandle m -> (JobHandle m -> m a) -> m a
 
-updateJobProgress :: (Monoid (JobEventType m), MonadJobStatus m)
-                  => JobHandle m (JobEventType m)
-                  -- ^ The handle that uniquely identifies this job.
-                  -> (JobEventType m -> JobEventType m)
-                  -- ^ A /pure/ function to update the 'JobEventType'. The input
-                  -- is the /latest/ event, i.e. the current progress status. If
-                  -- this is the first time we report progress and therefore there
-                  -- is no previous progress status, this function will be applied
-                  -- over 'mempty', thus the 'Monoid' constraint.
-                  -> m ()
-updateJobProgress hdl@(JobHandle _jId logStatus) updateJobStatus = do
-  latestStatus <- getLatestJobStatus hdl
-  case latestStatus of
-    Nothing -> logStatus (updateJobStatus mempty)
-    Just s  -> logStatus (updateJobStatus s)
+  -- Creating events
+
+  -- | Start tracking a new 'JobEventType' with 'n' remaining steps.
+  markStarted :: Int -> JobHandle m -> m ()
+
+  -- | Mark 'n' steps of the job as succeeded, while simultaneously substracting this number
+  -- from the remaining steps.
+  markProgress :: Int -> JobHandle m -> m ()
+
+  -- | Mark 'n' step of the job as failed, while simultaneously substracting this number
+  -- from the remaining steps. Attach an optional error message to the failure.
+  markFailure :: Int -> Maybe T.Text -> JobHandle m -> m ()
+
+  -- | Finish tracking a job by marking all the remaining steps as succeeded.
+  markComplete :: JobHandle m -> m ()
+
+  -- | Finish tracking a job by marking all the remaining steps as failed. Attach an optional
+  -- message to the failure.
+  markFailed :: Maybe T.Text -> JobHandle m -> m ()

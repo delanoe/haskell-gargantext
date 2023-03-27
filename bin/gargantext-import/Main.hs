@@ -23,8 +23,9 @@ import System.Environment (getArgs)
 import qualified Data.Text as Text
 import Text.Read (readMaybe)
 
-import Gargantext.API.Dev (withDevEnv, runCmdDev)
-import Gargantext.API.Admin.EnvTypes (DevEnv(..))
+import Gargantext.API.Dev (withDevEnv, runCmdGargDev)
+import Gargantext.API.Admin.EnvTypes (DevEnv(..), DevJobHandle(..))
+import Gargantext.API.Admin.Orchestrator.Types (JobLog)
 import Gargantext.API.Node () -- instances
 import Gargantext.API.Prelude (GargError)
 import Gargantext.Core (Lang(..))
@@ -36,6 +37,7 @@ import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Prelude
 import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), FileType(..))
+import Gargantext.Utils.Jobs (MonadJobStatus, JobHandle)
 
 main :: IO ()
 main = do
@@ -50,14 +52,14 @@ main = do
     limit' = case (readMaybe limit :: Maybe Int) of
       Nothing -> panic $ "Cannot read limit: " <> (Text.pack limit)
       Just l  -> l
-    corpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    corpus = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) limit' tt  format Plain corpusPath Nothing (\_ -> pure ())
+    corpus :: forall m. (FlowCmdM DevEnv GargError m, MonadJobStatus m, JobHandle m ~ DevJobHandle) => m CorpusId
+    corpus = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) limit' tt  format Plain corpusPath Nothing DevJobHandle
 
-    corpusCsvHal :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    corpusCsvHal = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) limit' tt CsvHal Plain corpusPath Nothing (\_ -> pure ())
+    corpusCsvHal :: forall m. (FlowCmdM DevEnv GargError m, MonadJobStatus m, JobHandle m ~ DevJobHandle) => m CorpusId
+    corpusCsvHal = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) limit' tt CsvHal Plain corpusPath Nothing DevJobHandle
 
-    annuaire :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    annuaire = flowAnnuaire (UserName $ cs user) (Left "Annuaire") (Multi EN) corpusPath (\_ -> pure ())
+    annuaire :: forall m. (FlowCmdM DevEnv GargError m, MonadJobStatus m, JobHandle m ~ DevJobHandle) => m CorpusId
+    annuaire = flowAnnuaire (UserName $ cs user) (Left "Annuaire") (Multi EN) corpusPath DevJobHandle
 
   {-
   let debatCorpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
@@ -72,15 +74,15 @@ main = do
 
   withDevEnv iniPath $ \env -> do
     _ <- if fun == "corpus"
-          then runCmdDev env corpus
+          then runCmdGargDev env corpus
           else pure 0 --(cs "false")
 
     _ <- if fun == "corpusCsvHal"
-          then runCmdDev env corpusCsvHal
+          then runCmdGargDev env corpusCsvHal
           else pure 0 --(cs "false")
 
     _ <- if fun == "annuaire"
-            then runCmdDev env annuaire
+            then runCmdGargDev env annuaire
             else pure 0
     {-
     _ <- if corpusType == "csv"

@@ -31,7 +31,7 @@ import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
-import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
+import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
 import Data.Either
 
 data RESPONSE deriving Typeable
@@ -103,27 +103,19 @@ type FileAsyncApi = Summary "File Async Api"
 fileAsyncApi :: UserId -> NodeId -> ServerT FileAsyncApi (GargM Env GargError)
 fileAsyncApi uId nId =
   serveJobsAPI AddFileJob $ \jHandle i ->
-      let
-        log' x = do
-          -- printDebug "addWithFile" x
-          jobHandleLogger jHandle x
-      in addWithFile uId nId i log'
+    addWithFile uId nId i jHandle
 
 
-addWithFile :: (HasSettings env, FlowCmdM env err m)
+addWithFile :: (HasSettings env, FlowCmdM env err m, MonadJobStatus m)
             => UserId
             -> NodeId
             -> NewWithFile
-            -> (JobLog -> m ())
-            -> m JobLog
-addWithFile uId nId nwf@(NewWithFile _d _l fName) logStatus = do
+            -> JobHandle m
+            -> m ()
+addWithFile uId nId nwf@(NewWithFile _d _l fName) jobHandle = do
 
   -- printDebug "[addWithFile] Uploading file: " nId
-  logStatus JobLog { _scst_succeeded = Just 0
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 1
-                   , _scst_events    = Just []
-                   }
+  markStarted 1 jobHandle
 
   fPath <- GargDB.writeFile nwf
   -- printDebug "[addWithFile] File saved as: " fPath
@@ -142,8 +134,4 @@ addWithFile uId nId nwf@(NewWithFile _d _l fName) logStatus = do
     _     -> pure ()
 
   -- printDebug "[addWithFile] File upload finished: " nId
-  pure $ JobLog { _scst_succeeded = Just 1
-                , _scst_failed    = Just 0
-                , _scst_remaining = Just 0
-                , _scst_events    = Just []
-                }
+  markComplete jobHandle

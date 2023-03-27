@@ -25,7 +25,6 @@ import Data.Text (Text, concat, pack, splitOn)
 import Data.Vector (Vector)
 import Gargantext.API.Admin.EnvTypes (Env, GargJob(..))
 import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Job (jobLogFailTotalWithMessage, jobLogSuccess)
 import Gargantext.API.Ngrams (setListNgrams)
 import Gargantext.API.Ngrams.List.Types
 import Gargantext.API.Ngrams.Prelude (getNgramsList)
@@ -48,7 +47,7 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node (_node_parent_id)
 import Gargantext.Database.Types (Indexed(..))
 import Gargantext.Prelude
-import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
+import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
 import Servant
 -- import Servant.Job.Async
 import qualified Data.ByteString.Lazy as BSL
@@ -194,45 +193,27 @@ toIndexedNgrams m t = Indexed <$> i <*> n
 jsonPostAsync :: ServerT JSONAPI (GargM Env GargError)
 jsonPostAsync lId =
   serveJobsAPI UpdateNgramsListJobJSON $ \jHandle f ->
-      let
-        log'' x = do
-          -- printDebug "postAsync ListId" x
-          jobHandleLogger jHandle x
-      in postAsync' lId f log''
+    postAsync' lId f jHandle
 
-postAsync' :: FlowCmdM env err m
+postAsync' :: (FlowCmdM env err m, MonadJobStatus m)
           => ListId
           -> WithJsonFile
-          -> (JobLog -> m ())
-          -> m JobLog
-postAsync' l (WithJsonFile m _) logStatus = do
+          -> JobHandle m
+          -> m ()
+postAsync' l (WithJsonFile m _) jobHandle = do
 
-  logStatus JobLog { _scst_succeeded = Just 0
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 2
-                   , _scst_events    = Just []
-                   }
+  markStarted 2 jobHandle
   -- printDebug "New list as file" l
   _ <- setList l m
   -- printDebug "Done" r
 
-  logStatus JobLog { _scst_succeeded = Just 1
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 1
-                   , _scst_events    = Just []
-                   }
-
+  markProgress 1 jobHandle
 
   corpus_node <- getNode l -- (Proxy :: Proxy HyperdataList)
   let corpus_id = fromMaybe (panic "") (_node_parent_id corpus_node)
   _ <- reIndexWith corpus_id l NgramsTerms (Set.fromList [MapTerm, CandidateTerm])
 
-  pure JobLog { _scst_succeeded = Just 2
-              , _scst_failed    = Just 0
-              , _scst_remaining = Just 0
-              , _scst_events    = Just []
-              }
-
+  markComplete jobHandle
 
 ------------------------------------------------------------------------
 
@@ -293,23 +274,13 @@ csvPost l m  = do
 csvPostAsync :: ServerT CSVAPI (GargM Env GargError)
 csvPostAsync lId =
   serveJobsAPI UpdateNgramsListJobCSV $ \jHandle f -> do
-      let log'' x = do
-            -- printDebug "[csvPostAsync] filetype" (_wtf_filetype f)
-            -- printDebug "[csvPostAsync] name" (_wtf_name f)
-            jobHandleLogger jHandle x
-      let jl = JobLog { _scst_succeeded = Just 0
-                      , _scst_failed    = Just 0
-                      , _scst_remaining = Just 1
-                      , _scst_events    = Just []
-                      }
-      log'' jl
+      markStarted 1 jHandle
       ePost <- csvPost lId (_wtf_data f)
-      let jlNew = case ePost of
-            Left err -> jobLogFailTotalWithMessage err jl
-            Right () -> jobLogSuccess jl
-      printDebug "[csvPostAsync] job ended with joblog: " jlNew
-      log'' jlNew
-      pure jlNew
+      case ePost of
+        Left err -> markFailed (Just err) jHandle
+        Right () -> markComplete jHandle
+
+      getLatestJobStatus jHandle >>= printDebug "[csvPostAsync] job ended with joblog: "
 
 ------------------------------------------------------------------------
 

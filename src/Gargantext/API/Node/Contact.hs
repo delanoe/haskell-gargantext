@@ -46,9 +46,9 @@ import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAnnuaire(..), HyperdataContact)
 import Gargantext.Database.Admin.Types.Hyperdata.Contact (hyperdataContact)
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Prelude (($), {-printDebug,-} pure)
+import Gargantext.Prelude (($), {-printDebug,-})
 import qualified Gargantext.Utils.Aeson as GUA
-import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
+import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
 
 ------------------------------------------------------------------------
 type API = "contact" :> Summary "Contact endpoint"
@@ -74,34 +74,22 @@ data AddContactParams = AddContactParams         { firstname :: !Text, lastname 
 api_async :: User -> NodeId -> ServerT API_Async (GargM Env GargError)
 api_async u nId =
   serveJobsAPI AddContactJob $ \jHandle p ->
-      let
-        log' x = do
-          -- printDebug "addContact" x
-          jobHandleLogger jHandle x
-      in addContact u nId p log'
+    addContact u nId p jHandle
 
-addContact :: (HasSettings env, FlowCmdM env err m)
+addContact :: (HasSettings env, FlowCmdM env err m, MonadJobStatus m)
     => User
     -> NodeId
     -> AddContactParams
-    -> (JobLog -> m ())
-    -> m JobLog
-addContact u nId (AddContactParams fn ln) logStatus = do
+    -> JobHandle m
+    -> m ()
+addContact u nId (AddContactParams fn ln) jobHandle = do
 
-  logStatus JobLog { _scst_succeeded = Just 1
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 1
-                   , _scst_events    = Just []
-                   }
-  _ <- flow (Nothing :: Maybe HyperdataAnnuaire) u (Right [nId]) (Multi EN) Nothing (Just 1, yield $ hyperdataContact fn ln) logStatus
+  markStarted 2 jobHandle
+  _ <- flow (Nothing :: Maybe HyperdataAnnuaire) u (Right [nId]) (Multi EN) Nothing (Just 1, yield $ hyperdataContact fn ln) jobHandle
 
-  pure  JobLog { _scst_succeeded = Just 2
-               , _scst_failed    = Just 0
-               , _scst_remaining = Just 0
-               , _scst_events    = Just []
-               }
-addContact _uId _nId _p logStatus = do
-  simuLogs logStatus 10
+  markComplete jobHandle
+addContact _uId _nId _p jobHandle = do
+  simuLogs jobHandle 10
 
 ------------------------------------------------------------------------
 -- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.

@@ -47,7 +47,7 @@ import Gargantext.Database.Query.Table.Node.User (getNodeUser)
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Prelude
-import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
+import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
 import Servant
 import Servant.Job.Async (AsyncJobsAPI)
 import Servant.XML
@@ -257,8 +257,7 @@ type GraphAsyncAPI = Summary "Recompute graph"
 
 graphAsync :: UserId -> NodeId -> ServerT GraphAsyncAPI (GargM Env GargError)
 graphAsync u n =
-  serveJobsAPI RecomputeGraphJob $ \jHandle _ ->
-    graphRecompute u n (jobHandleLogger jHandle)
+  serveJobsAPI RecomputeGraphJob $ \jHandle _ -> graphRecompute u n jHandle
 
 
 --graphRecompute :: UserId
@@ -266,23 +265,15 @@ graphAsync u n =
 --               -> (JobLog -> GargNoServer ())
 --               -> GargNoServer JobLog
 -- TODO get Graph Metadata to recompute
-graphRecompute :: FlowCmdM env err m
+graphRecompute :: (FlowCmdM env err m, MonadJobStatus m)
                => UserId
                -> NodeId
-               -> (JobLog -> m ())
-               -> m JobLog
-graphRecompute u n logStatus = do
-  logStatus JobLog { _scst_succeeded = Just 0
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 1
-                   , _scst_events    = Just []
-                   }
+               -> JobHandle m
+               -> m ()
+graphRecompute u n jobHandle = do
+  markStarted 1 jobHandle
   _g <- recomputeGraph u n Spinglass BridgenessMethod_Basic Nothing Nothing NgramsTerms NgramsTerms False
-  pure  JobLog { _scst_succeeded = Just 1
-               , _scst_failed    = Just 0
-               , _scst_remaining = Just 0
-               , _scst_events    = Just []
-               }
+  markComplete jobHandle
 
 ------------------------------------------------------------
 type GraphVersionsAPI = Summary "Graph versions"

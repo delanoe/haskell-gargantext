@@ -37,14 +37,15 @@ serveJobsAPI
      , ToJSON e, ToJSON event, ToJSON output
      , Foldable callback
      )
-  => m env
+  => (SJ.JobID 'SJ.Safe -> LoggerM m event -> JobHandle m)
+  -> m env
   -> t
   -> (JobError -> e)
-  -> (env -> JobHandle m event -> input -> IO (Either e output))
+  -> (env -> JobHandle m -> input -> IO (Either e output))
   -> SJ.AsyncJobsServerT' ctI ctO callback event input output m
-serveJobsAPI getenv t joberr f
-     = newJob getenv t f (SJ.JobInput undefined Nothing)
-  :<|> newJob getenv t f
+serveJobsAPI newJobHandle getenv t joberr f
+     = newJob newJobHandle getenv t f (SJ.JobInput undefined Nothing)
+  :<|> newJob newJobHandle getenv t f
   :<|> serveJobAPI t joberr
 
 serveJobAPI
@@ -74,12 +75,13 @@ newJob
      , ToJSON e, ToJSON event, ToJSON output
      , Foldable callbacks
      )
-  => m env
+  => (SJ.JobID 'SJ.Safe -> LoggerM m event -> JobHandle m)
+  -> m env
   -> t
-  -> (env -> JobHandle m event -> input -> IO (Either e output))
+  -> (env -> JobHandle m -> input -> IO (Either e output))
   -> SJ.JobInput callbacks input
   -> m (SJ.JobStatus 'SJ.Safe event)
-newJob getenv jobkind f input = do
+newJob newJobHandle getenv jobkind f input = do
   je <- getJobEnv
   env <- getenv
   let postCallback m = forM_ (input ^. SJ.job_callback) $ \url ->
@@ -91,7 +93,7 @@ newJob getenv jobkind f input = do
         logF w
 
       f' jId inp logF = do
-        r <- f env (mkJobHandle jId (liftIO . pushLog logF . Seq.singleton)) inp
+        r <- f env (newJobHandle jId (liftIO . pushLog logF . Seq.singleton)) inp
         case r of
           Left e  -> postCallback (SJ.mkChanError e) >> throwIO e
           Right a -> postCallback (SJ.mkChanResult a) >> return a

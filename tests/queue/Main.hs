@@ -11,11 +11,10 @@ import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad
 import Control.Monad.Reader
-import Data.Aeson
+import Control.Monad.Except
 import Data.Either
 import Data.List
 import Data.Sequence (Seq)
-import GHC.Generics
 import GHC.Stack
 import Prelude
 import System.IO.Unsafe
@@ -30,6 +29,9 @@ import Gargantext.Utils.Jobs.Map
 import Gargantext.Utils.Jobs.Monad hiding (withJob)
 import Gargantext.Utils.Jobs.Queue (applyPrios, defaultPrios)
 import Gargantext.Utils.Jobs.State
+import Gargantext.API.Prelude
+import Gargantext.API.Admin.EnvTypes as EnvTypes
+import Gargantext.API.Admin.Orchestrator.Types
 
 data JobT = A | B deriving (Eq, Ord, Show, Enum, Bounded)
 
@@ -147,51 +149,33 @@ testFairness = do
   r4 <- readTVarIO runningJs
   r4 `shouldBe` (Counts 0 0)
 
-data MyDummyJob
-  = MyDummyJob
-  deriving (Show, Eq, Ord, Enum, Bounded)
-
-data MyDummyError
-  = SomethingWentWrong JobError
-  deriving (Show)
-
-instance Exception MyDummyError where
-  toException _ = toException (userError "SomethingWentWrong")
-
-instance ToJSON MyDummyError where
-  toJSON (SomethingWentWrong _) = String "SomethingWentWrong"
-
-type Progress = Int
-
-data MyDummyLog =
-    Step_0 !Progress
-  | Step_1 !Progress
-  deriving (Show, Eq, Ord, Generic)
-
-instance Monoid MyDummyLog where
-  mempty = Step_0 0
-
-instance Semigroup MyDummyLog where
-  _ <> _ = error "not needed"
-
-instance ToJSON MyDummyLog
-
-newtype MyDummyEnv = MyDummyEnv { _MyDummyEnv :: JobEnv MyDummyJob (Seq MyDummyLog) () }
-
 newtype MyDummyMonad a =
-  MyDummyMonad { _MyDummyMonad :: ReaderT MyDummyEnv IO a }
-  deriving (Functor, Applicative, Monad, MonadIO, MonadReader MyDummyEnv)
+  MyDummyMonad { _MyDummyMonad :: GargM Env GargError a }
+  deriving (Functor, Applicative, Monad, MonadIO, MonadReader Env)
 
-runMyDummyMonad :: MyDummyEnv -> MyDummyMonad a -> IO a
-runMyDummyMonad env = flip runReaderT env . _MyDummyMonad
-
-instance MonadJob MyDummyMonad MyDummyJob (Seq MyDummyLog) () where
-  getJobEnv = asks _MyDummyEnv
+instance MonadJob MyDummyMonad GargJob (Seq JobLog) JobLog where
+  getJobEnv = MyDummyMonad getJobEnv
 
 instance MonadJobStatus MyDummyMonad where
-  type JobType        MyDummyMonad = MyDummyJob
-  type JobOutputType  MyDummyMonad = ()
-  type JobEventType   MyDummyMonad = MyDummyLog
+  type JobHandle      MyDummyMonad = EnvTypes.ConcreteJobHandle GargError
+  type JobType        MyDummyMonad = GargJob
+  type JobOutputType  MyDummyMonad = JobLog
+  type JobEventType   MyDummyMonad = JobLog
+
+  getLatestJobStatus jId      = MyDummyMonad (getLatestJobStatus jId)
+  withTracer _ jh n           = n jh
+  markStarted n jh            = MyDummyMonad (markStarted n jh)
+  markProgress steps jh       = MyDummyMonad (markProgress steps jh)
+  markFailure steps mb_msg jh = MyDummyMonad (markFailure steps mb_msg jh)
+  markComplete jh             = MyDummyMonad (markComplete jh)
+  markFailed mb_msg jh        = MyDummyMonad (markFailed mb_msg jh)
+
+runMyDummyMonad :: Env -> MyDummyMonad a -> IO a
+runMyDummyMonad env m = do
+  res <- runExceptT . flip runReaderT env $ _MyDummyMonad m
+  case res of
+    Left e -> throwIO e
+    Right x -> pure x
 
 testTlsManager :: Manager
 testTlsManager = unsafePerformIO newTlsManager
@@ -200,69 +184,158 @@ testTlsManager = unsafePerformIO newTlsManager
 shouldBeE :: (MonadIO m, HasCallStack, Show a, Eq a) => a -> a -> m ()
 shouldBeE a b = liftIO (shouldBe a b)
 
-type TheEnv = JobEnv MyDummyJob (Seq MyDummyLog) ()
+withJob :: Env
+        -> (JobHandle MyDummyMonad -> () -> MyDummyMonad ())
+        -> IO (SJ.JobStatus 'SJ.Safe JobLog)
+withJob env f = runMyDummyMonad env $ MyDummyMonad $
+  -- the job type doesn't matter in our tests, we use a random one, as long as it's of type 'GargJob'.
+  newJob @_ @GargError mkJobHandle (pure env) RecomputeGraphJob (\_ hdl input ->
+    runMyDummyMonad env $ (Right <$> (f hdl input >> getLatestJobStatus hdl))) (SJ.JobInput () Nothing)
 
-withJob :: TheEnv
-        -> (TheEnv -> JobHandle MyDummyMonad MyDummyLog -> () -> MyDummyMonad (Either MyDummyError ()))
-        -> IO (SJ.JobStatus 'SJ.Safe MyDummyLog)
-withJob myEnv f = runMyDummyMonad (MyDummyEnv myEnv) $
-  newJob @_ @MyDummyError getJobEnv MyDummyJob (\env hdl input ->
-    runMyDummyMonad (MyDummyEnv myEnv) $ f env hdl input) (SJ.JobInput () Nothing)
-
-withJob_ :: TheEnv
-         -> (TheEnv -> JobHandle MyDummyMonad MyDummyLog -> () -> MyDummyMonad (Either MyDummyError ()))
+withJob_ :: Env
+         -> (JobHandle MyDummyMonad -> () -> MyDummyMonad ())
          -> IO ()
 withJob_ env f = void (withJob env f)
 
-testFetchJobStatus :: IO ()
-testFetchJobStatus = do
+newTestEnv :: IO Env
+newTestEnv = do
   k <- genSecret
   let settings = defaultJobSettings 2 k
   myEnv <- newJobEnv settings defaultPrios testTlsManager
+  pure $ Env
+       { _env_settings  = error "env_settings not needed, but forced somewhere (check StrictData)"
+       , _env_logger    = error "env_logger not needed, but forced somewhere (check StrictData)"
+       , _env_pool      = error "env_pool not needed, but forced somewhere (check StrictData)"
+       , _env_nodeStory = error "env_nodeStory not needed, but forced somewhere (check StrictData)"
+       , _env_manager   = testTlsManager
+       , _env_self_url  = error "self_url not needed, but forced somewhere (check StrictData)"
+       , _env_scrapers  = error "scrapers not needed, but forced somewhere (check StrictData)"
+       , _env_jobs      = myEnv
+       , _env_config    = error "config not needed, but forced somewhere (check StrictData)"
+       , _env_mail      = error "mail not needed, but forced somewhere (check StrictData)"
+       , _env_nlp       = error "nlp not needed, but forced somewhere (check StrictData)"
+       }
+
+testFetchJobStatus :: IO ()
+testFetchJobStatus = do
+  myEnv <- newTestEnv
   evts <- newMVar []
 
-  withJob_ myEnv $ \_ hdl _input -> do
+  withJob_ myEnv $ \hdl _input -> do
     mb_status <- getLatestJobStatus hdl
 
     -- now let's log something
-    updateJobProgress hdl (const $ Step_0 20)
+    markStarted 10 hdl
     mb_status' <- getLatestJobStatus hdl
-    updateJobProgress hdl (\(Step_0 x) -> Step_0 (x + 5))
+    markProgress 5 hdl
     mb_status'' <- getLatestJobStatus hdl
 
     liftIO $ modifyMVar_ evts (\xs -> pure $ mb_status : mb_status' : mb_status'' : xs)
-    pure $ Right ()
+    pure ()
 
   threadDelay 500_000
   -- Check the events
-  readMVar evts >>= \expected -> expected `shouldBe` [Nothing, Just (Step_0 20), Just (Step_0 25)]
+  readMVar evts >>= \expected -> map _scst_remaining expected `shouldBe` [Nothing, Just 10, Just 5]
 
 testFetchJobStatusNoContention :: IO ()
 testFetchJobStatusNoContention = do
-  k <- genSecret
-  let settings = defaultJobSettings 2 k
-  myEnv <- newJobEnv settings defaultPrios testTlsManager
+  myEnv <- newTestEnv
 
   evts1 <- newMVar []
   evts2 <- newMVar []
 
-  let job1 = \() -> withJob_ myEnv $ \_ hdl _input -> do
-        updateJobProgress hdl (const $ Step_1 100)
+  let job1 = \() -> withJob_ myEnv $ \hdl _input -> do
+        markStarted 100 hdl
         mb_status <- getLatestJobStatus hdl
         liftIO $ modifyMVar_ evts1 (\xs -> pure $ mb_status : xs)
-        pure $ Right ()
+        pure ()
 
-  let job2 = \() -> withJob_ myEnv $ \_ hdl _input -> do
-        updateJobProgress hdl (const $ Step_0 50)
+  let job2 = \() -> withJob_ myEnv $ \hdl _input -> do
+        markStarted 50 hdl
         mb_status <- getLatestJobStatus hdl
         liftIO $ modifyMVar_ evts2 (\xs -> pure $ mb_status : xs)
-        pure $ Right ()
+        pure ()
 
   Async.forConcurrently_ [job1, job2] ($ ())
   threadDelay 500_000
   -- Check the events
-  readMVar evts1 >>= \expected -> expected `shouldBe` [Just (Step_1 100)]
-  readMVar evts2 >>= \expected -> expected `shouldBe` [Just (Step_0 50)]
+  readMVar evts1 >>= \expected -> map _scst_remaining expected `shouldBe` [Just 100]
+  readMVar evts2 >>= \expected -> map _scst_remaining expected `shouldBe` [Just 50]
+
+testMarkProgress :: IO ()
+testMarkProgress = do
+  myEnv <- newTestEnv
+  evts  <- newMVar []
+
+  withJob_ myEnv $ \hdl _input -> do
+    markStarted 10 hdl
+    jl0 <- getLatestJobStatus hdl
+    markProgress 1 hdl
+    jl1 <- getLatestJobStatus hdl
+    markFailure 1 Nothing hdl
+    jl2 <- getLatestJobStatus hdl
+    markFailure 1 (Just "boom") hdl
+    jl3 <- getLatestJobStatus hdl
+    markComplete hdl
+    jl4 <- getLatestJobStatus hdl
+    markStarted 5 hdl
+    markProgress 1 hdl
+    jl5 <- getLatestJobStatus hdl
+    markFailed (Just "kaboom") hdl
+    jl6 <- getLatestJobStatus hdl
+    liftIO $ modifyMVar_ evts (const (pure [jl0, jl1, jl2, jl3, jl4, jl5, jl6]))
+
+  threadDelay 500_000
+  [jl0, jl1, jl2, jl3, jl4, jl5, jl6] <- readMVar evts
+
+  -- Check the events are what we expect
+  jl0 `shouldBe` JobLog { _scst_succeeded = Just 0
+                        , _scst_failed    = Just 0
+                        , _scst_remaining = Just 10
+                        , _scst_events    = Just []
+                        }
+  jl1 `shouldBe` JobLog { _scst_succeeded = Just 1
+                        , _scst_failed    = Just 0
+                        , _scst_remaining = Just 9
+                        , _scst_events    = Just []
+                        }
+  jl2 `shouldBe` JobLog { _scst_succeeded = Just 1
+                        , _scst_failed    = Just 1
+                        , _scst_remaining = Just 8
+                        , _scst_events    = Just []
+                        }
+  jl3 `shouldBe` JobLog { _scst_succeeded = Just 1
+                        , _scst_failed    = Just 2
+                        , _scst_remaining = Just 7
+                        , _scst_events    = Just [
+                            ScraperEvent { _scev_message = Just "boom"
+                                         , _scev_level = Just "ERROR"
+                                         , _scev_date = Nothing }
+                        ]
+                        }
+  jl4 `shouldBe` JobLog { _scst_succeeded = Just 8
+                        , _scst_failed    = Just 2
+                        , _scst_remaining = Just 0
+                        , _scst_events    = Just [
+                            ScraperEvent { _scev_message = Just "boom"
+                                         , _scev_level = Just "ERROR"
+                                         , _scev_date = Nothing }
+                        ]
+                        }
+  jl5 `shouldBe` JobLog { _scst_succeeded = Just 1
+                        , _scst_failed    = Just 0
+                        , _scst_remaining = Just 4
+                        , _scst_events    = Just []
+                        }
+  jl6 `shouldBe` JobLog { _scst_succeeded = Just 1
+                        , _scst_failed    = Just 4
+                        , _scst_remaining = Just 0
+                        , _scst_events    = Just [
+                            ScraperEvent { _scev_message = Just "kaboom"
+                                         , _scev_level = Just "ERROR"
+                                         , _scev_date = Nothing }
+                        ]
+                        }
 
 main :: IO ()
 main = hspec $ do
@@ -280,3 +353,5 @@ main = hspec $ do
       testFetchJobStatus
     it "can spin two separate jobs and track their status separately" $
       testFetchJobStatusNoContention
+    it "marking stuff behaves as expected" $
+      testMarkProgress

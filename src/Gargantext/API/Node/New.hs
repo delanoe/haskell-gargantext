@@ -41,7 +41,7 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
-import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
+import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
 
 ------------------------------------------------------------------------
 data PostNode = PostNode { pn_name     :: Text
@@ -77,39 +77,27 @@ type PostNodeAsync = Summary "Post Node"
 postNodeAsyncAPI
   :: UserId -> NodeId -> ServerT PostNodeAsync (GargM Env GargError)
 postNodeAsyncAPI uId nId =
-  serveJobsAPI NewNodeJob $ \jHandle p ->
-    postNodeAsync uId nId p (jobHandleLogger jHandle)
+  serveJobsAPI NewNodeJob $ \jHandle p -> postNodeAsync uId nId p jHandle
 
 ------------------------------------------------------------------------
-postNodeAsync :: FlowCmdM env err m
+postNodeAsync :: (FlowCmdM env err m, MonadJobStatus m)
     => UserId
     -> NodeId
     -> PostNode
-    -> (JobLog -> m ())
-    -> m JobLog
-postNodeAsync uId nId (PostNode nodeName tn) logStatus = do
+    -> JobHandle m
+    -> m ()
+postNodeAsync uId nId (PostNode nodeName tn) jobHandle = do
 
   -- printDebug "postNodeAsync" nId
-  logStatus JobLog { _scst_succeeded = Just 1
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 2
-                   , _scst_events    = Just []
-                   }
+  markStarted 3 jobHandle
+  markProgress 1 jobHandle
 
   nodeUser <- getNodeUser (NodeId uId)
 
   -- _ <- threadDelay 1000
-  logStatus JobLog { _scst_succeeded = Just 1
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 2
-                   , _scst_events    = Just []
-                   }
+  markProgress 1 jobHandle
 
   let uId' = nodeUser ^. node_user_id
   _ <- mkNodeWithParent tn (Just nId) uId' nodeName
 
-  pure      JobLog { _scst_succeeded = Just 3
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 0
-                   , _scst_events    = Just []
-                   }
+  markComplete jobHandle

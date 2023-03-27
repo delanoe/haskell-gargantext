@@ -101,7 +101,6 @@ import GHC.Generics (Generic)
 import Gargantext.API.Admin.EnvTypes (Env, GargJob(..))
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
-import Gargantext.API.Job
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude
 import Gargantext.Core.NodeStory
@@ -121,7 +120,7 @@ import Gargantext.Prelude hiding (log)
 import Gargantext.Prelude.Clock (hasTime, getTime)
 import Prelude (error)
 import Servant hiding (Patch)
-import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
+import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
 import System.IO (stderr)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -423,11 +422,12 @@ tableNgramsPostChartsAsync :: ( HasNodeStory env err m
                               , FlowCmdM     env err m
                               , HasNodeError err
                               , HasSettings env
+                              , MonadJobStatus m
                               )
                             => UpdateTableNgramsCharts
-                            -> (JobLog -> m ())
-                            -> m JobLog
-tableNgramsPostChartsAsync utn logStatus = do
+                            -> JobHandle m
+                            -> m ()
+tableNgramsPostChartsAsync utn jobHandle = do
       let tabType = utn ^. utn_tab_type
       let listId = utn ^. utn_list_id
 
@@ -442,44 +442,35 @@ tableNgramsPostChartsAsync utn logStatus = do
       case mCId of
         Nothing -> do
           -- printDebug "[tableNgramsPostChartsAsync] can't update charts, no parent, nId" nId
-          pure $ jobLogFail $ jobLogInit 1
+          markStarted 1 jobHandle
+          markFailed Nothing jobHandle
         Just cId -> do
           case tabType of
             Authors -> do
               -- printDebug "[tableNgramsPostChartsAsync] Authors, updating Pie, cId" cId
-              (logRef, logRefSuccess, getRef) <- runJobLog 1 logStatus
-              logRef
+              markStarted 1 jobHandle
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
-              logRefSuccess
-
-              getRef
+              markComplete jobHandle
             Institutes -> do
               -- printDebug "[tableNgramsPostChartsAsync] Institutes, updating Tree, cId" cId
               -- printDebug "[tableNgramsPostChartsAsync] updating tree StopTerm, cId" cId
-              (logRef, logRefSuccess, getRef) <- runJobLog 3 logStatus
-              logRef
+              markStarted 3 jobHandle
               _ <- Metrics.updateTree cId (Just listId) tabType StopTerm
               -- printDebug "[tableNgramsPostChartsAsync] updating tree CandidateTerm, cId" cId
-              logRefSuccess
+              markProgress 1 jobHandle
               _ <- Metrics.updateTree cId (Just listId) tabType CandidateTerm
               -- printDebug "[tableNgramsPostChartsAsync] updating tree MapTerm, cId" cId
-              logRefSuccess
+              markProgress 1 jobHandle
               _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
-              logRefSuccess
-
-              getRef
+              markComplete jobHandle
             Sources -> do
               -- printDebug "[tableNgramsPostChartsAsync] Sources, updating chart, cId" cId
-              (logRef, logRefSuccess, getRef) <- runJobLog 1 logStatus
-              logRef
+              markStarted 1 jobHandle
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
-              logRefSuccess
-
-              getRef
+              markComplete jobHandle
             Terms -> do
               -- printDebug "[tableNgramsPostChartsAsync] Terms, updating Metrics (Histo), cId" cId
-              (logRef, logRefSuccess, getRef) <- runJobLog 6 logStatus
-              logRef
+              markStarted 6 jobHandle
 {-
               _ <- Metrics.updateChart cId (Just listId) tabType Nothing
               logRefSuccess
@@ -493,12 +484,11 @@ tableNgramsPostChartsAsync utn logStatus = do
               logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
 -}
-              logRefSuccess
-
-              getRef
+              markComplete jobHandle
             _ -> do
               -- printDebug "[tableNgramsPostChartsAsync] no update for tabType = " tabType
-              pure $ jobLogFail $ jobLogInit 1
+              markStarted 1 jobHandle
+              markFailed Nothing jobHandle
 
   {-
   { _ne_list        :: ListType
@@ -830,12 +820,8 @@ apiNgramsTableDoc dId =  getTableNgramsDoc          dId
 
 apiNgramsAsync :: NodeId -> ServerT TableNgramsAsyncApi (GargM Env GargError)
 apiNgramsAsync _dId =
-  serveJobsAPI TableNgramsJob $ \jHandle i ->
-      let
-        log' x = do
-          printDebug "tableNgramsPostChartsAsync" x
-          jobHandleLogger jHandle x
-      in tableNgramsPostChartsAsync i log'
+  serveJobsAPI TableNgramsJob $ \jHandle i -> withTracer (printDebug "tableNgramsPostChartsAsync") jHandle $
+    \jHandle' -> tableNgramsPostChartsAsync i jHandle'
 
 -- Did the given list of ngrams changed since the given version?
 -- The returned value is versioned boolean value, meaning that one always retrieve the

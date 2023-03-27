@@ -1,7 +1,6 @@
 module Gargantext.API.Job where
 
 import Control.Lens (over, _Just)
-import Data.IORef
 import Data.Maybe
 import qualified Data.Text as T
 
@@ -9,11 +8,13 @@ import Gargantext.Prelude
 
 import Gargantext.API.Admin.Orchestrator.Types
 
+newtype RemainingSteps = RemainingSteps { _RemainingSteps :: Int }
+  deriving (Show, Eq, Num)
 
-jobLogInit :: Int -> JobLog
-jobLogInit rem =
+jobLogStart :: RemainingSteps -> JobLog
+jobLogStart rem =
   JobLog { _scst_succeeded = Just 0
-         , _scst_remaining = Just rem
+         , _scst_remaining = Just (_RemainingSteps rem)
          , _scst_failed = Just 0
          , _scst_events = Just [] }
 
@@ -25,13 +26,24 @@ addEvent level message (JobLog { _scst_events = mEvts, .. }) = JobLog { _scst_ev
                           , _scev_level = Just level
                           , _scev_date = Nothing }
 
-jobLogSuccess :: JobLog -> JobLog
-jobLogSuccess jl = over (scst_succeeded . _Just) (+ 1) $
-                   over (scst_remaining . _Just) (\x -> x - 1) jl
+addErrorEvent :: T.Text -> JobLog -> JobLog
+addErrorEvent message = addEvent "ERROR" message
 
-jobLogFail :: JobLog -> JobLog
-jobLogFail jl = over (scst_failed . _Just) (+ 1) $
-                over (scst_remaining . _Just) (\x -> x - 1) jl
+jobLogProgress :: Int -> JobLog -> JobLog
+jobLogProgress n jl = over (scst_succeeded . _Just) (+ n) $
+                      over (scst_remaining . _Just) (\x -> x - n) jl
+
+-- | Mark a job as completely done, by adding the 'remaining' into 'succeeded'.
+-- At the end 'scst_remaining' will be 0, and 'scst_succeeded' will be 'oldvalue + remaining'.
+jobLogComplete :: JobLog -> JobLog
+jobLogComplete jl =
+  let remainingNow = fromMaybe 0 (_scst_remaining jl)
+  in jl & over scst_succeeded (Just . maybe remainingNow ((+) remainingNow))
+        & over scst_remaining (const (Just 0))
+
+jobLogFailures :: Int -> JobLog -> JobLog
+jobLogFailures n jl = over (scst_failed . _Just) (+ n) $
+                over (scst_remaining . _Just) (\x -> x - n) jl
 
 jobLogFailTotal :: JobLog -> JobLog
 jobLogFailTotal (JobLog { _scst_succeeded = mSucc
@@ -48,25 +60,7 @@ jobLogFailTotal (JobLog { _scst_succeeded = mSucc
       Just rem -> (Just 0, (+ rem) <$> mFail)
 
 jobLogFailTotalWithMessage :: T.Text -> JobLog -> JobLog
-jobLogFailTotalWithMessage message jl = addEvent "ERROR" message $ jobLogFailTotal jl
+jobLogFailTotalWithMessage message jl = addErrorEvent message $ jobLogFailTotal jl
 
 jobLogEvt :: JobLog -> ScraperEvent -> JobLog
 jobLogEvt jl evt = over (scst_events . _Just) (\evts -> (evt:evts)) jl
-
-runJobLog :: MonadBase IO m => Int -> (JobLog -> m ()) -> m (m (), m (), m JobLog)
-runJobLog num logStatus = do
-  jlRef <- liftBase $ newIORef $ jobLogInit num
-
-  return (logRefF jlRef, logRefSuccessF jlRef, getRefF jlRef)
-
-  where
-    logRefF ref = do
-      jl <- liftBase $ readIORef ref
-      logStatus jl
-    logRefSuccessF ref = do
-      jl <- liftBase $ readIORef ref
-      let jl' = jobLogSuccess jl
-      liftBase $ writeIORef ref jl'
-      logStatus jl'
-    getRefF ref = do
-      liftBase $ readIORef ref

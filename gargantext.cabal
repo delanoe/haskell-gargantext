@@ -33,6 +33,7 @@ library
       Gargantext.API.Admin.Auth.Types
       Gargantext.API.Admin.EnvTypes
       Gargantext.API.Admin.Settings
+      Gargantext.API.Admin.Orchestrator.Types
       Gargantext.API.Admin.Types
       Gargantext.API.Dev
       Gargantext.API.HashedResponse
@@ -114,7 +115,6 @@ library
       Gargantext.API.Admin.FrontEnd
       Gargantext.API.Admin.Orchestrator
       Gargantext.API.Admin.Orchestrator.Scrapy.Schedule
-      Gargantext.API.Admin.Orchestrator.Types
       Gargantext.API.Admin.Utils
       Gargantext.API.Context
       Gargantext.API.Count
@@ -340,6 +340,7 @@ library
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
+      GADTs
       GeneralizedNewtypeDeriving
       MultiParamTypeClasses
       NamedFieldPuns
@@ -538,6 +539,7 @@ executable gargantext-admin
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
+      GADTs
       GeneralizedNewtypeDeriving
       MultiParamTypeClasses
       NamedFieldPuns
@@ -566,6 +568,7 @@ executable gargantext-cbor2json
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
+      GADTs
       GeneralizedNewtypeDeriving
       MultiParamTypeClasses
       NamedFieldPuns
@@ -598,6 +601,7 @@ executable gargantext-cli
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
+      GADTs
       GeneralizedNewtypeDeriving
       MultiParamTypeClasses
       NamedFieldPuns
@@ -637,6 +641,7 @@ executable gargantext-import
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
+      GADTs
       GeneralizedNewtypeDeriving
       MultiParamTypeClasses
       NamedFieldPuns
@@ -666,6 +671,7 @@ executable gargantext-init
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
+      GADTs
       GeneralizedNewtypeDeriving
       MultiParamTypeClasses
       NamedFieldPuns
@@ -694,6 +700,7 @@ executable gargantext-invitations
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
+      GADTs
       GeneralizedNewtypeDeriving
       MultiParamTypeClasses
       NamedFieldPuns
@@ -722,6 +729,7 @@ executable gargantext-phylo
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
+      GADTs
       GeneralizedNewtypeDeriving
       MultiParamTypeClasses
       NamedFieldPuns
@@ -764,6 +772,7 @@ executable gargantext-server
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
+      GADTs
       GeneralizedNewtypeDeriving
       MultiParamTypeClasses
       NamedFieldPuns
@@ -799,6 +808,7 @@ executable gargantext-upgrade
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
+      GADTs
       GeneralizedNewtypeDeriving
       MultiParamTypeClasses
       NamedFieldPuns
@@ -844,6 +854,7 @@ test-suite garg-test
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
+      GADTs
       GeneralizedNewtypeDeriving
       MultiParamTypeClasses
       NamedFieldPuns
@@ -889,6 +900,7 @@ test-suite jobqueue-test
       DeriveGeneric
       FlexibleContexts
       FlexibleInstances
+      GADTs
       GeneralizedNewtypeDeriving
       MultiParamTypeClasses
       NamedFieldPuns

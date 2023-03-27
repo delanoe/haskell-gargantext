@@ -73,7 +73,6 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Conduit.List as CL
 import qualified Data.Conduit      as C
 
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import Gargantext.Core (Lang(..), PosTagAlgo(..))
 -- import Gargantext.Core.Ext.IMT (toSchoolName)
 import Gargantext.Core.Ext.IMTUser (readFile_Annuaire)
@@ -111,6 +110,7 @@ import Gargantext.Database.Schema.Node (NodePoly(..), node_id)
 import Gargantext.Database.Types
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
+import Gargantext.Utils.Jobs (JobHandle, MonadJobStatus(..))
 import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 --import qualified Prelude
@@ -187,13 +187,14 @@ getDataText_Debug a l q li = do
 -------------------------------------------------------------------------------
 flowDataText :: forall env err m.
                 ( FlowCmdM env err m
+                , MonadJobStatus m
                 )
                 => User
                 -> DataText
                 -> TermType Lang
                 -> CorpusId
                 -> Maybe FlowSocialListWith
-                -> (JobLog -> m ())
+                -> JobHandle m
                 -> m CorpusId
 flowDataText u (DataOld ids) tt cid mfslw _ = do
   (_userId, userCorpusId, listId) <- createNodes u (Right [cid]) corpusType
@@ -201,25 +202,25 @@ flowDataText u (DataOld ids) tt cid mfslw _ = do
   flowCorpusUser (_tt_lang tt) u userCorpusId listId corpusType mfslw
   where
     corpusType = (Nothing :: Maybe HyperdataCorpus)
-flowDataText u (DataNew (mLen, txtC)) tt cid mfslw logStatus =
-  flowCorpus u (Right [cid]) tt mfslw (mLen, (transPipe liftBase txtC)) logStatus
+flowDataText u (DataNew (mLen, txtC)) tt cid mfslw jobHandle =
+  flowCorpus u (Right [cid]) tt mfslw (mLen, (transPipe liftBase txtC)) jobHandle
 
 ------------------------------------------------------------------------
 -- TODO use proxy
-flowAnnuaire :: (FlowCmdM env err m)
+flowAnnuaire :: (FlowCmdM env err m, MonadJobStatus m)
              => User
              -> Either CorpusName [CorpusId]
              -> (TermType Lang)
              -> FilePath
-             -> (JobLog -> m ())
+             -> JobHandle m
              -> m AnnuaireId
-flowAnnuaire u n l filePath logStatus = do
+flowAnnuaire u n l filePath jobHandle = do
   -- TODO Conduit for file
   docs <- liftBase $ ((readFile_Annuaire filePath) :: IO [HyperdataContact])
-  flow (Nothing :: Maybe HyperdataAnnuaire) u n l Nothing (Just $ fromIntegral $ length docs, yieldMany docs) logStatus
+  flow (Nothing :: Maybe HyperdataAnnuaire) u n l Nothing (Just $ fromIntegral $ length docs, yieldMany docs) jobHandle
 
 ------------------------------------------------------------------------
-flowCorpusFile :: (FlowCmdM env err m)
+flowCorpusFile :: (FlowCmdM env err m, MonadJobStatus m)
            => User
            -> Either CorpusName [CorpusId]
            -> Limit -- Limit the number of docs (for dev purpose)
@@ -228,13 +229,13 @@ flowCorpusFile :: (FlowCmdM env err m)
            -> FileFormat
            -> FilePath
            -> Maybe FlowSocialListWith
-           -> (JobLog -> m ())
+           -> JobHandle m
            -> m CorpusId
-flowCorpusFile u n _l la ft ff fp mfslw logStatus = do
+flowCorpusFile u n _l la ft ff fp mfslw jobHandle = do
   eParsed <- liftBase $ parseFile ft ff fp
   case eParsed of
     Right parsed -> do
-      flowCorpus u n la mfslw (Just $ fromIntegral $ length parsed, yieldMany parsed .| mapC toHyperdataDocument) logStatus
+      flowCorpus u n la mfslw (Just $ fromIntegral $ length parsed, yieldMany parsed .| mapC toHyperdataDocument) jobHandle
       --let docs = splitEvery 500 $ take l parsed
       --flowCorpus u n la mfslw (yieldMany $ map (map toHyperdataDocument) docs) logStatus
     Left e       -> panic $ "Error: " <> T.pack e
@@ -242,13 +243,13 @@ flowCorpusFile u n _l la ft ff fp mfslw logStatus = do
 ------------------------------------------------------------------------
 -- | TODO improve the needed type to create/update a corpus
 -- (For now, Either is enough)
-flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
+flowCorpus :: (FlowCmdM env err m, FlowCorpus a, MonadJobStatus m)
            => User
            -> Either CorpusName [CorpusId]
            -> TermType Lang
            -> Maybe FlowSocialListWith
            -> (Maybe Integer, ConduitT () a m ())
-           -> (JobLog -> m ())
+           -> JobHandle m
            -> m CorpusId
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
 
@@ -257,6 +258,7 @@ flow :: forall env err m a c.
         ( FlowCmdM env err m
         , FlowCorpus a
         , MkCorpus c
+        , MonadJobStatus m
         )
         => Maybe c
         -> User
@@ -264,9 +266,9 @@ flow :: forall env err m a c.
         -> TermType Lang
         -> Maybe FlowSocialListWith
         -> (Maybe Integer, ConduitT () a m ())
-        -> (JobLog -> m ())
+        -> JobHandle m
         -> m CorpusId
-flow c u cn la mfslw (mLength, docsC) logStatus = do
+flow c u cn la mfslw (mLength, docsC) jobHandle = do
   (_userId, userCorpusId, listId) <- createNodes u cn c
   -- TODO if public insertMasterDocs else insertUserDocs
   _ <- runConduit $ zipSources (yieldMany [1..]) docsC
@@ -302,11 +304,22 @@ flow c u cn la mfslw (mLength, docsC) logStatus = do
       case mLength of
         Nothing -> pure ()
         Just len -> do
-          logStatus JobLog { _scst_succeeded = Just $ fromIntegral $ 1 + maxIdx
-                           , _scst_failed    = Just 0
-                           , _scst_remaining = Just $ fromIntegral $ len - maxIdx
-                           , _scst_events    = Just []
-                           }
+
+          let succeeded = fromIntegral (1 + maxIdx)
+          let remaining = fromIntegral (len - maxIdx)
+          -- Reconstruct the correct update state by using 'markStarted' and the other primitives.
+          -- We do this slightly awkward arithmetic such that when we call 'markProgress' we reduce
+          -- the number of 'remaining' of exactly '1 + maxIdx', and we will end up with a 'JobLog'
+          -- looking like this:
+          -- JobLog
+          -- { _scst_succeeded = Just $ fromIntegral $ 1 + maxIdx
+          -- , _scst_failed    = Just 0
+          -- , _scst_remaining = Just $ fromIntegral $ len - maxIdx
+          -- , _scst_events    = Just []
+          -- }
+          markStarted (remaining + succeeded) jobHandle
+          markProgress succeeded jobHandle
+
       pure ids
 
 

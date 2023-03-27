@@ -30,6 +30,7 @@ import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)  -- flowAnnuaire
 import Gargantext.Database.Admin.Types.Node (AnnuaireId)
 import Gargantext.Prelude
+import Gargantext.Utils.Jobs (MonadJobStatus(..))
 
 
 type Api = Summary "New Annuaire endpoint"
@@ -64,22 +65,15 @@ type AddWithForm = Summary "Add with FormUrlEncoded to annuaire endpoint"
    :> AsyncJobs JobLog '[FormUrlEncoded] AnnuaireWithForm JobLog
 
 ------------------------------------------------------------------------
-addToAnnuaireWithForm :: FlowCmdM env err m
+addToAnnuaireWithForm :: (FlowCmdM env err m, MonadJobStatus m)
                     => AnnuaireId
                     -> AnnuaireWithForm
-                    -> (JobLog -> m ())
-                    -> m JobLog
-addToAnnuaireWithForm _cid (AnnuaireWithForm { _wf_filetype }) logStatus = do
+                    -> JobHandle m
+                    -> m ()
+addToAnnuaireWithForm _cid (AnnuaireWithForm { _wf_filetype }) jobHandle = do
 
   -- printDebug "ft" _wf_filetype
 
-  logStatus JobLog { _scst_succeeded = Just 1
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 1
-                   , _scst_events    = Just []
-                   }
-  pure      JobLog { _scst_succeeded = Just 2
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 0
-                   , _scst_events    = Just []
-                   }
+  markStarted 3 jobHandle
+  markProgress 1 jobHandle
+  markComplete jobHandle

@@ -18,7 +18,6 @@ import Web.FormUrlEncoded (FromForm)
 
 import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
-import Gargantext.API.Job (jobLogInit, jobLogSuccess, jobLogFail)
 import Gargantext.API.Node.Corpus.New (addToCorpusWithForm)
 import Gargantext.API.Node.Corpus.New.Types (FileFormat(..), FileType(..))
 import Gargantext.API.Node.Types (NewWithForm(..))
@@ -32,7 +31,7 @@ import Gargantext.Database.Prelude (HasConfig)
 import Gargantext.Database.Query.Table.Node (getClosestParentIdByType, getNodeWith)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
-import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
+import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
 import Gargantext.Core (Lang)
 
 data FrameCalcUpload = FrameCalcUpload {
@@ -55,19 +54,18 @@ type API = Summary " FrameCalc upload"
 api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
   serveJobsAPI UploadFrameCalcJob $ \jHandle p ->
-    frameCalcUploadAsync uId nId p (jobHandleLogger jHandle) (jobLogInit 5)
+    frameCalcUploadAsync uId nId p jHandle
 
 
 
-frameCalcUploadAsync :: (HasConfig env, FlowCmdM env err m)
+frameCalcUploadAsync :: (HasConfig env, FlowCmdM env err m, MonadJobStatus m)
                      => UserId
                      -> NodeId
                      -> FrameCalcUpload
-                     -> (JobLog -> m ())
-                     -> JobLog
-                     -> m JobLog
-frameCalcUploadAsync uId nId (FrameCalcUpload _wf_lang _wf_selection) logStatus jobLog = do
-  logStatus jobLog
+                     -> JobHandle m
+                     -> m ()
+frameCalcUploadAsync uId nId (FrameCalcUpload _wf_lang _wf_selection) jobHandle = do
+  markStarted 5 jobHandle
 
   -- printDebug "[frameCalcUploadAsync] uId" uId
   -- printDebug "[frameCalcUploadAsync] nId" nId
@@ -89,9 +87,9 @@ frameCalcUploadAsync uId nId (FrameCalcUpload _wf_lang _wf_selection) logStatus 
   mCId <- getClosestParentIdByType nId NodeCorpus
   -- printDebug "[frameCalcUploadAsync] mCId" mCId
 
-  jobLog2 <- case mCId of
-    Nothing -> pure $ jobLogFail jobLog
+  case mCId of
+    Nothing -> markFailure 1 Nothing jobHandle
     Just cId ->
-      addToCorpusWithForm (RootId (NodeId uId)) cId (NewWithForm CSV Plain body _wf_lang "calc-upload.csv" _wf_selection) logStatus jobLog
+      addToCorpusWithForm (RootId (NodeId uId)) cId (NewWithForm CSV Plain body _wf_lang "calc-upload.csv" _wf_selection) jobHandle
 
-  pure $ jobLogSuccess jobLog2
+  markComplete jobHandle

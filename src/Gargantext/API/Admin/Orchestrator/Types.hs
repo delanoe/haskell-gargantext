@@ -101,7 +101,7 @@ data ScraperEvent = ScraperEvent
   , _scev_level   :: !(Maybe Text)
   , _scev_date    :: !(Maybe Text)
   }
-  deriving (Show, Generic)
+  deriving (Show, Generic, Eq)
 
 instance Arbitrary ScraperEvent where
   arbitrary = ScraperEvent <$> elements [Nothing, Just "test message"]
@@ -122,9 +122,12 @@ data JobLog = JobLog
   , _scst_remaining :: !(Maybe Int)
   , _scst_events    :: !(Maybe [ScraperEvent])
   }
-  deriving (Show, Generic)
+  deriving (Show, Generic, Eq)
 
 makeLenses ''JobLog
+
+noJobLog :: JobLog
+noJobLog = JobLog Nothing Nothing Nothing Nothing
 
 instance Arbitrary JobLog where
   arbitrary = JobLog

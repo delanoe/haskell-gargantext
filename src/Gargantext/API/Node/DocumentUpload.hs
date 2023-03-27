@@ -14,7 +14,6 @@ import qualified Data.Text as T
 
 import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
-import Gargantext.API.Job (jobLogSuccess)
 import Gargantext.API.Prelude
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text.Corpus.Parsers.Date (dateSplit)
@@ -28,7 +27,7 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getClosestParentIdByType')
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Corpus (HyperdataCorpus(..))
-import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
+import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
 
 
 data DocumentUpload = DocumentUpload
@@ -70,25 +69,19 @@ type API = Summary " Document upload"
 api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
   serveJobsAPI UploadDocumentJob $ \jHandle q -> do
-      documentUploadAsync uId nId q (jobHandleLogger jHandle)
+      documentUploadAsync uId nId q jHandle
 
-documentUploadAsync :: (FlowCmdM env err m)
+documentUploadAsync :: (FlowCmdM env err m, MonadJobStatus m)
                => UserId
                -> NodeId
                -> DocumentUpload
-               -> (JobLog -> m ())
-               -> m JobLog
-documentUploadAsync _uId nId doc logStatus = do
-  let jl = JobLog { _scst_succeeded = Just 0
-                  , _scst_failed    = Just 0
-                  , _scst_remaining = Just 1
-                  , _scst_events    = Just [] }
-  logStatus jl
+               -> JobHandle m
+               -> m ()
+documentUploadAsync _uId nId doc jobHandle = do
+  markStarted 1 jobHandle
   _docIds <- documentUpload nId doc
   -- printDebug "documentUploadAsync" docIds
-  pure $ jobLogSuccess jl
-
-
+  markComplete jobHandle
 
 documentUpload :: (FlowCmdM env err m)
                => NodeId

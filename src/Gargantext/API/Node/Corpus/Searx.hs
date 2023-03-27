@@ -22,8 +22,6 @@ import Protolude (catMaybes, encodeUtf8, rightToMaybe, Text)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config
 
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
-import Gargantext.API.Job (jobLogSuccess)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.NLP (nlpServerGet)
 import qualified Gargantext.Core.Text.Corpus.API as API
@@ -43,6 +41,7 @@ import Gargantext.Database.Admin.Types.Node (CorpusId, ListId)
 import Gargantext.Database.Prelude (hasConfig)
 import Gargantext.Database.Query.Table.Node (defaultListMaybe, getOrMkList)
 import Gargantext.Database.Query.Tree.Root (getOrMk_RootWithCorpus)
+import Gargantext.Utils.Jobs (JobHandle, MonadJobStatus(..))
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 
 langToSearx :: Lang -> Text
@@ -149,21 +148,16 @@ insertSearxResponse user cId listId l (Right (SearxResponse { _srs_results })) =
   pure ()
 
 -- TODO Make an async task out of this?
-triggerSearxSearch :: (MonadBase IO m, FlowCmdM env err m)
+triggerSearxSearch :: (MonadBase IO m, FlowCmdM env err m, MonadJobStatus m)
             => User
             -> CorpusId
             -> API.Query
             -> Lang
-            -> (JobLog -> m ())
-            -> m JobLog
-triggerSearxSearch user cId q l logStatus = do
+            -> JobHandle m
+            -> m ()
+triggerSearxSearch user cId q l jobHandle = do
   let numPages = 100
-  let jobLog = JobLog { _scst_succeeded = Just 0
-                      , _scst_failed    = Just 0
-                      , _scst_remaining = Just numPages
-                      , _scst_events    = Just []
-                      }
-  logStatus jobLog
+  markStarted numPages jobHandle
 
   -- printDebug "[triggerSearxSearch] cId" cId
   -- printDebug "[triggerSearxSearch] q" q
@@ -190,15 +184,11 @@ triggerSearxSearch user cId q l logStatus = do
                                                                     , _fsp_url = surl }
 
                 insertSearxResponse user cId listId l res
+                markProgress page jobHandle
 
-                logStatus $ JobLog { _scst_succeeded = Just page
-                                   , _scst_failed    = Just 0
-                                   , _scst_remaining = Just (numPages - page)
-                                   , _scst_events    = Just [] }
             ) [1..numPages]
   --printDebug "[triggerSearxSearch] res" res
-
-  pure $ jobLogSuccess jobLog
+  markComplete jobHandle
 
 hyperdataDocumentFromSearxResult :: Lang -> SearxResult -> Either T.Text HyperdataDocument
 hyperdataDocumentFromSearxResult l (SearxResult { _sr_content, _sr_engine, _sr_pubdate, _sr_title }) = do
