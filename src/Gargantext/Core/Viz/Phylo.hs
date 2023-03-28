@@ -30,14 +30,12 @@ import Control.DeepSeq (NFData)
 import Control.Lens (makeLenses)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
-import Data.Map.Strict (Map)
-import Data.Set (Set)
+import Data.Map (Map)
 import Data.Swagger
 import Data.Text   (Text, pack)
 import Data.Vector (Vector)
 import GHC.Generics
 import GHC.IO (FilePath)
-import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Prelude
@@ -67,24 +65,26 @@ data SeaElevation =
       , _cons_gap   :: Double }
     | Adaptative
       { _adap_steps :: Double }
+    | Evolving
+      { _evol_neighborhood :: Bool }      
     deriving (Show,Generic,Eq)
 
 instance ToSchema SeaElevation
 
-data Proximity =
+data PhyloSimilarity =
       WeightedLogJaccard
       { _wlj_sensibility     :: Double
       , _wlj_minSharedNgrams :: Int }
     | WeightedLogSim
       { _wls_sensibility     :: Double
       , _wls_minSharedNgrams :: Int }
-    | Hamming
-      { _hmg_sensibility     :: Double
+    | Hamming 
+      { _hmg_sensibility     :: Double 
       , _hmg_minSharedNgrams :: Int}
 
     deriving (Show,Generic,Eq)
 
-instance ToSchema Proximity where
+instance ToSchema PhyloSimilarity where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
 
@@ -179,8 +179,9 @@ data PhyloConfig =
             , listParser     :: ListParser
             , phyloName      :: Text
             , phyloScale     :: Int
-            , phyloProximity :: Proximity
+            , similarity     :: PhyloSimilarity
             , seaElevation   :: SeaElevation
+            , defaultMode    :: Bool
             , findAncestors  :: Bool
             , phyloSynchrony :: Synchrony
             , phyloQuality   :: Quality
@@ -200,12 +201,13 @@ data PhyloSubConfig =
                  , _sc_timeUnit       :: TimeUnit
                  , _sc_clique         :: Cluster
                  , _sc_exportFilter   :: Double
+                 , _sc_defaultMode    :: Bool
                  }
   deriving (Show,Generic,Eq)
 
 
 subConfig2config :: PhyloSubConfig -> PhyloConfig
-subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard (_sc_phyloProximity subConfig) 1
+subConfig2config subConfig = defaultConfig { similarity     = WeightedLogJaccard (_sc_phyloProximity subConfig) 1 
                                            , phyloSynchrony = ByProximityThreshold (_sc_phyloSynchrony subConfig) 0 AllBranches MergeAllGroups
                                            , phyloQuality   = Quality (_sc_phyloQuality   subConfig) 1
                                            , timeUnit       = _sc_timeUnit       subConfig
@@ -216,15 +218,16 @@ subConfig2config subConfig = defaultConfig { phyloProximity = WeightedLogJaccard
 ------------------------------------------------------------------------
 defaultConfig :: PhyloConfig
 defaultConfig =
-     PhyloConfig { corpusPath     = "corpus.csv" -- useful for commandline only
+     PhyloConfig { corpusPath = "corpus.csv" -- useful for commandline only
             , listPath       = "list.csv"   -- useful for commandline only
             , outputPath     = "data/"
             , corpusParser   = Csv 100000
             , listParser     = V4
             , phyloName      = pack "Phylo Name"
             , phyloScale     = 2
-            , phyloProximity = WeightedLogJaccard 0.5 1
+            , similarity     = WeightedLogJaccard 0.5 1
             , seaElevation   = Constante 0.1 0.1
+            , defaultMode    = True
             , findAncestors  = False
             , phyloSynchrony = ByProximityThreshold 0.5 0 AllBranches MergeAllGroups
             , phyloQuality   = Quality 0.5 1
@@ -251,8 +254,8 @@ instance ToJSON CorpusParser
 instance FromJSON ListParser
 instance ToJSON ListParser
 
-instance FromJSON Proximity
-instance ToJSON Proximity
+instance FromJSON PhyloSimilarity
+instance ToJSON PhyloSimilarity
 
 instance FromJSON SeaElevation
 instance ToJSON SeaElevation
@@ -362,18 +365,25 @@ data Document = Document
 
 -- | The Foundations of a Phylo created from a given TermList
 data PhyloFoundations = PhyloFoundations
-      { _foundations_roots   :: !(Vector Ngrams)
-      , _foundations_mapList :: TermList
+      { _foundations_roots    :: (Vector Ngrams)
+      , _foundations_rootsInGroups :: Map Int [PhyloGroupId] -- map of roots associated to groups
       } deriving (Generic, Show, Eq)
 
-instance ToSchema PhyloFoundations where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_foundations_")
-
-
+data PhyloCounts = PhyloCounts
+      { coocByDate    :: !(Map Date Cooc)
+      , docsByDate    :: !(Map Date Double)
+      , rootsCount    :: !(Map Int  Double)
+      , rootsFreq     :: !(Map Int  Double)
+      , lastRootsFreq :: !(Map Int  Double)
+      } deriving (Generic, Show, Eq)
 
 data PhyloSources = PhyloSources
       { _sources :: !(Vector Text) } deriving (Generic, Show, Eq)
 
+instance ToSchema PhyloFoundations where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_foundations_")
+instance ToSchema PhyloCounts where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
 instance ToSchema PhyloSources where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
 
@@ -397,6 +407,8 @@ type Period = (Date,Date)
 type PeriodStr = (DateStr,DateStr)
 
 
+
+
 -- | Phylo datatype of a phylomemy
 --  foundations : the foundations of the phylo
 --  timeCooc : a Map of coocurency by minimal unit of time (ex: by year)
@@ -406,14 +418,12 @@ type PeriodStr = (DateStr,DateStr)
 data Phylo =
      Phylo { _phylo_foundations  :: PhyloFoundations
            , _phylo_sources      :: PhyloSources
-           , _phylo_timeCooc     :: !(Map Date Cooc)
-           , _phylo_timeDocs     :: !(Map Date Double)
-           , _phylo_termFreq     :: !(Map Int Double)
-           , _phylo_lastTermFreq :: !(Map Int Double)
-           , _phylo_diaSimScan   :: Set Double
+           , _phylo_counts       :: PhyloCounts
+           , _phylo_seaLadder    :: [Double]
            , _phylo_param        :: PhyloParam
            , _phylo_periods      :: Map Period PhyloPeriod
            , _phylo_quality      :: Double
+           , _phylo_level        :: Double
            }
            deriving (Generic, Show, Eq)
 
@@ -592,7 +602,7 @@ instance ToSchema PhyloExport where
 
 makeLenses ''PhyloConfig
 makeLenses ''PhyloSubConfig
-makeLenses ''Proximity
+makeLenses ''PhyloSimilarity
 makeLenses ''SeaElevation
 makeLenses ''Quality
 makeLenses ''Cluster
@@ -620,6 +630,9 @@ instance ToJSON PhyloSources
 
 instance FromJSON PhyloParam
 instance ToJSON PhyloParam
+
+instance FromJSON PhyloCounts
+instance ToJSON PhyloCounts
 
 instance FromJSON PhyloPeriod
 instance ToJSON PhyloPeriod

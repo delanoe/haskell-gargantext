@@ -10,11 +10,9 @@ import Data.Text ( Text )
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.GraphQL.Utils (authUser, AuthStatus (Invalid, Valid))
 import Gargantext.API.Prelude (GargM, GargError)
-import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types (NodeId(..), unNodeId)
-import Gargantext.Database (HasConfig)
 import Gargantext.Database.Action.Share (membersOf, deleteMemberShip)
-import Gargantext.Database.Prelude (HasConnectionPool)
+import Gargantext.Database.Prelude (CmdCommon)
 import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Query.Table.User (getUsersWithNodeHyperdata)
 import Gargantext.Database.Schema.Node (NodePoly(Node, _node_id), _node_user_id)
@@ -45,10 +43,11 @@ type GqlM e env = Resolver QUERY e (GargM env GargError)
 type GqlM' e env a = ResolverM e (GargM env GargError) a
 
 
-resolveTeam :: (HasConnectionPool env, HasConfig env, HasMail env) => TeamArgs -> GqlM e env Team
+resolveTeam :: (CmdCommon env) => TeamArgs -> GqlM e env Team
 resolveTeam TeamArgs { team_node_id } = dbTeam team_node_id
 
-dbTeam :: (HasConnectionPool env, HasConfig env, HasMail env) => Int -> GqlM e env Team
+dbTeam :: (CmdCommon env) =>
+          Int -> GqlM e env Team
 dbTeam nodeId = do
   let nId = NodeId nodeId
   res <- lift $ membersOf nId
@@ -69,7 +68,8 @@ dbTeam nodeId = do
     getUsername ((UserLight {userLight_username}, _):_) = userLight_username
 
 -- TODO: list as argument
-deleteTeamMembership :: (HasConnectionPool env, HasConfig env, HasMail env, HasSettings env) => TeamDeleteMArgs -> GqlM' e env [Int]
+deleteTeamMembership :: (CmdCommon env, HasSettings env) =>
+                        TeamDeleteMArgs -> GqlM' e env [Int]
 deleteTeamMembership TeamDeleteMArgs { token, shared_folder_id, team_node_id } = do
   teamNode <- lift $ getNode $ NodeId team_node_id
   userNodes <- lift (getUsersWithNodeHyperdata $ uId teamNode)

@@ -16,7 +16,6 @@ import Data.Morpheus.Types
 import Data.Text (Text)
 import qualified Data.Text as T
 import Gargantext.API.Prelude (GargM, GargError)
-import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Database.Admin.Types.Hyperdata
   ( HyperdataUser(..)
   , hc_source
@@ -40,7 +39,7 @@ import Gargantext.Database.Admin.Types.Hyperdata.Contact
   , ct_phone
   , hc_who
   , hc_where)
-import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
+import Gargantext.Database.Prelude (CmdCommon)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.User (getUsersWithHyperdata, getUsersWithNodeHyperdata, updateUserEmail)
 import Gargantext.Database.Schema.User (UserLight(..))
@@ -105,13 +104,13 @@ type GqlM' e env err = ResolverM e (GargM env err) Int
 
 -- | Function to resolve user from a query.
 resolveUserInfos
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (CmdCommon env)
   => UserInfoArgs -> GqlM e env [UserInfo]
 resolveUserInfos UserInfoArgs { user_id } = dbUsers user_id
 
 -- | Mutation for user info
 updateUserInfo
-  :: (HasConnectionPool env, HasConfig env, HasMail env, HasSettings env)
+  :: (CmdCommon env, HasSettings env)
   -- => UserInfoMArgs -> ResolverM e (GargM env err) Int
   => UserInfoMArgs -> GqlM' e env err
 updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
@@ -160,7 +159,7 @@ updateUserInfo (UserInfoMArgs { ui_id, .. }) = do
 
 -- | Inner function to fetch the user from DB.
 dbUsers
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (CmdCommon env)
   => Int -> GqlM e env [UserInfo]
 dbUsers user_id = do
   -- lift $ printDebug "[dbUsers]" user_id

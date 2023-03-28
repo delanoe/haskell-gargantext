@@ -13,8 +13,8 @@ Portability : POSIX
 module Gargantext.Core.Viz.Phylo.PhyloTools where
 
 import Control.Lens hiding (Level)
-import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition, tails, nubBy, group, notElem)
-import Data.Map.Strict (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty, restrictKeys)
+import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, iterate, transpose, partition, tails, nubBy, group, notElem, (!!))
+import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty, restrictKeys)
 import Data.Set (Set, disjoint)
 import Data.String (String)
 import Data.Text (Text,unpack)
@@ -28,6 +28,7 @@ import qualified Data.List as List
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
+import qualified Data.Map as Map
 
 ------------
 -- | Io | --
@@ -139,7 +140,6 @@ periodsToYears periods = (Set.fromList . sort . concat)
 
 
 findBounds :: [Date] -> (Date,Date)
-findBounds [] = panic "[G.C.V.P.PhyloTools] empty dates for find bounds"
 findBounds dates =
     let dates' = sort dates
     in  (head' "findBounds" dates', last' "findBounds" dates')
@@ -302,6 +302,9 @@ getTrace cooc = sum $ elems $ filterWithKey (\(k,k') _ -> k == k') cooc
 coocToDiago :: Cooc -> Cooc
 coocToDiago cooc = filterWithKey (\(k,k') _ -> k == k') cooc
 
+coocToAdjacency :: Cooc -> Cooc
+coocToAdjacency cooc = Map.map (\_ -> 1) cooc
+
 -- | To build the local cooc matrix of each phylogroup
 ngramsToCooc :: [Int] -> [Cooc] -> Cooc
 ngramsToCooc ngrams coocs =
@@ -310,12 +313,84 @@ ngramsToCooc ngrams coocs =
     in  filterWithKey (\k _ -> elem k pairs) cooc
 
 
+------------------
+-- | Defaults | --
+------------------
+
+-- | find the local maxima in a list of values
+findMaxima :: [(Double,Double)] -> [Bool]
+findMaxima lst = map (hasMax) $ toChunk 3 lst
+    where
+        ------
+        hasMax :: [(Double,Double)] -> Bool
+        hasMax chunk = 
+            if (length chunk) /= 3
+                then False
+                else (snd(chunk !! 0) < snd(chunk !! 1)) && (snd(chunk !! 2) < snd(chunk !! 1))
+
+
+-- | split a list into chunks of size n
+toChunk :: Int -> [a] -> [[a]]
+toChunk n = takeWhile ((== n) . length) . transpose . take n . iterate tail      
+
+
+-- | To compute the average degree from a cooc matrix
+--   http://networksciencebook.com/chapter/2#degree
+toAverageDegree :: Cooc -> Vector Ngrams -> Double
+toAverageDegree cooc roots = 2 * (fromIntegral $ Map.size cooc) / (fromIntegral $ Vector.length roots)
+
+
+-- | Use the giant component regime to estimate the default level
+--   http://networksciencebook.com/chapter/3#networks-supercritical
+regimeToDefaultLevel :: Cooc -> Vector Ngrams -> Double
+regimeToDefaultLevel cooc roots 
+    | avg == 0  = 1
+    | avg < 1   = avg * 0.6
+    | avg == 1  = 0.6
+    | avg < lnN = (avg * 0.2) / lnN
+    | otherwise = 0.2
+    where
+        avg :: Double
+        avg = toAverageDegree cooc roots
+        lnN :: Double
+        lnN = log (fromIntegral $ Vector.length roots)
+
+coocToConfidence :: Phylo -> Cooc
+coocToConfidence phylo = 
+    let count = getRootsCount phylo
+        cooc  = foldl (\acc cooc' -> sumCooc acc cooc') empty 
+              $ elems $ getCoocByDate phylo
+     in Map.mapWithKey (\(a,b) w -> confidence a b w count) cooc
+    where 
+        ----
+        -- confidence
+        confidence :: Int -> Int -> Double -> Map Int Double -> Double
+        confidence a b inter card = maximum [(inter / card ! a),(inter / card ! b)]
+
+
+sumtest :: [Int] -> [Int] -> Int 
+sumtest l1 l2 = (head' "test" l1) + (head' "test" $ reverse l2)
+
+
+findDefaultLevel :: Phylo -> Phylo
+findDefaultLevel phylo = 
+    let confidence = Map.filterWithKey (\(a,b) _ -> a /= b) 
+                   $ Map.filter (> 0.01) 
+                   $ coocToConfidence phylo
+        roots = getRoots phylo
+        level = regimeToDefaultLevel confidence roots
+     in updateLevel level phylo
+
+
 --------------------
 -- | PhyloGroup | --
 --------------------
 
 getGroupId :: PhyloGroup -> PhyloGroupId
 getGroupId g = ((g ^. phylo_groupPeriod, g ^. phylo_groupScale), g ^. phylo_groupIndex)
+
+getGroupNgrams :: PhyloGroup -> [Int]
+getGroupNgrams g = g ^. phylo_groupNgrams
 
 idToPrd :: PhyloGroupId -> Period
 idToPrd id = (fst . fst) id
@@ -331,16 +406,16 @@ getPeriodPointers fil g =
         ToChildsMemory  -> undefined
         ToParentsMemory -> undefined
 
-filterProximity :: Proximity -> Double -> Double -> Bool
-filterProximity proximity thr local =
-    case proximity of
+filterSimilarity :: PhyloSimilarity -> Double -> Double -> Bool
+filterSimilarity similarity thr local =
+    case similarity of
         WeightedLogJaccard _ _ -> local >= thr
         WeightedLogSim     _ _ -> local >= thr
         Hamming            _ _ -> undefined
 
-getProximityName :: Proximity -> String
-getProximityName proximity =
-    case proximity of
+getSimilarityName :: PhyloSimilarity -> String
+getSimilarityName similarity =
+    case similarity of
         WeightedLogJaccard _ _ -> "WLJaccard"
         WeightedLogSim     _ _ -> "WeightedLogSim"
         Hamming            _ _ -> "Hamming"
@@ -399,21 +474,46 @@ getScales phylo = nub
 getSeaElevation :: Phylo -> SeaElevation
 getSeaElevation phylo = seaElevation (getConfig phylo)
 
+getSimilarity :: Phylo -> PhyloSimilarity
+getSimilarity phylo = similarity (getConfig phylo)
+
 
 getPhyloSeaRiseStart :: Phylo -> Double
 getPhyloSeaRiseStart phylo = case (getSeaElevation phylo) of
     Constante  s _ -> s
     Adaptative _ -> 0
+    Evolving   _ -> 0
 
 getPhyloSeaRiseSteps :: Phylo -> Double
 getPhyloSeaRiseSteps phylo = case (getSeaElevation phylo) of
     Constante  _ s -> s
     Adaptative s -> s
+    Evolving   _ -> 0.1    
 
 
 getConfig :: Phylo -> PhyloConfig
 getConfig phylo = (phylo ^. phylo_param) ^. phyloParam_config
 
+getLevel :: Phylo -> Double
+getLevel phylo = _phylo_level phylo
+
+getLadder :: Phylo -> [Double]
+getLadder phylo = phylo ^. phylo_seaLadder
+
+getCoocByDate :: Phylo -> Map Date Cooc
+getCoocByDate phylo = coocByDate (phylo ^. phylo_counts)    
+
+getDocsByDate :: Phylo -> Map Date Double
+getDocsByDate phylo = docsByDate (phylo ^. phylo_counts) 
+
+getRootsCount :: Phylo -> Map Int  Double
+getRootsCount phylo = rootsCount (phylo ^. phylo_counts)
+
+getRootsFreq :: Phylo -> Map Int  Double
+getRootsFreq phylo = rootsFreq (phylo ^. phylo_counts)
+
+getLastRootsFreq :: Phylo -> Map Int  Double
+getLastRootsFreq phylo = lastRootsFreq (phylo ^. phylo_counts)
 
 setConfig :: PhyloConfig -> Phylo -> Phylo
 setConfig config phylo = phylo
@@ -427,6 +527,9 @@ setConfig config phylo = phylo
 
 getRoots :: Phylo -> Vector Ngrams
 getRoots phylo = (phylo ^. phylo_foundations) ^. foundations_roots
+
+getRootsInGroups :: Phylo -> Map Int [PhyloGroupId]
+getRootsInGroups phylo = (phylo ^. phylo_foundations) ^. foundations_rootsInGroups
 
 getSources :: Phylo -> Vector Text
 getSources phylo = _sources (phylo ^. phylo_sources)
@@ -496,8 +599,10 @@ updatePeriods periods' phylo =
                 ) phylo
 
 updateQuality :: Double -> Phylo -> Phylo
-updateQuality quality phylo = phylo { _phylo_quality = quality }
+updateQuality quality phylo = phylo { _phylo_quality = quality } 
 
+updateLevel :: Double -> Phylo -> Phylo
+updateLevel level phylo = phylo { _phylo_level = level } 
 
 traceToPhylo :: Scale -> Phylo -> Phylo
 traceToPhylo lvl phylo =
@@ -579,20 +684,20 @@ traceSynchronyStart phylo =
 
 
 -------------------
--- | Proximity | --
+-- | Similarity | --
 -------------------
 
-getSensibility :: Proximity -> Double
+getSensibility :: PhyloSimilarity -> Double
 getSensibility proxi = case proxi of
     WeightedLogJaccard s _ -> s
     WeightedLogSim     s _ -> s
     Hamming            _ _ -> undefined
 
-getMinSharedNgrams :: Proximity -> Int
+getMinSharedNgrams :: PhyloSimilarity -> Int
 getMinSharedNgrams proxi = case proxi of
     WeightedLogJaccard _ m -> m
     WeightedLogSim     _ m -> m
-    Hamming            _ _ -> undefined
+    Hamming            _ _ -> undefined    
 
 ----------------
 -- | Branch | --
@@ -606,8 +711,8 @@ intersectInit acc lst lst' =
          then intersectInit (acc ++ [head' "intersectInit" lst]) (tail lst) (tail lst')
          else acc
 
-branchIdsToProximity :: PhyloBranchId -> PhyloBranchId -> Double -> Double -> Double
-branchIdsToProximity id id' thrInit thrStep = thrInit + thrStep * (fromIntegral $ length $ intersectInit [] (snd id) (snd id'))
+branchIdsToSimilarity :: PhyloBranchId -> PhyloBranchId -> Double -> Double -> Double
+branchIdsToSimilarity id id' thrInit thrStep = thrInit + thrStep * (fromIntegral $ length $ intersectInit [] (snd id) (snd id'))
 
 ngramsInBranches :: [[PhyloGroup]] -> [Int]
 ngramsInBranches branches = nub $ foldl (\acc g -> acc ++ (g ^. phylo_groupNgrams)) [] $ concat branches
@@ -663,4 +768,4 @@ traceTemporalMatching groups =
 
 traceGroupsProxi :: [Double] -> [Double]
 traceGroupsProxi l =
-    trace ( "\n" <> "-- | " <> show(List.length l) <> " computed pairs of groups proximity" <> "\n") l
+    trace ( "\n" <> "-- | " <> show(List.length l) <> " computed pairs of groups Similarity" <> "\n") l

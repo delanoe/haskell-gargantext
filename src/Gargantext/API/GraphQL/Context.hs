@@ -17,10 +17,9 @@ import Data.Time.Format.ISO8601 (iso8601Show)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Prelude (GargM, GargError)
 import Gargantext.Core.Types.Search (HyperdataRow(..), toHyperdataRow)
-import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument)
 import Gargantext.Database.Admin.Types.Node (ContextTitle, NodeId(..), NodeTypeId, UserId, unNodeId)
-import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
+import Gargantext.Database.Prelude (CmdCommon)
 import Gargantext.Database.Query.Table.NodeContext (getNodeContext, getContextsForNgramsTerms, ContextForNgramsTerms(..))
 import qualified Gargantext.Database.Query.Table.NodeContext as DNC
 import Gargantext.Database.Schema.NodeContext (NodeContext, NodeContextPoly(..))
@@ -102,13 +101,13 @@ type GqlM' e env a = ResolverM e (GargM env GargError) a
 
 -- | Function to resolve context from a query.
 resolveNodeContext
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (CmdCommon env)
   => NodeContextArgs -> GqlM e env [NodeContextGQL]
 resolveNodeContext NodeContextArgs { context_id, node_id } =
   dbNodeContext context_id node_id
 
 resolveContextsForNgrams
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (CmdCommon env)
   => ContextsForNgramsArgs -> GqlM e env [ContextGQL]
 resolveContextsForNgrams ContextsForNgramsArgs { corpus_id, ngrams_terms } =
   dbContextForNgrams corpus_id ngrams_terms
@@ -117,7 +116,7 @@ resolveContextsForNgrams ContextsForNgramsArgs { corpus_id, ngrams_terms } =
 
 -- | Inner function to fetch the node context DB.
 dbNodeContext
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (CmdCommon env)
   => Int -> Int -> GqlM e env [NodeContextGQL]
 dbNodeContext context_id node_id = do
   -- lift $ printDebug "[dbUsers]" user_id
@@ -128,7 +127,7 @@ dbNodeContext context_id node_id = do
   pure $ toNodeContextGQL <$> [c]
 
 dbContextForNgrams
-  :: (HasConnectionPool env, HasConfig env, HasMail env)
+  :: (CmdCommon env)
   => Int -> [Text] -> GqlM e env [ContextGQL]
 dbContextForNgrams node_id ngrams_terms = do
   contextsForNgramsTerms <- lift $ getContextsForNgramsTerms (NodeId node_id) ngrams_terms
@@ -192,7 +191,7 @@ toHyperdataRowDocumentGQL hyperdata =
                                      }
     HyperdataRowContact { } -> Nothing
 
-updateNodeContextCategory :: (HasConnectionPool env, HasConfig env, HasMail env, HasSettings env) =>
+updateNodeContextCategory :: ( CmdCommon env, HasSettings env) =>
                              NodeContextCategoryMArgs -> GqlM' e env [Int]
 updateNodeContextCategory NodeContextCategoryMArgs { context_id, node_id, category } = do
   _ <- lift $ DNC.updateNodeContextCategory (NodeId context_id) (NodeId node_id) category

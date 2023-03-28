@@ -14,25 +14,17 @@ Portability : POSIX
 
 module Main where
 
-import Data.Either (Either(..))
 import Gargantext.API.Dev (withDevEnv, runCmdDev)
 import Gargantext.API.Node () -- instances only
 import Gargantext.API.Prelude (GargError)
-import Gargantext.Core.Types.Individu (User(..), arbitraryNewUsers, NewUser(..), arbitraryUsername, GargPassword(..))
-import Gargantext.Database.Action.Flow (getOrMkRoot, getOrMk_RootWithCorpus)
-import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
-import Gargantext.Database.Admin.Trigger.Init (initFirstTriggers, initLastTriggers)
-import Gargantext.Database.Admin.Types.Hyperdata (HyperdataCorpus)
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Prelude (CmdR)
-import Gargantext.Database.Query.Table.Node (getOrMkList)
-import Gargantext.Database.Query.Table.User (insertNewUsers, )
-import Gargantext.Prelude
-import Gargantext.Prelude.Config (GargConfig(..), readConfig)
-import Prelude (getLine, read)
-import System.Environment (getArgs)
-import Gargantext.Database.Action.User.New (newUsers)
+import Gargantext.Core.NLP (HasNLPServer)
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Prelude (CmdRandom)
+import Gargantext.Prelude
+import Gargantext.Prelude.Config (readConfig)
+import Prelude (read)
+import System.Environment (getArgs)
 import qualified Gargantext.API.Node.Share as Share
 
 main :: IO ()
@@ -43,9 +35,9 @@ main = do
       then panic "USAGE: ./gargantext-init gargantext.ini username node_id student@university.edu"
       else pure ()
 
-  cfg       <- readConfig         iniPath
+  _cfg       <- readConfig         iniPath
 
-  let invite :: CmdR GargError Int
+  let invite :: (CmdRandom env GargError m, HasNLPServer env) => m Int
       invite = Share.api (UserName $ cs user) (NodeId $ (read node_id :: Int)) (Share.ShareTeamParams $ cs email)
 
   withDevEnv iniPath $ \env -> do

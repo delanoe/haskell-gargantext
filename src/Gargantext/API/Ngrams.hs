@@ -105,14 +105,13 @@ import Gargantext.API.Job
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude
 import Gargantext.Core.NodeStory
-import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid, HasInvalidError)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast)
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
-import Gargantext.Database.Prelude (HasConnectionPool(..), HasConfig)
+import Gargantext.Database.Prelude (CmdCommon)
 import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngramsType, ngrams_terms)
 import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
@@ -295,7 +294,7 @@ newNgramsFromNgramsStatePatch p =
 commitStatePatch :: ( HasNodeStory env err m
                     , HasNodeStoryImmediateSaver env
                     , HasNodeArchiveStoryImmediateSaver env
-                    , HasMail env)
+                    , CmdCommon env )
                  => ListId
                  ->    Versioned NgramsStatePatch'
                  -> m (Versioned NgramsStatePatch')
@@ -372,7 +371,7 @@ tableNgramsPull :: HasNodeStory env err m
                 -> Version
                 -> m (Versioned NgramsTablePatch)
 tableNgramsPull listId ngramsType p_version = do
-  printDebug "[tableNgramsPull]" (listId, ngramsType)
+  -- printDebug "[tableNgramsPull]" (listId, ngramsType)
   var <- getNodeStoryVar [listId]
   r <- liftBase $ readMVar var
 
@@ -394,8 +393,7 @@ tableNgramsPut :: ( HasNodeStory    env err m
                   , HasNodeStoryImmediateSaver env
                   , HasNodeArchiveStoryImmediateSaver env
                   , HasInvalidError     err
-                  , HasSettings     env
-                  , HasMail         env
+                  , CmdCommon     env
                   )
                  => TabType
                  -> ListId
@@ -403,12 +401,12 @@ tableNgramsPut :: ( HasNodeStory    env err m
                  -> m (Versioned NgramsTablePatch)
 tableNgramsPut tabType listId (Versioned p_version p_table)
   | p_table == mempty = do
-      printDebug "[tableNgramsPut]" ("TableEmpty" :: Text)
+      -- printDebug "[tableNgramsPut]" ("TableEmpty" :: Text)
       let ngramsType        = ngramsTypeFromTabType tabType
       tableNgramsPull listId ngramsType p_version
 
   | otherwise         = do
-      printDebug "[tableNgramsPut]" ("TableNonEmpty" :: Text)
+      -- printDebug "[tableNgramsPut]" ("TableNonEmpty" :: Text)
       let ngramsType        = ngramsTypeFromTabType tabType
           (p, p_validity)   = PM.singleton ngramsType p_table
 
@@ -434,7 +432,7 @@ tableNgramsPostChartsAsync utn logStatus = do
       let listId = utn ^. utn_list_id
 
       node <- getNode listId
-      let nId = node ^. node_id
+      let _nId = node ^. node_id
           _uId = node ^. node_user_id
           mCId = node ^. node_parent_id
 
@@ -443,7 +441,7 @@ tableNgramsPostChartsAsync utn logStatus = do
 
       case mCId of
         Nothing -> do
-          printDebug "[tableNgramsPostChartsAsync] can't update charts, no parent, nId" nId
+          -- printDebug "[tableNgramsPostChartsAsync] can't update charts, no parent, nId" nId
           pure $ jobLogFail $ jobLogInit 1
         Just cId -> do
           case tabType of
@@ -499,7 +497,7 @@ tableNgramsPostChartsAsync utn logStatus = do
 
               getRef
             _ -> do
-              printDebug "[tableNgramsPostChartsAsync] no update for tabType = " tabType
+              -- printDebug "[tableNgramsPostChartsAsync] no update for tabType = " tabType
               pure $ jobLogFail $ jobLogInit 1
 
   {-
@@ -542,7 +540,7 @@ type MaxSize = Int
 
 
 getTableNgrams :: forall env err m.
-                  (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env, HasMail env)
+                  (HasNodeStory env err m, HasNodeError err, CmdCommon env)
                => NodeType -> NodeId -> TabType
                -> ListId   -> Limit  -> Maybe Offset
                -> Maybe ListType
@@ -639,9 +637,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
 getNgramsTable' :: forall env err m.
                    ( HasNodeStory env err m
                    , HasNodeError err
-                   , HasConnectionPool env
-                   , HasConfig env
-                   , HasMail env)
+                   , CmdCommon env)
                 => NodeId
                 -> ListId
                 -> TableNgrams.NgramsType
@@ -656,9 +652,7 @@ setNgramsTableScores :: forall env err m t.
                         ( Each t t NgramsElement NgramsElement
                         , HasNodeStory env err m
                         , HasNodeError err
-                        , HasConnectionPool env
-                        , HasConfig env
-                        , HasMail env)
+                        , CmdCommon env )
                      => NodeId
                      -> ListId
                      -> TableNgrams.NgramsType
@@ -686,7 +680,7 @@ setNgramsTableScores nId listId ngramsType table = do
 
 
 scoresRecomputeTableNgrams :: forall env err m.
-  (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env, HasMail env)
+  (HasNodeStory env err m, HasNodeError err, CmdCommon env)
   => NodeId -> TabType -> ListId -> m Int
 scoresRecomputeTableNgrams nId tabType listId = do
   tableMap <- getNgramsTableMap listId ngramsType
@@ -769,7 +763,7 @@ type TableNgramsAsyncApi = Summary "Table Ngrams Async API"
                            :> "update"
                            :> AsyncJobs JobLog '[JSON] UpdateTableNgramsCharts JobLog
 
-getTableNgramsCorpus :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env, HasMail env)
+getTableNgramsCorpus :: (HasNodeStory env err m, HasNodeError err, CmdCommon env)
                => NodeId
                -> TabType
                -> ListId
@@ -787,7 +781,7 @@ getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize o
 
 
 
-getTableNgramsVersion :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+getTableNgramsVersion :: (HasNodeStory env err m, HasNodeError err, CmdCommon env)
                => NodeId
                -> TabType
                -> ListId
@@ -803,7 +797,7 @@ getTableNgramsVersion _nId _tabType listId = currentVersion listId
 
 
 -- | Text search is deactivated for now for ngrams by doc only
-getTableNgramsDoc :: (HasNodeStory env err m, HasNodeError err, HasConnectionPool env, HasConfig env, HasMail env)
+getTableNgramsDoc :: ( HasNodeStory env err m, HasNodeError err, CmdCommon env)
                => DocId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType

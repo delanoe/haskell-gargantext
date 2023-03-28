@@ -43,10 +43,12 @@ import qualified Data.ByteString.Lazy as L
 import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Admin.Types
 -- import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
+import Gargantext.Core.NLP (nlpServerMap)
 import Gargantext.Database.Prelude (databaseParameters, hasConfig)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (gc_js_job_timeout, gc_js_id_timeout)
 import qualified Gargantext.Prelude.Mail as Mail
+import qualified Gargantext.Prelude.NLP as NLP
 import qualified Gargantext.Utils.Jobs       as Jobs
 import qualified Gargantext.Utils.Jobs.Monad as Jobs
 import qualified Gargantext.Utils.Jobs.Queue as Jobs
@@ -199,6 +201,7 @@ newEnv port file = do
   jobs_env      <- Jobs.newJobEnv jobs_settings prios' manager_env
   logger        <- newStderrLoggerSet defaultBufSize
   config_mail   <- Mail.readConfig file
+  config_nlp    <- NLP.readConfig file
 
   pure $ Env
     { _env_settings  = settings'
@@ -211,6 +214,7 @@ newEnv port file = do
     , _env_self_url  = self_url_env
     , _env_config    = config_env
     , _env_mail      = config_mail
+    , _env_nlp       = nlpServerMap config_nlp
     }
 
 newPool :: ConnectInfo -> IO (Pool Connection)

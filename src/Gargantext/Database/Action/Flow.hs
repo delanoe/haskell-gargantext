@@ -78,6 +78,7 @@ import Gargantext.Core (Lang(..), PosTagAlgo(..))
 -- import Gargantext.Core.Ext.IMT (toSchoolName)
 import Gargantext.Core.Ext.IMTUser (readFile_Annuaire)
 import Gargantext.Core.Flow.Types
+import Gargantext.Core.NLP (nlpServerGet)
 import Gargantext.Core.Text
 import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat, FileType, splitOn)
 import Gargantext.Core.Text.List (buildNgramsLists)
@@ -295,7 +296,7 @@ flow c u cn la mfslw (mLength, docsC) logStatus = do
     insertDocs' :: [(Integer, a)] -> m [NodeId]
     insertDocs' [] = pure []
     insertDocs' docs = do
-      printDebug "[flow] calling insertDoc, ([idx], mLength) = " (fst <$> docs, mLength)
+      -- printDebug "[flow] calling insertDoc, ([idx], mLength) = " (fst <$> docs, mLength)
       ids <- insertMasterDocs c la (snd <$> docs)
       let maxIdx = maximum (fst <$> docs)
       case mLength of
@@ -346,6 +347,7 @@ flowCorpusUser :: ( FlowCmdM env err m
                -> Maybe FlowSocialListWith
                -> m CorpusId
 flowCorpusUser l user userCorpusId listId ctype mfslw = do
+  server <- view (nlpServerGet l)
   -- User List Flow
   (masterUserId, _masterRootId, masterCorpusId)
     <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
@@ -354,11 +356,11 @@ flowCorpusUser l user userCorpusId listId ctype mfslw = do
   -- Here the PosTagAlgo should be chosen according to the Lang
   _ <- case mfslw of
          (Just (NoList _)) -> do
-           printDebug "Do not build list" mfslw
+           -- printDebug "Do not build list" mfslw
            pure ()
          _ -> do
            ngs  <- buildNgramsLists user userCorpusId masterCorpusId mfslw
-                     $ GroupWithPosTag l CoreNLP HashMap.empty
+                   $ GroupWithPosTag l server HashMap.empty
 
          -- printDebug "flowCorpusUser:ngs" ngs
 
@@ -424,14 +426,15 @@ saveDocNgramsWith lId mapNgramsDocs' = do
 
   --printDebug "saveDocNgramsWith" mapCgramsId
   -- insertDocNgrams
-  _return <- insertContextNodeNgrams2
-           $ catMaybes [ ContextNodeNgrams2 <$> Just nId
+  let ngrams2insert =  catMaybes [ ContextNodeNgrams2 <$> Just nId
                                             <*> (getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms''))
                                             <*> Just (fromIntegral w :: Double)
                        | (terms'', mapNgramsTypes)      <- HashMap.toList mapNgramsDocs
                        , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
-                       , (nId, (w, _cnt))                       <- Map.toList mapNodeIdWeight
+                       , (nId, (w, _cnt))               <- Map.toList mapNodeIdWeight
                        ]
+  -- printDebug "Ngrams2Insert" ngrams2insert
+  _return <- insertContextNodeNgrams2 ngrams2insert
 
   -- to be removed
   _   <- insertDocNgrams lId $ HashMap.mapKeys (indexNgrams terms2id) mapNgramsDocs
@@ -557,10 +560,11 @@ instance ExtractNgramsT HyperdataDocument
                          $ maybe ["Nothing"] (splitOn Authors (doc^. hd_bdd))
                          $ _hd_authors doc
 
+          ncs <- view (nlpServerGet $ lang' ^. tt_lang)
 
           termsWithCounts' <- map (\(t, cnt) -> (enrichedTerms (lang' ^. tt_lang) CoreNLP NP t, cnt))
                               <$> concat
-                              <$> liftBase (extractTerms lang' $ hasText doc)
+                              <$> liftBase (extractTerms ncs lang' $ hasText doc)
 
           pure $ HashMap.fromList
                $  [(SimpleNgrams source, (Map.singleton Sources     1, 1))                    ]

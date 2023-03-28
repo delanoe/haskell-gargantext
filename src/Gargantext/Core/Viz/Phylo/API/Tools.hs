@@ -86,8 +86,8 @@ phylo2dot2json phylo = do
 
 flowPhyloAPI :: PhyloConfig -> CorpusId -> GargNoServer Phylo
 flowPhyloAPI config cId = do
-  (mapList, corpus) <- corpusIdtoDocuments (timeUnit config) cId
-  phyloWithCliques <- pure $ toPhyloWithoutLink corpus mapList config
+  (_, corpus) <- corpusIdtoDocuments (timeUnit config) cId
+  phyloWithCliques <- pure $ toPhyloWithoutLink corpus config
   -- writePhylo phyloWithCliquesFile phyloWithCliques
   pure $ toPhylo (setConfig config phyloWithCliques)
 
@@ -108,7 +108,7 @@ corpusIdtoDocuments timeUnit corpusId = do
                         -> context2phyloDocument timeUnit doc (ngs_terms, ngs_sources)
                       ) docs
 
-  printDebug "corpusIdtoDocuments" (Prelude.map date docs')
+  -- printDebug "corpusIdtoDocuments" (Prelude.map date docs')
 
   case termList of
     Nothing        -> panic "[G.C.V.Phylo.API] no termList found"

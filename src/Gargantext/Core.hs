@@ -27,7 +27,7 @@ import Servant.API
 ------------------------------------------------------------------------
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language
--- 
+--
 -- Next steps: | DE | IT | SP
 --
 --  - EN == english
@@ -74,6 +74,11 @@ instance HasDBid Lang where
   fromDBid _ = panic "HasDBid lang, not implemented"
 
 ------------------------------------------------------------------------
+data NLPServerConfig = NLPServerConfig
+  { server :: !PosTagAlgo
+  , url    :: !URI }
+  deriving (Show, Eq)
+------------------------------------------------------------------------
 type Form = Text
 type Lem  = Text
 ------------------------------------------------------------------------
@@ -90,4 +95,3 @@ instance HasDBid PosTagAlgo where
   fromDBid 2 = JohnSnowServer
   fromDBid 3 = Spacy
   fromDBid _ = panic "HasDBid posTagAlgo : Not implemented"
-

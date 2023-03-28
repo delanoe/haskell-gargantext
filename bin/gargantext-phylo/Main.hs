@@ -149,10 +149,11 @@ seaToLabel :: PhyloConfig -> [Char]
 seaToLabel config = case (seaElevation config) of
       Constante start step   -> ("sea_cst_"  <> (show start) <> "_" <> (show step))
       Adaptative granularity -> ("sea_adapt" <> (show granularity))
+      Evolving _ -> ("sea_evolv")
 
 
 sensToLabel :: PhyloConfig -> [Char]
-sensToLabel config = case (phyloProximity config) of
+sensToLabel config = case (similarity config) of
       Hamming _ _ -> undefined
       WeightedLogJaccard s _ -> ("WeightedLogJaccard_"  <> show s)
       WeightedLogSim s _ -> ( "WeightedLogSim-sens_"  <> show s)
@@ -278,7 +279,7 @@ main = do
                               pure $ toPhylo (setConfig config phyloWithoutLink)
                             else do
                               printIOMsg "Reconstruct the phylo from scratch"
-                              phyloWithoutLink <- pure $ toPhyloWithoutLink corpus mapList config
+                              phyloWithoutLink <- pure $ toPhyloWithoutLink corpus config
                               writePhylo backupPhyloWithoutLink phyloWithoutLink
                               pure $ toPhylo (setConfig config phyloWithoutLink)
 

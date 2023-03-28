@@ -94,10 +94,10 @@ updateScatter :: FlowCmdM env err m =>
   -> Maybe Limit
   -> m ()
 updateScatter cId maybeListId tabType maybeLimit = do
-  printDebug "[updateScatter] cId" cId
-  printDebug "[updateScatter] maybeListId" maybeListId
-  printDebug "[updateScatter] tabType" tabType
-  printDebug "[updateScatter] maybeLimit" maybeLimit
+  -- printDebug "[updateScatter] cId" cId
+  -- printDebug "[updateScatter] maybeListId" maybeListId
+  -- printDebug "[updateScatter] tabType" tabType
+  -- printDebug "[updateScatter] maybeLimit" maybeLimit
   _ <- updateScatter' cId maybeListId tabType maybeLimit
   pure ()
 

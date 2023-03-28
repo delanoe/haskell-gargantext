@@ -146,9 +146,9 @@ parseRawSafe lang text = do
   let triedParseRaw = parseRaw lang text
   dateStr' <- case triedParseRaw of
       --Left (CE.SomeException err) -> do
-      Left err -> do
-        envLang <- getEnv "LANG"
-        printDebug "[G.C.T.C.P.Date] Exception: " (err, envLang, lang, text)
+      Left _err -> do
+        _envLang <- getEnv "LANG"
+        -- printDebug "[G.C.T.C.P.Date] Exception: " (err, envLang, lang, text)
         pure $ DucklingFailure text
       Right res -> pure $ DucklingSuccess res
   pure dateStr'

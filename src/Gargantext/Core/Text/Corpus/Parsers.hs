@@ -188,7 +188,7 @@ toDoc ff d = do
       let lang = EN -- maybe EN identity (join $ detectLangDefault <$> (fmap (DT.take 50) abstract))
 
       let dateToParse = DT.replace " " "" <$> lookup "PY" d  -- <> Just " " <> lookup "publication_date" d 
-      printDebug "[G.C.T.C.Parsers] dateToParse" dateToParse
+      -- printDebug "[G.C.T.C.Parsers] dateToParse" dateToParse
       (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit lang dateToParse
 
       let hd = HyperdataDocument { _hd_bdd = Just $ DT.pack $ show ff
@@ -210,7 +210,7 @@ toDoc ff d = do
                              , _hd_publication_minute = Nothing
                              , _hd_publication_second = Nothing
                              , _hd_language_iso2 = Just $ (DT.pack . show) lang }
-      printDebug "[G.C.T.C.Parsers] HyperdataDocument" hd
+      -- printDebug "[G.C.T.C.Parsers] HyperdataDocument" hd
       pure hd
 
 enrichWith :: FileType

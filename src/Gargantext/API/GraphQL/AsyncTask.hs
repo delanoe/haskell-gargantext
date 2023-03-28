@@ -41,15 +41,15 @@ resolveJobLogs JobLogArgs { job_log_id } = dbJobLogs job_log_id
 dbJobLogs
   :: (HasConnectionPool env, HasConfig env, HasJobEnv' env)
   => Int -> GqlM e env (Map Int JobLog)
-dbJobLogs job_log_id = do
+dbJobLogs _job_log_id = do
   --getJobLogs job_log_id
   lift $ do
     env <- ask
     --val <- liftBase $ readMVar $ env ^. job_env . jenv_jobs . env_state_mvar
     var <- liftIO $ readMVar (env ^. job_env . jenv_jobs . env_state_mvar)
     let envItems = var ^. env_map
-    printDebug "[dbJobLogs] env ^. job_env ^. jenv_jobs" $ length $ IntMap.keys envItems
-    printDebug "[dbJobLogs] job_log_id" job_log_id
+    -- printDebug "[dbJobLogs] env ^. job_env ^. jenv_jobs" $ length $ IntMap.keys envItems
+    -- printDebug "[dbJobLogs] job_log_id" job_log_id
     --pure $ IntMap.elems val
     liftIO $ do
       let jobsList = IntMap.toList $ IntMap.map (\e -> e ^. env_item . job_async) envItems

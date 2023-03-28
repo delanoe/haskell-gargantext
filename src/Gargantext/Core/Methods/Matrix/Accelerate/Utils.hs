@@ -192,6 +192,9 @@ dim m = n
 matSumCol :: (Elt a, P.Num (Exp a)) => Dim -> Acc (Matrix a) -> Acc (Matrix a)
 matSumCol r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum $ transpose mat
 
+matSumLin :: (Elt a, P.Num (Exp a)) => Dim -> Acc (Matrix a) -> Acc (Matrix a)
+matSumLin r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum mat
+
 matSumCol' :: (Elt a, P.Num (Exp a)) => Matrix a -> Matrix a
 matSumCol' m = run $ matSumCol n m'
   where
@@ -209,6 +212,8 @@ matSumCol' m = run $ matSumCol n m'
 --       0.5833333333333334,  0.5333333333333333,                 0.5]
 matProba :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 matProba d mat = zipWith (/) mat (matSumCol d mat)
+
+
 
 -- | Diagonal of the matrix
 --
@@ -242,9 +247,19 @@ divByDiag d mat = zipWith (/) mat (replicate (constant (Z :. (d :: Int) :. All))
 matMiniMax :: (Elt a, Ord a, P.Num a)
            => Acc (Matrix a)
            -> Acc (Matrix a)
-matMiniMax m = trace "matMiniMax" $ filterWith' miniMax' (constant 0) m
+matMiniMax m = filterWith' (>=) miniMax' (constant 0) m
+  where
+    miniMax' = the $ minimum $ maximum m
+
+matMaxMini :: (Elt a, Ord a, P.Num a)
+           => Acc (Matrix a)
+           -> Acc (Matrix a)
+matMaxMini m = filterWith' (>) miniMax' (constant 0) m
   where
     miniMax' = the $ maximum $ minimum m
+
+
+
 
 
 -- | Filters the matrix with a constant
@@ -260,15 +275,12 @@ filter' t m = filterWith t 0 m
 filterWith :: Double -> Double -> Acc (Matrix Double) -> Acc (Matrix Double)
 filterWith t v m = map (\x -> ifThenElse (x > (constant t)) x (constant v)) (transpose m)
 
-filterWith' :: (Elt a, Ord a) => Exp a -> Exp a -> Acc (Matrix a) -> Acc (Matrix a)
-filterWith' t v m = map (\x -> ifThenElse (x > t) x v) m
+filterWith' :: (Elt a, Ord a) => (Exp a -> Exp a -> Exp Bool) -> Exp a -> Exp a -> Acc (Matrix a) -> Acc (Matrix a)
+filterWith' f t v m = map (\x -> ifThenElse (f x t) x v) m
 
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-
-
-
 -- | TODO use Lenses
 data Direction = MatCol (Exp Int) | MatRow (Exp Int) | Diag
 
@@ -411,9 +423,9 @@ theMatrixInt n = matrix n (dataMatrix n)
                                  , 0, 3, 4
                                  ]
                  | (P.==) x 4 =  [ 4, 1, 2, 1
-                                 , 1, 4, 0, 0
-                                 , 2, 0, 3, 3
-                                 , 1, 0, 3, 3
+                                 , 1, 1, 0, 0
+                                 , 2, 0, 5, 3
+                                 , 1, 0, 3, 4
                                  ]
 
 

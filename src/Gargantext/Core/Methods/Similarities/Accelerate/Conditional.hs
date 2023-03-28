@@ -45,17 +45,20 @@ import qualified Gargantext.Prelude as P
 --
 -- Conditional metric is an absolute metric which reflects
 -- interactions of 2 terms in the corpus.
+
+-- Filtered with MiniMax.
+
 measureConditional :: Matrix Int -> Matrix Double
-measureConditional m = run $ zipWith (/) m' (matSumCol d m')
+measureConditional m =  run $ x $ map fromIntegral $ use m
   where
-    m' = map fromIntegral (use m)
-    d  = dim m
+    x :: Acc (Matrix Double) -> Acc (Matrix Double)
+    x mat = matMiniMax $ matProba r mat
+
+    r :: Dim
+    r = dim m
 
 
--- *** Conditional distance (advanced)
-
--- | Conditional distance (advanced version)
---
+-- | To filter the nodes
 -- The conditional metric P(i|j) of 2 terms @i@ and @j@, also called
 -- "confidence" , is the maximum probability between @i@ and @j@ to see
 -- @i@ in the same context of @j@ knowing @j@.
@@ -69,19 +72,23 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
                  , run $ sg $ map fromIntegral $ use m
                  )
   where
-    ie :: Acc (Matrix Double) -> Acc (Matrix Double)
-    ie mat = map (\x -> x / (2*n-1)) $ zipWith (+) (xs mat) (ys mat)
-    sg :: Acc (Matrix Double) -> Acc (Matrix Double)
-    sg mat = map (\x -> x / (2*n-1)) $ zipWith (-) (xs mat) (ys mat)
+    x :: Acc (Matrix Double) -> Acc (Matrix Double)
+    x mat = (matProba r mat)
 
-    n :: Exp Double
-    n = P.fromIntegral r
+    xs :: Acc (Matrix Double) -> Acc (Matrix Double)
+    xs mat = let mat' = x mat in zipWith (-) (matSumLin r mat') mat'
+    ys :: Acc (Matrix Double) -> Acc (Matrix Double)
+    ys mat = let mat' = x mat in zipWith (-) (matSumCol r mat') mat'
+
+
+    ie :: Acc (Matrix Double) -> Acc (Matrix Double)
+    ie mat = map (\x' -> x' / (2*(n-1))) $ zipWith (+) (xs mat) (ys mat)
+    sg :: Acc (Matrix Double) -> Acc (Matrix Double)
+    sg mat = map (\x' -> x' / (2*(n-1))) $ zipWith (-) (xs mat) (ys mat)
 
     r :: Dim
     r = dim m
 
-    xs :: Acc (Matrix Double) -> Acc (Matrix Double)
-    xs mat = zipWith (-) (matSumCol r $ matProba r mat) (matProba r mat)
-    ys :: Acc (Matrix Double) -> Acc (Matrix Double)
-    ys mat = zipWith (-) (matSumCol r $ transpose $ matProba r mat) (matProba r mat)
+    n :: Exp Double
+    n = P.fromIntegral r
 

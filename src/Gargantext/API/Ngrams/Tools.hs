@@ -235,9 +235,9 @@ migrateFromDirToDb = do
   pool <- view connPool
   withResource pool $ \c -> do
     listIds <- liftBase $ getNodesIdWithType c NodeList
-    printDebug "[migrateFromDirToDb] listIds" listIds
+    -- printDebug "[migrateFromDirToDb] listIds" listIds
     (NodeStory nls) <- NSF.getRepoReadConfig listIds
-    printDebug "[migrateFromDirToDb] nls" nls
+    -- printDebug "[migrateFromDirToDb] nls" nls
     _ <- mapM (\(nId, a) -> do
                   n <- liftBase $ nodeExists c nId
                   case n of

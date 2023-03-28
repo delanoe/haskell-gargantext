@@ -155,11 +155,11 @@ SELECT terms,id FROM ins_form_ret
 
 -- TODO add lang and postag algo
 -- TODO remove when form == lem in insert
-selectLems :: Lang -> PosTagAlgo -> [Ngrams] -> Cmd err [(Form, Lem)]
-selectLems l a ns = runPGSQuery querySelectLems (PGS.Only $ Values fields datas)
+selectLems :: Lang -> NLPServerConfig -> [Ngrams] -> Cmd err [(Form, Lem)]
+selectLems l (NLPServerConfig { server }) ns = runPGSQuery querySelectLems (PGS.Only $ Values fields datas)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["int4","int4","text", "int4"]
-    datas  = map (\d -> [toField $ toDBid l, toField $ toDBid a] <> toRow d) ns 
+    datas  = map (\d -> [toField $ toDBid l, toField $ toDBid server] <> toRow d) ns
 
 ----------------------
 querySelectLems :: PGS.Query
@@ -203,5 +203,3 @@ createTable_NgramsPostag = map (\(PGS.Only a) -> a)
     CREATE UNIQUE INDEX ON public.ngrams_postag (lang_id,algo_id,postag,ngrams_id,lemm_id);
 
       |]
-
-

@@ -37,8 +37,8 @@ conditional :: (Ord a, Hashable a, NFData a)
 conditional m' = Map.fromList $ ((catMaybes results') `using` parList rdeepseq)
   where
     results' = [ let
-                  ij = (/) <$> Map.lookup (i,j) m <*> Map.lookup (i,i) m
-                  ji = (/) <$> Map.lookup (j,i) m <*> Map.lookup (j,j) m
+                  ij = (/) <$> Map.lookup (i,j) m <*> Map.lookup (j,j) m
+                  ji = (/) <$> Map.lookup (j,i) m <*> Map.lookup (i,i) m
                   in getMax (i,j) ij ji
 
                | i <- keys
@@ -51,8 +51,5 @@ conditional m' = Map.fromList $ ((catMaybes results') `using` parList rdeepseq)
     -- Get the matrix coordinates, removing duplicates
     keys    = Set.toList $ Set.fromList (x <> y)
     (x,y)   = unzip $ Map.keys m
-
-
-
 
 

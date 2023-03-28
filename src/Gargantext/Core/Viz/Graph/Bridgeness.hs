@@ -23,22 +23,25 @@ TODO use Map LouvainNodeId (Map LouvainNodeId)
 module Gargantext.Core.Viz.Graph.Bridgeness -- (bridgeness)
   where
 
-import Gargantext.Core.Methods.Similarities (Similarity(..))
--- import Data.IntMap (IntMap)
 import Data.Map.Strict (Map, fromListWith, lookup, toList, mapWithKey, elems)
 import Data.Maybe (catMaybes)
 import Data.Ord (Down(..))
+import Data.Set (Set)
+import Data.Tuple.Extra (swap)
 import Debug.Trace (trace)
+import Gargantext.Core.Methods.Similarities (Similarity(..))
 import Gargantext.Prelude
+import Prelude (pi)
 import Graph.Types (ClusterNode(..))
--- import qualified Data.IntMap as IntMap
-import qualified Data.List   as List
-import qualified Data.Map.Strict    as Map
--- import qualified Data.Set    as Set
-
+import qualified Data.List        as List
+import qualified Data.Map.Strict  as Map
+import qualified Data.Set         as Set
+import qualified Data.Tuple.Extra as Tuple
+import qualified Data.IntMap      as Dico
 ----------------------------------------------------------------------
 
 type Partitions = Map (Int, Int) Double -> IO [ClusterNode]
+type Partitions' = Map (Int, Int) Double -> IO [Set NodeId]
 ----------------------------------------------------------------------
 nodeId2comId :: ClusterNode -> (NodeId, CommunityId)
 nodeId2comId (ClusterNode i1 i2) = (i1, i2)
@@ -47,6 +50,62 @@ type NodeId        = Int
 type CommunityId   = Int
 
 ----------------------------------------------------------------------
+-- recursiveClustering : to get more granularity of a given clustering
+-- tested with spinglass clustering only (WIP)
+recursiveClustering' :: Partitions' -> Map (Int, Int) Double -> IO [[Set NodeId]]
+recursiveClustering' f mp = do
+  let
+    n :: Double
+    n = fromIntegral $ Set.size
+      $ Set.unions  $ List.concat
+      $ map (\(k1,k2) -> map Set.singleton [k1, k2])
+      $ Map.keys mp
+
+    t :: Int
+    t = round $ 2 * n / sqrt n
+
+  ss <- f mp
+  mapM (\s -> if Set.size s > t then f (removeNodes s mp) else pure [s]) ss
+
+----------------------------------------------------------------------
+recursiveClustering :: Partitions -> Map (Int, Int) Double -> IO [ClusterNode]
+recursiveClustering f mp = do
+  let
+    n :: Double
+    n = fromIntegral $ Set.size
+      $ Set.unions  $ List.concat
+      $ map (\(k1,k2) -> map Set.singleton [k1, k2])
+      $ Map.keys mp
+
+    t :: Int
+    t = round $ 2 * n / sqrt n
+
+  (toSplit,others) <- List.span (\a -> Set.size a > t) <$> clusterNodes2sets <$> f mp
+  cls' <- mapM f $ map (\s -> removeNodes s mp) toSplit
+  pure $ setNodes2clusterNodes $ others <> (List.concat $ map clusterNodes2sets cls')
+
+
+----------------------------------------------------------------------
+setNodes2clusterNodes :: [Set NodeId] -> [ClusterNode]
+setNodes2clusterNodes ns = List.concat $ map (\(n,ns') -> toCluster n ns') $ zip [1..] ns
+  where
+    toCluster :: CommunityId -> Set NodeId -> [ClusterNode]
+    toCluster cId setNodeId = map (\n -> ClusterNode n cId) (Set.toList setNodeId)
+
+clusterNodes2map :: [ClusterNode] -> Map NodeId Int
+clusterNodes2map = Map.fromList . map (\(ClusterNode nId cId) -> (nId, cId))
+
+removeNodes :: Set NodeId
+            -> Map (NodeId, NodeId) Double
+            -> Map (NodeId, NodeId) Double
+removeNodes s = Map.filterWithKey (\(n1,n2) _v -> Set.member n1 s && Set.member n2 s)
+
+
+clusterNodes2sets :: [ClusterNode] -> [Set NodeId]
+clusterNodes2sets = Dico.elems
+                  . Dico.fromListWith (<>)
+                  . (map ((Tuple.second Set.singleton) . swap . nodeId2comId))
+
 ----------------------------------------------------------------------
 data Bridgeness = Bridgeness_Basic { bridgeness_partitions :: [ClusterNode]
                                    , bridgeness_filter     :: Double
@@ -54,48 +113,52 @@ data Bridgeness = Bridgeness_Basic { bridgeness_partitions :: [ClusterNode]
                 | Bridgeness_Advanced { bridgeness_similarity :: Similarity
                                       , bridgness_confluence  :: Confluence
                                       }
+                | Bridgeness_Recursive { br_partitions :: [[Set NodeId]]
+                                       , br_filter     :: Double
+                                       , br_similarity :: Similarity
+                                       }
+
 
 type Confluence = Map (NodeId, NodeId) Double
 
-
+-- Filter Links between the Clusters
+-- Links: Map (NodeId, NodeId) Double
+-- List of Clusters: [Set NodeId]
 bridgeness :: Bridgeness
             -> Map (NodeId, NodeId) Double
             -> Map (NodeId, NodeId) Double
+bridgeness (Bridgeness_Recursive sn f sim) m =
+  Map.unions $ [linksBetween] <> map (\s -> bridgeness (Bridgeness_Basic (setNodes2clusterNodes s) (if sim == Conditional then pi*f else f)) m') sn
+    where
+      (linksBetween, m') = Map.partitionWithKey (\(n1,n2) _v -> Map.lookup n1 mapNodeIdClusterId
+                                                             /= Map.lookup n2 mapNodeIdClusterId
+                                                ) $ bridgeness (Bridgeness_Basic clusters f) m
+      clusters = setNodes2clusterNodes (map Set.unions sn)
+      mapNodeIdClusterId = clusterNodes2map clusters
+
+
 bridgeness (Bridgeness_Advanced sim c) m = Map.fromList
                 $ List.filter (\x -> if sim == Conditional then snd x > 0.2 else snd x > 0.02)
                 $ map (\(ks, (v1,_v2)) -> (ks,v1))
                 -- $ List.take (if sim == Conditional then 2*n else 3*n)
                 -- $ List.sortOn (Down . (snd . snd))
                 $ Map.toList
-                $ trace ("bridgeness3 m c" <> show (m,c))
+                -- $ trace ("bridgeness3 m c" <> show (m,c))
                 $ Map.intersectionWithKey
                       (\k v1 v2 -> trace ("intersectionWithKey " <> (show (k, v1, v2))) (v1, v2)) m c
-
-{-
- where
-    !m' = Map.toList m
-    n :: Int
-    !n = trace ("bridgeness m size: " <> (show $ List.length m'))
-       $ round
-       $ (fromIntegral $ List.length m') / (log $ fromIntegral nodesNumber :: Double)
-
-    nodesNumber :: Int
-    nodesNumber = Set.size $ Set.fromList $ as <> bs
-      where
-        (as, bs) = List.unzip $ Map.keys m
--}
 
 
 bridgeness (Bridgeness_Basic ns b) m = Map.fromList
                                      $ List.concat
                                      $ Map.elems
-                                     $ filterComs b
+                                     $ filterComs (round b)
                                      $ groupEdges (Map.fromList $ map nodeId2comId ns) m
 
-groupEdges :: (Ord a, Ord b1)
-           => Map b1 a
-           -> Map (b1, b1) b2
-           -> Map (a, a) [((b1, b1), b2)]
+
+groupEdges :: (Ord comId, Ord nodeId)
+           => Map nodeId comId
+           -> Map (nodeId, nodeId) value
+           -> Map (comId, comId) [((nodeId, nodeId), value)]
 groupEdges m = fromListWith (<>)
              . catMaybes
              . map (\((n1,n2), d)
@@ -106,17 +169,16 @@ groupEdges m = fromListWith (<>)
                     )
              . toList
 
--- | TODO : sortOn Confluence
 filterComs :: (Ord n1, Eq n2)
-           => p
+           => Int
            -> Map (n2, n2) [(a3, n1)]
            -> Map (n2, n2) [(a3, n1)]
-filterComs _b m = Map.filter (\n -> length n > 0) $ mapWithKey filter' m
+filterComs b m = Map.filter (\n -> length n > 0) $ mapWithKey filter' m
   where
     filter' (c1,c2) a
       | c1 == c2  = a
       -- TODO use n here
-      | otherwise = take n $ List.sortOn (Down . snd) a
+      | otherwise = take (b * 2*n) $ List.sortOn (Down . snd) a
            where
             n :: Int
             n = round $ 100 * a' / t

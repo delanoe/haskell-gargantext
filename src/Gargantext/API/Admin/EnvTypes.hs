@@ -22,6 +22,7 @@ import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Prelude (GargError)
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Mail.Types (HasMail, mailSettings)
+import Gargantext.Core.NLP (NLPServerMap, HasNLPServer(..))
 import Gargantext.Database.Prelude (HasConnectionPool(..), HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..))
@@ -59,6 +60,7 @@ data Env = Env
   , _env_jobs      :: !(Jobs.JobEnv GargJob (Dual [JobLog]) JobLog)
   , _env_config    :: !GargConfig
   , _env_mail      :: !MailConfig
+  , _env_nlp       :: !NLPServerMap
   }
   deriving (Generic)
 
@@ -91,6 +93,9 @@ instance HasSettings Env where
 instance HasMail Env where
   mailSettings = env_mail
 
+instance HasNLPServer Env where
+  nlpServer = env_nlp
+
 instance Servant.Job.Core.HasEnv Env (Job JobLog JobLog) where
   _env = env_scrapers . Servant.Job.Core._env
 
@@ -115,6 +120,7 @@ data DevEnv = DevEnv
   , _dev_env_pool      :: !(Pool Connection)
   , _dev_env_nodeStory :: !NodeStoryEnv
   , _dev_env_mail      :: !MailConfig
+  , _dev_env_nlp       :: !NLPServerMap
   }
 
 makeLenses ''DevEnv
@@ -146,3 +152,6 @@ instance HasNodeArchiveStoryImmediateSaver DevEnv where
 
 instance HasMail DevEnv where
   mailSettings = dev_env_mail
+
+instance HasNLPServer DevEnv where
+  nlpServer = dev_env_nlp

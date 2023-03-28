@@ -19,13 +19,13 @@ import Data.GraphViz.Attributes.Complete hiding (EdgeType, Order)
 import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.GraphViz.Types.Monadic
 import Data.List ((++), sort, nub, null, concat, sortOn, groupBy, union, (\\), (!!), init, partition, notElem, unwords, nubBy, inits, elemIndex)
-import Data.Map.Strict (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList, member)
+import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList, member)
 import Data.Text.Lazy (fromStrict, pack, unpack)
 import Data.Vector (Vector)
 import Debug.Trace (trace)
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.PhyloTools
-import Gargantext.Core.Viz.Phylo.TemporalMatching (filterDocs, filterDiago, reduceDiagos, toProximity, getNextPeriods)
+import Gargantext.Core.Viz.Phylo.TemporalMatching (filterDocs, filterDiago, reduceDiagos, toSimilarity, getNextPeriods)
 import Gargantext.Prelude hiding (scale)
 import Prelude (writeFile)
 import System.FilePath
@@ -214,13 +214,13 @@ exportToDot phylo export =
                   {-- home made attributes -}
                   <> [(toAttr (fromStrict "phyloFoundations") $ pack $ show (length $ Vector.toList $ getRoots phylo))
                      ,(toAttr (fromStrict "phyloTerms") $ pack $ show (length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) $ export ^. export_groups))
-                     ,(toAttr (fromStrict "phyloDocs") $ pack $ show (sum $ elems $ phylo ^. phylo_timeDocs))
+                     ,(toAttr (fromStrict "phyloDocs") $ pack $ show (sum $ elems $ getDocsByDate phylo))
                      ,(toAttr (fromStrict "phyloPeriods") $ pack $ show (length $ elems $ phylo ^. phylo_periods))
                      ,(toAttr (fromStrict "phyloBranches") $ pack $ show (length $ export ^. export_branches))
                      ,(toAttr (fromStrict "phyloGroups") $ pack $ show (length $ export ^. export_groups))
                      ,(toAttr (fromStrict "phyloSources") $ pack $ show (Vector.toList $ getSources phylo))
                      ,(toAttr (fromStrict "phyloTimeScale") $ pack $ getTimeScale phylo)
-                     ,(toAttr (fromStrict "PhyloScale") $ pack $ show (_qua_granularity $ phyloQuality $ getConfig phylo))
+                     ,(toAttr (fromStrict "PhyloScale") $ pack $ show (getLevel phylo))
                      ,(toAttr (fromStrict "phyloQuality") $ pack $ show (phylo ^. phylo_quality))
                      ,(toAttr (fromStrict "phyloSeaRiseStart") $ pack $ show (getPhyloSeaRiseStart phylo))
                      ,(toAttr (fromStrict "phyloSeaRiseSteps") $ pack $ show (getPhyloSeaRiseSteps phylo))
@@ -288,9 +288,9 @@ exportToDot phylo export =
         {-  8) create the edges between the branches
         -- _ <- mapM (\(bId,bId') ->
         --         toDotEdge (branchIdToDotId bId) (branchIdToDotId bId')
-        --         (Text.pack $ show(branchIdsToProximity bId bId'
-        --                             (getThresholdInit $ phyloProximity $ getConfig phylo)
-        --                             (getThresholdStep $ phyloProximity $ getConfig phylo))) BranchToBranch
+        --         (Text.pack $ show(branchIdsToSimilarity bId bId'
+        --                             (getThresholdInit $ phyloSimilarity $ getConfig phylo)
+        --                             (getThresholdStep $ phyloSimilarity $ getConfig phylo))) BranchToBranch
         --     ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ map _branch_id $ export ^. export_branches
         -}
 
@@ -375,7 +375,8 @@ processSort sort' elev export = case sort' of
     ByBirthDate o -> sortByBirthDate o export
     ByHierarchy _ -> case elev of
             Constante  s s' ->  export & export_branches .~ (branchToIso' s s' $ sortByHierarchy 0 (export ^. export_branches))
-            Adaptative _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches))
+            Adaptative _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches)) 
+            Evolving   _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches)) 
 
 -----------------
 -- | Metrics | --
@@ -416,7 +417,7 @@ ngramsMetrics phylo export =
              & phylo_groupMeta %~ insert "inclusion"
                                   (map (\n -> inclusion   (g ^. phylo_groupCooc) ((g ^. phylo_groupNgrams) \\ [n]) n) $ g ^. phylo_groupNgrams)
              & phylo_groupMeta %~ insert "frequence"
-                                  (map (\n -> getInMap n (phylo ^. phylo_lastTermFreq)) $ g ^. phylo_groupNgrams)
+                                  (map (\n -> getInMap n (getLastRootsFreq phylo)) $ g ^. phylo_groupNgrams)
         ) export
 
 
@@ -567,7 +568,7 @@ toDynamics n elders g m =
         isNew :: Bool
         isNew = not $ elem n $ concat $ map _phylo_groupNgrams elders
 
-type FdtId = Int
+type FdtId = Int 
 processDynamics :: [PhyloGroup] -> [PhyloGroup]
 processDynamics groups =
     map (\g ->
@@ -595,23 +596,23 @@ getGroupThr step g =
         breaks = (g ^. phylo_groupMeta) ! "breaks"
      in (last' "export" (take (round $ (last' "export" breaks) + 1) seaLvl)) - step
 
-toAncestor :: Double -> Map Int Double -> Proximity -> Double -> [PhyloGroup] -> PhyloGroup -> PhyloGroup
-toAncestor nbDocs diago proximity step candidates ego =
+toAncestor :: Double -> Map Int Double -> PhyloSimilarity -> Double -> [PhyloGroup] -> PhyloGroup -> PhyloGroup
+toAncestor nbDocs diago similarity step candidates ego =
   let curr = ego ^. phylo_groupAncestors
    in ego & phylo_groupAncestors .~ (curr ++ (map (\(g,w) -> (getGroupId g,w))
          $ filter (\(g,w) -> (w > 0) && (w >= (min (getGroupThr step ego) (getGroupThr step g))))
-         $ map (\g -> (g, toProximity nbDocs diago proximity (ego ^. phylo_groupNgrams) (g ^. phylo_groupNgrams) (g ^. phylo_groupNgrams)))
+         $ map (\g -> (g, toSimilarity nbDocs diago similarity (ego ^. phylo_groupNgrams) (g ^. phylo_groupNgrams) (g ^. phylo_groupNgrams)))
          $ filter (\g -> g ^. phylo_groupBranchId /= ego ^. phylo_groupBranchId ) candidates))
 
 
-headsToAncestors :: Double -> Map Int Double -> Proximity -> Double -> [PhyloGroup] -> [PhyloGroup] -> [PhyloGroup]
-headsToAncestors nbDocs diago proximity step heads acc =
+headsToAncestors :: Double -> Map Int Double -> PhyloSimilarity -> Double -> [PhyloGroup] -> [PhyloGroup] -> [PhyloGroup]
+headsToAncestors nbDocs diago similarity step heads acc =
   if (null heads)
     then acc
     else
       let ego    = head' "headsToAncestors" heads
           heads' = tail' "headsToAncestors" heads
-       in headsToAncestors nbDocs diago proximity step heads' (acc ++ [toAncestor nbDocs diago proximity step heads' ego])
+       in headsToAncestors nbDocs diago similarity step heads' (acc ++ [toAncestor nbDocs diago similarity step heads' ego])
 
 
 toHorizon :: Phylo -> Phylo
@@ -643,15 +644,16 @@ toHorizon phylo =
           heads   = filter (\g -> (not . null) $ (g ^. phylo_groupPeriodChilds))
                   $ filter (\g -> null (g ^. phylo_groupPeriodParents) && (notElem (getGroupId g) childs)) groups
           noHeads = groups \\ heads
-          nbDocs  = sum $ elems  $ filterDocs  (phylo ^. phylo_timeDocs) [prd]
-          diago   = reduceDiagos $ filterDiago (phylo ^. phylo_timeCooc) [prd]
-          proximity = (phyloProximity $ getConfig phylo)
+          nbDocs  = sum $ elems  $ filterDocs  (getDocsByDate phylo) [prd]
+          diago   = reduceDiagos $ filterDiago (getCoocByDate phylo) [prd]
+          sim     = (similarity $ getConfig phylo)
           step = case getSeaElevation phylo of
             Constante  _ s -> s
             Adaptative _ -> 0
-       -- in headsToAncestors nbDocs diago proximity heads groups []
-       in map (\ego -> toAncestor nbDocs diago proximity step noHeads ego)
-        $ headsToAncestors nbDocs diago proximity step heads []
+            Evolving   _ -> 0
+       -- in headsToAncestors nbDocs diago Similarity heads groups []
+       in map (\ego -> toAncestor nbDocs diago sim step noHeads ego)
+        $ headsToAncestors nbDocs diago sim step heads []
       ) periods
     -- | 3) process this task concurrently
     newGroups :: [[PhyloGroup]]
@@ -671,7 +673,7 @@ toPhyloExport :: Phylo -> DotGraph DotId
 toPhyloExport phylo = exportToDot phylo
                     $ processFilters (exportFilter $ getConfig phylo) (phyloQuality $ getConfig phylo)
                     $ processSort    (exportSort   $ getConfig phylo) (getSeaElevation phylo)
-                    $ processLabels  (exportLabel  $ getConfig phylo) (getRoots phylo) (_phylo_lastTermFreq phylo)
+                    $ processLabels  (exportLabel  $ getConfig phylo) (getRoots phylo) (getLastRootsFreq phylo)
                     $ processMetrics phylo export
     where
         export :: PhyloExport
@@ -711,7 +713,7 @@ tracePhyloAncestors groups = trace ( "-- | Found " <> show(length $ concat $ map
 
 tracePhyloInfo :: Phylo -> Phylo
 tracePhyloInfo phylo = trace ("\n"  <> "##########################" <> "\n\n" <> "-- | Phylo with λ = "
-    <> show(_qua_granularity $ phyloQuality $ getConfig phylo) <> " applied to "
+    <> show(getLevel phylo) <> " applied to "
     <> show(length $ Vector.toList $ getRoots phylo) <> " foundations"
   ) phylo
 
@@ -722,3 +724,4 @@ traceExportGroups groups = trace ("\n" <> "-- | Export "
     <> show(length groups) <> " groups and "
     <> show(length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) groups) <> " terms"
   ) groups
+

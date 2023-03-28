@@ -19,7 +19,7 @@ import Data.Text hiding (map, group, filter, concat)
 import Data.List (concat)
 
 import Gargantext.Prelude
-import Gargantext.Core (Lang(..))
+import Gargantext.Core (Lang(..), NLPServerConfig(..), PosTagAlgo(..))
 import Gargantext.Core.Types
 import Gargantext.Core.Utils (groupWithCounts)
 
@@ -38,8 +38,8 @@ import qualified Gargantext.Utils.SpacyNLP as SpacyNLP
 type NLP_API = Lang -> Text -> IO PosSentences
 
 -------------------------------------------------------------------
-multiterms :: Lang -> Text -> IO [TermsWithCount]
-multiterms l txt = do
+multiterms :: NLPServerConfig -> Lang -> Text -> IO [TermsWithCount]
+multiterms nsc l txt = do
   ret <- multiterms' tokenTag2terms l txt
   pure $ groupWithCounts ret
   where
@@ -47,20 +47,21 @@ multiterms l txt = do
     multiterms' f lang txt' = concat
                        <$> map (map f)
                        <$> map (filter (\t -> _my_token_pos t == Just NP))
-                       <$> tokenTags lang txt'
+                       <$> tokenTags nsc lang txt'
 
 -------------------------------------------------------------------
 tokenTag2terms :: TokenTag -> Terms
 tokenTag2terms (TokenTag ws t _ _) =  Terms ws t
 
-tokenTags :: Lang -> Text -> IO [[TokenTag]]
-tokenTags EN txt = tokenTagsWith EN txt corenlp
-tokenTags FR txt = do
-  -- printDebug "[Spacy Debug]" txt
-  if txt == ""
-     then pure [[]]
-     else tokenTagsWith FR txt SpacyNLP.nlp
-tokenTags l  _   = panic $ "[G.C.T.T.Multi] Lang NLP API not implemented yet " <> (cs $ show l)
+tokenTags :: NLPServerConfig -> Lang -> Text -> IO [[TokenTag]]
+tokenTags (NLPServerConfig { server = CoreNLP, url }) l txt = tokenTagsWith l txt $ corenlp url
+tokenTags (NLPServerConfig { server = Spacy, url }) l txt = tokenTagsWith l txt $ SpacyNLP.nlp url
+-- tokenTags FR txt = do
+--   -- printDebug "[Spacy Debug]" txt
+--   if txt == ""
+--      then pure [[]]
+--      else tokenTagsWith FR txt SpacyNLP.nlp
+tokenTags _ l  _   = panic $ "[G.C.T.T.Multi] Lang NLP API not implemented yet " <> (cs $ show l)
 
 tokenTagsWith :: Lang -> Text -> NLP_API -> IO [[TokenTag]]
 tokenTagsWith lang txt nlp = map (groupTokens lang)

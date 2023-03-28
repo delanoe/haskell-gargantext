@@ -79,12 +79,12 @@ restrictListSize corpusId listId ngramsType listType size = do
   where filterWith :: ListType -> Int -> HashMap NgramsTerm Int
                    -> HashMap NgramsTerm NgramsRepoElement
                    -> m (Map NgramsTerm NgramsRepoElement)
-        filterWith listType' size occs ngrams = 
+        filterWith listType' size occs ngrams =
           HashMap.filter with ngrams
           where
             with nre = case (&&) <$> Just (nre^.nre_list == listType)
                                  <*> ( HashMap.lookup (nre^.nre_root) occs
-                              && 
+                              &&
 
 
 
@@ -92,5 +92,3 @@ restrictListSize corpusId listId ngramsType listType size = do
 
 
 -}
-
-

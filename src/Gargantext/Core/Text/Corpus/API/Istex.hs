@@ -58,7 +58,7 @@ get la query' maxResults = do
         -- in that case we suppose user is knowing what s.he is doing
 
   eDocs <- ISTEX.getMetadataWith query (fromIntegral <$> maxResults)
-  printDebug "[Istex.get] will print length" (0 :: Int)
+  -- printDebug "[Istex.get] will print length" (0 :: Int)
   case eDocs of
     Left _ -> pure ()
     Right (ISTEX.Documents { _documents_hits }) -> printDebug "[Istex.get] length docs" $ length _documents_hits

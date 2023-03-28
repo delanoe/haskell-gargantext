@@ -23,9 +23,9 @@ import Gargantext.Prelude
 import Gargantext.Prelude.Config
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
---import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Job (jobLogSuccess)
-import Gargantext.Core (Lang(..), PosTagAlgo(..))
+import Gargantext.Core (Lang(..))
+import Gargantext.Core.NLP (nlpServerGet)
 import qualified Gargantext.Core.Text.Corpus.API as API
 import Gargantext.Core.Text.List (buildNgramsLists)
 import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
@@ -120,26 +120,29 @@ insertSearxResponse :: (MonadBase IO m, FlowCmdM env err m)
                     -> m ()
 insertSearxResponse _ _ _ _ (Left _) = pure ()
 insertSearxResponse user cId listId l (Right (SearxResponse { _srs_results })) = do
+  server <- view (nlpServerGet l)
+  -- docs :: [Either Text HyperdataDocument]
   let docs = hyperdataDocumentFromSearxResult l <$> _srs_results
   --printDebug "[triggerSearxSearch] docs" docs
-  -- docs :: [Either Text HyperdataDocument]
   let docs' = catMaybes $ rightToMaybe <$> docs
+    {-
   Prelude.mapM_ (\(HyperdataDocument { _hd_title, _hd_publication_year, _hd_publication_date }) -> do
-    printDebug "[triggerSearxSearch] doc time" $
+      printDebug "[triggerSearxSearch] doc time" $
       "[title] " <> (show _hd_title) <>
       " :: [publication_year] " <> (show _hd_publication_year) <>
       " :: [publication_date] " <> (show _hd_publication_date)
     ) docs'
+    -}
   --_ <- flowDataText user (DataNew [docs']) (Multi l) cId Nothing logStatus
   let mCorpus = Nothing :: Maybe HyperdataCorpus
   ids <- insertMasterDocs mCorpus (Multi l) docs'
   _ <- Doc.add cId ids
   (_masterUserId, _masterRootId, masterCorpusId)
     <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") mCorpus
-  let
-    gp = case l of
-      FR -> GroupWithPosTag l Spacy HashMap.empty
-      _       -> GroupWithPosTag l CoreNLP HashMap.empty
+  let gp = GroupWithPosTag l server HashMap.empty
+    -- gp = case l of
+    --   FR -> GroupWithPosTag l Spacy HashMap.empty
+    --   _       -> GroupWithPosTag l CoreNLP HashMap.empty
   ngs         <- buildNgramsLists user cId masterCorpusId Nothing gp
   _userListId <- flowList_DbRepo listId ngs
 
@@ -162,13 +165,13 @@ triggerSearxSearch user cId q l logStatus = do
                       }
   logStatus jobLog
 
-  printDebug "[triggerSearxSearch] cId" cId
-  printDebug "[triggerSearxSearch] q" q
-  printDebug "[triggerSearxSearch] l" l
+  -- printDebug "[triggerSearxSearch] cId" cId
+  -- printDebug "[triggerSearxSearch] q" q
+  -- printDebug "[triggerSearxSearch] l" l
   cfg <- view hasConfig
   uId <- getUserId user
   let surl = _gc_frame_searx_url cfg
-  printDebug "[triggerSearxSearch] surl" surl
+  -- printDebug "[triggerSearxSearch] surl" surl
   mListId <- defaultListMaybe cId
   listId <- case mListId of
     Nothing -> do
@@ -176,7 +179,7 @@ triggerSearxSearch user cId q l logStatus = do
       pure listId
     Just listId -> pure listId
 
-  printDebug "[triggerSearxSearch] listId" listId
+  -- printDebug "[triggerSearxSearch] listId" listId
 
   manager <- liftBase $ newManager tlsManagerSettings
   _ <- mapM (\page -> do

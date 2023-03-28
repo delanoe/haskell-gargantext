@@ -126,7 +126,7 @@ runViewDocuments :: HasDBid NodeType
                  -> Maybe Text
                  -> Cmd err [FacetDoc]
 runViewDocuments cId t o l order query year = do
-    printDebug "[runViewDocuments] sqlQuery" $ showSql sqlQuery
+    _ <- printDebug "[runViewDocuments] sqlQuery" $ showSql sqlQuery
     res <- runOpaQuery $ filterWith' o l order sqlQuery :: Cmd err [FacetDocAgg']
     pure $ remapNgramsCount <$> res
   where

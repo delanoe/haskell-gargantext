@@ -109,12 +109,11 @@ documentsFromWriteNodes uId nId Params { selection, lang, paragraphs } logStatus
              pure (node, contents)
          ) frameWrites
   
-  let paragraphs' = readMaybe $ T.unpack paragraphs :: Maybe Int
-
+  let paragraphs' = fromMaybe (7 :: Int) $ (readMaybe $ T.unpack paragraphs)
   let parsedE = (\(node, contents)
-                  -> hyperdataDocumentFromFrameWrite lang (fromMaybe 7 paragraphs') (node, contents)) <$> frameWritesWithContents
+                  -> hyperdataDocumentFromFrameWrite lang paragraphs' (node, contents)) <$> frameWritesWithContents
   let parsed = List.concat $ rights parsedE
-  printDebug "DocumentsFromWriteNodes: uId" uId
+  -- printDebug "DocumentsFromWriteNodes: uId" uId
   _ <- flowDataText (RootId (NodeId uId))
                     (DataNew (Just $ fromIntegral $ length parsed, yieldMany parsed))
                     (Multi lang)

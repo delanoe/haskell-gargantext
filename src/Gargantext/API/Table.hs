@@ -110,8 +110,8 @@ getTableApi :: NodeId
             -> Maybe Text
             -> Cmd err (HashedResponse FacetTableResult)
 getTableApi cId tabType _mListId mLimit mOffset mOrderBy mQuery mYear = do
-  printDebug "[getTableApi] mQuery" mQuery
-  printDebug "[getTableApi] mYear" mYear
+  -- printDebug "[getTableApi] mQuery" mQuery
+  -- printDebug "[getTableApi] mYear" mYear
   t <- getTable cId tabType mOffset mLimit mOrderBy mQuery mYear
   pure $ constructHashedResponse t
 

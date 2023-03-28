@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-version:        0.0.6.9.4.2
+version: 0.0.6.9.8.2.2
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
@@ -45,6 +45,7 @@ library
       Gargantext.API.Node.Share
       Gargantext.API.Prelude
       Gargantext.Core
+      Gargantext.Core.NLP
       Gargantext.Core.Methods.Similarities
       Gargantext.Core.NodeStory
       Gargantext.Core.Text
@@ -76,6 +77,7 @@ library
       Gargantext.Core.Viz.Graph.Index
       Gargantext.Core.Viz.Graph.Tools
       Gargantext.Core.Viz.Graph.Tools.IGraph
+      Gargantext.Core.Viz.Graph.Types
       Gargantext.Core.Viz.Phylo
       Gargantext.Core.Viz.Phylo.API
       Gargantext.Core.Viz.Phylo.API.Tools
@@ -130,6 +132,7 @@ library
       Gargantext.API.GraphQL.UserInfo
       Gargantext.API.GraphQL.Utils
       Gargantext.API.Job
+      Gargantext.API.Members
       Gargantext.API.Metrics
       Gargantext.API.Ngrams.List
       Gargantext.API.Ngrams.List.Types
@@ -234,7 +237,6 @@ library
       Gargantext.Core.Viz.Graph.Legend
       Gargantext.Core.Viz.Graph.PatriciaTreeTypes
       Gargantext.Core.Viz.Graph.Tools.Infomap
-      Gargantext.Core.Viz.Graph.Types
       Gargantext.Core.Viz.Graph.Utils
       Gargantext.Core.Viz.LegacyPhylo
       Gargantext.Core.Viz.Phylo.Example
@@ -431,13 +433,13 @@ library
     , matrix
     , monad-control
     , monad-logger
-    , monad-logger-aeson
     , morpheus-graphql
     , morpheus-graphql-app
     , morpheus-graphql-core
     , morpheus-graphql-subscriptions
     , mtl
     , natural-transformation
+    , network-uri
     , opaleye
     , pandoc
     , parallel
@@ -480,7 +482,6 @@ library
     , servant-mock
     , servant-multipart
     , servant-server
-    , servant-static-th
     , servant-swagger
     , servant-swagger-ui
     , servant-xml

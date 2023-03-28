@@ -139,4 +139,3 @@ email_signature =
           , "-- "
           , "The Gargantext Team (CNRS)"
           ]
-

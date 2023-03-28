@@ -7,8 +7,9 @@ extra-package-dbs: []
 skip-ghc-check: true
 packages:
 - .
-  #- 'deps/gargantext-graph'
-  #- 'deps/haskell-opaleye'
+  # - 'deps/haskell-igraph'
+  # - 'deps/crawlers/arxiv-api'
+  # - 'deps/haskell-opaleye'
 
 docker:
   enable: false
@@ -32,9 +33,14 @@ ghc-options:
 #  "$everything": -haddock
 
 extra-deps:
-- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
-  commit: 791c2a7046a3760f8ae5fabdbd708f61caa63741
-  #- git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude
+- hstatistics-0.3.1
+- HSvm-0.1.1.3.22
+- hsparql-0.3.8
+
+#- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
+#  commit: 791c2a7046a3760f8ae5fabdbd708f61caa63741
+- git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude
+  commit: 175d4b295be2a0f56edc4eb6c7d8227d81bc2841
 - git: https://gitlab.iscpif.fr/gargantext/gargantext-graph.git
   commit: 588e104fe7593210956610cab0041fd16584a4ce
   # Data Mining Libs
@@ -42,10 +48,6 @@ extra-deps:
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
 - git: https://gitlab.iscpif.fr/gargantext/hlcm.git
   commit: 6f0595d2421005837d59151a8b26eee83ebb67b5
-- git: https://github.com/delanoe/hstatistics.git
-  commit: 90eef7604bb230644c2246eccd094d7bfefcb135
-- git: https://github.com/paulrzcz/HSvm.git
-  commit: 3fe28b683aba5ddf05e3b5f8eced0bd05c5a29f9
 
   # API libs
 - git: https://github.com/haskell-servant/servant.git
@@ -58,24 +60,21 @@ extra-deps:
     - servant-auth/servant-auth/
     - servant-auth/servant-auth-client/
     - servant-auth/servant-auth-server/
-- git: https://github.com/delanoe/servant-static-th.git
-  commit: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
 - git: https://github.com/alpmestan/ekg-json.git
   commit: fd7e5d7325939103cd87d0dc592faf644160341c
 
   # Databases libs
-#- git: https://github.com/garganscript/haskell-opaleye.git
-#  commit: 912641cddd98bbdd315f5614b4098dc2460064ee
-- ../haskell-opaleye
-- git: https://github.com/delanoe/hsparql.git
-  commit: 2acbbc55ac9bbd4bf1a713c586b8b8e8b82892eb
+- git: https://github.com/garganscript/haskell-opaleye.git
+  commit: a5693a2010e6d13f51cdc576fa1dc9985e79ee0e
+#- ../haskell-opaleye
+# - git: https://github.com/delanoe/hsparql.git
+#   commit: 2acbbc55ac9bbd4bf1a713c586b8b8e8b82892eb
 - git: https://github.com/robstewart57/rdf4h.git
   commit: 4fd2edf30c141600ffad6d730cc4c1c08a6dbce4
 
   # External Data API connectors
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed.git
-  commit: 31cb4d28dcb5d17274cede5e67b2a01914379129
-  #commit: 364885c891cbadcd4d8a623d2e41394b09f653aa
+  commit: 4ade495751eaf31d3ca1ac8b0ae13d3538c6e18c
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/istex.git
   commit: a34bb341236d82cf3d488210bc1d8448a98f5808
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
@@ -83,7 +82,9 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
   commit: 3db385e767d2100d8abe900833c6e7de3ac55e1b
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/arxiv-api.git
-  commit: a2d78abeaec9315be765b90d5e51a4a50c48e7b8
+  commit: 2d7e5753cbbce248b860b571a0e9885415c846f7
+#- git: https://gitlab.iscpif.fr/gargantext/crawlers/arxiv-api.git
+    #commit: a2d78abeaec9315be765b90d5e51a4a50c48e7b8
 #- git: https://gitlab.iscpif.fr/cgenie/arxiv-api.git
 #- arxiv-0.0.3@sha256:02de1114091d11f1f3ab401d104d125ad4301260806feb7f63b3dcefc7db88cf,1588
 
@@ -101,8 +102,11 @@ extra-deps:
 
   # Graph libs
 #- git: https://github.com/kaizhang/haskell-igraph.git
-- git: https://github.com/alpmestan/haskell-igraph.git
-  commit: 9f55eb36639c8e0965c8bc539a57738869f33e9a
+#- git: https://github.com/alpmestan/haskell-igraph.git
+#  commit: 9f55eb36639c8e0965c8bc539a57738869f33e9a
+- git: https://gitlab.iscpif.fr/gargantext/haskell-igraph.git
+  # 0.10.4-rc1
+  commit: 2a28524134b68421f30f6e97961063018f814a82
 - git: https://gitlab.iscpif.fr/gargantext/haskell-infomap.git
   commit: 6d1d60b952b9b2b272b58fc5539700fd8890ac88
 
@@ -178,3 +182,4 @@ ghc-options:
   hmatrix: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
   sparse-linear: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
   gargantext-graph: -O2 -fsimpl-tick-factor=10000 -fdicts-cheap -fdicts-strict -flate-dmd-anal  -fno-state-hack
+  "$locals": -fwrite-ide-info -hiedir=".stack-work/hiedb"

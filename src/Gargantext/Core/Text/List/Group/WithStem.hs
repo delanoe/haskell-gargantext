@@ -23,7 +23,7 @@ import Data.HashSet (HashSet)
 import Data.Map.Strict (Map)
 import Data.Maybe (catMaybes)
 import Gargantext.API.Ngrams.Types
-import Gargantext.Core (Lang(..), PosTagAlgo(..), Form, Lem)
+import Gargantext.Core (Lang(..), Form, Lem, NLPServerConfig)
 import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Core.Text.List.Social.Patch
 import Gargantext.Core.Text.List.Social.Prelude
@@ -61,9 +61,9 @@ data GroupParams = GroupParams { unGroupParams_lang     :: !Lang
                                , unGroupParams_stopSize :: !StopSize
                                }
                  | GroupIdentity
-                 | GroupWithPosTag { _gwl_lang :: !Lang
-                                   , _gwl_algo :: !PosTagAlgo
-                                   , _gwl_map  :: !(HashMap Form Lem)
+                 | GroupWithPosTag { _gwl_lang       :: !Lang
+                                   , _gwl_nlp_config :: !NLPServerConfig
+                                   , _gwl_map        :: !(HashMap Form Lem)
                                    }
   deriving (Eq)
 

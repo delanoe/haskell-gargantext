@@ -1,3 +1,72 @@
+## Version 0.0.6.9.7.3
+
+* [FRONT][FIX][[hackathon] GraphExplorer fixes (#489)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/489)
+
+## Version 0.0.6.9.7.2
+
+* [FRONT][FEAT][Label Shape in Graph Explorer (#501)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/501)
+* [FRONT][FIX] Spatialization of Graph improved
+
+## Version 0.0.6.9.7.1
+
+* [BACK][FEAT] Phylo in 1 click really merged (backend only for now).
+
+## Version 0.0.6.9.7
+
+* [FRONT][FEAT][Label Shape in Graph Explorer (#501)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/501)
+* [BACK][DOC][Welcome: Door To enter the project (#177)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/177)
+
+## Version 0.0.6.9.6
+
+* [BACK][FEAT] Phylo in 1 click
+* [FRONT][ERGO][](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
+
+## Version 0.0.6.9.5
+
+* [FRONT][DESIGN][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
+* [BACK][CLEAN] Removing debug info
+
+## Version 0.0.6.9.4.9
+
+* [BACK/FRONT][475][Issues · gargantext / purescript-gargantext · GitLab</title>](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/)
+
+## Version 0.0.6.9.4.8
+
+* [BACK][WIP][Doc Table: count (#175)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/175)
+* [BACK][FEAT] Clustering with better granularity and structure at different levels
+
+## Version 0.0.6.9.4.7
+
+* [FRONT][FIX][Limite on text lenght is too small (#500)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/500)
+* [BACK][FEAT] Clustering with better granularity and structure
+
+## Version 0.0.6.9.4.6
+
+* [FRONT][ERGO][When the progress bar is empty: say: waiting task (#503)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/503)
+* [FRONT][DOC][Door to entry: Welcome! (#269)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/269)
+* [FRONT][DOC] Show Text Size Limit
+* [BACK][FIX] Order 2 regression fixed and clustering with more granularity
+
+## Version 0.0.6.9.4.5
+
+* [BACK][CLEAN] Switch to Hackage version of hstatistics
+* [BACK][CLEAN] Drop unused servant-static-th
+* [FRONT][CLEAN] README 
+* [FIX][CRALER] ArXiv API
+
+## Version 0.0.6.9.4.4
+
+* [BACK][Add optional Accelerate dependency on Darwin for pkgs.nix](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/merge_requests/128)
+* [BACK][Crawlers] pubmed clean unused deps removed
+* [BACK][CLEAN][Explore cutting down forks/extra-deps of libraries (#180)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/180)
+* [BACK][DOC] README
+
+## Version 0.0.6.9.4.3
+
+* [BACK][DOC][Welcome: Door To enter the project (#177)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/177)
+* [FRONT][DOC][Door to entry: Welcome! (#269)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/269)
+* [BACK][REFACT][Doc Table: count (#175)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/175)
+
 ## Version 0.0.6.9.4.2
 
 * [FRONT][FIX][Regression : on graph (#496)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/496)

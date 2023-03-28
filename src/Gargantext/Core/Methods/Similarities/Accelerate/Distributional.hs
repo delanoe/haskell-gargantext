@@ -31,8 +31,54 @@ where $n_{ij}$ is the cooccurrence between term $i$ and term $j$
 * MI=(M ./ O * D(M)) .* (M / D(M) * O )
 * distr(i,j)=$\frac{|min(V'_i * (MI-D(MI)),V'_j * (MI-D(MI)))|_1}{|V'_i.(MI-D(MI))|_1}$
 
-[Specifications written by David Chavalarias on Garg v4 shared NodeWrite, team Pyremiel 2020]
+[Finally, we have used as convention the Distributional metric used in Legacy GarganText](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/50)
 
+       mi = defaultdict(lambda : defaultdict(int))
+        total_cooc = x.sum().sum()
+
+        for i in matrix.keys():
+            si = sum([matrix[i][j] for j in matrix[i].keys() if i != j])
+            for j in matrix[i].keys():
+                sj = sum([matrix[j][k] for k in matrix[j].keys() if j != k])
+                if i!=j :
+                    mi[i][j] = log( matrix[i][j] / ((si * sj) / total_cooc) )
+
+        r = defaultdict(lambda : defaultdict(int))
+
+        for i in matrix.keys():
+            for j in matrix.keys():
+                sumMin = sum(
+                                [
+                                min(mi[i][k], mi[j][k])
+                                    for k in matrix.keys()
+                                    if i != j and k != i and k != j and mi[i][k] > 0
+                                ]
+                            )
+
+                sumMi  = sum(
+                                [
+                                mi[i][k]
+                                    for k in matrix.keys()
+                                    if k != i and k != j and mi[i][k] > 0
+                                ]
+                            )
+
+                try:
+                    r[i][j] = sumMin / sumMi
+                except Exception as error:
+                    r[i][j] = 0
+
+        # Need to filter the weak links, automatic threshold here
+        minmax = min([ max([ r[i][j] for i in r.keys()]) for j in r.keys()])
+
+        G = nx.DiGraph()
+        G.add_edges_from(
+                          [
+                            (i, j, {'weight': r[i][j]})
+                                for i in r.keys() for j in r.keys()
+                                if i != j and r[i][j] > minmax and r[i][j] > r[j][i]
+                          ]
+                        )
 -}
 
 {-# LANGUAGE TypeFamilies        #-}
@@ -91,8 +137,8 @@ import qualified Prelude
 --     8.333333333333333e-2,             4.6875e-2,                1.0,               0.25,
 --       0.3333333333333333, 5.7692307692307696e-2,                1.0,                1.0]
 --
-distributional :: Matrix Int -> Acc (Matrix Double)
-distributional m' = result
+distributional :: Matrix Int -> Matrix Double
+distributional m' = run $ result
  where
     m = map A.fromIntegral $ use m'
     n = dim m'
@@ -122,10 +168,10 @@ distributional m' = result
 
     result = termDivNan z_1 z_2
 
-logDistributional :: Matrix Int -> Matrix Double
-logDistributional m = trace ("logDistributional, dim=" `mappend` show n) . run
+logDistributional2 :: Matrix Int -> Matrix Double
+logDistributional2 m = trace ("logDistributional2, dim=" `mappend` show n) . run
                     $ diagNull n
-                    $ matMiniMax
+                    $ matMaxMini
                     $ logDistributional' n m
   where
     n = dim m
@@ -216,8 +262,61 @@ logDistributional' n m' = trace ("logDistributional'") result
 --            \[N_{m} = \sum_{i,i \neq i}^{m} \sum_{j, j \neq j}^{m} S_{ij}\]
 --
 
+logDistributional :: Matrix Int -> Matrix Double
+logDistributional m' = run $ diagNull n $ result
+ where
+    m = map fromIntegral $ use m'
+    n = dim m'
+
+    -- Scalar. Sum of all elements of m.
+    to = the $ sum (flatten m)
+
+    -- Diagonal matrix with the diagonal of m.
+    d_m = (.*) m (matrixIdentity n)
+
+    -- Size n vector. s = [s_i]_i
+    s = sum ((.-) m d_m)
+
+    -- Matrix nxn. Vector s replicated as rows. 
+    s_1 = replicate (constant (Z :. All :. n)) s
+    -- Matrix nxn. Vector s replicated as columns. 
+    s_2 = replicate (constant (Z :. n :. All)) s
+
+    -- Matrix nxn. ss = [s_i * s_j]_{i,j}. Outer product of s with itself. 
+    ss = (.*) s_1 s_2
+
+    -- Matrix nxn. mi = [m_{i,j}]_{i,j} where 
+    -- m_{i,j} = 0 if n_{i,j} = 0 or i = j, 
+    -- m_{i,j} = log(to * n_{i,j} / s_{i,j}) otherwise.
+    mi = (.*) (matrixEye n) 
+        (map (lift1 (\x -> cond (x == 0) 0 (log (x * to)))) ((./) m ss))
+
+    -- Tensor nxnxn. Matrix mi replicated along the 2nd axis.
+    w_1 = replicate (constant (Z :. All :. n :. All)) mi
+
+    -- Tensor nxnxn. Matrix mi replicated along the 1st axis.
+    w_2 = replicate (constant (Z :. n :. All :. All)) mi
+
+    -- Tensor nxnxn.
+    w' = zipWith min w_1 w_2
+
+    -- A predicate that is true when the input (i, j, k) satisfy 
+    -- k /= i AND k /= j
+    k_diff_i_and_j = lift1 (\(Z :. i :. j :. k) -> ((&&) ((/=) k i) ((/=) k j)))
+
+    -- Matrix nxn. 
+    sumMin = sum (condOrDefault k_diff_i_and_j 0 w')
+
+    -- Matrix nxn. All columns are the same.
+    sumM = sum (condOrDefault k_diff_i_and_j 0 w_1)
+
+    result = termDivNan sumMin sumM
+
+
+
+
 distributional'' :: Matrix Int -> Matrix Double
-distributional'' m = -- run {- $ matMiniMax -}
+distributional'' m = -- run {- $ matMaxMini -}
                    run  $ diagNull n
                        $ rIJ n
                        $ filterWith 0 100
@@ -255,7 +354,7 @@ distributional'' m = -- run {- $ matMiniMax -}
 
 rIJ :: (Elt a, Ord a, P.Fractional (Exp a), P.Num a)
     => Dim -> Acc (Matrix a) -> Acc (Matrix a)
-rIJ n m = matMiniMax $ divide a b
+rIJ n m = matMaxMini $ divide a b
   where
     a = sumRowMin n m
     b = sumColMin n m
@@ -263,9 +362,12 @@ rIJ n m = matMiniMax $ divide a b
 -- * For Tests (to be removed)
 -- | Test perfermance with this matrix
 -- TODO : add this in a benchmark folder
-distriTest :: Int -> Matrix Double
-distriTest n = logDistributional (theMatrixInt n)
-
+{-
+distriTest :: Int -> Bool
+distriTest n = logDistributional m == distributional m
+  where
+    m = theMatrixInt n
+-}
 
 -- * sparse utils
 
