@@ -1,5 +1,28 @@
 {-# LANGUAGE GADTs #-}
-module Gargantext.Utils.Jobs.Map where
+module Gargantext.Utils.Jobs.Map (
+  -- * Types
+    JobMap(..)
+  , JobEntry(..)
+  , J(..)
+  , QueuedJob(..)
+  , RunningJob(..)
+  , LoggerM
+  , Logger
+
+  -- * Functions
+  , newJobMap
+  , lookupJob
+  , gcThread
+  , jobLog
+  , addJobEntry
+  , deleteJob
+  , runJob
+  , waitJobDone
+  , runJ
+  , waitJ
+  , pollJ
+  , killJ
+  ) where
 
 import Control.Concurrent
 import Control.Concurrent.Async
@@ -53,9 +76,12 @@ data RunningJob w a = RunningJob
   , rjGetLog :: IO w
   }
 
+-- | Polymorphic logger over any monad @m@.
+type LoggerM m w = w -> m ()
+
 -- | A @'Logger' w@ is a function that can do something with "messages" of type
 --   @w@ in IO.
-type Logger w = w -> IO ()
+type Logger w = LoggerM IO w
 
 newJobMap :: IO (JobMap jid w a)
 newJobMap = JobMap <$> newTVarIO Map.empty
@@ -99,14 +125,14 @@ addJobEntry
   :: Ord jid
   => jid
   -> a
-  -> (a -> Logger w -> IO r)
+  -> (jid -> a -> Logger w -> IO r)
   -> JobMap jid w r
   -> IO (JobEntry jid w r)
 addJobEntry jid input f (JobMap mvar) = do
   now <- getCurrentTime
   let je = JobEntry
         { jID = jid
-        , jTask = QueuedJ (QueuedJob input f)
+        , jTask = QueuedJ (QueuedJob input (f jid))
         , jRegistered = now
         , jTimeoutAfter = Nothing
         , jStarted = Nothing

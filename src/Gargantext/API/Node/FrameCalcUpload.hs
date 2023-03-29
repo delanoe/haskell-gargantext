@@ -32,7 +32,7 @@ import Gargantext.Database.Prelude (HasConfig)
 import Gargantext.Database.Query.Table.Node (getClosestParentIdByType, getNodeWith)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
-import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
 import Gargantext.Core (Lang)
 
 data FrameCalcUpload = FrameCalcUpload {
@@ -54,8 +54,8 @@ type API = Summary " FrameCalc upload"
 
 api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI UploadFrameCalcJob $ \p logs ->
-    frameCalcUploadAsync uId nId p (liftBase . logs) (jobLogInit 5)
+  serveJobsAPI UploadFrameCalcJob $ \jHandle p ->
+    frameCalcUploadAsync uId nId p (jobHandleLogger jHandle) (jobLogInit 5)
 
 
 
