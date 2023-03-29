@@ -46,9 +46,9 @@ import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAnnuaire(..), HyperdataContact)
 import Gargantext.Database.Admin.Types.Hyperdata.Contact (hyperdataContact)
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Prelude (($), liftBase, (.), {-printDebug,-} pure)
+import Gargantext.Prelude (($), {-printDebug,-} pure)
 import qualified Gargantext.Utils.Aeson as GUA
-import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
 
 ------------------------------------------------------------------------
 type API = "contact" :> Summary "Contact endpoint"
@@ -73,12 +73,12 @@ data AddContactParams = AddContactParams         { firstname :: !Text, lastname 
 ----------------------------------------------------------------------
 api_async :: User -> NodeId -> ServerT API_Async (GargM Env GargError)
 api_async u nId =
-  serveJobsAPI AddContactJob $ \p log ->
+  serveJobsAPI AddContactJob $ \jHandle p ->
       let
         log' x = do
           -- printDebug "addContact" x
-          liftBase $ log x
-      in addContact u nId p (liftBase . log')
+          jobHandleLogger jHandle x
+      in addContact u nId p log'
 
 addContact :: (HasSettings env, FlowCmdM env err m)
     => User

@@ -47,7 +47,7 @@ import Gargantext.Database.Query.Table.Node.User (getNodeUser)
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Prelude
-import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
 import Servant
 import Servant.Job.Async (AsyncJobsAPI)
 import Servant.XML
@@ -257,8 +257,8 @@ type GraphAsyncAPI = Summary "Recompute graph"
 
 graphAsync :: UserId -> NodeId -> ServerT GraphAsyncAPI (GargM Env GargError)
 graphAsync u n =
-  serveJobsAPI RecomputeGraphJob $ \_ log' ->
-    graphRecompute u n (liftBase . log')
+  serveJobsAPI RecomputeGraphJob $ \jHandle _ ->
+    graphRecompute u n (jobHandleLogger jHandle)
 
 
 --graphRecompute :: UserId

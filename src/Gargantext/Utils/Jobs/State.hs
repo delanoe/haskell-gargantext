@@ -76,7 +76,7 @@ pushJob
   :: Ord t
   => t
   -> a
-  -> (a -> Logger w -> IO r)
+  -> (SJ.JobID 'SJ.Safe -> a -> Logger w -> IO r)
   -> JobSettings
   -> JobsState t w r
   -> IO (SJ.JobID 'SJ.Safe)

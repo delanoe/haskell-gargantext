@@ -121,7 +121,7 @@ import Gargantext.Prelude hiding (log)
 import Gargantext.Prelude.Clock (hasTime, getTime)
 import Prelude (error)
 import Servant hiding (Patch)
-import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
 import System.IO (stderr)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -830,11 +830,11 @@ apiNgramsTableDoc dId =  getTableNgramsDoc          dId
 
 apiNgramsAsync :: NodeId -> ServerT TableNgramsAsyncApi (GargM Env GargError)
 apiNgramsAsync _dId =
-  serveJobsAPI TableNgramsJob $ \i log ->
+  serveJobsAPI TableNgramsJob $ \jHandle i ->
       let
         log' x = do
           printDebug "tableNgramsPostChartsAsync" x
-          liftBase $ log x
+          jobHandleLogger jHandle x
       in tableNgramsPostChartsAsync i log'
 
 -- Did the given list of ngrams changed since the given version?

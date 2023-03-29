@@ -63,7 +63,7 @@ import Gargantext.Database.Query.Tree.Root (getRoot)
 import Gargantext.Database.Schema.Node (NodePoly(_node_id))
 import Gargantext.Prelude hiding (reverse)
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
-import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
 import Servant
 import Servant.Auth.Server
 import qualified Data.Text as Text
@@ -268,8 +268,8 @@ type ForgotPasswordAsyncAPI = Summary "Forgot password asnc"
 
 forgotPasswordAsync :: ServerT ForgotPasswordAsyncAPI (GargM Env GargError)
 forgotPasswordAsync =
-  serveJobsAPI ForgotPasswordJob $ \p log' ->
-    forgotPasswordAsync' p (liftBase . log')
+  serveJobsAPI ForgotPasswordJob $ \jHandle p ->
+    forgotPasswordAsync' p (jobHandleLogger jHandle)
 
 forgotPasswordAsync' :: (FlowCmdM env err m)
   => ForgotPasswordAsyncParams

@@ -43,8 +43,8 @@ import Gargantext.Database.Query.Table.Node (defaultList, getNode)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Ngrams (NgramsType(NgramsTerms))
 import Gargantext.Database.Schema.Node (node_parent_id)
-import Gargantext.Prelude (Bool(..), Ord, Eq, (<$>), ($), liftBase, (.), {-printDebug,-} pure, show, cs, (<>), panic, (<*>))
-import Gargantext.Utils.Jobs (serveJobsAPI)
+import Gargantext.Prelude (Bool(..), Ord, Eq, (<$>), ($), {-printDebug,-} pure, show, cs, (<>), panic, (<*>))
+import Gargantext.Utils.Jobs (serveJobsAPI, jobHandleLogger)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
 import Test.QuickCheck (elements)
@@ -94,12 +94,12 @@ data Charts = Sources | Authors | Institutes | Ngrams | All
 ------------------------------------------------------------------------
 api :: UserId -> NodeId -> ServerT API (GargM Env GargError)
 api uId nId =
-  serveJobsAPI UpdateNodeJob $ \p log'' ->
+  serveJobsAPI UpdateNodeJob $ \jHandle p ->
       let
         log' x = do
           -- printDebug "updateNode" x
-          liftBase $ log'' x
-      in updateNode uId nId p (liftBase . log')
+          jobHandleLogger jHandle x
+      in updateNode uId nId p log'
 
 updateNode :: (HasSettings env, FlowCmdM env err m)
     => UserId
