@@ -47,6 +47,7 @@ library
       Gargantext.Core
       Gargantext.Core.NLP
       Gargantext.Core.Methods.Similarities
+      Gargantext.Core.NLP
       Gargantext.Core.NodeStory
       Gargantext.Core.Text
       Gargantext.Core.Text.Context
