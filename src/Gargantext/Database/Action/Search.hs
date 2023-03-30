@@ -28,6 +28,7 @@ import Gargantext.Database.Prelude (Cmd, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Database.Query.Table.Context
 import Gargantext.Database.Query.Table.ContextNodeNgrams (queryContextNodeNgramsTable)
 import Gargantext.Database.Query.Table.NodeContext
@@ -77,10 +78,11 @@ searchInCorpusWithNgrams _cId _lId _t _ngt _q _o _l _order = undefined
 -- ratio of "number of times our terms appear in given document" and
 -- "number of all terms in document" and return a sorted list of
 -- document ids
-tfidfAll :: CorpusId -> [Int] -> Cmd err [Int]
+tfidfAll :: (HasDBid NodeType, HasNodeError err) => CorpusId -> [Int] -> Cmd err [Int]
 tfidfAll cId ngramIds = do
   let ngramIdsSet = Set.fromList ngramIds
-  docsWithNgrams <- runOpaQuery (queryCorpusWithNgrams cId ngramIds) :: Cmd err [(Int, Int, Int)]
+  lId <- defaultList cId
+  docsWithNgrams <- runOpaQuery (queryListWithNgrams lId ngramIds) :: Cmd err [(Int, Int, Int)]
   -- NOTE The query returned docs with ANY ngramIds. We need to further
   -- restrict to ALL ngramIds.
   let docsNgramsM =
@@ -108,14 +110,14 @@ tfidfAll cId ngramIds = do
 
 -- | Query for searching the 'context_node_ngrams' table so that we
 -- find docs with ANY given 'ngramIds'.
-queryCorpusWithNgrams :: CorpusId -> [Int] -> Select (Column SqlInt4, Column SqlInt4, Column SqlInt4)
-queryCorpusWithNgrams cId ngramIds = proc () -> do
+queryListWithNgrams :: ListId -> [Int] -> Select (Column SqlInt4, Column SqlInt4, Column SqlInt4)
+queryListWithNgrams lId ngramIds = proc () -> do
   row <- queryContextNodeNgramsTable -< ()
-  restrict -< (_cnng_node_id row) .== (pgNodeId cId)
+  restrict -< (_cnng_node_id row) .== (pgNodeId lId)
   restrict -< in_ (sqlInt4 <$> ngramIds) (_cnng_ngrams_id row)
   returnA -< ( _cnng_context_id row
              , _cnng_ngrams_id row
-             , _cnng_doc_count row)
+             , _cnng_doc_count row )
   --returnA -< row
   -- returnA -< ( _cnng_context_id row
   --            , _cnng_node_id row
