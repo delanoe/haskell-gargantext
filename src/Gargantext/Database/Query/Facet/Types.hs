@@ -158,6 +158,7 @@ type FacetDocAggPart = Facet (Field SqlInt4       )
 -----------------------------------------------------------------------
 data OrderBy =  DateAsc   | DateDesc
              | TitleAsc   | TitleDesc
+             | NgramCountDesc | NgramCountAsc
              | ScoreDesc  | ScoreAsc
              | SourceAsc  | SourceDesc
              | TagAsc     | TagDesc
@@ -165,17 +166,19 @@ data OrderBy =  DateAsc   | DateDesc
 
 instance FromHttpApiData OrderBy
   where
-    parseUrlPiece "DateAsc"    = pure DateAsc
-    parseUrlPiece "DateDesc"   = pure DateDesc
-    parseUrlPiece "TitleAsc"   = pure TitleAsc
-    parseUrlPiece "TitleDesc"  = pure TitleDesc
-    parseUrlPiece "ScoreAsc"   = pure ScoreAsc
-    parseUrlPiece "ScoreDesc"  = pure ScoreDesc
-    parseUrlPiece "SourceAsc"  = pure SourceAsc
-    parseUrlPiece "SourceDesc" = pure SourceDesc
-    parseUrlPiece "TagAsc"     = pure TagAsc
-    parseUrlPiece "TagDesc"    = pure TagDesc
-    parseUrlPiece _            = Left "Unexpected value of OrderBy"
+    parseUrlPiece "DateAsc"        = pure DateAsc
+    parseUrlPiece "DateDesc"       = pure DateDesc
+    parseUrlPiece "TitleAsc"       = pure TitleAsc
+    parseUrlPiece "TitleDesc"      = pure TitleDesc
+    parseUrlPiece "NgramCountAsc"  = pure NgramCountAsc
+    parseUrlPiece "NgramCountDesc" = pure NgramCountDesc
+    parseUrlPiece "ScoreAsc"       = pure ScoreAsc
+    parseUrlPiece "ScoreDesc"      = pure ScoreDesc
+    parseUrlPiece "SourceAsc"      = pure SourceAsc
+    parseUrlPiece "SourceDesc"     = pure SourceDesc
+    parseUrlPiece "TagAsc"         = pure TagAsc
+    parseUrlPiece "TagDesc"        = pure TagDesc
+    parseUrlPiece _                = Left "Unexpected value of OrderBy"
 instance ToHttpApiData OrderBy where
   toUrlPiece = T.pack . show
 
