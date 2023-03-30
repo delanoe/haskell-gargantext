@@ -20,13 +20,11 @@ import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Servant
-import Servant.Job.Core
-import Servant.Job.Types
 import Servant.Job.Utils (jsonOptions)
 import Web.FormUrlEncoded (FromForm)
 
 import qualified Gargantext.API.Node.Corpus.New.Types as NewTypes
-import Gargantext.API.Admin.Orchestrator.Types hiding (AsyncJobs)
+import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)  -- flowAnnuaire
@@ -55,9 +53,6 @@ instance ToJSON AnnuaireWithForm where
 instance ToSchema AnnuaireWithForm where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wf_")
 
-------------------------------------------------------------------------
-type AsyncJobs event ctI input output =
-  AsyncJobsAPI' 'Unsafe 'Safe ctI '[JSON] Maybe event input output
 ------------------------------------------------------------------------
 
 type AddWithForm = Summary "Add with FormUrlEncoded to annuaire endpoint"
