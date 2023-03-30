@@ -60,6 +60,7 @@ import Gargantext.Database.Prelude (Cmd', CmdM, CmdCommon)
 import Gargantext.Database.Query.Table.User
 import Gargantext.Database.Query.Tree (isDescendantOf, isIn)
 import Gargantext.Database.Query.Tree.Root (getRoot)
+import Gargantext.Database.Action.User.New (guessUserName)
 import Gargantext.Database.Schema.Node (NodePoly(_node_id))
 import Gargantext.Prelude hiding (reverse)
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
@@ -87,15 +88,21 @@ checkAuthRequest :: ( HasSettings env, CmdCommon env, HasJoseError err)
                  => Username
                  -> GargPassword
                  -> Cmd' env err CheckAuth
-checkAuthRequest u (GargPassword p) = do
-  candidate <- head <$> getUsersWith u
+checkAuthRequest couldBeEmail (GargPassword p) = do
+  -- Sometimes user put email instead of username
+  -- hence we have to check before
+  let usrname = case guessUserName couldBeEmail of
+        Nothing      -> couldBeEmail -- we are sure this is not an email
+        Just (u,_)   -> u            -- this was an email in fact
+
+  candidate <- head <$> getUsersWith usrname
   case candidate of
     Nothing -> pure InvalidUser
     Just (UserLight { userLight_password = GargPassword h, .. }) ->
       case Auth.checkPassword (Auth.mkPassword p) (Auth.PasswordHash h) of
         Auth.PasswordCheckFail    -> pure InvalidPassword
         Auth.PasswordCheckSuccess -> do
-          muId <- head <$> getRoot (UserName u)
+          muId <- head <$> getRoot (UserName usrname)
           case _node_id <$> muId of
             Nothing  -> pure InvalidUser
             Just uid -> do
