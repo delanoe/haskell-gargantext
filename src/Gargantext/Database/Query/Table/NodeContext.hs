@@ -168,7 +168,18 @@ getContextsForNgramsTerms cId ngramsTerms = do
     query :: PGS.Query
     query = [sql| SELECT t.id, t.hash_id, t.typename, t.user_id, t.parent_id, t.name, t.date, t.hyperdata, t.score, t.category
                 FROM (
-                  SELECT DISTINCT ON (contexts.id) contexts.id AS id, hash_id, typename, user_id, parent_id, name, date, hyperdata, nodes_contexts.score AS score, nodes_contexts.category AS category,context_node_ngrams.doc_count AS doc_count
+                  SELECT DISTINCT ON (contexts.id)
+                       contexts.id AS id,
+                       hash_id,
+                       typename,
+                       user_id,
+                       parent_id,
+                       name,
+                       date,
+                       hyperdata,
+                       nodes_contexts.score AS score,
+                       nodes_contexts.category AS category,
+                       context_node_ngrams.doc_count AS doc_count
                     FROM contexts
                     JOIN context_node_ngrams ON contexts.id = context_node_ngrams.context_id
                     JOIN nodes_contexts ON contexts.id = nodes_contexts.context_id

@@ -27,5 +27,3 @@ limit' maybeLimit query = maybe query (\l -> limit l query) maybeLimit
 
 offset' :: Maybe Offset -> Select a  -> Select a
 offset' maybeOffset query = maybe query (\o -> offset o query) maybeOffset
-
-

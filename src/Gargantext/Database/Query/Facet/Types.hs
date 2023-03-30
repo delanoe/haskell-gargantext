@@ -31,6 +31,7 @@ type Title    = Text
 
 -- TODO remove Title
 type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Category) (Maybe Double) (Maybe Score)
+type FacetDocAgg' = Facet NodeId UTCTime Title HyperdataDocument (Maybe Category) Int64 Int64
 -- type FacetSources = FacetDoc
 -- type FacetAuthors = FacetDoc
 -- type FacetTerms   = FacetDoc
@@ -137,10 +138,27 @@ type FacetDocRead = Facet (Field SqlInt4       )
                           (FieldNullable SqlFloat8) -- Ngrams Count
                           (FieldNullable SqlFloat8) -- Score
 
+type FacetDocAgg = Facet (Field SqlInt4       )
+                         (Field SqlTimestamptz)
+                         (Field SqlText       )
+                         (Field SqlJsonb      )
+                         (Field SqlInt4) -- Category
+                         (Field SqlInt8) -- Ngrams Count
+                         (Field SqlInt8) -- Score
+
+type FacetDocAggPart = Facet (Field SqlInt4       )
+                             (Field SqlTimestamptz)
+                             (Field SqlText       )
+                             (Field SqlJsonb      )
+                             (Field SqlInt4) -- Category
+                             (Field SqlInt4) -- Ngrams Count
+                             (Field SqlInt4) -- Score
+
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
 data OrderBy =  DateAsc   | DateDesc
              | TitleAsc   | TitleDesc
+             | NgramCountDesc | NgramCountAsc
              | ScoreDesc  | ScoreAsc
              | SourceAsc  | SourceDesc
              | TagAsc     | TagDesc
@@ -148,17 +166,19 @@ data OrderBy =  DateAsc   | DateDesc
 
 instance FromHttpApiData OrderBy
   where
-    parseUrlPiece "DateAsc"    = pure DateAsc
-    parseUrlPiece "DateDesc"   = pure DateDesc
-    parseUrlPiece "TitleAsc"   = pure TitleAsc
-    parseUrlPiece "TitleDesc"  = pure TitleDesc
-    parseUrlPiece "ScoreAsc"   = pure ScoreAsc
-    parseUrlPiece "ScoreDesc"  = pure ScoreDesc
-    parseUrlPiece "SourceAsc"  = pure SourceAsc
-    parseUrlPiece "SourceDesc" = pure SourceDesc
-    parseUrlPiece "TagAsc"     = pure TagAsc
-    parseUrlPiece "TagDesc"    = pure TagDesc
-    parseUrlPiece _            = Left "Unexpected value of OrderBy"
+    parseUrlPiece "DateAsc"        = pure DateAsc
+    parseUrlPiece "DateDesc"       = pure DateDesc
+    parseUrlPiece "TitleAsc"       = pure TitleAsc
+    parseUrlPiece "TitleDesc"      = pure TitleDesc
+    parseUrlPiece "NgramCountAsc"  = pure NgramCountAsc
+    parseUrlPiece "NgramCountDesc" = pure NgramCountDesc
+    parseUrlPiece "ScoreAsc"       = pure ScoreAsc
+    parseUrlPiece "ScoreDesc"      = pure ScoreDesc
+    parseUrlPiece "SourceAsc"      = pure SourceAsc
+    parseUrlPiece "SourceDesc"     = pure SourceDesc
+    parseUrlPiece "TagAsc"         = pure TagAsc
+    parseUrlPiece "TagDesc"        = pure TagDesc
+    parseUrlPiece _                = Left "Unexpected value of OrderBy"
 instance ToHttpApiData OrderBy where
   toUrlPiece = T.pack . show
 

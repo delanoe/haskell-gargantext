@@ -48,8 +48,9 @@ import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Database.Action.Search
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Prelude -- (Cmd, CmdM)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Facet (FacetDoc , runViewDocuments, runCountDocuments, OrderBy(..), runViewAuthorsDoc)
+import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
@@ -100,7 +101,8 @@ tableApi id' = getTableApi id'
           :<|> getTableHashApi id'
 
 
-getTableApi :: NodeId
+getTableApi :: HasNodeError err
+            => NodeId
             -> Maybe TabType
             -> Maybe ListId
             -> Maybe Int
@@ -115,14 +117,16 @@ getTableApi cId tabType _mListId mLimit mOffset mOrderBy mQuery mYear = do
   t <- getTable cId tabType mOffset mLimit mOrderBy mQuery mYear
   pure $ constructHashedResponse t
 
-postTableApi :: NodeId -> TableQuery -> Cmd err FacetTableResult
+postTableApi :: HasNodeError err
+             => NodeId -> TableQuery -> Cmd err FacetTableResult
 postTableApi cId (TableQuery o l order ft "") = getTable cId (Just ft) (Just o) (Just l) (Just order) Nothing Nothing
 postTableApi cId (TableQuery o l order ft q) = case ft of
       Docs  -> searchInCorpus' cId False [q] (Just o) (Just l) (Just order)
       Trash -> searchInCorpus' cId True [q] (Just o) (Just l) (Just order)
       x     -> panic $ "not implemented in tableApi " <> (cs $ show x)
 
-getTableHashApi :: NodeId -> Maybe TabType -> Cmd err Text
+getTableHashApi :: HasNodeError err
+                => NodeId -> Maybe TabType -> Cmd err Text
 getTableHashApi cId tabType = do
   HashedResponse { hash = h } <- getTableApi cId tabType Nothing Nothing Nothing Nothing Nothing Nothing
   pure h
@@ -140,7 +144,8 @@ searchInCorpus' cId t q o l order = do
   pure $ TableResult { tr_docs = docs, tr_count = countAllDocs }
 
 
-getTable :: NodeId
+getTable :: HasNodeError err
+         => NodeId
          -> Maybe TabType
          -> Maybe Offset
          -> Maybe Limit
@@ -153,7 +158,8 @@ getTable cId ft o l order query year = do
   docsCount <- runCountDocuments cId (ft == Just Trash) query year
   pure $ TableResult { tr_docs = docs, tr_count = docsCount }
 
-getTable' :: NodeId
+getTable' :: HasNodeError err
+          => NodeId
           -> Maybe TabType
           -> Maybe Offset
           -> Maybe Limit
