@@ -31,7 +31,7 @@ type Title    = Text
 
 -- TODO remove Title
 type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Category) (Maybe Double) (Maybe Score)
-type FacetDocAgg' = Facet NodeId UTCTime Title HyperdataDocument (Maybe Category) Int64 (Maybe Score)
+type FacetDocAgg' = Facet NodeId UTCTime Title HyperdataDocument (Maybe Category) Int64 Int64
 -- type FacetSources = FacetDoc
 -- type FacetAuthors = FacetDoc
 -- type FacetTerms   = FacetDoc
@@ -144,7 +144,7 @@ type FacetDocAgg = Facet (Field SqlInt4       )
                          (Field SqlJsonb      )
                          (Field SqlInt4) -- Category
                          (Field SqlInt8) -- Ngrams Count
-                         (Field SqlFloat8) -- Score
+                         (Field SqlInt8) -- Score
 
 type FacetDocAggPart = Facet (Field SqlInt4       )
                              (Field SqlTimestamptz)
@@ -152,7 +152,7 @@ type FacetDocAggPart = Facet (Field SqlInt4       )
                              (Field SqlJsonb      )
                              (Field SqlInt4) -- Category
                              (Field SqlInt4) -- Ngrams Count
-                             (Field SqlFloat8) -- Score
+                             (Field SqlInt4) -- Score
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------

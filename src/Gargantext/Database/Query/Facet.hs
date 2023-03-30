@@ -136,6 +136,7 @@ runViewDocuments cId t o l order query year = do
 
     remapNgramsCount (FacetDoc { .. }) =
       FacetDoc { facetDoc_ngramCount = Just $ fromIntegral facetDoc_ngramCount
+               , facetDoc_score      = Just $ fromIntegral facetDoc_score
                , .. }
 
 runCountDocuments :: (HasDBid NodeType, HasNodeError err)
@@ -160,7 +161,7 @@ viewDocuments cId lId t ntId mQuery mYear =
                                 , facetDoc_hyperdata  = OAgg.groupBy
                                 , facetDoc_category   = OAgg.groupBy
                                 , facetDoc_ngramCount = OAgg.sumInt4
-                                , facetDoc_score      = OAgg.sum })
+                                , facetDoc_score      = OAgg.sumInt4 })
         (viewDocumentsAgg cId lId t ntId mQuery mYear)
 
 viewDocumentsAgg :: CorpusId
@@ -175,14 +176,18 @@ viewDocumentsAgg cId lId t ntId mQuery mYear = proc () -> do
   cnng <- optionalRestrict queryContextNodeNgramsTable -<
     \cnng' -> (cnng' ^. cnng_node_id)    .== pgNodeId lId .&&  -- (nc ^. nc_node_id) .&&
               (cnng' ^. cnng_context_id) .== (c ^. cs_id)
+  let ngramCount = fromMaybeFields 0 $ _cnng_doc_count <$> cnng
   returnA  -< FacetDoc { facetDoc_id         = _cs_id        c
                        , facetDoc_created    = _cs_date      c
                        , facetDoc_title      = _cs_name      c
                        , facetDoc_hyperdata  = _cs_hyperdata c
                        , facetDoc_category   = nc ^. nc_category
-                       , facetDoc_ngramCount = fromMaybeFields 0 $ _cnng_doc_count <$> cnng  -- toNullable $ nc^.nc_score
-                       -- , facetDoc_ngramCount = toNullable $ toFields cnt
-                       , facetDoc_score      = nc ^. nc_score
+                       , facetDoc_ngramCount = ngramCount
+                       -- NOTE This is a slight abuse of "score" but
+                       -- currently it is all 0's in the DB and the
+                       -- search functionality on the frontend orders
+                       -- by Score.
+                       , facetDoc_score      = ngramCount
                        }
 
 -- TODO Join with context_node_ngrams at context_id/node_id and sum by
