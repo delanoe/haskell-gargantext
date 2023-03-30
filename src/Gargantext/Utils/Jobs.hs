@@ -1,16 +1,23 @@
-module Gargantext.Utils.Jobs where
+{-# LANGUAGE TypeFamilies #-}
+module Gargantext.Utils.Jobs (
+  -- * Serving the JOBS API
+    serveJobsAPI
+  -- * Parsing and reading @GargJob@s from disk
+  , readPrios
+  -- * Handy re-exports
+  , jobHandleLogger
+  ) where
 
 import Control.Monad.Except
 import Control.Monad.Reader
+import Data.Aeson (ToJSON)
 import Prelude
 import System.Directory (doesFileExist)
 import Text.Read (readMaybe)
 
 import Gargantext.API.Admin.EnvTypes
-import Gargantext.API.Admin.Orchestrator.Types (JobLog)
 import Gargantext.API.Prelude
-import qualified Gargantext.Utils.Jobs.API as API
-import Gargantext.Utils.Jobs.Map
+import qualified Gargantext.Utils.Jobs.Internal as Internal
 import Gargantext.Utils.Jobs.Monad
 
 import qualified Servant.Job.Async as SJ
@@ -20,17 +27,21 @@ jobErrorToGargError
 jobErrorToGargError = GargJobError
 
 serveJobsAPI
-  :: Foldable callbacks
-  => GargJob
-  -> (input -> Logger JobLog -> GargM Env GargError JobLog)
-  -> JobsServerAPI ctI ctO callbacks input
-serveJobsAPI t f = API.serveJobsAPI ask t jobErrorToGargError $ \env i l -> do
-  putStrLn ("Running job of type: " ++ show t)
-  runExceptT $ runReaderT (f i l) env
-
-type JobsServerAPI ctI ctO callbacks input =
-  SJ.AsyncJobsServerT' ctI ctO callbacks JobLog input JobLog
-                       (GargM Env GargError)
+  :: (
+     Foldable callbacks
+   , Ord (JobType m)
+   , Show (JobType m)
+   , ToJSON (JobEventType m)
+   , ToJSON (JobOutputType m)
+   , MonadJobStatus m
+   , m ~ (GargM env GargError)
+   )
+  => JobType m
+  -> (JobHandle m (JobEventType m) -> input -> m (JobOutputType m))
+  -> SJ.AsyncJobsServerT' ctI ctO callbacks (JobEventType m) input (JobOutputType m) m
+serveJobsAPI jobType f = Internal.serveJobsAPI ask jobType jobErrorToGargError $ \env jHandle i -> do
+  putStrLn ("Running job of type: " ++ show jobType)
+  runExceptT $ runReaderT (f jHandle i) env
 
 parseGargJob :: String -> Maybe GargJob
 parseGargJob s = case s of

@@ -1,14 +1,15 @@
 -- |
 
 {-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeFamilies        #-}
 
 module Gargantext.API.Admin.EnvTypes where
 
 import Control.Lens
 import Control.Monad.Except
 import Control.Monad.Reader
-import Data.Monoid
 import Data.Pool (Pool)
+import Data.Sequence (Seq)
 import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
 import Network.HTTP.Client (Manager)
@@ -57,7 +58,7 @@ data Env = Env
   , _env_manager   :: !Manager
   , _env_self_url  :: !BaseUrl
   , _env_scrapers  :: !ScrapersEnv
-  , _env_jobs      :: !(Jobs.JobEnv GargJob (Dual [JobLog]) JobLog)
+  , _env_jobs      :: !(Jobs.JobEnv GargJob (Seq JobLog) JobLog)
   , _env_config    :: !GargConfig
   , _env_mail      :: !MailConfig
   , _env_nlp       :: !NLPServerMap
@@ -102,8 +103,13 @@ instance Servant.Job.Core.HasEnv Env (Job JobLog JobLog) where
 instance HasJobEnv Env JobLog JobLog where
   job_env = env_scrapers
 
-instance Jobs.MonadJob (ReaderT Env (ExceptT GargError IO)) GargJob (Dual [JobLog]) JobLog where
+instance Jobs.MonadJob (ReaderT Env (ExceptT GargError IO)) GargJob (Seq JobLog) JobLog where
   getJobEnv = asks (view env_jobs)
+
+instance Jobs.MonadJobStatus (ReaderT Env (ExceptT GargError IO)) where
+  type JobType        (ReaderT Env (ExceptT GargError IO)) = GargJob
+  type JobOutputType  (ReaderT Env (ExceptT GargError IO)) = JobLog
+  type JobEventType   (ReaderT Env (ExceptT GargError IO)) = JobLog
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall

@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-version: 0.0.6.9.8.2.2
+version:        0.0.6.9.8.2.2
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
@@ -47,6 +47,7 @@ library
       Gargantext.Core
       Gargantext.Core.NLP
       Gargantext.Core.Methods.Similarities
+      Gargantext.Core.NLP
       Gargantext.Core.NodeStory
       Gargantext.Core.Text
       Gargantext.Core.Text.Context
@@ -101,7 +102,7 @@ library
       Gargantext.Database.Schema.Ngrams
       Gargantext.Defaults
       Gargantext.Utils.Jobs
-      Gargantext.Utils.Jobs.API
+      Gargantext.Utils.Jobs.Internal
       Gargantext.Utils.Jobs.Map
       Gargantext.Utils.Jobs.Monad
       Gargantext.Utils.Jobs.Queue
@@ -899,11 +900,17 @@ test-suite jobqueue-test
       StrictData
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      async
+      aeson
+    , async
     , base
+    , containers
     , extra
     , gargantext
     , hspec
+    , http-client
+    , http-client-tls
+    , mtl
+    , servant-job
     , stm
     , text
   default-language: Haskell2010
