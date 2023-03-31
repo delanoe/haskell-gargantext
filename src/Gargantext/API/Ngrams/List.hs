@@ -292,33 +292,25 @@ csvPost l m  = do
 ------------------------------------------------------------------------
 csvPostAsync :: ServerT CSVAPI (GargM Env GargError)
 csvPostAsync lId =
-  serveJobsAPI UpdateNgramsListJobCSV $ \jHandle f@(WithTextFile _ft _ _n) -> do
+  serveJobsAPI UpdateNgramsListJobCSV $ \jHandle f -> do
       let log'' x = do
-            -- printDebug "[csvPostAsync] filetype" ft
-            -- printDebug "[csvPostAsync] name" n
+            -- printDebug "[csvPostAsync] filetype" (_wtf_filetype f)
+            -- printDebug "[csvPostAsync] name" (_wtf_name f)
             jobHandleLogger jHandle x
-      jl <- csvPostAsync' lId f log''
-      printDebug "[csvPostAsync] job ended with joblog: " jl
+      let jl = JobLog { _scst_succeeded = Just 0
+                      , _scst_failed    = Just 0
+                      , _scst_remaining = Just 1
+                      , _scst_events    = Just []
+                      }
       log'' jl
-      pure jl
+      ePost <- csvPost lId (_wtf_data f)
+      let jlNew = case ePost of
+            Left err -> jobLogFailTotalWithMessage err jl
+            Right () -> jobLogSuccess jl
+      printDebug "[csvPostAsync] job ended with joblog: " jlNew
+      log'' jlNew
+      pure jlNew
 
-
-csvPostAsync' :: FlowCmdM env err m
-             => ListId
-             -> WithTextFile
-             -> (JobLog -> m ())
-             -> m JobLog
-csvPostAsync' l (WithTextFile _ m _) logStatus = do
-  let jl = JobLog { _scst_succeeded = Just 0
-                  , _scst_failed    = Just 0
-                  , _scst_remaining = Just 1
-                  , _scst_events    = Just []
-                  }
-  logStatus jl
-  ePost <- csvPost l m
-  case ePost of
-    Left err -> pure $ jobLogFailTotalWithMessage err jl
-    Right () -> pure $ jobLogSuccess jl
 ------------------------------------------------------------------------
 
 
