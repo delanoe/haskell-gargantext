@@ -200,16 +200,12 @@ data DevEnv = DevEnv
   , _dev_env_nodeStory :: !NodeStoryEnv
   , _dev_env_mail      :: !MailConfig
   , _dev_env_nlp       :: !NLPServerMap
-  , _dev_env_jobs      :: !(Jobs.JobEnv GargJob (Seq JobLog) JobLog)
   }
 
 makeLenses ''DevEnv
 
 -- | Our /mock/ job handle.
 data DevJobHandle = DevJobHandle
-
-instance Jobs.MonadJob (GargM DevEnv err) GargJob (Seq JobLog) JobLog where
-  getJobEnv = asks (view dev_env_jobs)
 
 instance Jobs.MonadJobStatus (GargM DevEnv err) where
 

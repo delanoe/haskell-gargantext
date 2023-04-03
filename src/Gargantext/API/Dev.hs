@@ -9,8 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE ScopedTypeVariables #-}
-
 -- Use only for dev/repl
 module Gargantext.API.Dev where
 
@@ -27,11 +25,8 @@ import Gargantext.Core.NodeStory
 import Gargantext.Database.Prelude
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (readConfig)
-import Network.HTTP.Client.TLS (newTlsManager)
 import qualified Gargantext.Prelude.Mail as Mail
 import qualified Gargantext.Prelude.NLP as NLP
-import qualified Gargantext.Utils.Jobs.Monad as Jobs
-import qualified Gargantext.Utils.Jobs.Queue as Jobs
 import Servant
 import System.IO (FilePath)
 
@@ -52,10 +47,6 @@ withDevEnv iniPath k = do
       setts   <- devSettings devJwkFile
       mail    <- Mail.readConfig iniPath
       nlp_config <- NLP.readConfig iniPath
-      secret        <- Jobs.genSecret
-      let jobs_settings = Jobs.defaultJobSettings 1 secret
-      manager_env   <- newTlsManager
-      jobs_env      <- Jobs.newJobEnv jobs_settings Jobs.defaultPrios manager_env
       pure $ DevEnv
         { _dev_env_pool     = pool
         , _dev_env_nodeStory  = nodeStory_env
@@ -63,13 +54,7 @@ withDevEnv iniPath k = do
         , _dev_env_config   = cfg
         , _dev_env_mail     = mail
         , _dev_env_nlp      = nlpServerMap nlp_config
-        , _dev_env_jobs     = jobs_env
         }
-
-type DevCmd env err a = forall m. (
-    CmdM'' env err m
-  , Jobs.MonadJobStatus m
-  ) => m a
 
 -- | Run Cmd Sugar for the Repl (GHCI)
 runCmdRepl :: Show err => Cmd'' DevEnv err a -> IO a
@@ -82,11 +67,9 @@ runCmdReplServantErr = runCmdRepl
 -- the command.
 -- This function is constrained to the DevEnv rather than
 -- using HasConnectionPool and HasRepoVar.
-runCmdDev :: Show err => DevEnv -> DevCmd DevEnv err a -> IO a
-runCmdDev env cmd =
-  (either (fail . show) pure =<< runExceptT (runReaderT cmd env))
-    `finally`
-  runReaderT saveNodeStoryImmediate env
+runCmdDev :: Show err => DevEnv -> Cmd'' DevEnv err a -> IO a
+runCmdDev env f =
+  (either (fail . show) pure =<< runCmd env f)
 
 runCmdGargDev :: DevEnv -> GargM DevEnv GargError a -> IO a
 runCmdGargDev env cmd =
