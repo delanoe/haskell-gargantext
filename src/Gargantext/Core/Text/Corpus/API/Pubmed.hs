@@ -41,9 +41,10 @@ get :: Maybe Text
     -> Maybe Limit
     -> IO (Either ClientError (Maybe Integer, ConduitT () HyperdataDocument IO ()))
 get mAPIKey q l = do
-  eRes <- runReaderT PubMed.getMetadataWithC (Config { apiKey = mAPIKey
-                                                     , query = q
-                                                     , perPage = Nothing })
+  eRes <- runReaderT PubMed.getMetadataWithC (Config { apiKey  = mAPIKey
+                                                     , query   = q
+                                                     , perPage = Just 200
+                                                     , mWebEnv = Nothing })
   let takeLimit = case l of
         Nothing -> mapC identity
         Just l' -> takeC $ fromIntegral l'
