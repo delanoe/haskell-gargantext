@@ -25,6 +25,7 @@ import Data.Text (Text, concat, pack, splitOn)
 import Data.Vector (Vector)
 import Gargantext.API.Admin.EnvTypes (Env, GargJob(..))
 import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.API.Job (jobLogFailTotalWithMessage, jobLogSuccess)
 import Gargantext.API.Ngrams (setListNgrams)
 import Gargantext.API.Ngrams.List.Types
 import Gargantext.API.Ngrams.Prelude (getNgramsList)
@@ -235,10 +236,10 @@ postAsync' l (WithJsonFile m _) logStatus = do
 
 ------------------------------------------------------------------------
 
-readCsvText :: Text -> [(Text, Text, Text)]
+readCsvText :: Text -> Either Text [(Text, Text, Text)]
 readCsvText t = case eDec of
-  Left _ -> []
-  Right dec -> Vec.toList dec
+  Left err -> Left $ pack err
+  Right dec -> Right $ Vec.toList dec
   where
     lt = BSL.fromStrict $ P.encodeUtf8 t
     eDec = Csv.decodeWith
@@ -268,50 +269,54 @@ parseCsvData lst = Map.fromList $ conv <$> lst
 csvPost :: FlowCmdM env err m
         => ListId
         -> Text
-        -> m Bool
+        -> m (Either Text ())
 csvPost l m  = do
   -- printDebug "[csvPost] l" l
   -- printDebug "[csvPost] m" m
   -- status label forms
-  let lst = readCsvText m
-  let p = parseCsvData lst
-  --printDebug "[csvPost] lst" lst
-  -- printDebug "[csvPost] p" p
-  _ <- setListNgrams l NgramsTerms p
-  -- printDebug "ReIndexing List" l
-  corpus_node <- getNode l -- (Proxy :: Proxy HyperdataList)
-  let corpus_id = fromMaybe (panic "") (_node_parent_id corpus_node)
-  _ <- reIndexWith corpus_id l NgramsTerms (Set.fromList [MapTerm, CandidateTerm])
+  let eLst = readCsvText m
+  case eLst of
+    Left err -> pure $ Left err
+    Right lst -> do
+      let p = parseCsvData lst
+      --printDebug "[csvPost] lst" lst
+      -- printDebug "[csvPost] p" p
+      _ <- setListNgrams l NgramsTerms p
+      -- printDebug "ReIndexing List" l
+      corpus_node <- getNode l -- (Proxy :: Proxy HyperdataList)
+      let corpus_id = fromMaybe (panic "") (_node_parent_id corpus_node)
+      _ <- reIndexWith corpus_id l NgramsTerms (Set.fromList [MapTerm, CandidateTerm])
 
-  pure True
+      pure $ Right ()
 
 ------------------------------------------------------------------------
 csvPostAsync :: ServerT CSVAPI (GargM Env GargError)
 csvPostAsync lId =
-  serveJobsAPI UpdateNgramsListJobCSV $ \jHandle f@(WithTextFile _ft _ _n) -> do
+  serveJobsAPI UpdateNgramsListJobCSV $ \jHandle f -> do
       let log'' x = do
-            -- printDebug "[csvPostAsync] filetype" ft
-            -- printDebug "[csvPostAsync] name" n
+            -- printDebug "[csvPostAsync] filetype" (_wtf_filetype f)
+            -- printDebug "[csvPostAsync] name" (_wtf_name f)
             jobHandleLogger jHandle x
-      csvPostAsync' lId f log''
+      let jl = JobLog { _scst_succeeded = Just 0
+                      , _scst_failed    = Just 0
+                      , _scst_remaining = Just 1
+                      , _scst_events    = Just []
+                      }
+      log'' jl
+      ePost <- csvPost lId (_wtf_data f)
+      let jlNew = case ePost of
+            Left err -> jobLogFailTotalWithMessage err jl
+            Right () -> jobLogSuccess jl
+      printDebug "[csvPostAsync] job ended with joblog: " jlNew
+      log'' jlNew
+      pure jlNew
 
-
-csvPostAsync' :: FlowCmdM env err m
-             => ListId
-             -> WithTextFile
-             -> (JobLog -> m ())
-             -> m JobLog
-csvPostAsync' l (WithTextFile _ m _) logStatus = do
-  logStatus JobLog { _scst_succeeded = Just 0
-                   , _scst_failed    = Just 0
-                   , _scst_remaining = Just 1
-                   , _scst_events    = Just []
-                   }
-  _r <- csvPost l m
-
-  pure JobLog { _scst_succeeded = Just 1
-              , _scst_failed    = Just 0
-              , _scst_remaining = Just 0
-              , _scst_events    = Just []
-              }
 ------------------------------------------------------------------------
+
+
+-- | This is for debugging the CSV parser in the REPL
+importCsvFile :: FlowCmdM env err m
+              => ListId -> P.FilePath -> m (Either Text ())
+importCsvFile lId fp = do
+  contents <- liftBase $ P.readFile fp
+  csvPost lId contents
