@@ -218,13 +218,14 @@ dateISOP = do
     rd = read :: [Char] -> Integer
     number = many1 digit
 
-sourcePrefixP :: Parser [Char]
-sourcePrefixP = do
-  _ <- string "source:"
-  many (char ' ')
 sourceP :: Parser [Char]
 sourceP = try sourcePrefixP
           *> many (noneOf "\n")
+  where
+    sourcePrefixP :: Parser [Char]
+    sourcePrefixP = do
+      _ <- string "source:"
+      many (char ' ')
 
 -- contentsP :: Parser String
 -- contentsP = many anyChar
@@ -233,15 +234,19 @@ tokenEnd :: Parser ()
 tokenEnd = void (char '\n') <|> eof
 
 --- MISC Tools
+-- Using ChunkAlong here enable redundancies in short corpora of texts
+-- maybe use splitEvery or chunkAlong depending on the size of the whole text
 text2titleParagraphs :: Int -> Text -> [(Text, Text)]
 text2titleParagraphs n = catMaybes
                        . List.map doTitle
-                       . (splitEvery n)
+                       . (chunkAlong n' n)
+                       -- . (splitEvery n)
                        . sentences
                        . DT.intercalate " " -- ". "
                        . List.filter (/= "")
                        . DT.lines
-
+  where
+    n' = n + (round $ (fromIntegral n) / (2 :: Double))
 
 doTitle :: [Text] -> Maybe (Text, Text)
 doTitle (t:ts) = Just (t, DT.concat ts)
