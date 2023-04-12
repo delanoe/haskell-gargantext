@@ -91,6 +91,7 @@ library:
   - Gargantext.Core.Text.Terms
   - Gargantext.Core.Text.Terms.Eleve
   - Gargantext.Core.Text.Terms.Mono
+  - Gargantext.Core.Text.Terms.Multi
   - Gargantext.Core.Text.Terms.Multi.Lang.En
   - Gargantext.Core.Text.Terms.Multi.Lang.Fr
   - Gargantext.Core.Text.Terms.Multi.RAKE
@@ -246,6 +247,7 @@ library:
   - rake
   - random
   - rdf4h
+  - replace-attoparsec
   - regex-compat
   - regex-tdfa
   - resource-pool

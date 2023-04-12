@@ -195,7 +195,6 @@ doSimilarityMap Conditional threshold strength myCooc = (distanceMap, toIndex ti
                 $ List.sortOn snd
                 $ Map.toList
                 $ Map.filter (> threshold)
-                -- $ conditional myCooc
                 $ similarities `seq` mat2map similarities
 
 doSimilarityMap Distributional threshold strength myCooc = (distanceMap, toIndex ti diag, ti)

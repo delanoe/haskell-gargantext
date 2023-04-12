@@ -204,8 +204,9 @@ newEnv port file = do
   !config_mail  <- Mail.readConfig file
   !nlp_env      <- nlpServerMap <$> NLP.readConfig file
 
-  -- | An 'Env' by default doesn't have strict fields, but when constructing one in production
-  -- we want to force them to WHNF to avoid accumulating unnecessary thunks.
+{-  An 'Env' by default doesn't have strict fields, but when constructing one in production
+  we want to force them to WHNF to avoid accumulating unnecessary thunks.
+-}
   pure $ Env
     { _env_settings  = settings'
     , _env_logger    = logger

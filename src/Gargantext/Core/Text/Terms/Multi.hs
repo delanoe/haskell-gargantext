@@ -11,28 +11,26 @@ Multi-terms are ngrams where n > 1.
 
 -}
 
+{-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Core.Text.Terms.Multi (multiterms, multiterms_rake, tokenTagsWith, tokenTags)
+module Gargantext.Core.Text.Terms.Multi (multiterms, multiterms_rake, tokenTagsWith, tokenTags, cleanTextForNLP)
   where
 
-import Data.Text hiding (map, group, filter, concat)
+import Control.Applicative
+import Data.Attoparsec.Text                               as DAT
 import Data.List (concat)
-
-import Gargantext.Prelude
+import Data.Text hiding (map, group, filter, concat)
 import Gargantext.Core (Lang(..), NLPServerConfig(..), PosTagAlgo(..))
-import Gargantext.Core.Types
-import Gargantext.Core.Utils (groupWithCounts)
-
 import Gargantext.Core.Text.Terms.Multi.PosTagging
 import Gargantext.Core.Text.Terms.Multi.PosTagging.Types
+import Gargantext.Core.Text.Terms.Multi.RAKE (multiterms_rake)
+import Gargantext.Core.Types
+import Gargantext.Core.Utils (groupWithCounts)
+import Gargantext.Prelude
+import Replace.Attoparsec.Text                            as RAT
 import qualified Gargantext.Core.Text.Terms.Multi.Lang.En as En
 import qualified Gargantext.Core.Text.Terms.Multi.Lang.Fr as Fr
-
-import Gargantext.Core.Text.Terms.Multi.RAKE (multiterms_rake)
--- import qualified Gargantext.Utils.JohnSnowNLP as JohnSnow
-
-import qualified Gargantext.Utils.SpacyNLP as SpacyNLP
-
+import qualified Gargantext.Utils.SpacyNLP                as SpacyNLP
 
 -------------------------------------------------------------------
 type NLP_API = Lang -> Text -> IO PosSentences
@@ -40,7 +38,7 @@ type NLP_API = Lang -> Text -> IO PosSentences
 -------------------------------------------------------------------
 multiterms :: NLPServerConfig -> Lang -> Text -> IO [TermsWithCount]
 multiterms nsc l txt = do
-  ret <- multiterms' tokenTag2terms l txt
+  ret <- multiterms' tokenTag2terms l $ cleanTextForNLP txt
   pure $ groupWithCounts ret
   where
     multiterms' :: (TokenTag -> a) -> Lang -> Text -> IO [a]
@@ -77,3 +75,16 @@ groupTokens :: Lang -> [TokenTag] -> [TokenTag]
 groupTokens EN = En.groupTokens
 groupTokens FR = Fr.groupTokens
 groupTokens _  = panic $ pack "groupTokens :: Lang not implemeted yet"
+
+-- TODO: make tests here
+cleanTextForNLP :: Text -> Text
+cleanTextForNLP = unifySpaces . removeDigitsWith "-" . removeUrls
+  where
+    remove x = RAT.streamEdit x (const "")
+
+    unifySpaces         = RAT.streamEdit (many DAT.space) (const " ")
+    removeDigitsWith x  = remove (many DAT.digit *> DAT.string x <* many DAT.digit)
+
+    removeUrls          = removeUrlsWith "http" . removeUrlsWith "www"
+    removeUrlsWith w    = remove (DAT.string w *> many (DAT.notChar ' ') <* many DAT.space)
+

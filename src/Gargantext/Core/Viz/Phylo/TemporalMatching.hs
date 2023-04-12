@@ -435,7 +435,6 @@ reconstructTemporalLinks' frame periods similarity thr docs coocs roots groups =
 toPhylomemeticNetwork :: Int -> [Period] -> PhyloSimilarity -> Double -> Map Date Double -> Map Date Cooc -> Map Int [PhyloGroupId] -> [PhyloGroup] -> [Branch]
 toPhylomemeticNetwork timescale periods similarity thr docs coocs roots groups = 
   groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
-                   -- $ reconstructTemporalLinks timescale periods similarity thr docs coocs groups
                    $ reconstructTemporalLinks' timescale periods similarity thr docs coocs roots groups
 
 
