@@ -1,6 +1,9 @@
 #!/bin/bash
 
 echo "GarganText: Starting project..."
+echo "GarganText: First, compiling code..."
+bin/install
+echo "GarganText: code compiled [OK]"
 echo "GarganText: docker for postgresql database..."
 cd devops/docker
 docker compose up -d
