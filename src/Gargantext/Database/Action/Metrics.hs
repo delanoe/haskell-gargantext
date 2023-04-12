@@ -30,7 +30,8 @@ import Gargantext.Core.Mail.Types (HasMail)
 import Gargantext.Core.NodeStory hiding (runPGSQuery)
 import Gargantext.Core.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
 import Database.PostgreSQL.Simple.ToField (toField, Action{-, ToField-})
-import Gargantext.Core.Types (ListType(..), Limit, NodeType(..), ContextId)
+import Gargantext.Core.Types (ListType(..), NodeType(..), ContextId)
+import Gargantext.Core.Types.Query (Limit(..))
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOnlyUser{-, getTficfWith-})
 import Gargantext.Database.Admin.Config (userMaster)
@@ -240,6 +241,6 @@ getNgrams lId tabType = do
   pure (lists, maybeSyn)
 
 -- Some useful Tools
-take' :: Maybe Int -> [a] -> [a]
+take' :: Maybe Limit -> [a] -> [a]
 take' Nothing  xs = xs
-take' (Just n) xs = take n xs
+take' (Just n) xs = take (getLimit n) xs

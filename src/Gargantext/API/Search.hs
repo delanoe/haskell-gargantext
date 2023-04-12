@@ -23,6 +23,7 @@ import Data.Swagger hiding (fieldLabelModifier, Contact)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Prelude (GargServer)
+import Gargantext.Core.Types.Query (Limit, Offset)
 import Gargantext.Core.Types.Search
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow.Pairing (isPairedWith)
@@ -40,8 +41,8 @@ import Test.QuickCheck.Arbitrary
 -- TODO-EVENTS: No event, this is a read-only query.
 type API results = Summary "Search endpoint"
                  :> ReqBody '[JSON] SearchQuery
-                 :> QueryParam "offset" Int
-                 :> QueryParam "limit"  Int
+                 :> QueryParam "offset" Offset
+                 :> QueryParam "limit"  Limit
                  :> QueryParam "order"  OrderBy
                  :> Post '[JSON] results
 -----------------------------------------------------------------------

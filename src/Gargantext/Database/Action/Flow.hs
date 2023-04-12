@@ -88,6 +88,7 @@ import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Types (POS(NP), TermsCount)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main
+import Gargantext.Core.Types.Query (Limit)
 import Gargantext.Core.Utils (addTuples)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow.List
@@ -303,10 +304,10 @@ flow c u cn la mfslw (mLength, docsC) jobHandle = do
       let maxIdx = maximum (fst <$> docs)
       case mLength of
         Nothing -> pure ()
-        Just len -> do
+        Just _len -> do
 
           let succeeded = fromIntegral (1 + maxIdx)
-          let remaining = fromIntegral (len - maxIdx)
+          -- let remaining = fromIntegral (len - maxIdx)
           -- Reconstruct the correct update state by using 'markStarted' and the other primitives.
           -- We do this slightly awkward arithmetic such that when we call 'markProgress' we reduce
           -- the number of 'remaining' of exactly '1 + maxIdx', and we will end up with a 'JobLog'
@@ -317,7 +318,7 @@ flow c u cn la mfslw (mLength, docsC) jobHandle = do
           -- , _scst_remaining = Just $ fromIntegral $ len - maxIdx
           -- , _scst_events    = Just []
           -- }
-          markStarted (remaining + succeeded) jobHandle
+          -- markStarted (remaining + succeeded) jobHandle
           markProgress succeeded jobHandle
 
       pure ids

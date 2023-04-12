@@ -30,6 +30,7 @@ import Gargantext.API.Node () -- instances
 import Gargantext.API.Prelude (GargError)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Core.Types.Query (Limit)
 import Gargantext.Database.Action.Flow (flowCorpusFile, flowAnnuaire, TermType(..))
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Hyperdata (toHyperdataDocument)
@@ -49,7 +50,7 @@ main = do
     --tt = (Unsupervised EN 6 0 Nothing)
     tt = (Multi EN)
     format = CsvGargV3 -- CsvHal --WOS
-    limit' = case (readMaybe limit :: Maybe Int) of
+    limit' = case (readMaybe limit :: Maybe Limit) of
       Nothing -> panic $ "Cannot read limit: " <> (Text.pack limit)
       Just l  -> l
     corpus :: forall m. (FlowCmdM DevEnv GargError m, MonadJobStatus m, JobHandle m ~ DevJobHandle) => m CorpusId

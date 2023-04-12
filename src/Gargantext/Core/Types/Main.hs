@@ -11,7 +11,7 @@ Portability : POSIX
 
 
 
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TemplateHaskell     #-}
 
 -----------------------------------------------------------------------
 module Gargantext.Core.Types.Main where
@@ -110,11 +110,6 @@ fromListTypeId i = lookup i
 -- | Then a Node can be a List which has some synonyms
 
 -- | Then a Node can be a Score which has some synonyms
-
--- Queries
-type Limit    = Int
-type Offset   = Int
-type IsTrash  = Bool
 
 ------------------------------------------------------------------------
 -- All the Database is structured as a hierarchical Tree

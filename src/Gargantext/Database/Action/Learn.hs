@@ -18,7 +18,7 @@ module Gargantext.Database.Action.Learn
 import Data.Maybe
 import Data.Text (Text)
 import Gargantext.Core
-import Gargantext.Core.Types (Offset, Limit)
+import Gargantext.Core.Types.Query (Offset, Limit(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Facet
@@ -70,7 +70,7 @@ moreLikeWith cId o l order ft priors = do
        $ filter ((==) (Just $ not $ fav2bool ft) . snd)
        $ map (\f -> (f, detectDefaultWithPriors text priors f)) docs_test
 
-  pure $ List.take (maybe 10 identity l) results
+  pure $ List.take (getLimit $ maybe 10 identity l) results
 
 ---------------------------------------------------------------------------
 fav2bool :: FavOrTrash -> Bool

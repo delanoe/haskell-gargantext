@@ -18,12 +18,12 @@ Portability : POSIX
 module Gargantext.Database.Query.Filter
   where
 
-import Gargantext.Core.Types (Limit, Offset)
+import Gargantext.Core.Types.Query (Limit(..), Offset(..))
 import Data.Maybe (Maybe, maybe)
 import Opaleye (Select, limit, offset)
 
 limit' ::  Maybe Limit -> Select a -> Select a
-limit' maybeLimit query = maybe query (\l -> limit l query) maybeLimit
+limit' maybeLimit query = maybe query (\l -> limit (getLimit l) query) maybeLimit
 
 offset' :: Maybe Offset -> Select a  -> Select a
-offset' maybeOffset query = maybe query (\o -> offset o query) maybeOffset
+offset' maybeOffset query = maybe query (\o -> offset (getOffset o) query) maybeOffset

@@ -22,6 +22,7 @@ module Gargantext.Database.Action.Metrics.Lists
 import Gargantext.API.Ngrams.Types (TabType(..))
 import Gargantext.Core.Text.Metrics (Scored(..))
 import Gargantext.Core.Types -- (NodePoly(..), NodeCorpus, ListId)
+import Gargantext.Core.Types.Query (Limit)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Prelude hiding (sum, head)
 import Prelude hiding (null, id, map, sum)
@@ -42,7 +43,7 @@ trainModel u = do
 
 
 getMetrics' :: FlowCmdM env err m
-             => CorpusId -> Maybe ListId -> TabType -> Maybe Int
+             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
              -> m (Map.Map ListType [Vec.Vector Double])
 getMetrics' cId maybeListId tabType maybeLimit = do
   (ngs', scores) <- Metrics.getMetrics cId maybeListId tabType maybeLimit

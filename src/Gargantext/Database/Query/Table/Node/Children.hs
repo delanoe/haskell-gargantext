@@ -20,6 +20,7 @@ import Control.Arrow (returnA)
 import Data.Proxy
 import Gargantext.Core
 import Gargantext.Core.Types
+import Gargantext.Core.Types.Query (Limit, Offset)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument, HyperdataContact)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Filter

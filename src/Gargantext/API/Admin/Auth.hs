@@ -40,11 +40,8 @@ module Gargantext.API.Admin.Auth
 import Control.Lens (view, (#))
 import Data.Aeson
 import Data.Swagger (ToSchema(..))
-import Data.Text (Text)
-import Data.Text.Lazy (toStrict)
 import Data.UUID (UUID, fromText, toText)
 import Data.UUID.V4 (nextRandom)
-import GHC.Generics (Generic)
 import Gargantext.API.Admin.Auth.Types
 import Gargantext.API.Admin.EnvTypes (GargJob(..), Env)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
@@ -64,6 +61,7 @@ import Gargantext.Database.Schema.Node (NodePoly(_node_id))
 import Gargantext.Prelude hiding (reverse)
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
 import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
+import Protolude hiding (to)
 import Servant
 import Servant.Auth.Server
 import qualified Data.Text as Text

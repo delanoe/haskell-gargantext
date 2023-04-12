@@ -27,7 +27,8 @@ import Gargantext.API.Ngrams.NgramsTree
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Text.Metrics (Scored(..), {-normalizeGlobal,-} normalizeLocal)
-import Gargantext.Core.Types (CorpusId, Limit, ListId, ListType(..))
+import Gargantext.Core.Types (CorpusId, ListId, ListType(..))
+import Gargantext.Core.Types.Query (Limit)
 import Gargantext.Core.Viz.Chart
 import Gargantext.Core.Viz.Types
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataList(..), hl_chart, hl_pie, hl_scatter, hl_tree)
@@ -49,12 +50,12 @@ import qualified Gargantext.Database.Action.Metrics as Metrics
 type ScatterAPI = Summary "SepGen IncExc metrics"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
-                  :> QueryParam  "limit"      Int
+                  :> QueryParam  "limit"      Limit
                   :> Get '[JSON] (HashedResponse Metrics)
               :<|> Summary "Scatter update"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
-                  :> QueryParam  "limit"      Int
+                  :> QueryParam  "limit"      Limit
                   :> Post '[JSON] ()
               :<|> "hash" :> Summary "Scatter Hash"
                           :> QueryParam  "list"       ListId
@@ -149,7 +150,7 @@ type ChartApi = Summary " Chart API"
             :<|> Summary "Chart update"
                :> QueryParam  "list"       ListId
                :> QueryParamR "ngramsType" TabType
-               :> QueryParam  "limit"      Int
+               :> QueryParam  "limit"      Limit
                :> Post '[JSON] ()
             :<|> "hash" :> Summary "Chart Hash"
                :> QueryParam  "list"       ListId
@@ -224,7 +225,7 @@ getChartHash :: FlowCmdM env err m =>
   -> m Text
 getChartHash cId maybeListId tabType = do
   hash <$> getChart cId Nothing Nothing maybeListId tabType
- 
+
 -------------------------------------------------------------
 -- | Pie metrics API
 type PieApi = Summary "Pie Chart"
@@ -236,7 +237,7 @@ type PieApi = Summary "Pie Chart"
          :<|> Summary "Pie Chart update"
              :> QueryParam  "list"       ListId
              :> QueryParamR "ngramsType" TabType
-             :> QueryParam  "limit"      Int
+             :> QueryParam  "limit"      Limit
              :> Post '[JSON] ()
          :<|> "hash" :> Summary "Pie Hash"
                      :> QueryParam  "list"       ListId
