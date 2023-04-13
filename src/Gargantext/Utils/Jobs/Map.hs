@@ -13,7 +13,6 @@ module Gargantext.Utils.Jobs.Map (
   , newJobMap
   , lookupJob
   , gcThread
-  , jobLog
   , addJobEntry
   , deleteJob
   , runJob
@@ -117,8 +116,10 @@ gcThread js (JobMap mvar) = go
           _      -> False
 
 -- | Make a 'Logger' that 'mappend's monoidal values in a 'TVar'.
+-- /IMPORTANT/: The new value is appended in front. The ordering is important later on
+-- when consuming logs from the API (see for example 'pollJob').
 jobLog :: Semigroup w => TVar w -> Logger w -- w -> IO ()
-jobLog logvar = \w -> atomically $ modifyTVar' logvar (\old_w -> old_w <> w)
+jobLog logvar = \w -> atomically $ modifyTVar' logvar (\old_w -> w <> old_w)
 
 -- | Generating new 'JobEntry's.
 addJobEntry

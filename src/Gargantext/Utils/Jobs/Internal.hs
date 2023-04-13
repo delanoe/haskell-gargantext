@@ -118,6 +118,15 @@ pollJob limit offset jid je = do
       let st = either (const SJ.IsFailure) (const SJ.IsFinished) r
           me = either (Just . T.pack . show) (const Nothing) r
       in pure (ls, st, me)
+  -- /NOTE/: We need to be careful with the ordering of the logs here:
+  -- we want to return the logs ordered from the newest to the oldest,
+  -- because the API will use 'limit' to show only the newest ones,
+  -- taking 'limit' of them from the front of the list.
+  --
+  -- Due to the fact we do not force any 'Ord' constraint on an 'event' type,
+  -- and it would be inefficient to reverse the list here, it's important
+  -- that the concrete implementation of 'rjGetLog' returns the logs in the
+  -- correct order.
   pure $ SJ.jobStatus jid limit offset (toList logs) status merr
 
 waitJob
@@ -176,4 +185,5 @@ killJob t limit offset jid je = do
           me = either (Just . T.pack . show) (const Nothing) r
       removeJob False t jid
       pure (lgs, st, me)
+  -- /NOTE/: Same proviso as in 'pollJob' applies here.
   pure $ SJ.jobStatus jid limit offset (toList logs) status merr
