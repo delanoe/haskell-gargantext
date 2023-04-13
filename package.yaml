@@ -6,7 +6,7 @@ name: gargantext
 #         | | | +-----  Layers * : New versions with API additions
 #         | | | | +---  Layers * : New versions without API breaking changes
 #         | | | | |
-version: '0.0.6.9.8.5.1'
+version: '0.0.6.9.8.6'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -91,6 +91,7 @@ library:
   - Gargantext.Core.Text.Terms
   - Gargantext.Core.Text.Terms.Eleve
   - Gargantext.Core.Text.Terms.Mono
+  - Gargantext.Core.Text.Terms.Multi
   - Gargantext.Core.Text.Terms.Multi.Lang.En
   - Gargantext.Core.Text.Terms.Multi.Lang.Fr
   - Gargantext.Core.Text.Terms.Multi.RAKE
@@ -247,6 +248,7 @@ library:
   - rake
   - random
   - rdf4h
+  - replace-attoparsec
   - regex-compat
   - regex-tdfa
   - resource-pool
