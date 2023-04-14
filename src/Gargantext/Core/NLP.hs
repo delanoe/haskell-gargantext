@@ -4,7 +4,7 @@ import Control.Lens (Getter, at, non)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust)
 import Network.URI (URI(..), parseURI)
-import Gargantext.Core (Lang(..), NLPServerConfig(..), PosTagAlgo(..))
+import Gargantext.Core (Lang(..), NLPServerConfig(..), PosTagAlgo(..), allLangs)
 import Gargantext.Prelude.NLP.Types (NLPConfig(..))
 import Gargantext.Utils.Tuple (uncurryMaybeSecond)
 import Protolude hiding (All)
@@ -53,6 +53,8 @@ nlpServerConfigFromURI _ = Nothing
 
 nlpServerMap :: NLPConfig -> NLPServerMap
 nlpServerMap (NLPConfig { .. }) =
-  Map.fromList $ catMaybes [ uncurryMaybeSecond (EN, nlpServerConfigFromURI _nlp_en)
-                           , uncurryMaybeSecond (FR, nlpServerConfigFromURI _nlp_fr)
-                           , uncurryMaybeSecond (All, nlpServerConfigFromURI _nlp_all) ]
+  Map.fromList $ catMaybes $
+    [ uncurryMaybeSecond (All, nlpServerConfigFromURI _nlp_all) ] ++
+    ((\lang ->
+        uncurryMaybeSecond (lang, Map.lookup (show lang) _nlp_languages >>= nlpServerConfigFromURI ))
+      <$> allLangs)

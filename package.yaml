@@ -389,7 +389,7 @@ executables:
       - split
       - unordered-containers
       - cryptohash
-      - time 
+      - time
 
   gargantext-import:
     main: Main.hs
@@ -559,4 +559,3 @@ tests:
 #    - OverloadedStrings
 #    - RankNTypes
 #
-

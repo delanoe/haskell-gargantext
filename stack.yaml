@@ -40,7 +40,7 @@ extra-deps:
 #- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
 #  commit: 791c2a7046a3760f8ae5fabdbd708f61caa63741
 - git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude
-  commit: 175d4b295be2a0f56edc4eb6c7d8227d81bc2841
+  commit: 8f97fef4dfd941d773914ad058d8e02ce2bb1a3e  # e250af8a495191b4bd06c9f465656b87bea7bf7f
 - git: https://gitlab.iscpif.fr/gargantext/gargantext-graph.git
   commit: 588e104fe7593210956610cab0041fd16584a4ce
   # Data Mining Libs
@@ -94,7 +94,7 @@ extra-deps:
   #- git: https://github.com/np/patches-map
 - git: https://github.com/delanoe/patches-map
   commit: 76cae88f367976ff091e661ee69a5c3126b94694
-  #- git: https://gitlab.com/npouillard/patches-class.git  
+  #- git: https://gitlab.com/npouillard/patches-class.git
 #- git: https://gitlab.iscpif.fr/gargantext/patches-class.git
 #  commit: d3e971d4e78d1dfcc853f2fb86bde1995faf22ae
 - git: https://gitlab.iscpif.fr/cgenie/patches-class.git

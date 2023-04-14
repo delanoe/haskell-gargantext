@@ -43,7 +43,7 @@ import Gargantext.API.Node.Corpus.New.Types
 import Gargantext.API.Node.Corpus.Searx
 import Gargantext.API.Node.Corpus.Types
 import Gargantext.API.Node.Types
-import Gargantext.Core (Lang(..){-, allLangs-})
+import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text.List.Social (FlowSocialListWith(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)

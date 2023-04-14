@@ -38,6 +38,7 @@ import qualified Gargantext.API.GraphQL.Annuaire as GQLA
 import qualified Gargantext.API.GraphQL.AsyncTask as GQLAT
 import qualified Gargantext.API.GraphQL.Context as GQLCTX
 import qualified Gargantext.API.GraphQL.IMT as GQLIMT
+import qualified Gargantext.API.GraphQL.NLP as GQLNLP
 import qualified Gargantext.API.GraphQL.Node as GQLNode
 import qualified Gargantext.API.GraphQL.User as GQLUser
 import qualified Gargantext.API.GraphQL.UserInfo as GQLUserInfo
@@ -70,6 +71,7 @@ data Query m
     , contexts_for_ngrams :: GQLCTX.ContextsForNgramsArgs -> m [GQLCTX.ContextGQL]
     , imt_schools         :: GQLIMT.SchoolsArgs -> m [GQLIMT.School]
     , job_logs            :: GQLAT.JobLogArgs -> m (Map Int JobLog)
+    , languages           :: GQLNLP.LanguagesArgs -> m [GQLNLP.Lang]
     , nodes               :: GQLNode.NodeArgs -> m [GQLNode.Node]
     , node_parent         :: GQLNode.NodeParentArgs -> m [GQLNode.Node]
     , user_infos          :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
@@ -112,6 +114,7 @@ rootResolver =
                             , contexts_for_ngrams = GQLCTX.resolveContextsForNgrams
                             , imt_schools         = GQLIMT.resolveSchools
                             , job_logs            = GQLAT.resolveJobLogs
+                            , languages           = GQLNLP.resolveLanguages
                             , nodes               = GQLNode.resolveNodes
                             , node_parent         = GQLNode.resolveNodeParent
                             , user_infos          = GQLUserInfo.resolveUserInfos
