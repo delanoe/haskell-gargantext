@@ -20,6 +20,7 @@ module Gargantext.API.Node.Corpus.New
 
 import Conduit
 import Control.Lens hiding (elements, Empty)
+import Control.Monad
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import qualified Data.ByteString.Base64 as BSB64
@@ -193,7 +194,6 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
                                          , _wq_lang = l
                                          , _wq_flowListWith = flw }) maybeLimit jobHandle = do
   -- TODO ...
-  markStarted 3 jobHandle
   -- printDebug "[addToCorpusWithQuery] (cid, dbs)" (cid, dbs)
   -- printDebug "[addToCorpusWithQuery] datafield" datafield
   -- printDebug "[addToCorpusWithQuery] flowListWith" flw
@@ -202,49 +202,40 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
     Just Web -> do
       -- printDebug "[addToCorpusWithQuery] processing web request" datafield
 
+      markStarted 1 jobHandle
+
       _ <- triggerSearxSearch user cid q l jobHandle
 
       markComplete jobHandle
 
     _ -> do
+      markStarted 3 jobHandle
+
       -- TODO add cid
       -- TODO if cid is folder -> create Corpus
       --      if cid is corpus -> add to corpus
       --      if cid is root   -> create corpus in Private
       -- printDebug "[G.A.N.C.New] getDataText with query" q
-      databaseOrigin <- database2origin dbs
-      eTxts <- mapM (\db -> getDataText db (Multi l) q maybeLimit) [databaseOrigin]
+      db   <- database2origin dbs
+      eTxt <- getDataText db (Multi l) q maybeLimit
 
-      let lTxts = lefts eTxts
       -- printDebug "[G.A.N.C.New] lTxts" lTxts
-      case lTxts of
-        [] -> do
-          let txts = rights eTxts
+      case eTxt of
+        Right txt -> do
           -- TODO Sum lenghts of each txt elements
 
-          -- NOTE(adinapoli) Some other weird arithmetic to have the
-          -- following 'JobLog' as output:
-          -- JobLog
-          -- { _scst_succeeded = Just 2
-          -- , _scst_failed    = Just 0
-          -- , _scst_remaining = Just $ 1 + length txts
-          -- , _scst_events    = Just []
-          -- }
+          markProgress 1 jobHandle
 
-          markStarted (3 + length txts) jobHandle
-          markProgress 2 jobHandle
-
-          _cids <- mapM (\txt -> do
-                           flowDataText user txt (Multi l) cid (Just flw) jobHandle) txts
+          void $ flowDataText user txt (Multi l) cid (Just flw) jobHandle
           -- printDebug "corpus id" cids
           -- printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
           sendMail user
           -- TODO ...
           markComplete jobHandle
 
-        (err:_) -> do
+        Left err -> do
           -- printDebug "Error: " err
-          markFailure 1 (Just $ T.pack (show err)) jobHandle
+          markFailed (Just $ T.pack (show err)) jobHandle
 
 type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
    :> "corpus"
