@@ -32,6 +32,7 @@ import Prelude hiding (null, id, map, sum)
 
 import Gargantext.Core
 import Gargantext.Core.Types
+import Gargantext.Core.Types.Query (Limit, Offset)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Hyperdata.Default
 import Gargantext.Database.Prelude

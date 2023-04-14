@@ -47,6 +47,7 @@ import Gargantext.API.Table
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
+import Gargantext.Core.Types.Query (Limit, Offset)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Core.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
@@ -169,8 +170,8 @@ type PostNodeApi = Summary " PostNode Node with ParentId as {id}"
 
 type ChildrenApi a = Summary " Summary children"
                  :> QueryParam "type"   NodeType
-                 :> QueryParam "offset" Int
-                 :> QueryParam "limit"  Int
+                 :> QueryParam "offset" Offset
+                 :> QueryParam "limit"  Limit
                  -- :> Get '[JSON] [Node a]
                  :> Get '[JSON] (NodeTableResult a)
 
@@ -296,8 +297,8 @@ scoreApi = putScore
 type PairingApi = Summary " Pairing API"
                 :> QueryParam "view"   TabType
                 -- TODO change TabType -> DocType (CorpusId for pairing)
-                :> QueryParam "offset" Int
-                :> QueryParam "limit"  Int
+                :> QueryParam "offset" Offset
+                :> QueryParam "limit"  Limit
                 :> QueryParam "order"  OrderBy
                 :> Get '[JSON] [FacetDoc]
 

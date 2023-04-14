@@ -47,6 +47,7 @@ import qualified Opaleye.Internal.Unpackspec()
 
 import Gargantext.Core
 import Gargantext.Core.Types
+import Gargantext.Core.Types.Query (Limit, Offset, IsTrash)
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Table.Context
 import Gargantext.Database.Query.Table.ContextNodeNgrams
@@ -230,8 +231,8 @@ viewDocumentsQuery cId t ntId mQuery mYear = proc () -> do
 
 ------------------------------------------------------------------------
 filterWith :: (SqlOrd date, SqlOrd title, SqlOrd category, SqlOrd score, hyperdata ~ SqlJsonb) =>
-        Maybe Gargantext.Core.Types.Offset
-     -> Maybe Gargantext.Core.Types.Limit
+        Maybe Offset
+     -> Maybe Limit
      -> Maybe OrderBy
      -> Select (Facet id (Field date) (Field title) (Field hyperdata) (FieldNullable category) ngramCount (FieldNullable score))
      -> Select (Facet id (Field date) (Field title) (Field hyperdata)(FieldNullable category) ngramCount (FieldNullable score))
@@ -261,8 +262,8 @@ orderWith _                = asc facetDoc_created
 
 
 filterWith' :: (SqlOrd date, SqlOrd title, SqlOrd category, SqlOrd score, hyperdata ~ SqlJsonb, SqlOrd ngramCount) =>
-        Maybe Gargantext.Core.Types.Offset
-     -> Maybe Gargantext.Core.Types.Limit
+        Maybe Offset
+     -> Maybe Limit
      -> Maybe OrderBy
      -> Select (Facet id (Field date) (Field title) (Field hyperdata) (Field category) (Field ngramCount) (Field score))
      -> Select (Facet id (Field date) (Field title) (Field hyperdata) (Field category) (Field ngramCount) (Field score))

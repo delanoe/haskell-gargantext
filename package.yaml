@@ -99,6 +99,7 @@ library:
   - Gargantext.Core.Types
   - Gargantext.Core.Types.Individu
   - Gargantext.Core.Types.Main
+  - Gargantext.Core.Types.Query
   - Gargantext.Core.Utils
   - Gargantext.Core.Utils.Prefix
   - Gargantext.Core.Viz.Graph
@@ -389,7 +390,7 @@ executables:
       - split
       - unordered-containers
       - cryptohash
-      - time 
+      - time
 
   gargantext-import:
     main: Main.hs
@@ -559,4 +560,3 @@ tests:
 #    - OverloadedStrings
 #    - RankNTypes
 #
-

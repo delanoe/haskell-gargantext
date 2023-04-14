@@ -23,6 +23,7 @@ import Data.Text (Text, unpack, intercalate)
 import Data.Time (UTCTime)
 import Gargantext.Core
 import Gargantext.Core.Types
+import Gargantext.Core.Types.Query (IsTrash, Limit, Offset)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..), HyperdataContact(..))
 import Gargantext.Database.Prelude (Cmd, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Query.Facet

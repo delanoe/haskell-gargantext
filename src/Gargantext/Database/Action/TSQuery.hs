@@ -9,6 +9,7 @@ import Database.PostgreSQL.Simple (Query)
 import Database.PostgreSQL.Simple.ToField
 import Gargantext.Core
 import Gargantext.Core.Types
+import Gargantext.Core.Types.Query (Limit, Offset)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Prelude
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
@@ -74,5 +75,3 @@ textSearch :: HasDBid NodeType
 textSearch q p l o ord = runPGSQuery textSearchQuery (q,p,p,typeId,ord,o,l)
   where
     typeId = toDBid NodeDocument
-
-

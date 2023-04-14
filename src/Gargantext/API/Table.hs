@@ -43,7 +43,8 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Gargantext.API.HashedResponse
 import Gargantext.API.Ngrams.Types (TabType(..))
 import Gargantext.API.Prelude (GargServer)
-import Gargantext.Core.Types (Offset, Limit, TableResult(..))
+import Gargantext.Core.Types (TableResult(..))
+import Gargantext.Core.Types.Query (Offset, Limit)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Database.Action.Search
@@ -58,8 +59,8 @@ import Gargantext.Prelude
 type TableApi = Summary "Table API"
               :> QueryParam "tabType" TabType
               :> QueryParam "list" ListId
-              :> QueryParam "limit" Int
-              :> QueryParam "offset" Int
+              :> QueryParam "limit" Limit
+              :> QueryParam "offset" Offset
               :> QueryParam "orderBy" OrderBy
               :> QueryParam "query" Text
               :> QueryParam "year" Text
@@ -73,8 +74,8 @@ type TableApi = Summary "Table API"
                 :> Get '[JSON] Text
 
 data TableQuery = TableQuery
-  { tq_offset  :: Int
-  , tq_limit   :: Int
+  { tq_offset  :: Offset
+  , tq_limit   :: Limit
   , tq_orderBy :: OrderBy
   , tq_view    :: TabType
   , tq_query   :: Text
@@ -105,8 +106,8 @@ getTableApi :: HasNodeError err
             => NodeId
             -> Maybe TabType
             -> Maybe ListId
-            -> Maybe Int
-            -> Maybe Int
+            -> Maybe Limit
+            -> Maybe Offset
             -> Maybe OrderBy
             -> Maybe Text
             -> Maybe Text

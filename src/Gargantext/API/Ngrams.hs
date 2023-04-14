@@ -104,7 +104,8 @@ import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude
 import Gargantext.Core.NodeStory
-import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid, HasInvalidError)
+import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, TODO, assertValid, HasInvalidError)
+import Gargantext.Core.Types.Query (Limit(..), Offset(..))
 import Gargantext.API.Ngrams.Tools
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast)
@@ -545,7 +546,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
   -- lIds <- selectNodesWithUsername NodeList userMaster
   let
     ngramsType = ngramsTypeFromTabType tabType
-    offset'  = maybe 0 identity offset
+    offset'  = getOffset $ maybe 0 identity offset
     listType' = maybe (const True) (==) listType
     minSize'  = maybe (const True) (<=) minSize
     maxSize'  = maybe (const True) (>=) maxSize
@@ -590,7 +591,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
 
     -- | Paginate the results
     sortAndPaginate :: [NgramsElement] -> [NgramsElement]
-    sortAndPaginate = take limit_
+    sortAndPaginate = take (getLimit limit_)
                       . drop offset'
                       . sortOnOrder orderBy
 
