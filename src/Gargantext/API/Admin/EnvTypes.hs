@@ -18,11 +18,11 @@ module Gargantext.API.Admin.EnvTypes (
   , ConcreteJobHandle -- opaque
   ) where
 
-import Control.Lens hiding ((:>))
+import Control.Lens hiding ((:<))
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Pool (Pool)
-import Data.Sequence (Seq, ViewR(..), viewr)
+import Data.Sequence (Seq, ViewL(..), viewl)
 import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
 import Network.HTTP.Client (Manager)
@@ -159,12 +159,12 @@ instance Jobs.MonadJobStatus (GargM Env err) where
       Just j  -> case jTask j of
         QueuedJ _   -> pure noJobLog
         RunningJ rj -> liftIO (rjGetLog rj) <&>
-                         \lgs -> case viewr lgs of
-                                   EmptyR -> noJobLog
-                                   _ :> l -> l
-        DoneJ lgs _ -> pure $ case viewr lgs of
-                                   EmptyR -> noJobLog
-                                   _ :> l -> l
+                         \lgs -> case viewl lgs of
+                                   EmptyL -> noJobLog
+                                   l :< _ -> l
+        DoneJ lgs _ -> pure $ case viewl lgs of
+                                   EmptyL -> noJobLog
+                                   l :< _ -> l
 
   withTracer extraLogger (JobHandle jId logger) n = n (JobHandle jId (\w -> logger w >> liftIO (extraLogger w)))
 

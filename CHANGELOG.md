@@ -1,3 +1,82 @@
+## Version 0.0.6.9.8.6.2
+
+* [BACK][FIX][Progress Bar (#192)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/192)
+
+## Version 0.0.6.9.8.6.1
+
+* [FRONT][ADM][ Do not use `master` as a revision for `easy-ps.nix`](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/merge_requests/339)
+
+## Version 0.0.6.9.8.6
+
+* [BACK][DOC][Welcome: Door To enter the project (#177)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/177)
+* [BACK][FEAT] Adding more redundancies of Text in FrameWrite parsing (Notes)
+* [BACK][FIX] Clean code for documentation haddock
+* [BACK][FIX][Doc Table: count (#175)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/175)
+* [BACK][FIX][Error WOS import](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/196)
+* [BACK][FIX][List upload does not work any more (#191)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/191)
+* [BACK][FIX][NLP parsing] Removing urls which are untokenable for Spacy
+* [BACK][FIX][query pubmed, arxiv, istex, HAL not working anymore (#193)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/193)
+* [FRONT][DOC][[Graph Toolbar] Add tooltips/legends on buttons (#529)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/529)
+* [FRONT][FIX][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
+
+## Version 0.0.6.9.8.5.1
+
+* [FRONT][FIX][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
+
+## Version 0.0.6.9.8.5
+
+* [BACK][REFACT][JOBs&#39; API (#185)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/185)
+
+## Version 0.0.6.9.8.4
+
+* [FRONT][FIX][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
+* [BACK][FIX][query pubmed, arxiv, istex, HAL not working anymore (#193)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/193)
+* [BACK][FIX] Username could be an email
+
+## Version 0.0.6.9.8.3
+
+* [BACK][REFACT][JOBs&#39; API (#185)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/185)
+* [FRONT][CSS][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
+* [BACK][FEAT][Adding New Language NLP tools through gargantext.ini (postagging case) (#184)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/184)
+
+## Version 0.0.6.9.8.2.2
+
+* [FRONT][CSS][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
+
+## Version 0.0.6.9.8.2.1
+
+* [BACK][FIX][FrameCalc POST method not allowed any more (#190)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/190) (cherry-pick to testing)
+* [BACK][OPTIM] Quality tested and optimized Order 2 (with recursive clustering)
+
+## Version 0.0.6.9.8.2
+
+* [BACK][OPTIM] Back to Distri Similarity (2)
+
+## Version 0.0.6.9.8.1
+
+* [BACK][FEAT/ADM][Adding New Language NLP tools through gargantext.ini (postagging case) (#184)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/184)
+  * UPGRADE: update your gargantext ini file with the [nlp] section check the gargantext.ini_toModify file as example
+* [BACK][SPACY] NLP server tested with FR lang
+
+## Version 0.0.6.9.8
+
+* [BACK][FRONT][FEAT] Phylo 1 click
+
+## Version 0.0.6.9.7.6
+
+* [BACK][UPGRADE] Igraph bindings
+* [BACK][NIX][Adapt nix configuration of haskell-igraph (#187)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/187)
+* [FRONT][CLEAN] Node Graph, one option only
+
+## Version 0.0.6.9.7.5
+
+* [FRONT][CSS][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
+* [FRONT][CSS][FA send button not available (#517)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/517)
+
+## Version 0.0.6.9.7.4
+
+* [FRONT][FIX] Node Settings : Main nodes (Private, Shared, Public) can not be deleted or created.
+
 ## Version 0.0.6.9.7.3
 
 * [FRONT][FIX][[hackathon] GraphExplorer fixes (#489)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/489)
