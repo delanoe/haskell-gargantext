@@ -1,3 +1,7 @@
+## Version 0.0.6.9.8.6.2
+
+* [BACK][FIX][Progress Bar (#192)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/192)
+
 ## Version 0.0.6.9.8.6.1
 
 * [FRONT][ADM][ Do not use `master` as a revision for `easy-ps.nix`](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/merge_requests/339)
