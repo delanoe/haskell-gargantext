@@ -28,13 +28,13 @@ import Servant.API
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language
 --
--- Next steps: | DE | IT | SP
---
 --  - EN == english
 --  - FR == french
---  - DE == deutch  (not implemented yet)
---  - IT == italian (not implemented yet)
---  - SP == spanish (not implemented yet)
+--  - DE == deutch
+--  - IT == italian
+--  - ES == spanish
+--  - PL == polish
+--  - CN == chinese
 --
 --  ... add your language and help us to implement it (:
 
