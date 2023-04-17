@@ -49,7 +49,7 @@ get IsTex    la q limit = do
 get Isidore  la q limit = do
   docs <- ISIDORE.get la (fromIntegral <$> limit) (Just q) Nothing
   pure $ Right (Just $ fromIntegral $ length docs, yieldMany docs)
-get _        _  _ _ = undefined
+get externalApi  _  _ _ = panic $ "[G.C.T.Corpus.API] This options are note taken into account: " <>  (cs $ show externalApi)
 
 -- | Some Sugar for the documentation
 type Query = PUBMED.Query
