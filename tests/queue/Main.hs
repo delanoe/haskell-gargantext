@@ -12,9 +12,10 @@ import Control.Exception
 import Control.Monad
 import Control.Monad.Reader
 import Control.Monad.Except
+import Data.Maybe
 import Data.Either
 import Data.List
-import Data.Sequence (Seq)
+import Data.Sequence (Seq, (|>), fromList)
 import GHC.Stack
 import Prelude
 import System.IO.Unsafe
@@ -33,7 +34,20 @@ import Gargantext.API.Prelude
 import Gargantext.API.Admin.EnvTypes as EnvTypes
 import Gargantext.API.Admin.Orchestrator.Types
 
-data JobT = A | B deriving (Eq, Ord, Show, Enum, Bounded)
+data JobT = A
+          | B
+          | C
+          | D
+          deriving (Eq, Ord, Show, Enum, Bounded)
+
+-- | This type models the schedule picked up by the orchestrator.
+newtype JobSchedule = JobSchedule { _JobSchedule :: Seq JobT } deriving (Eq, Show)
+
+addJobToSchedule :: JobT -> MVar JobSchedule -> IO ()
+addJobToSchedule jobt mvar = do
+  modifyMVar_ mvar $ \js -> do
+    let js' = js { _JobSchedule = _JobSchedule js |> jobt }
+    pure js'
 
 data Counts = Counts { countAs :: Int, countBs :: Int }
   deriving (Eq, Show)
@@ -41,8 +55,12 @@ data Counts = Counts { countAs :: Int, countBs :: Int }
 inc, dec :: JobT -> Counts -> Counts
 inc A cs = cs { countAs = countAs cs + 1 }
 inc B cs = cs { countBs = countBs cs + 1 }
+inc C cs = cs
+inc D cs = cs
 dec A cs = cs { countAs = countAs cs - 1 }
 dec B cs = cs { countBs = countBs cs - 1 }
+dec C cs = cs
+dec D cs = cs
 
 jobDuration, initialDelay :: Int
 jobDuration = 100000
@@ -75,29 +93,29 @@ testPrios :: IO ()
 testPrios = do
   k <- genSecret
   let settings = defaultJobSettings 2 k
+      prios    = [(B, 10), (C, 1), (D, 5)]
+      runningDelta job = fromMaybe 0 (lookup job prios) * 1000
   st :: JobsState JobT [String] () <- newJobsState settings $
-    applyPrios [(B, 10)] defaultPrios -- B has higher priority
-  runningJs <- newTVarIO (Counts 0 0)
+    applyPrios prios defaultPrios -- B has the highest priority
+  pickedSchedule <- newMVar (JobSchedule mempty)
   let j jobt _jHandle _inp _l = do
-        atomically $ modifyTVar runningJs (inc jobt)
-        threadDelay jobDuration
-        atomically $ modifyTVar runningJs (dec jobt)
+        -- simulate the running time of a job, then add to the schedule.
+        -- The running time is proportional to the priority of the job,
+        -- to account for the fact that we are pushing jobs sequentially,
+        -- so we have to our account for the submission time.
+        threadDelay $ jobDuration - runningDelta jobt
+        addJobToSchedule jobt pickedSchedule
       jobs = [ (A, j A)
-             , (A, j A)
+             , (C, j C)
              , (B, j B)
-             , (B, j B)
+             , (D, j D)
              ]
-  _jids <- forM jobs $ \(t, f) -> do
-    pushJob t () f settings st
-  threadDelay (2*initialDelay)
-  r1 <- readTVarIO runningJs
-  r1 `shouldBe` (Counts 0 2)
-  threadDelay jobDuration
-  r2 <- readTVarIO runningJs
-  r2 `shouldBe` (Counts 2 0)
-  threadDelay jobDuration
-  r3 <- readTVarIO runningJs
-  r3 `shouldBe` (Counts 0 0)
+  forM_ jobs $ \(t, f) -> void $ pushJob t () f settings st
+  -- wait for the jobs to finish, waiting for more than the total duration,
+  -- so that we are sure that all jobs have finished, then check the schedule.
+  threadDelay (5 * jobDuration)
+  finalSchedule <- readMVar pickedSchedule
+  finalSchedule `shouldBe` JobSchedule (fromList [B, D, C, A])
 
 testExceptions :: IO ()
 testExceptions = do
