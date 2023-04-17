@@ -1,5 +1,11 @@
+## Version 0.0.6.9.8.7
+
+* [FRONT][FEAT][Pin Tree to a specific Node (#513)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/513)
+* [BACK][FIX][Job tests fail randomly (#198)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/198)
+
 ## Version 0.0.6.9.8.6.2
 
+* [BACK][TYPES][query pubmed, arxiv, istex, HAL not working anymore (#193)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/193)
 * [BACK][FIX][Progress Bar (#192)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/192)
 
 ## Version 0.0.6.9.8.6.1
