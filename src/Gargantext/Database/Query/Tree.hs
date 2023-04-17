@@ -117,7 +117,10 @@ tree_advanced r nodeTypes = do
   -- printDebug (rPrefix "publicRoots") publicRoots
   sharedRoots <- findNodes r Shared  nodeTypes
   -- printDebug (rPrefix "sharedRoots") sharedRoots
-  toTree      $ toTreeParent (mainRoot <> sharedRoots <> publicRoots)
+  -- let ret = toSubtreeParent r (mainRoot <> sharedRoots <> publicRoots)
+  -- printDebug (rPrefix "treeParent") ret
+  -- toTree ret
+  toTree $ toSubtreeParent r (mainRoot <> sharedRoots <> publicRoots)
 
 -- | Fetch only first level of tree
 tree_first_level :: (HasTreeError err, HasNodeError err)
