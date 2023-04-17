@@ -27,6 +27,8 @@ module Gargantext.Core.Text.Terms.Multi.PosTagging
 
 import Data.Aeson
 import Data.ByteString.Lazy.Internal (ByteString)
+import qualified Data.ByteString.Lazy.Char8 as BSL
+import qualified Data.Map as Map
 import Data.Set (fromList)
 import Data.Text (Text, splitOn, pack, toLower)
 import Gargantext.Core (Lang(..))
@@ -79,14 +81,43 @@ corenlp' :: ( FromJSON a
             )
           => URI -> Lang -> p -> IO (Response a)
 corenlp' uri lang txt = do
-    let properties = case lang of
-            EN -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
-            FR -> "{\"annotators\": \"tokenize,ssplit,pos,lemma,ner\", \"parse.model\":\"edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz\", \"pos.model\":\"edu/stanford/nlp/models/pos-tagger/french/french.tagger\", \"tokenize.language\":\"fr\", \"outputFormat\": \"json\"}"
-            _  -> panic $ pack "not implemented yet"
-    req <- parseRequest $ "POST " <> show (uri { uriQuery = "?properties=" <> properties })
-    -- curl -XPOST 'http://localhost:9000/?properties=%7B%22annotators%22:%20%22tokenize,ssplit,pos,ner%22,%20%22outputFormat%22:%20%22json%22%7D' -d 'hello world, hello' | jq .
-    let request = setRequestBodyLBS (cs txt) req
-    httpJSON request
+  req <- parseRequest $
+         "POST " <> show (uri { uriQuery = "?properties=" <> (BSL.unpack $ encode $ toJSON $ Map.fromList properties) })
+   -- curl -XPOST 'http://localhost:9000/?properties=%7B%22annotators%22:%20%22tokenize,ssplit,pos,ner%22,%20%22outputFormat%22:%20%22json%22%7D' -d 'hello world, hello' | jq .
+  httpJSON $ setRequestBodyLBS (cs txt) req
+  where
+    properties_ :: [(Text, Text)]
+    properties_ = case lang of
+-- TODO: Add: Aeson.encode $ Aeson.toJSON $ Map.fromList [()] instead of these hardcoded JSON strings
+            EN -> [ ("annotators", "tokenize,ssplit,pos,ner" ) ]
+            FR -> [ ("annotators", "tokenize,ssplit,pos,lemma,ner")
+                  -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
+                  , ("pos.model", "edu/stanford/nlp/models/pos-tagger/french/french.tagger")
+                  , ("tokenize.language", "fr") ]
+            DE -> [ ("annotators", "tokenize,ssplit,pos,lemma,ner")
+                  -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
+                  , ("pos.model", "edu/stanford/nlp/models/pos-tagger/french/german-hgc.tagger")
+                  , ("tokenize.language", "de") ]
+            ES -> [ ("annotators", "tokenize,ssplit,pos,lemma,ner")
+                  -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
+                  , ("pos.model", "edu/stanford/nlp/models/pos-tagger/french/spanish.tagger")
+                  , ("tokenize.language", "es") ]
+            IT -> [ ("annotators", "tokenize,ssplit,pos,lemma,ner")
+                  -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
+                  -- , ("pos.model", "edu/stanford/nlp/models/pos-tagger/french/french.tagger")
+                  , ("tokenize.language", "it") ]
+            PL -> [ ("annotators", "tokenize,ssplit,pos,lemma,ner")
+                  -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
+                  -- , ("pos.model", "edu/stanford/nlp/models/pos-tagger/french/french.tagger")
+                  , ("tokenize.language", "pl") ]
+            CN -> [ ("annotators", "tokenize,ssplit,pos,lemma,ner")
+                  -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
+                  , ("pos.model", "edu/stanford/nlp/models/pos-tagger/french/chinese-distsim.tagger")
+                  , ("tokenize.language", "zh") ]
+            l  -> panic $ pack $ "corenlp for language " <> show l <> " is not implemented yet"
+
+    properties = properties_ <> [ ("outputFormat", "json") ]
+
 
 
 corenlp :: URI -> Lang -> Text -> IO PosSentences

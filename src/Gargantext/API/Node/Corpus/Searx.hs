@@ -47,6 +47,11 @@ import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add
 langToSearx :: Lang -> Text
 langToSearx EN = "en-US"
 langToSearx FR = "fr-FR"
+langToSearx DE = "de-FR"
+langToSearx ES = "es-FR"
+langToSearx IT = "it-FR"
+langToSearx PL = "pl-FR"
+langToSearx CN = "cn-FR"
 langToSearx All = "en-US"
 
 data SearxResult = SearxResult

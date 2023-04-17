@@ -28,30 +28,37 @@ import Servant.API
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language
 --
--- Next steps: | DE | IT | SP
---
 --  - EN == english
 --  - FR == french
---  - DE == deutch  (not implemented yet)
---  - IT == italian (not implemented yet)
---  - SP == spanish (not implemented yet)
+--  - DE == deutch
+--  - IT == italian
+--  - ES == spanish
+--  - PL == polish
+--  - CN == chinese
 --
 --  ... add your language and help us to implement it (:
 
 -- | All languages supported
--- TODO : DE | SP | CH
-data Lang = EN | FR | All
-  deriving (Show, Eq, Ord, Bounded, Enum, Generic, GQLType)
+-- NOTE: Use international country codes
+-- https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes
+data Lang = EN | FR | DE | IT | PL | ES | CN | All
+  deriving (Show, Eq, Ord, Enum, Bounded, Generic, GQLType)
 
 instance ToJSON Lang
 instance FromJSON Lang
-instance ToSchema Lang
+instance ToSchema Lang where
+  declareNamedSchema = genericDeclareNamedSchemaUnrestricted defaultSchemaOptions
 instance FromHttpApiData Lang
   where
     parseUrlPiece "EN"  = pure EN
     parseUrlPiece "FR"  = pure FR
+    parseUrlPiece "DE"  = pure DE
+    parseUrlPiece "ES"  = pure ES
+    parseUrlPiece "IT"  = pure IT
+    parseUrlPiece "PL"  = pure PL
+    parseUrlPiece "CN"  = pure CN
     parseUrlPiece "All" = pure All
-    parseUrlPiece _     = Left "Unexpected value of OrderBy"
+    parseUrlPiece _     = Left "Unexpected value of Lang"
 instance ToHttpApiData Lang where
   toUrlPiece = pack . show
 instance Hashable Lang
@@ -63,14 +70,27 @@ class HasDBid a where
   toDBid   :: a   -> Int
   fromDBid :: Int -> a
 
+-- NOTE: We try to use numeric codes for countries
+-- https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes
+-- https://en.wikipedia.org/wiki/ISO_3166-1_numeric#004
 instance HasDBid Lang where
   toDBid All = 0
   toDBid FR  = 1
   toDBid EN  = 2
+  toDBid DE  = 276
+  toDBid ES  = 724
+  toDBid IT  = 380
+  toDBid PL  = 616
+  toDBid CN  = 156
 
   fromDBid 0 = All
   fromDBid 1 = FR
   fromDBid 2 = EN
+  fromDBid 276 = DE
+  fromDBid 724 = ES
+  fromDBid 380 = IT
+  fromDBid 616 = PL
+  fromDBid 156 = CN
   fromDBid _ = panic "HasDBid lang, not implemented"
 
 ------------------------------------------------------------------------

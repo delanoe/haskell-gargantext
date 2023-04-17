@@ -15,7 +15,7 @@ import GHC.Generics (Generic)
 import Servant.Job.Utils (jsonOptions)
 import Web.FormUrlEncoded          (FromForm, ToForm)
 
-import Gargantext.Core (Lang(..){-, allLangs-})
+import Gargantext.Core (Lang(..))
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Prelude
 import qualified Gargantext.Database.GargDB as GargDB

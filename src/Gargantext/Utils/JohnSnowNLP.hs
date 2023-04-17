@@ -38,17 +38,38 @@ data JSSpell = JSPOS Lang | JSLemma Lang
 instance ToJSON JSSpell where
   toJSON (JSPOS EN)    = "en.pos"
   toJSON (JSPOS FR)    = "fr.pos"
+  toJSON (JSPOS DE)    = "de.pos"
+  toJSON (JSPOS ES)    = "es.pos"
+  toJSON (JSPOS IT)    = "it.pos"
+  toJSON (JSPOS PL)    = "pl.pos"
+  toJSON (JSPOS CN)    = "cn.pos"
   toJSON (JSPOS All)   = "pos"
+
   toJSON (JSLemma EN)  = "en.lemma"
   toJSON (JSLemma FR)  = "fr.lemma"
+  toJSON (JSLemma DE)  = "de.lemma"
+  toJSON (JSLemma ES)  = "es.lemma"
+  toJSON (JSLemma IT)  = "it.lemma"
+  toJSON (JSLemma PL)  = "pl.lemma"
+  toJSON (JSLemma CN)  = "cn.lemma"
   toJSON (JSLemma All) = "lemma"
 
 instance FromJSON JSSpell where
   parseJSON (String "en.pos")   = pure $ JSPOS EN
   parseJSON (String "fr.pos")   = pure $ JSPOS FR
+  parseJSON (String "de.pos")   = pure $ JSPOS DE
+  parseJSON (String "es.pos")   = pure $ JSPOS ES
+  parseJSON (String "it.pos")   = pure $ JSPOS IT
+  parseJSON (String "pl.pos")   = pure $ JSPOS PL
+  parseJSON (String "cn.pos")   = pure $ JSPOS CN
   parseJSON (String "pos")      = pure $ JSPOS All
   parseJSON (String "en.lemma") = pure $ JSLemma EN
   parseJSON (String "fr.lemma") = pure $ JSLemma FR
+  parseJSON (String "de.lemma") = pure $ JSLemma DE
+  parseJSON (String "es.lemma") = pure $ JSLemma ES
+  parseJSON (String "it.lemma") = pure $ JSLemma IT
+  parseJSON (String "pl.lemma") = pure $ JSLemma PL
+  parseJSON (String "cn.lemma") = pure $ JSLemma CN
   parseJSON (String "lemma")    = pure $ JSLemma All
   parseJSON s =
     prependFailure "parsing spell failed, "
