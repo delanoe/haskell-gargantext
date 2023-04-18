@@ -123,14 +123,14 @@ cooc2graphWith' _doPartitions _bridgenessMethod multi similarity threshold stren
 
   partitions <- if (Map.size distanceMap > 0)
       then recursiveClustering' (spinglass' 1) distanceMap
-      else panic $ Text.unlines [ "I can not compute the graph you request"
-                                , "because either the quantity of documents"
-                                , "or the quantity of terms"
-                                , "are lacking. "
-                                , "Solution: add more either Documents or Map Terms to your analysis. "
-                                , "Follow the available tutorials on the Training EcoSystems. "
-                                , "Ask your co-users of GarganText how to have access to it."
-                                ]
+      else panic $ Text.intercalate " " [ "I can not compute the graph you request"
+                                        , "because either the quantity of documents"
+                                        , "or the quantity of terms"
+                                        , "are lacking."
+                                        , "Solution: add more either Documents or Map Terms to your analysis."
+                                        , "Follow the available tutorials on the Training EcoSystems."
+                                        , "Ask your co-users of GarganText how to have access to it."
+                                        ]
   length partitions `seq` return ()
 
   let
