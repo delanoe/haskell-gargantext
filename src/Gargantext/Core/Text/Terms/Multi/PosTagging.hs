@@ -92,15 +92,15 @@ corenlp' uri lang txt = do
             EN -> [ ("annotators", "tokenize,ssplit,pos,ner" ) ]
             FR -> [ ("annotators", "tokenize,ssplit,pos,lemma,ner")
                   -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
-                  , ("pos.model", "edu/stanford/nlp/models/pos-tagger/french/french.tagger")
+                  , ("pos.model", "edu/stanford/nlp/models/pos-tagger/models/french.tagger")
                   , ("tokenize.language", "fr") ]
             DE -> [ ("annotators", "tokenize,ssplit,pos,lemma,ner")
                   -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
-                  , ("pos.model", "edu/stanford/nlp/models/pos-tagger/french/german-hgc.tagger")
+                  , ("pos.model", "edu/stanford/nlp/models/pos-tagger/models/german-hgc.tagger")
                   , ("tokenize.language", "de") ]
             ES -> [ ("annotators", "tokenize,ssplit,pos,lemma,ner")
                   -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
-                  , ("pos.model", "edu/stanford/nlp/models/pos-tagger/french/spanish.tagger")
+                  , ("pos.model", "edu/stanford/nlp/models/pos-tagger/models/spanish.tagger")
                   , ("tokenize.language", "es") ]
             IT -> [ ("annotators", "tokenize,ssplit,pos,lemma,ner")
                   -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
@@ -110,9 +110,9 @@ corenlp' uri lang txt = do
                   -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
                   -- , ("pos.model", "edu/stanford/nlp/models/pos-tagger/french/french.tagger")
                   , ("tokenize.language", "pl") ]
-            CN -> [ ("annotators", "tokenize,ssplit,pos,lemma,ner")
+            CN -> [ ("annotators", "tokenize,pos,lemma,ner")
                   -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
-                  , ("pos.model", "edu/stanford/nlp/models/pos-tagger/french/chinese-distsim.tagger")
+                  , ("pos.model", "edu/stanford/nlp/models/pos-tagger/models/chinese-distsim.tagger")
                   , ("tokenize.language", "zh") ]
             l  -> panic $ pack $ "corenlp for language " <> show l <> " is not implemented yet"
 

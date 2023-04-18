@@ -97,13 +97,13 @@ instance HasDBid Lang where
 data NLPServerConfig = NLPServerConfig
   { server :: !PosTagAlgo
   , url    :: !URI }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
 ------------------------------------------------------------------------
 type Form = Text
 type Lem  = Text
 ------------------------------------------------------------------------
 data PosTagAlgo = CoreNLP | JohnSnowServer | Spacy
-  deriving (Show, Read, Eq, Ord, Generic)
+  deriving (Show, Read, Eq, Ord, Generic, GQLType)
 
 instance Hashable PosTagAlgo
 

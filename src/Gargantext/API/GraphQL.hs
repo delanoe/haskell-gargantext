@@ -46,6 +46,7 @@ import qualified Gargantext.API.GraphQL.TreeFirstLevel as GQLTree
 import qualified Gargantext.API.GraphQL.Team as GQLTeam
 import Gargantext.API.Prelude (GargM, GargError)
 import Gargantext.API.Types
+import Gargantext.Core.NLP (HasNLPServer)
 import Gargantext.Database.Prelude (CmdCommon)
 import Gargantext.Prelude
 import GHC.Generics (Generic)
@@ -71,7 +72,7 @@ data Query m
     , contexts_for_ngrams :: GQLCTX.ContextsForNgramsArgs -> m [GQLCTX.ContextGQL]
     , imt_schools         :: GQLIMT.SchoolsArgs -> m [GQLIMT.School]
     , job_logs            :: GQLAT.JobLogArgs -> m (Map Int JobLog)
-    , languages           :: GQLNLP.LanguagesArgs -> m [GQLNLP.Lang]
+    , languages           :: GQLNLP.LanguagesArgs -> m GQLNLP.LanguagesMap
     , nodes               :: GQLNode.NodeArgs -> m [GQLNode.Node]
     , node_parent         :: GQLNode.NodeParentArgs -> m [GQLNode.Node]
     , user_infos          :: GQLUserInfo.UserInfoArgs -> m [GQLUserInfo.UserInfo]
@@ -105,7 +106,7 @@ data Contet m
 -- | The main GraphQL resolver: how queries, mutations and
 -- subscriptions are handled.
 rootResolver
-  :: (CmdCommon env, HasJobEnv' env, HasSettings env)
+  :: (CmdCommon env, HasNLPServer env, HasJobEnv' env, HasSettings env)
   => RootResolver (GargM env GargError) e Query Mutation Undefined
 rootResolver =
   RootResolver
@@ -128,7 +129,7 @@ rootResolver =
 
 -- | Main GraphQL "app".
 app
-  :: (Typeable env, CmdCommon env, HasJobEnv' env, HasSettings env)
+  :: (Typeable env, CmdCommon env, HasJobEnv' env, HasNLPServer env, HasSettings env)
   => App (EVENT (GargM env GargError)) (GargM env GargError)
 app = deriveApp rootResolver
 
