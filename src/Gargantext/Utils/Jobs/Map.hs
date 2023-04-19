@@ -124,13 +124,13 @@ jobLog logvar = \w -> atomically $ modifyTVar' logvar (\old_w -> w <> old_w)
 -- | Generating new 'JobEntry's.
 addJobEntry
   :: Ord jid
-  => jid
+  => UTCTime
+  -> jid
   -> a
   -> (jid -> a -> Logger w -> IO r)
   -> JobMap jid w r
-  -> IO (JobEntry jid w r)
-addJobEntry jid input f (JobMap mvar) = do
-  now <- getCurrentTime
+  -> STM (JobEntry jid w r)
+addJobEntry now jid input f (JobMap mvar) = do
   let je = JobEntry
         { jID = jid
         , jTask = QueuedJ (QueuedJob input (f jid))
@@ -139,8 +139,8 @@ addJobEntry jid input f (JobMap mvar) = do
         , jStarted = Nothing
         , jEnded = Nothing
         }
-  atomically $ modifyTVar' mvar (Map.insert jid je)
-  return je
+  modifyTVar' mvar (Map.insert jid je)
+  pure je
 
 deleteJob :: Ord jid => jid -> JobMap jid w a -> STM ()
 deleteJob jid (JobMap mvar) = modifyTVar' mvar (Map.delete jid)

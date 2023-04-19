@@ -29,11 +29,10 @@ data JobsState t w a = JobsState
   , jsRunners :: [Async ()]
   }
 
-nextID :: JobSettings -> JobsState t w a -> IO (SJ.JobID 'SJ.Safe)
-nextID js st = do
-  now <- getCurrentTime
-  n <- atomically $ stateTVar (jobsIdGen st) $ \i -> (i, i+1)
-  return $ SJ.newID (Proxy :: Proxy "job") (jsSecretKey js) now n
+nextID :: UTCTime -> JobSettings -> JobsState t w a -> STM (SJ.JobID 'SJ.Safe)
+nextID now js st = do
+  n <- stateTVar (jobsIdGen st) $ \i -> (i, i+1)
+  pure $ SJ.newID (Proxy :: Proxy "job") (jsSecretKey js) now n
 
 newJobsState
   :: forall t w a.
@@ -72,6 +71,7 @@ newJobsState js prios = do
           return (jid, popjid)
 
         _3 (_, _, c) = c
+
 pushJob
   :: Ord t
   => t
@@ -80,8 +80,21 @@ pushJob
   -> JobSettings
   -> JobsState t w r
   -> IO (SJ.JobID 'SJ.Safe)
-pushJob jobkind input f js st@(JobsState jmap jqueue _idgen _ _) = do
-  jid <- nextID js st
-  _je <- addJobEntry jid input f jmap
+pushJob jobkind input f js st = do
+  now <- getCurrentTime
+  atomically $ pushJobWithTime now jobkind input f js st
+
+pushJobWithTime
+  :: Ord t
+  => UTCTime
+  -> t
+  -> a
+  -> (SJ.JobID 'SJ.Safe -> a -> Logger w -> IO r)
+  -> JobSettings
+  -> JobsState t w r
+  -> STM (SJ.JobID 'SJ.Safe)
+pushJobWithTime now jobkind input f js st@(JobsState jmap jqueue _idgen _ _) = do
+  jid <- nextID now js st
+  _je <- addJobEntry now jid input f jmap
   addQueue jobkind jid jqueue
-  return jid
+  pure jid

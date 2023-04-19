@@ -16,6 +16,7 @@ import Data.Maybe
 import Data.Either
 import Data.List
 import Data.Sequence (Seq, (|>), fromList)
+import Data.Time
 import GHC.Stack
 import Prelude
 import System.IO.Unsafe
@@ -92,28 +93,28 @@ testMaxRunners = do
 testPrios :: IO ()
 testPrios = do
   k <- genSecret
-  let settings = defaultJobSettings 2 k
+  -- Use a single runner, so that we can check the order of execution
+  -- without worrying about the runners competing with each other.
+  let settings = defaultJobSettings 1 k
       prios    = [(B, 10), (C, 1), (D, 5)]
-      runningDelta job = fromMaybe 0 (lookup job prios) * 1000
   st :: JobsState JobT [String] () <- newJobsState settings $
     applyPrios prios defaultPrios -- B has the highest priority
   pickedSchedule <- newMVar (JobSchedule mempty)
-  let j jobt _jHandle _inp _l = do
-        -- simulate the running time of a job, then add to the schedule.
-        -- The running time is proportional to the priority of the job,
-        -- to account for the fact that we are pushing jobs sequentially,
-        -- so we have to our account for the submission time.
-        threadDelay $ jobDuration - runningDelta jobt
-        addJobToSchedule jobt pickedSchedule
+  let j jobt _jHandle _inp _l = addJobToSchedule jobt pickedSchedule
       jobs = [ (A, j A)
              , (C, j C)
              , (B, j B)
              , (D, j D)
              ]
-  forM_ jobs $ \(t, f) -> void $ pushJob t () f settings st
+
+  -- Push all the jobs in the same STM transaction, so that they are all stored in the queue by
+  -- the time 'popQueue' gets called.
+  now <- getCurrentTime
+  atomically $ forM_ jobs $ \(t, f) -> void $ pushJobWithTime now t () f settings st
+
   -- wait for the jobs to finish, waiting for more than the total duration,
   -- so that we are sure that all jobs have finished, then check the schedule.
-  threadDelay (5 * jobDuration)
+  threadDelay jobDuration
   finalSchedule <- readMVar pickedSchedule
   finalSchedule `shouldBe` JobSchedule (fromList [B, D, C, A])
 

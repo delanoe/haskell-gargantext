@@ -4,6 +4,7 @@ module Gargantext.Utils.Jobs.Queue where
 import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Exception
+import Control.Monad
 import Data.Function
 import Data.List
 import Data.Ord
@@ -94,9 +95,9 @@ newQueue prios = do
   return $ Queue vars indices prios
 
 -- | Add a new element to the queue, with the given kind.
-addQueue :: Ord t => t -> a -> Queue t a -> IO ()
+addQueue :: Ord t => t -> a -> Queue t a -> STM ()
 addQueue jobkind a q = case Map.lookup jobkind (queueIndices q) of
-  Just i -> atomically $ modifyTVar (queueData q Vector.! i) (snocQ a)
+  Just i -> modifyTVar (queueData q Vector.! i) (snocQ a)
   Nothing -> error "addQueue: couldn't find queue for given job kind"
 
 deleteQueue :: (Eq a, Ord t) => t -> a -> Queue t a -> STM ()
@@ -104,6 +105,13 @@ deleteQueue jobkind a q = case Map.lookup jobkind (queueIndices q) of
   Just i -> modifyTVar (queueData q Vector.! i) (deleteQ a)
   Nothing -> error "deleteQueue: queue type not found?!"
 
+-- | Dump the contents of the queue, for debugging purposes.
+debugDumpQueue :: (Enum t, Bounded t, Ord t) => Queue t a -> STM [(t, a)]
+debugDumpQueue q = mconcat <$> (forM [minBound..maxBound] $ \t -> do
+  readTVar (queueData q Vector.! (i t)) >>= debugDumpQ t)
+  where
+    i t = fromJust $ Map.lookup t (queueIndices q)
+    debugDumpQ t (Q xs ys _) = return $ map (\x -> (t, x)) (xs ++ reverse ys)
 
 type Picker a = [(a, STM ())] -> STM (a, STM ())
 
@@ -125,7 +133,7 @@ popQueue picker q = atomically $ select prioLevels
           mres <- selectLevel level
           case mres of
             Nothing  -> select levels
-            Just res -> return (Just res)
+            Just res -> pure $ Just res
 
         selectLevel :: [(t, Prio)] -> STM (Maybe a)
         selectLevel xs = do
