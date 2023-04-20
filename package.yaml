@@ -533,6 +533,7 @@ tests:
      - http-client-tls
      - servant-job
      - stm
+     - time
 #  garg-doctest:
 #    main: Main.hs
 #    source-dirs: src-doctest

@@ -929,4 +929,5 @@ test-suite jobqueue-test
     , servant-job
     , stm
     , text
+    , time
   default-language: Haskell2010
