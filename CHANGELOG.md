@@ -1,3 +1,7 @@
+## Version 0.0.6.9.9
+
+* [BACK][FEAT][Adding New Language NLP tools through gargantext.ini (postagging case) (#184)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/184)
+
 ## Version 0.0.6.9.8.7.1
 
 * [BACK][FIX][Job tests fail randomly (#198)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/198)
