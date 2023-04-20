@@ -41,7 +41,7 @@ import Servant.API
 -- | All languages supported
 -- NOTE: Use international country codes
 -- https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes
-data Lang = EN | FR | DE | IT | PL | ES | CN | All
+data Lang = EN | FR | DE | IT | PL | PT | ES | EL | CN | UK | RU | ZH | All
   deriving (Show, Eq, Ord, Enum, Bounded, Generic, GQLType)
 
 instance ToJSON Lang
