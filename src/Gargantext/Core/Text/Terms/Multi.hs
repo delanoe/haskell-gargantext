@@ -52,7 +52,7 @@ tokenTag2terms :: TokenTag -> Terms
 tokenTag2terms (TokenTag ws t _ _) =  Terms ws t
 
 tokenTags :: NLPServerConfig -> Lang -> Text -> IO [[TokenTag]]
-tokenTags (NLPServerConfig { server = CoreNLP, url }) l txt = tokenTagsWith l txt $ corenlp url
+tokenTags (NLPServerConfig { server = CoreNLP, url }) EN txt = tokenTagsWith EN txt $ corenlp url
 tokenTags (NLPServerConfig { server = Spacy, url }) l txt = tokenTagsWith l txt $ SpacyNLP.nlp url
 -- tokenTags FR txt = do
 --   -- printDebug "[Spacy Debug]" txt
@@ -74,7 +74,7 @@ tokenTagsWith lang txt nlp = map (groupTokens lang)
 groupTokens :: Lang -> [TokenTag] -> [TokenTag]
 groupTokens EN = En.groupTokens
 groupTokens FR = Fr.groupTokens
-groupTokens _  = panic $ pack "groupTokens :: Lang not implemeted yet"
+groupTokens _  = Fr.groupTokens
 
 -- TODO: make tests here
 cleanTextForNLP :: Text -> Text

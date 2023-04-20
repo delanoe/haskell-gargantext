@@ -27,8 +27,6 @@ module Gargantext.Core.Text.Terms.Multi.PosTagging
 
 import Data.Aeson
 import Data.ByteString.Lazy.Internal (ByteString)
-import qualified Data.ByteString.Lazy.Char8 as BSL
-import qualified Data.Map as Map
 import Data.Set (fromList)
 import Data.Text (Text, splitOn, pack, toLower)
 import Gargantext.Core (Lang(..))
@@ -37,10 +35,10 @@ import Gargantext.Core.Types
 import Gargantext.Prelude
 import Network.HTTP.Simple
 import Network.URI (URI(..))
+import qualified Data.ByteString.Lazy.Char8 as BSL
+import qualified Data.Map as Map
 
 -- import qualified Gargantext.Utils.SpacyNLP as SpacyNLP
-
-
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -110,7 +108,7 @@ corenlp' uri lang txt = do
                   -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
                   -- , ("pos.model", "edu/stanford/nlp/models/pos-tagger/french/french.tagger")
                   , ("tokenize.language", "pl") ]
-            CN -> [ ("annotators", "tokenize,pos,lemma,ner")
+            ZH -> [ ("annotators", "tokenize,pos,lemma,ner")
                   -- , ("parse.model", "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz")
                   , ("pos.model", "edu/stanford/nlp/models/pos-tagger/models/chinese-distsim.tagger")
                   , ("tokenize.language", "zh") ]

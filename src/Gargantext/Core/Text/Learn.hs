@@ -39,7 +39,7 @@ import Gargantext.Core (Lang(..), allLangs)
 import Gargantext.Core.Text.Terms.Mono (words)
 import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
 
-import qualified Gargantext.Core.Text.Samples.CN as CN
+import qualified Gargantext.Core.Text.Samples.ZH as ZH
 import qualified Gargantext.Core.Text.Samples.DE as DE
 import qualified Gargantext.Core.Text.Samples.EN as EN
 import qualified Gargantext.Core.Text.Samples.ES as ES
@@ -115,7 +115,7 @@ detectLangDefault = detectCat 99 eventLang
     textSample FR = FR.textSample
     textSample DE = DE.textSample
     textSample ES = ES.textSample
-    textSample CN = CN.textSample
+    textSample ZH = ZH.textSample
     textSample PL = PL.textSample
     textSample _  = panic "[G.C.T.L:detectLangDefault] not impl yet"
     --textSample DE = DE.textSample

@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Text.Samples.CN
+Module      : Gargantext.Core.Text.Samples.ZH
 Description : Sample of Chinese Text
 Copyright   : (c) CNRS, 2017 - present
 License     : AGPL + CECILL v3
@@ -14,7 +14,7 @@ Page  : text mining
 
 
 
-module Gargantext.Core.Text.Samples.CN where
+module Gargantext.Core.Text.Samples.ZH where
 
 import Data.String (String)
 

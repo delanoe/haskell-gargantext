@@ -14,15 +14,17 @@ Portability : POSIX
 module Gargantext.Core
   where
 
-import Data.Text (Text, pack)
 import Data.Aeson
 import Data.Either(Either(Left))
 import Data.Hashable (Hashable)
 import Data.Morpheus.Types (GQLType)
 import Data.Swagger
+import Data.Text (Text, pack)
+import Data.Tuple.Extra (swap)
 import GHC.Generics (Generic)
 import Gargantext.Prelude
 import Servant.API
+import qualified Data.Map as Map
 
 ------------------------------------------------------------------------
 -- | Language of a Text
@@ -34,14 +36,25 @@ import Servant.API
 --  - IT == italian
 --  - ES == spanish
 --  - PL == polish
---  - CN == chinese
+--  - ZH == chinese
 --
 --  ... add your language and help us to implement it (:
 
 -- | All languages supported
 -- NOTE: Use international country codes
 -- https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes
-data Lang = EN | FR | DE | IT | PL | PT | ES | EL | CN | UK | RU | ZH | All
+data Lang = All
+          | DE
+          | EL
+          | EN
+          | ES
+          | FR
+          | IT
+          | PL
+          | PT
+          | RU
+          | UK
+          | ZH
   deriving (Show, Eq, Ord, Enum, Bounded, Generic, GQLType)
 
 instance ToJSON Lang
@@ -50,14 +63,18 @@ instance ToSchema Lang where
   declareNamedSchema = genericDeclareNamedSchemaUnrestricted defaultSchemaOptions
 instance FromHttpApiData Lang
   where
-    parseUrlPiece "EN"  = pure EN
-    parseUrlPiece "FR"  = pure FR
+    parseUrlPiece "All" = pure All
     parseUrlPiece "DE"  = pure DE
+    parseUrlPiece "EL"  = pure EL
+    parseUrlPiece "EN"  = pure EN
     parseUrlPiece "ES"  = pure ES
+    parseUrlPiece "FR"  = pure FR
     parseUrlPiece "IT"  = pure IT
     parseUrlPiece "PL"  = pure PL
-    parseUrlPiece "CN"  = pure CN
-    parseUrlPiece "All" = pure All
+    parseUrlPiece "PT"  = pure PT
+    parseUrlPiece "RU"  = pure RU
+    parseUrlPiece "UK"  = pure UK
+    parseUrlPiece "ZH"  = pure ZH
     parseUrlPiece _     = Left "Unexpected value of Lang"
 instance ToHttpApiData Lang where
   toUrlPiece = pack . show
@@ -73,25 +90,29 @@ class HasDBid a where
 -- NOTE: We try to use numeric codes for countries
 -- https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes
 -- https://en.wikipedia.org/wiki/ISO_3166-1_numeric#004
-instance HasDBid Lang where
-  toDBid All = 0
-  toDBid FR  = 1
-  toDBid EN  = 2
-  toDBid DE  = 276
-  toDBid ES  = 724
-  toDBid IT  = 380
-  toDBid PL  = 616
-  toDBid CN  = 156
+dbIds :: [(Lang, Int)]
+dbIds = [ (All, 0  )
+        , (DE , 276)
+        , (EL , 300)
+        , (EN , 2  )
+        , (ES , 724)
+        , (FR , 1  )
+        , (IT , 380)
+        , (PL , 616)
+        , (PT , 620)
+        , (RU , 643)
+        , (UK , 804)
+        , (ZH , 156)
+        ]
 
-  fromDBid 0 = All
-  fromDBid 1 = FR
-  fromDBid 2 = EN
-  fromDBid 276 = DE
-  fromDBid 724 = ES
-  fromDBid 380 = IT
-  fromDBid 616 = PL
-  fromDBid 156 = CN
-  fromDBid _ = panic "HasDBid lang, not implemented"
+instance HasDBid Lang where
+  toDBid lang = case Map.lookup lang $ Map.fromList dbIds of
+                    Just la -> la
+                    Nothing -> panic "[G.Core] Add this lang to DB ids"
+
+  fromDBid dbId = case Map.lookup dbId $ Map.fromList $ map swap dbIds of
+                    Just la -> la
+                    Nothing -> panic "HasDBid lang, not implemented"
 
 ------------------------------------------------------------------------
 data NLPServerConfig = NLPServerConfig

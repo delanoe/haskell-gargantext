@@ -16,60 +16,76 @@ module Gargantext.Utils.JohnSnowNLP where
 import Control.Concurrent (threadDelay)
 import Control.Lens
 import Data.Aeson (encode, ToJSON, toJSON, FromJSON, parseJSON, Value(..), (.:), (.:?))
-import Data.Aeson.Types (prependFailure, typeMismatch)
 import Data.Aeson.TH (deriveJSON)
-import qualified Data.List.Safe as LS
+import Data.Aeson.Types (prependFailure, typeMismatch)
 import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Data.Text hiding (map, group, filter, concat, zip)
-import Network.HTTP.Simple (parseRequest, httpJSON, setRequestBodyLBS, getResponseBody, Response)
-
-import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types (POS(..))
 import Gargantext.Core.Text.Terms.Multi.PosTagging.Types
+import Gargantext.Core.Types (POS(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Prelude
+import Network.HTTP.Simple (parseRequest, httpJSON, setRequestBodyLBS, getResponseBody, Response)
+import qualified Data.List.Safe as LS
+import qualified Data.Map.Strict as Map
 
 
 data JSSpell = JSPOS Lang | JSLemma Lang
   deriving (Show)
 
 instance ToJSON JSSpell where
-  toJSON (JSPOS EN)    = "en.pos"
-  toJSON (JSPOS FR)    = "fr.pos"
+  toJSON (JSPOS All)   = "pos"
   toJSON (JSPOS DE)    = "de.pos"
+  toJSON (JSPOS EL)    = "el.pos"
+  toJSON (JSPOS EN)    = "en.pos"
   toJSON (JSPOS ES)    = "es.pos"
+  toJSON (JSPOS FR)    = "fr.pos"
   toJSON (JSPOS IT)    = "it.pos"
   toJSON (JSPOS PL)    = "pl.pos"
-  toJSON (JSPOS CN)    = "cn.pos"
-  toJSON (JSPOS All)   = "pos"
+  toJSON (JSPOS PT)    = "pt.pos"
+  toJSON (JSPOS RU)    = "ru.pos"
+  toJSON (JSPOS UK)    = "uk.pos"
+  toJSON (JSPOS ZH)    = "zh.pos"
 
-  toJSON (JSLemma EN)  = "en.lemma"
-  toJSON (JSLemma FR)  = "fr.lemma"
+  toJSON (JSLemma All) = "lemma"
   toJSON (JSLemma DE)  = "de.lemma"
+  toJSON (JSLemma EL)  = "el.lemma"
+  toJSON (JSLemma EN)  = "en.lemma"
   toJSON (JSLemma ES)  = "es.lemma"
+  toJSON (JSLemma FR)  = "fr.lemma"
   toJSON (JSLemma IT)  = "it.lemma"
   toJSON (JSLemma PL)  = "pl.lemma"
-  toJSON (JSLemma CN)  = "cn.lemma"
-  toJSON (JSLemma All) = "lemma"
+  toJSON (JSLemma PT)  = "pt.lemma"
+  toJSON (JSLemma RU)  = "ru.lemma"
+  toJSON (JSLemma UK)  = "uk.lemma"
+  toJSON (JSLemma ZH)  = "zh.lemma"
 
 instance FromJSON JSSpell where
-  parseJSON (String "en.pos")   = pure $ JSPOS EN
-  parseJSON (String "fr.pos")   = pure $ JSPOS FR
   parseJSON (String "de.pos")   = pure $ JSPOS DE
+  parseJSON (String "en.pos")   = pure $ JSPOS EN
+  parseJSON (String "el.pos")   = pure $ JSPOS EL
   parseJSON (String "es.pos")   = pure $ JSPOS ES
+  parseJSON (String "fr.pos")   = pure $ JSPOS FR
   parseJSON (String "it.pos")   = pure $ JSPOS IT
   parseJSON (String "pl.pos")   = pure $ JSPOS PL
-  parseJSON (String "cn.pos")   = pure $ JSPOS CN
+  parseJSON (String "pt.pos")   = pure $ JSPOS PT
+  parseJSON (String "ru.pos")   = pure $ JSPOS RU
+  parseJSON (String "uk.pos")   = pure $ JSPOS UK
+  parseJSON (String "zh.pos")   = pure $ JSPOS ZH
   parseJSON (String "pos")      = pure $ JSPOS All
-  parseJSON (String "en.lemma") = pure $ JSLemma EN
-  parseJSON (String "fr.lemma") = pure $ JSLemma FR
+
   parseJSON (String "de.lemma") = pure $ JSLemma DE
+  parseJSON (String "en.lemma") = pure $ JSLemma EN
+  parseJSON (String "el.lemma") = pure $ JSLemma EL
   parseJSON (String "es.lemma") = pure $ JSLemma ES
+  parseJSON (String "fr.lemma") = pure $ JSLemma FR
   parseJSON (String "it.lemma") = pure $ JSLemma IT
   parseJSON (String "pl.lemma") = pure $ JSLemma PL
-  parseJSON (String "cn.lemma") = pure $ JSLemma CN
+  parseJSON (String "pt.lemma") = pure $ JSLemma PT
+  parseJSON (String "ru.lemma") = pure $ JSLemma RU
+  parseJSON (String "uk.lemma") = pure $ JSLemma UK
+  parseJSON (String "zh.lemma") = pure $ JSLemma ZH
   parseJSON (String "lemma")    = pure $ JSLemma All
   parseJSON s =
     prependFailure "parsing spell failed, "

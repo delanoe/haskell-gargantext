@@ -2,29 +2,15 @@
 
 module Gargantext.API.Node.Corpus.Searx where
 
-
-
 import Control.Lens (view)
-import qualified Data.Aeson as Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Either (Either(..))
-import qualified Data.HashMap.Strict as HashMap
-import qualified Data.Text as T
 import Data.Time.Calendar (Day, toGregorian)
 import Data.Time.Format (defaultTimeLocale, formatTime, parseTimeM)
 import Data.Tuple.Select (sel1, sel2, sel3)
 import GHC.Generics (Generic)
-import Network.HTTP.Client
-import Network.HTTP.Client.TLS
-
-import qualified Prelude
-import Protolude (catMaybes, encodeUtf8, rightToMaybe, Text)
-import Gargantext.Prelude
-import Gargantext.Prelude.Config
-
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.NLP (nlpServerGet)
-import qualified Gargantext.Core.Text.Corpus.API as API
 import Gargantext.Core.Text.List (buildNgramsLists)
 import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
 import Gargantext.Core.Text.Terms (TermType(..))
@@ -41,18 +27,25 @@ import Gargantext.Database.Admin.Types.Node (CorpusId, ListId)
 import Gargantext.Database.Prelude (hasConfig)
 import Gargantext.Database.Query.Table.Node (defaultListMaybe, getOrMkList)
 import Gargantext.Database.Query.Tree.Root (getOrMk_RootWithCorpus)
+import Gargantext.Prelude
+import Gargantext.Prelude.Config
 import Gargantext.Utils.Jobs (JobHandle, MonadJobStatus(..))
+import Network.HTTP.Client
+import Network.HTTP.Client.TLS
+import Protolude (catMaybes, encodeUtf8, rightToMaybe, Text)
+import qualified Data.Aeson as Aeson
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.Text as T
+import qualified Data.Text as Text
+import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
+import qualified Prelude
 
 langToSearx :: Lang -> Text
-langToSearx EN = "en-US"
-langToSearx FR = "fr-FR"
-langToSearx DE = "de-FR"
-langToSearx ES = "es-FR"
-langToSearx IT = "it-FR"
-langToSearx PL = "pl-FR"
-langToSearx CN = "cn-FR"
 langToSearx All = "en-US"
+langToSearx x   = (Text.toLower acronym) <> "-" <> acronym
+  where
+    acronym = (cs $ show x)
 
 data SearxResult = SearxResult
   { _sr_url           :: Text
