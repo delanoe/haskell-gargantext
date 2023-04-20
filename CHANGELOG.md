@@ -1,3 +1,9 @@
+## Version 0.0.6.9.8.7.1
+
+* [BACK][FIX][Job tests fail randomly (#198)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/198)
+* [FRONT][FIX][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509) Pin icon
+
+
 ## Version 0.0.6.9.8.7
 
 * [FRONT][FEAT][Pin Tree to a specific Node (#513)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/513)
