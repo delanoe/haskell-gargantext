@@ -1,3 +1,7 @@
+## Version 0.0.6.9.9.1
+
+* [BACK][FEAT] New Languages added with Spacy model, test ok (need to group ngrams though)
+
 ## Version 0.0.6.9.9
 
 * [BACK][FEAT][Adding New Language NLP tools through gargantext.ini (postagging case) (#184)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/184)
