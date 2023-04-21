@@ -22,6 +22,7 @@ module Gargantext.Database.Query.Tree
   , isDescendantOf
   , isIn
   , tree
+  , tree_flat
   , TreeMode(..)
   , findNodesId
   , DbTreeNode(..)
@@ -95,7 +96,6 @@ tree TreeFirstLevel = tree_first_level
 -- (without shared folders)
 -- keeping this for teaching purpose only
 tree_basic :: (HasTreeError err, HasNodeError err)
-
            => RootId
            -> [NodeType]
            -> Cmd err (Tree NodeTree)
@@ -143,6 +143,18 @@ tree_first_level r nodeTypes = do
   ret <- toTree $ toSubtreeParent r (mainRoot <> sharedRoots <> publicRoots)
   -- printDebug (rPrefix "tree") ret
   pure ret
+
+-- | Fetch tree in a flattened form
+tree_flat :: (HasTreeError err, HasNodeError err)
+          => RootId
+          -> [NodeType]
+          -> Cmd err [NodeTree]
+tree_flat r nodeTypes = do
+  mainRoot <- findNodes r Private nodeTypes
+  publicRoots <- findNodes r PublicDirect nodeTypes
+  sharedRoots <- findNodes r SharedDirect nodeTypes
+  pure $ map toNodeTree (mainRoot <> sharedRoots <> publicRoots)
+
 
 ------------------------------------------------------------------------
 data NodeMode = Private | Shared | Public | SharedDirect | PublicDirect
@@ -263,9 +275,9 @@ toTree m =
             -- m' ^.. at (Just $ _dt_nodeId root) . _Just . each . to (toTree' m')
             toListOf (at (Just $ _dt_nodeId root) . _Just . each . to (toTree' m')) m'
 
-        toNodeTree :: DbTreeNode
-                   -> NodeTree
-        toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
+toNodeTree :: DbTreeNode
+            -> NodeTree
+toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
 
 ------------------------------------------------------------------------
 toTreeParent :: [DbTreeNode]
