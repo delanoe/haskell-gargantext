@@ -138,35 +138,28 @@ testExceptions = do
 testFairness :: IO ()
 testFairness = do
   k <- genSecret
-  let settings = defaultJobSettings 2 k
+  let settings = defaultJobSettings 1 k
   st :: JobsState JobT [String] () <- newJobsState settings defaultPrios
-  runningJs <- newTVarIO (Counts 0 0)
-  let j jobt _jHandle _inp _l = do
-        atomically $ modifyTVar runningJs (inc jobt)
-        threadDelay jobDuration
-        atomically $ modifyTVar runningJs (dec jobt)
+  pickedSchedule <- newMVar (JobSchedule mempty)
+  let j jobt _jHandle _inp _l = addJobToSchedule jobt pickedSchedule
       jobs = [ (A, j A)
              , (A, j A)
              , (B, j B)
              , (A, j A)
              , (A, j A)
              ]
-  _jids <- forM jobs $ \(t, f) -> do
-    pushJob t () f settings st
-  threadDelay initialDelay
-  r1 <- readTVarIO runningJs
-  r1 `shouldBe` (Counts 2 0)
+  time <- getCurrentTime
+  -- in this scenario we simulate two types of jobs all with
+  -- all the same level of priority: our queue implementation
+  -- will behave as a classic FIFO, keeping into account the
+  -- time of arrival.
+  atomically $ forM_ (zip [0,2 ..] jobs) $ \(timeDelta, (t, f)) -> void $
+    pushJobWithTime (addUTCTime (fromInteger timeDelta) time) t () f settings st
+
   threadDelay jobDuration
-  r2 <- readTVarIO runningJs
-  r2 `shouldBe` (Counts 1 1) -- MOST IMPORTANT CHECK: the B got picked after the
-                             -- two As, because it was inserted right after them
-                             -- and has equal priority.
-  threadDelay jobDuration
-  r3 <- readTVarIO runningJs
-  r3 `shouldBe` (Counts 1 0)
-  threadDelay jobDuration
-  r4 <- readTVarIO runningJs
-  r4 `shouldBe` (Counts 0 0)
+  finalSchedule <- readMVar pickedSchedule
+  finalSchedule `shouldBe` JobSchedule (fromList [A, A, B, A, A])
+
 
 newtype MyDummyMonad a =
   MyDummyMonad { _MyDummyMonad :: GargM Env GargError a }
