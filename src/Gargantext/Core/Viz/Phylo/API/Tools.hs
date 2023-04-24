@@ -27,19 +27,23 @@ import Gargantext.API.Node.Corpus.Export (getContextNgrams)
 import Gargantext.API.Prelude (GargNoServer)
 import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Types (Context)
+-- import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main (ListType(MapTerm))
 import Gargantext.Core.Viz.Phylo (TimeUnit(..), Date, Document(..), PhyloConfig(..), Phylo)
 import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
 import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo, toPhyloWithoutLink)
 import Gargantext.Core.Viz.Phylo.PhyloTools  ({-printIOMsg, printIOComment,-} setConfig)
-import Gargantext.Database.Admin.Types.Hyperdata.Document (HyperdataDocument(..))
+-- import Gargantext.Database.Action.Flow (getOrMk_RootWithCorpus)
+-- import Gargantext.Database.Admin.Config (userMaster)
+-- import Gargantext.Database.Admin.Types.Hyperdata (HyperdataCorpus)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataPhylo(..))
+import Gargantext.Database.Admin.Types.Hyperdata.Document (HyperdataDocument(..))
 import Gargantext.Database.Admin.Types.Node (CorpusId, ContextId, PhyloId)
 import Gargantext.Database.Query.Table.Node (defaultList, getNodeWith)
 import Gargantext.Database.Query.Table.NodeContext (selectDocNodes)
 import Gargantext.Database.Schema.Context
-import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Prelude
 import System.Process      as Shell
@@ -47,7 +51,6 @@ import qualified Data.ByteString.Lazy                    as Lazy
 import qualified Data.List as List
 import qualified Data.Map.Strict  as Map
 import qualified Data.Set  as Set
-
 
 --------------------------------------------------------------------
 getPhyloData :: PhyloId -> GargNoServer (Maybe Phylo)
@@ -95,17 +98,32 @@ flowPhyloAPI config cId = do
 corpusIdtoDocuments :: TimeUnit -> CorpusId -> GargNoServer (TermList, [Document])
 corpusIdtoDocuments timeUnit corpusId = do
   docs <- selectDocNodes corpusId
+  printDebug "docs *****" (length docs)
   lId  <- defaultList corpusId
+
+{-
+  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus
+                                           (UserName userMaster)
+                                           (Left "")
+                                           (Nothing :: Maybe HyperdataCorpus)
+  mListId <- defaultList masterCorpusId
+  repo <- getRepo [mListId,lId]
+-}
   repo <- getRepo [lId]
+  -- ngs_terms'   <- getContextNgrams corpusId mListId MapTerm NgramsTerms repo
 
   ngs_terms    <- getContextNgrams corpusId lId MapTerm NgramsTerms repo
+  printDebug "Size ngs_coterms *****" (length ngs_terms)
+
   ngs_sources  <- getContextNgrams corpusId lId MapTerm Sources repo
+  printDebug "Size ngs_sources Map Sources *****" (length ngs_sources)
 
   termList <- getTermList lId MapTerm NgramsTerms
+  printDebug "Size ngs_terms List Map Ngrams *****" (length <$> termList)
 
   let docs'= catMaybes
            $ List.map (\doc
-                        -> context2phyloDocument timeUnit doc (ngs_terms, ngs_sources)
+                        -> context2phyloDocument timeUnit doc (ngs_terms {-<> ngs_terms'-}, ngs_sources)
                       ) docs
 
   -- printDebug "corpusIdtoDocuments" (Prelude.map date docs')
