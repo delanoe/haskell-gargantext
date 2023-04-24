@@ -1,3 +1,7 @@
+## Version 0.0.6.9.9.2
+
+* [FRONT][FIX][[Node Terms] Problem with consecutive actions on different term selections (#537)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/537)
+
 ## Version 0.0.6.9.9.1
 
 * [BACK][FEAT] New Languages added with Spacy model, test ok (need to group ngrams though)
