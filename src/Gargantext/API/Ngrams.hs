@@ -83,7 +83,7 @@ module Gargantext.API.Ngrams
   where
 
 import Control.Concurrent
-import Control.Lens ((.~), view, (^.), (^..), (+~), (%~), (.~), msumOf, at, _Just, Each(..), (%%~), mapped, ifolded, to, withIndex, over)
+import Control.Lens ((.~), view, (^.), (^..), (+~), (%~), (.~), msumOf, at, _Just, Each(..), (%%~), mapped, ifolded, to, withIndex)
 import Control.Monad.Reader
 import Data.Aeson hiding ((.=))
 import Data.Either (Either(..))
@@ -93,6 +93,7 @@ import Data.Maybe (fromMaybe)
 import Data.Monoid
 import Data.Ord (Down(..))
 import Data.Patch.Class (Action(act), Transformable(..), ours)
+import Data.Set (Set)
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text, isInfixOf, toLower, unpack, pack)
 import Data.Text.Lazy.IO as DTL
@@ -104,7 +105,7 @@ import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude
 import Gargantext.Core.NodeStory
-import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, TODO, assertValid, HasInvalidError)
+import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, TODO, assertValid, HasInvalidError, ContextId)
 import Gargantext.Core.Types.Query (Limit(..), Offset(..))
 import Gargantext.API.Ngrams.Tools
 import Gargantext.Database.Action.Flow.Types
@@ -129,7 +130,6 @@ import qualified Data.Aeson.Text as DAT
 import qualified Data.List as List
 import qualified Data.Map.Strict as Map
 import qualified Data.Map.Strict.Patch as PM
-import qualified Data.Set as S
 import qualified Data.Set as Set
 import qualified Gargantext.API.Metrics as Metrics
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
@@ -563,51 +563,58 @@ getTableNgrams _nType nId tabType listId limit_ offset
       where
         s = n ^. ne_size
 
-    selected_inner roots n = maybe False (`Set.member` roots) (n ^. ne_root)
-
     ---------------------------------------
     sortOnOrder Nothing          = sortOnOrder (Just ScoreDesc)
     sortOnOrder (Just TermAsc)   = List.sortOn $ view ne_ngrams
     sortOnOrder (Just TermDesc)  = List.sortOn $ Down . view ne_ngrams
-    sortOnOrder (Just ScoreAsc)  = List.sortOn $ view (ne_occurrences . to List.nub . to length)
-    sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view (ne_occurrences . to List.nub . to length)
+    sortOnOrder (Just ScoreAsc)  = List.sortOn $ view (ne_occurrences . to Set.size)
+    sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view (ne_occurrences . to Set.size)
 
     ---------------------------------------
     -- | Filter the given `tableMap` with the search criteria.
-    filteredNodes :: Map NgramsTerm NgramsElement -> [NgramsElement]
+    filteredNodes :: Map NgramsTerm NgramsElement -> Set NgramsElement
     filteredNodes tableMap = roots
       where
-        list = tableMap ^.. each
-        selected_nodes = list & filter selected_node
-        roots = rootOf tableMap <$> selected_nodes
+        list = Set.fromList $ Map.elems tableMap
+        selected_nodes = list & Set.filter selected_node
+        roots = Set.map (rootOf tableMap) selected_nodes
 
-    -- | Appends subitems (selected from `tableMap`) for given `roots`.
-    withInners :: Map NgramsTerm NgramsElement -> [NgramsElement] -> [NgramsElement]
-    withInners tableMap roots = roots <> inners
+    -- | For each input root, extends its occurrence count with
+    -- the information found in the subitems.
+    withInners :: Map NgramsTerm NgramsElement -> Set NgramsElement -> Set NgramsElement
+    withInners tableMap roots = Set.map addSubitemsOccurrences roots
       where
-        list = tableMap ^.. each
-        rootSet = Set.fromList (_ne_ngrams <$> roots)
-        inners = list & filter (selected_inner rootSet)
+        addSubitemsOccurrences :: NgramsElement -> NgramsElement
+        addSubitemsOccurrences e =
+          e { _ne_occurrences = foldl' alterOccurrences (e ^. ne_occurrences) (e ^. ne_children) }
+
+        alterOccurrences :: Set ContextId -> NgramsTerm -> Set ContextId
+        alterOccurrences occs t = case Map.lookup t tableMap of
+          Nothing -> occs
+          Just e' -> occs <> e' ^. ne_occurrences
 
     -- | Paginate the results
-    sortAndPaginate :: [NgramsElement] -> [NgramsElement]
-    sortAndPaginate = take (getLimit limit_)
+    sortAndPaginate :: Set NgramsElement -> [NgramsElement]
+    sortAndPaginate =   take (getLimit limit_)
                       . drop offset'
                       . sortOnOrder orderBy
+                      . Set.toList
 
     ---------------------------------------
 
   let scoresNeeded = needsScores orderBy
   t1 <- getTime
 
-  tableMap <- getNgramsTable' nId listId ngramsType :: m (Versioned (Map NgramsTerm NgramsElement))
+  versionedTableMap <- getNgramsTable' nId listId ngramsType :: m (Versioned (Map NgramsTerm NgramsElement))
 
-  let fltr = tableMap & v_data %~ NgramsTable . filteredNodes :: Versioned NgramsTable
+  let tableMap = versionedTableMap ^. v_data
+  let filteredData = filteredNodes tableMap
 
-  let fltrCount = length $ fltr ^. v_data . _NgramsTable
+  let fltrCount = Set.size filteredData
 
   t2 <- getTime
-  let tableMapSorted = over (v_data . _NgramsTable) ((withInners (tableMap ^. v_data)) . sortAndPaginate) fltr
+  let tableMapSorted = versionedTableMap
+                     & v_data .~ (NgramsTable . sortAndPaginate . withInners tableMap $ filteredData)
   t3 <- getTime
   --printDebug "[getTableNgrams] tableMapSorted" tableMapSorted
   liftBase $ do
@@ -661,7 +668,7 @@ setNgramsTableScores nId listId ngramsType table = do
       ("getTableNgrams/setScores #ngrams=" % int % " time=" % hasTime % "\n")
       (length ngrams_terms) t1 t2
   let
-    setOcc ne = ne & ne_occurrences .~ msumOf (at (ne ^. ne_ngrams) . _Just) occurrences
+    setOcc ne = ne & ne_occurrences .~ Set.fromList (msumOf (at (ne ^. ne_ngrams) . _Just) occurrences)
 
   --printDebug "[setNgramsTableScores] with occurences" $ table & each %~ setOcc
 
@@ -800,7 +807,7 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
   ns <- selectNodesWithUsername NodeList userMaster
   let ngramsType = ngramsTypeFromTabType tabType
   ngs <- selectNgramsByDoc (ns <> [listId]) dId ngramsType
-  let searchQuery (NgramsTerm nt) = flip S.member (S.fromList ngs) nt
+  let searchQuery (NgramsTerm nt) = flip Set.member (Set.fromList ngs) nt
   getTableNgrams NodeDocument dId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
 
 
