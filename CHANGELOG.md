@@ -1,3 +1,7 @@
+## Version 0.0.6.9.9.3.1
+
+* [FRONT][DESIGN][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
+
 ## Version 0.0.6.9.9.3
 
 * [FRONT][FIX][[Node Terms] The number of terms per page (eg. 10 by default) seems to be ramdomly wrong (#531)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/531)
