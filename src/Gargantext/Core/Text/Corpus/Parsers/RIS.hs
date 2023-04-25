@@ -16,7 +16,6 @@ citation programs to exchange data.
 
 -}
 
-
 module Gargantext.Core.Text.Corpus.Parsers.RIS (parser, onField, fieldWith, lines) where
 
 import Data.List (lookup)
