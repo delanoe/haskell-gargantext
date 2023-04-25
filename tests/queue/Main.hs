@@ -35,6 +35,7 @@ import Gargantext.API.Prelude
 import Gargantext.API.Admin.EnvTypes as EnvTypes
 import Gargantext.API.Admin.Orchestrator.Types
 
+
 data JobT = A
           | B
           | C
@@ -138,35 +139,28 @@ testExceptions = do
 testFairness :: IO ()
 testFairness = do
   k <- genSecret
-  let settings = defaultJobSettings 2 k
+  let settings = defaultJobSettings 1 k
   st :: JobsState JobT [String] () <- newJobsState settings defaultPrios
-  runningJs <- newTVarIO (Counts 0 0)
-  let j jobt _jHandle _inp _l = do
-        atomically $ modifyTVar runningJs (inc jobt)
-        threadDelay jobDuration
-        atomically $ modifyTVar runningJs (dec jobt)
+  pickedSchedule <- newMVar (JobSchedule mempty)
+  let j jobt _jHandle _inp _l = addJobToSchedule jobt pickedSchedule
       jobs = [ (A, j A)
              , (A, j A)
              , (B, j B)
              , (A, j A)
              , (A, j A)
              ]
-  _jids <- forM jobs $ \(t, f) -> do
-    pushJob t () f settings st
-  threadDelay initialDelay
-  r1 <- readTVarIO runningJs
-  r1 `shouldBe` (Counts 2 0)
+  time <- getCurrentTime
+  -- in this scenario we simulate two types of jobs all with
+  -- all the same level of priority: our queue implementation
+  -- will behave as a classic FIFO, keeping into account the
+  -- time of arrival.
+  atomically $ forM_ (zip [0,2 ..] jobs) $ \(timeDelta, (t, f)) -> void $
+    pushJobWithTime (addUTCTime (fromInteger timeDelta) time) t () f settings st
+
   threadDelay jobDuration
-  r2 <- readTVarIO runningJs
-  r2 `shouldBe` (Counts 1 1) -- MOST IMPORTANT CHECK: the B got picked after the
-                             -- two As, because it was inserted right after them
-                             -- and has equal priority.
-  threadDelay jobDuration
-  r3 <- readTVarIO runningJs
-  r3 `shouldBe` (Counts 1 0)
-  threadDelay jobDuration
-  r4 <- readTVarIO runningJs
-  r4 `shouldBe` (Counts 0 0)
+  finalSchedule <- readMVar pickedSchedule
+  finalSchedule `shouldBe` JobSchedule (fromList [A, A, B, A, A])
+
 
 newtype MyDummyMonad a =
   MyDummyMonad { _MyDummyMonad :: GargM Env GargError a }
@@ -219,7 +213,7 @@ withJob_ env f = void (withJob env f)
 newTestEnv :: IO Env
 newTestEnv = do
   k <- genSecret
-  let settings = defaultJobSettings 2 k
+  let settings = defaultJobSettings 1 k
   myEnv <- newJobEnv settings defaultPrios testTlsManager
   pure $ Env
        { _env_settings  = error "env_settings not needed, but forced somewhere (check StrictData)"
@@ -284,28 +278,40 @@ testFetchJobStatusNoContention = do
 testMarkProgress :: IO ()
 testMarkProgress = do
   myEnv <- newTestEnv
-  evts  <- newMVar []
+  evts  <- newTBQueueIO 7
+  let getStatus hdl = do
+        liftIO $ threadDelay 100_000
+        st <- getLatestJobStatus hdl
+        liftIO $ atomically $ writeTBQueue evts st
+      readAllEvents = do
+        allEventsArrived <- isFullTBQueue evts
+        if allEventsArrived then flushTBQueue evts else retry
 
   withJob_ myEnv $ \hdl _input -> do
     markStarted 10 hdl
-    jl0 <- getLatestJobStatus hdl
+    getStatus hdl
+
     markProgress 1 hdl
-    jl1 <- getLatestJobStatus hdl
+    getStatus hdl
+
     markFailure 1 Nothing hdl
-    jl2 <- getLatestJobStatus hdl
+    getStatus hdl
+
     markFailure 1 (Just "boom") hdl
-    jl3 <- getLatestJobStatus hdl
+
+    getStatus hdl
     markComplete hdl
-    jl4 <- getLatestJobStatus hdl
+
+    getStatus hdl
     markStarted 5 hdl
     markProgress 1 hdl
-    jl5 <- getLatestJobStatus hdl
-    markFailed (Just "kaboom") hdl
-    jl6 <- getLatestJobStatus hdl
-    liftIO $ modifyMVar_ evts (const (pure [jl0, jl1, jl2, jl3, jl4, jl5, jl6]))
 
-  threadDelay 500_000
-  [jl0, jl1, jl2, jl3, jl4, jl5, jl6] <- readMVar evts
+    getStatus hdl
+    markFailed (Just "kaboom") hdl
+
+    getStatus hdl
+
+  [jl0, jl1, jl2, jl3, jl4, jl5, jl6] <- atomically readAllEvents
 
   -- Check the events are what we expect
   jl0 `shouldBe` JobLog { _scst_succeeded = Just 0
