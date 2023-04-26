@@ -130,8 +130,6 @@ getOccByNgramsOnlyFast cId lId nt = do
       query :: DPS.Query
       query = [sql|
               SELECT ng.terms
-                 --  , ng.id
-                     --, round(nng.weight)
                      , ARRAY(
                          SELECT DISTINCT context_node_ngrams.context_id
                          FROM context_node_ngrams
@@ -140,16 +138,13 @@ getOccByNgramsOnlyFast cId lId nt = do
                          WHERE ng.id = context_node_ngrams.ngrams_id
                          AND nodes_contexts.node_id = ?
                          ) AS context_ids
-                 -- , ns.version
-                 -- , nng.ngrams_type
-                 -- , ns.ngrams_type_id
                 FROM ngrams   ng
-                JOIN node_stories       ns ON ng.id = ns.ngrams_id
+                JOIN node_stories       ns  ON ng.id        = ns.ngrams_id
                 JOIN node_node_ngrams   nng ON ns.node_id   = nng.node2_id
                 WHERE nng.node1_id        = ?
                       AND nng.node2_id    = ?
                       AND nng.ngrams_type = ?
-                      AND nng.ngrams_id = ng.id
+                      AND nng.ngrams_id   = ng.id
                       AND nng.ngrams_type = ns.ngrams_type_id
                 ORDER BY ng.id ASC;
         |]
