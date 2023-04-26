@@ -44,6 +44,7 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text.Corpus.Parsers.CSV (parseHal, parseCsv, parseCsvC)
 import Gargantext.Core.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import Gargantext.Database.Query.Table.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import System.FilePath (FilePath(), takeExtension)
 import System.IO.Temp (emptySystemTempFile)
@@ -52,11 +53,12 @@ import qualified Data.ByteString.Char8 as DBC
 import qualified Data.ByteString.Lazy  as DBL
 import qualified Data.Map              as DM
 import qualified Data.Text             as DT
-import qualified Gargantext.Core.Text.Corpus.Parsers.Date as Date
-import qualified Gargantext.Core.Text.Corpus.Parsers.RIS  as RIS
-import qualified Gargantext.Core.Text.Corpus.Parsers.WOS  as WOS
+import qualified Data.Text as Text
+import qualified Gargantext.Core.Text.Corpus.Parsers.Date      as Date
+import qualified Gargantext.Core.Text.Corpus.Parsers.Iramuteq  as Iramuteq
+import qualified Gargantext.Core.Text.Corpus.Parsers.RIS       as RIS
+import qualified Gargantext.Core.Text.Corpus.Parsers.WOS       as WOS
 import qualified Prelude
-import Gargantext.Database.Query.Table.Ngrams (NgramsType(..))
 ------------------------------------------------------------------------
 
 type ParseError = String
@@ -70,7 +72,12 @@ type ParseError = String
 
 -- | According to the format of Input file,
 -- different parser are available.
-data FileType = WOS | RIS | RisPresse | CsvGargV3 | CsvHal
+data FileType = WOS
+              | RIS
+              | RisPresse
+              | CsvGargV3
+              | CsvHal
+              | Iramuteq
   deriving (Show)
 
 -- Implemented (ISI Format)
@@ -177,6 +184,14 @@ parseFile WOS       Plain p = do
   docs <- join $ mapM (toDoc WOS) <$> snd <$> enrichWith WOS       <$> readFileWith WOS p
   pure $ Right docs
 
+parseFile Iramuteq       Plain p = do
+  docs <- join $ mapM ((toDoc Iramuteq) . (map (second (Text.replace "_" " "))))
+              <$> snd
+              <$> enrichWith Iramuteq 
+              <$> readFileWith Iramuteq p
+  pure $ Right docs
+
+
 parseFile ff        _ p = do
   docs <- join $ mapM (toDoc ff)  <$> snd <$> enrichWith ff        <$> readFileWith ff  p
   pure $ Right docs
@@ -217,6 +232,7 @@ enrichWith :: FileType
            ->  (a, [[[(DB.ByteString, DB.ByteString)]]]) -> (a, [[(Text, Text)]])
 enrichWith RisPresse = enrichWith' presseEnrich
 enrichWith WOS       = enrichWith' (map (first WOS.keys))
+enrichWith Iramuteq  = enrichWith' (map (first Iramuteq.keys))
 enrichWith _         = enrichWith' identity
 
 
@@ -241,8 +257,9 @@ readFileWith format path = do
 -- According to the format of the text, choose the right parser.
 -- TODO  withParser :: FileType -> Parser [Document]
 withParser :: FileType -> Parser [[(DB.ByteString, DB.ByteString)]]
-withParser WOS = WOS.parser
-withParser RIS = RIS.parser
+withParser WOS      = WOS.parser
+withParser RIS      = RIS.parser
+withParser Iramuteq = Iramuteq.parser
 --withParser ODT = odtParser
 --withParser XML = xmlParser
 withParser _   = panic "[ERROR] Parser not implemented yet"

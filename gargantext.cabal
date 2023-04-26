@@ -192,6 +192,7 @@ library
       Gargantext.Core.Text.Corpus.Parsers.Date.Attoparsec
       Gargantext.Core.Text.Corpus.Parsers.FrameWrite
       Gargantext.Core.Text.Corpus.Parsers.GrandDebat
+      Gargantext.Core.Text.Corpus.Parsers.Iramuteq
       Gargantext.Core.Text.Corpus.Parsers.Isidore
       Gargantext.Core.Text.Corpus.Parsers.Json2Csv
       Gargantext.Core.Text.Corpus.Parsers.RIS

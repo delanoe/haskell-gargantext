@@ -12,7 +12,7 @@ commentary with @some markup@.
 -}
 
 
-module Gargantext.Core.Text.Corpus.Parsers.Iramuteq (parseIramuteqFile, notices) where
+module Gargantext.Core.Text.Corpus.Parsers.Iramuteq (parseIramuteqFile, parser, keys) where
 
 import Control.Applicative
 import Data.Attoparsec.ByteString (Parser, takeTill, parseOnly)
@@ -21,14 +21,14 @@ import Data.ByteString (ByteString)
 import Prelude hiding (takeWhile, take, concat, readFile, lines, concat)
 import qualified Data.ByteString as DB
 
-parseIramuteqFile :: String -> IO (Either String [[(ByteString, ByteString)]])
+parseIramuteqFile :: FilePath -> IO (Either String [[(ByteString, ByteString)]])
 parseIramuteqFile fp = do
   txts <- DB.readFile fp
-  pure $ parseOnly notices txts
+  pure $ parseOnly parser txts
 
 -------------------------------------------------------------
-notices :: Parser [[(ByteString, ByteString)]]
-notices = do
+parser :: Parser [[(ByteString, ByteString)]]
+parser = do
   ns <- (many notice)
   pure ns
 
@@ -70,4 +70,15 @@ parseOf ptxt pa = bothParse <|> empty
   where
     bothParse = ptxt >>= constP pa
 
-
+-----------------------------------------------------------------
+-- These keys may not be constant for Iramuteq files formats
+keys :: ByteString -> ByteString
+keys f
+      | f == "id"    = "doi"
+      | f == "qui"   = "authors"
+      | f == "quand" = "PY"
+      | f == "type"  = "source"
+      | f == "titre" = "title"
+      | f == "ou"    = "institutes"
+      | f == "text"  = "abstract"
+      | otherwise  = f
