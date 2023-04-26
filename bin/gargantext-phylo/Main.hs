@@ -254,6 +254,10 @@ main = do
             corpus  <- fileToDocs' (corpusParser config) (corpusPath config) (timeUnit config) mapList
             printIOComment (show (length corpus) <> " parsed docs from the corpus")
 
+            printIOComment (show (length $ nub $ concat $ map text corpus) <> " Size ngs_coterms")
+
+            printIOComment (show (length mapList) <> " Size ngs_terms List Map Ngrams")
+
             printIOMsg "Reconstruct the phylo"
 
             -- check the existing backup files
