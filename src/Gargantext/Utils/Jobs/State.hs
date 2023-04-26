@@ -7,7 +7,7 @@ import Gargantext.Utils.Jobs.Settings
 import Control.Concurrent.Async
 import Control.Concurrent.STM
 import Control.Monad
-import Data.List
+import qualified Data.List as List
 import Data.Map.Strict (Map)
 import Data.Maybe
 import Data.Ord
@@ -67,7 +67,7 @@ newJobsState js prios = do
             case mje of
               Nothing -> return Nothing
               Just je -> return $ Just (jid, popjid, jRegistered je)
-          let (jid, popjid, _) = minimumBy (comparing _3) jinfos
+          let (jid, popjid, _) = List.minimumBy (comparing _3) jinfos
           return (jid, popjid)
 
         _3 (_, _, c) = c

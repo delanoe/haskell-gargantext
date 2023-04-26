@@ -21,12 +21,11 @@ module Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 
 import Control.Monad
 import Data.Either
+import Data.List ((!!))
 import Data.Maybe
 import Data.Text (Text(), pack, unpack)
-
-import Data.List hiding (map, head)
-
 import Gargantext.Prelude
+import qualified Data.List as List hiding (map, head)
 
 vowels :: [Char]
 vowels = ['a','e','i','o','u']
@@ -50,16 +49,16 @@ containsVowel = byIndex (any . isVowel)
 
 -- | /!\ unsafe fromJust
 measure :: [Char] -> Int
-measure = length . filter not . init . (True:) 
+measure = length . filter not . List.init . (True:) 
                  . map fromJust . map head 
-                 . group . byIndex (map . isConsonant)
+                 . List.group . byIndex (map . isConsonant)
 
 
 endsWithDouble :: [Char] -> Bool
 endsWithDouble = startsWithDouble . reverse
     where
         startsWithDouble l = case l of
-                               (x:y:_) -> x == y && x `notElem` vowels
+                               (x:y:_) -> x == y && x `List.notElem` vowels
                                _       -> False
 
 cvc :: [Char] -> Bool
@@ -67,18 +66,18 @@ cvc word | length word < 3 = False
          | otherwise       = isConsonant word lastIndex       &&
                              isVowel     word (lastIndex - 1) &&
                              isConsonant word (lastIndex - 2) &&
-                             last word `notElem` ['w','x','y']
+                             List.last word `List.notElem` ['w','x','y']
               where lastIndex = length word - 1
 
 statefulReplace :: Eq a => ([a] -> Bool)
                         -> [a] -> [a] -> [a] 
                         -> Maybe (Data.Either.Either [a] [a])
 statefulReplace predicate str end replacement
-    | end `isSuffixOf` str  = Just replaced
+    | end `List.isSuffixOf` str  = Just replaced
     | otherwise             = Nothing
     where
         part  = take (length str - length end) str
-        replaced | predicate part = Right (part ++ replacement)
+        replaced | predicate part = Right (part <> replacement)
                  | otherwise      = Left str
 
 replaceEnd :: Eq a => ([a] -> Bool) -> [a] -> [a] -> [a] -> Maybe [a]
@@ -113,12 +112,12 @@ beforeStep1b word = fromMaybe (Left word) result
 afterStep1b :: [Char] -> [Char]
 afterStep1b word = fromMaybe word result
     where
-        double        = endsWithDouble word && not (any ((`isSuffixOf` word) . return) ['l','s','z'])
+        double        = endsWithDouble word && not (any ((`List.isSuffixOf` word) . return) ['l','s','z'])
         mEq1AndCvc    = measure word == 1 && cvc word
         iif cond val  = if cond then Just val else Nothing
         result        = findStem (const True) word [("at", "ate"), ("bl", "ble"), ("iz", "ize")]
-                        `mplus` iif double (init word)
-                        `mplus` iif mEq1AndCvc (word ++ "e")
+                        `mplus` iif double (List.init word)
+                        `mplus` iif mEq1AndCvc (word <> "e")
 
 step1b :: [Char] -> [Char]
 step1b = either identity afterStep1b . beforeStep1b
@@ -171,7 +170,7 @@ step3 word = fromMaybe word result
 step4 :: [Char] -> [Char]
 step4 word = fromMaybe word result
     where
-        gt1andST str = (measureGT 1) str && any ((`isSuffixOf` str) . return) ['s','t']
+        gt1andST str = (measureGT 1) str && any ((`List.isSuffixOf` str) . return) ['s','t']
         findGT1      = findStem (measureGT 1) word . map (flip (,) "")
         result       = (findGT1 ["al", "ance", "ence", "er", "ic", "able", "ible", "ant", "ement", "ment", "ent"]) `mplus`
                        (findStem gt1andST word [("ion","")]) `mplus`
@@ -186,7 +185,7 @@ step5a word = fromMaybe word result
 step5b :: [Char] -> [Char]
 step5b word = fromMaybe word result
     where
-       cond s = last s == 'l' && measureGT 1 s
+       cond s = List.last s == 'l' && measureGT 1 s
        result = replaceEnd cond word "l" ""
 
 step5 :: [Char] -> [Char]

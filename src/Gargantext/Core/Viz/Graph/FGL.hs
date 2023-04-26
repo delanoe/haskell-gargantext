@@ -16,7 +16,7 @@ module Gargantext.Core.Viz.Graph.FGL where
 
 import Gargantext.Prelude
 import qualified Data.Graph.Inductive as FGL
-import Data.List as List
+import qualified Data.List as List
 ------------------------------------------------------------------
 -- | Main Types
 

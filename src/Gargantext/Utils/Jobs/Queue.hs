@@ -6,12 +6,11 @@ import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad
 import Data.Function
-import Data.List
-import Data.Ord
 import Data.Maybe
+import Data.Ord
 import Prelude
 import System.IO
-
+import Data.List
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 
