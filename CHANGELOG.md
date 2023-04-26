@@ -1,3 +1,8 @@
+## Version 0.0.6.9.9.3.2
+
+* [FRONT/BACK][FEAT] Not visible yet but Iramuteq parser added (needs
+  more data to consolidate the format).
+
 ## Version 0.0.6.9.9.3.1
 
 * [FRONT][DESIGN][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
