@@ -263,6 +263,7 @@ addToCorpusWithForm user cid (NewWithForm ft ff d l _n sel) jobHandle = do
       CSV       -> Parser.parseFormatC Parser.CsvGargV3
       WOS       -> Parser.parseFormatC Parser.WOS
       PresseRIS -> Parser.parseFormatC Parser.RisPresse
+      Iramuteq  -> Parser.parseFormatC Parser.Iramuteq
 
   -- TODO granularity of the logStatus
   let data' = case ff of

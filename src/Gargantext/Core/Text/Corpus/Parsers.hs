@@ -118,6 +118,16 @@ parseFormatC WOS Plain bs = do
               .| mapC (map $ first WOS.keys)
               .| mapC (map $ both decodeUtf8)
               .| mapMC (toDoc WOS)) ) <$> eDocs
+
+parseFormatC Iramuteq Plain bs = do
+  let eDocs = runParser' Iramuteq bs
+  pure $ (\docs ->
+            ( Just $ fromIntegral $ length docs
+            , yieldMany docs
+              .| mapC (map $ first Iramuteq.keys)
+              .| mapC (map $ both decodeUtf8)
+              .| mapMC ((toDoc Iramuteq) . (map (second (Text.replace "_" " ")))) ))<$> eDocs
+
 parseFormatC ft ZIP bs = do
   path <- liftBase $ emptySystemTempFile "parsed-zip"
   liftBase $ DB.writeFile path bs
