@@ -20,7 +20,7 @@ please follow the types.
 
 {-# LANGUAGE PackageImports    #-}
 
-module Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), FileType(..), clean, parseFile, cleanText, parseFormatC, splitOn)
+module Gargantext.Core.Text.Corpus.Parsers (FileFormat(..), FileType(..), clean, parseFile, cleanText, parseFormatC, splitOn, etale)
     where
 
 -- import Gargantext.Core.Text.Learn (detectLangDefault)
@@ -48,6 +48,7 @@ import Gargantext.Database.Query.Table.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import System.FilePath (FilePath(), takeExtension)
 import System.IO.Temp (emptySystemTempFile)
+import Gargantext.Core.Text.Corpus.Parsers.FrameWrite (text2titleParagraphs)
 import qualified Data.ByteString       as DB
 import qualified Data.ByteString.Char8 as DBC
 import qualified Data.ByteString.Lazy  as DBL
@@ -126,7 +127,10 @@ parseFormatC Iramuteq Plain bs = do
             , yieldMany docs
               .| mapC (map $ first Iramuteq.keys)
               .| mapC (map $ both decodeUtf8)
-              .| mapMC ((toDoc Iramuteq) . (map (second (Text.replace "_" " ")))) ))<$> eDocs
+              .| mapMC ((toDoc Iramuteq) . (map (second (Text.replace "_" " "))))
+            )
+         )
+              <$> eDocs
 
 parseFormatC ft ZIP bs = do
   path <- liftBase $ emptySystemTempFile "parsed-zip"
@@ -152,6 +156,16 @@ parseFormatC ft ZIP bs = do
     _ -> pure $ Left $ unpack $ intercalate "\n" $ pack <$> errs
   
 parseFormatC _ _ _ = undefined
+
+
+etale :: [HyperdataDocument] -> [HyperdataDocument]
+etale = concat . (map etale')
+  where
+    etale' :: HyperdataDocument -> [HyperdataDocument]
+    etale' h = map (\t -> h { _hd_abstract = Just t })
+            $ map snd
+            $ text2titleParagraphs 7 (maybe "" identity $ _hd_abstract h)
+
 
 -- parseFormat :: FileType -> DB.ByteString -> IO (Either Prelude.String [HyperdataDocument])
 -- parseFormat CsvGargV3 bs = pure $ parseCsv' $ DBL.fromStrict bs

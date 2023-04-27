@@ -1,3 +1,10 @@
+## Version 0.0.6.9.9.3.3
+
+* [FRONT][CSS][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
+* [FRONT][FIX][Update chart (#536)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/536)
+
+* [FRONT][FIX][[Node sharing] On adding a user: move the user suggestion block below the input field (rather than above the popin) (#523)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/523)
+
 ## Version 0.0.6.9.9.3.2
 
 * [FRONT/BACK][FEAT] Not visible yet but Iramuteq parser added (needs
