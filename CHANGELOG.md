@@ -1,5 +1,12 @@
+## Version 0.0.6.9.9.4.1
+
+
+* [FRONT][FIX][Doc annotation: space selected as ngrams issue (#458)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/458)
+* [BACK][ADM][API key / user (pubmed) (#201)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/201)
+
 ## Version 0.0.6.9.9.4
 
+* [FRONT][FIX][Doc annotation: space selected as ngrams issue (#458)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/458)
 * [BACK][FEAT][API key / user (pubmed) (#201)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/201)
 
 ## Version 0.0.6.9.9.3.3
