@@ -29,6 +29,7 @@ import Data.Text (Text)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Opaleye hiding (FromField)
 import Prelude hiding (null, id, map, sum)
+import qualified PUBMED.Types as PUBMED
 
 import Gargantext.Core
 import Gargantext.Core.Types
@@ -327,6 +328,31 @@ insertNodesWithParent pid ns = insertNodes (set node_parent_id (pgNodeId <$> pid
 
 insertNodesWithParentR :: Maybe ParentId -> [NodeWrite] -> Cmd err [NodeId]
 insertNodesWithParentR pid ns = insertNodesR (set node_parent_id (pgNodeId <$> pid) <$> ns)
+
+getCorpusPubmedAPIKey :: NodeId -> Cmd err (Maybe PUBMED.APIKey)
+getCorpusPubmedAPIKey cId = do
+  res <- runPGSQuery query params
+  pure $ (\(PGS.Only apiKey) -> apiKey) <$> head res
+  where
+    query :: PGS.Query
+    query = [sql|
+                SELECT hyperdata -> 'pubmed_api_key'
+                FROM nodes
+                WHERE id = ?
+            |]
+    params = PGS.Only cId
+
+updateCorpusPubmedAPIKey :: NodeId -> Maybe PUBMED.APIKey -> Cmd err Int64
+updateCorpusPubmedAPIKey cId mAPIKey =
+  execPGSQuery query params
+  where
+    query :: PGS.Query
+    query = [sql|
+                UPDATE nodes
+                SET hyperdata = hyperdata || ?
+                WHERE id = ?
+            |]
+    params = (encode $ object [ "pubmed_api_key" .= mAPIKey ], cId)
 ------------------------------------------------------------------------
 -- TODO
 -- currently this function removes the child relation

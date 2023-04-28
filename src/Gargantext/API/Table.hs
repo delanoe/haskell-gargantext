@@ -74,11 +74,11 @@ type TableApi = Summary "Table API"
                 :> Get '[JSON] Text
 
 data TableQuery = TableQuery
-  { tq_offset  :: Offset
-  , tq_limit   :: Limit
-  , tq_orderBy :: OrderBy
-  , tq_view    :: TabType
-  , tq_query   :: Text
+  { tq_offset       :: Offset
+  , tq_limit        :: Limit
+  , tq_orderBy      :: OrderBy
+  , tq_view         :: TabType
+  , tq_query        :: Text
   } deriving (Generic)
 
 type FacetTableResult = TableResult FacetDoc
