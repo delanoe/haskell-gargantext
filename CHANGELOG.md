@@ -1,3 +1,7 @@
+## Version 0.0.6.9.9.4
+
+* [BACK][FEAT][API key / user (pubmed) (#201)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/201)
+
 ## Version 0.0.6.9.9.3.3
 
 * [FRONT][CSS][Improve global theme (#509)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/509)
