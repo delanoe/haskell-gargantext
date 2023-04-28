@@ -12,10 +12,10 @@ Portability : POSIX
 module Gargantext.Core.Viz.Phylo.API.Tools
   where
 
-import Data.Proxy
 import Data.Aeson (Value, decodeFileStrict, eitherDecode, encode)
 import Data.Map.Strict (Map)
 import Data.Maybe (catMaybes)
+import Data.Proxy
 import Data.Set (Set)
 import Data.Text (Text, pack)
 import Data.Time.Calendar (fromGregorian, diffGregorianDurationClip, cdMonths, diffDays, showGregorian)

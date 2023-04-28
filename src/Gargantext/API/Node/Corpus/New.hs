@@ -56,7 +56,7 @@ import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node (CorpusId, NodeType(..), UserId)
 import Gargantext.Database.Prelude (hasConfig)
-import Gargantext.Database.Query.Table.Node (getNodeWith)
+import Gargantext.Database.Query.Table.Node (getNodeWith, updateCorpusPubmedAPIKey)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
@@ -209,6 +209,12 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
       markComplete jobHandle
 
     _ -> do
+      case datafield of
+         Just (External (PubMed { _api_key })) -> do
+           printDebug "[addToCorpusWithQuery] pubmed api key" _api_key
+           _ <- updateCorpusPubmedAPIKey cid _api_key
+           pure ()
+         _ -> pure ()
       markStarted 3 jobHandle
 
       -- TODO add cid
@@ -227,7 +233,7 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
           markProgress 1 jobHandle
 
           void $ flowDataText user txt (Multi l) cid (Just flw) jobHandle
-          -- printDebug "corpus id" cids
+-- printDebug "corpus id" cids
           -- printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
           sendMail user
           -- TODO ...
