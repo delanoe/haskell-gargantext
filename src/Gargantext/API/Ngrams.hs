@@ -85,8 +85,6 @@ module Gargantext.API.Ngrams
 import Control.Concurrent
 import Control.Lens ((.~), view, (^.), (^..), (+~), (%~), (.~), msumOf, at, _Just, Each(..), (%%~), mapped, ifolded, to, withIndex)
 import Control.Monad.Reader
-import Data.Aeson hiding ((.=))
-import Data.Either (Either(..))
 import Data.Foldable
 import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe)
@@ -94,11 +92,9 @@ import Data.Monoid
 import Data.Ord (Down(..))
 import Data.Patch.Class (Action(act), Transformable(..), ours)
 import Data.Set (Set)
-import Data.Swagger hiding (version, patch)
-import Data.Text (Text, isInfixOf, toLower, unpack, pack)
+import Data.Text (Text, isInfixOf, toLower, unpack)
 import Data.Text.Lazy.IO as DTL
 import Formatting (hprint, int, (%))
-import GHC.Generics (Generic)
 import Gargantext.API.Admin.EnvTypes (Env, GargJob(..))
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
@@ -106,7 +102,7 @@ import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude
 import Gargantext.Core.NodeStory
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, TODO, assertValid, HasInvalidError, ContextId)
-import Gargantext.Core.Types.Query (Limit(..), Offset(..))
+import Gargantext.Core.Types.Query (Limit(..), Offset(..), MinSize(..), MaxSize(..))
 import Gargantext.API.Ngrams.Tools
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Metrics.NgramsByContext (getOccByNgramsOnlyFast)
@@ -124,8 +120,6 @@ import Prelude (error)
 import Servant hiding (Patch)
 import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
 import System.IO (stderr)
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Aeson.Text as DAT
 import qualified Data.List as List
 import qualified Data.Map.Strict as Map
@@ -521,9 +515,6 @@ dumpJsonTableMap fpath nodeId ngramsType = do
   pure ()
 
 
-type MinSize = Int
-type MaxSize = Int
-
 -- | TODO Errors management
 --  TODO: polymorphic for Annuaire or Corpus or ...
 -- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
@@ -548,8 +539,8 @@ getTableNgrams _nType nId tabType listId limit_ offset
     ngramsType = ngramsTypeFromTabType tabType
     offset'  = getOffset $ maybe 0 identity offset
     listType' = maybe (const True) (==) listType
-    minSize'  = maybe (const True) (<=) minSize
-    maxSize'  = maybe (const True) (>=) maxSize
+    minSize'  = maybe (const True) (<=) (getMinSize <$> minSize)
+    maxSize'  = maybe (const True) (>=) (getMaxSize <$> maxSize)
 
     rootOf tableMap ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
                                     (tableMap ^. at r)
@@ -693,28 +684,6 @@ scoresRecomputeTableNgrams nId tabType listId = do
 -- APIs
 
 -- TODO: find a better place for the code above, All APIs stay here
-
-data OrderBy = TermAsc | TermDesc | ScoreAsc | ScoreDesc
-             deriving (Generic, Enum, Bounded, Read, Show)
-
-instance FromHttpApiData OrderBy
-  where
-    parseUrlPiece "TermAsc"   = pure TermAsc
-    parseUrlPiece "TermDesc"  = pure TermDesc
-    parseUrlPiece "ScoreAsc"  = pure ScoreAsc
-    parseUrlPiece "ScoreDesc" = pure ScoreDesc
-    parseUrlPiece _           = Left "Unexpected value of OrderBy"
-
-instance ToHttpApiData OrderBy where
-  toUrlPiece = pack . show
-
-instance ToParamSchema OrderBy
-instance FromJSON  OrderBy
-instance ToJSON    OrderBy
-instance ToSchema  OrderBy
-instance Arbitrary OrderBy
-  where
-    arbitrary = elements [minBound..maxBound]
 
 needsScores :: Maybe OrderBy -> Bool
 needsScores (Just ScoreAsc)  = True

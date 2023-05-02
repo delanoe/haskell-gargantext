@@ -40,7 +40,8 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField, fromJSONField
 import Database.PostgreSQL.Simple.ToField (ToField, toJSONField, toField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Text (size)
-import Gargantext.Core.Types (ListType(..), ListId, NodeId, TODO)
+import Gargantext.Core.Types (ListType(..), ListId, NodeId, NodeType, TODO)
+import Gargantext.Core.Types.Query (Limit, Offset, MaxSize, MinSize)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Admin.Types.Node (ContextId)
 import Gargantext.Database.Prelude (fromField', HasConnectionPool, HasConfig, CmdM')
@@ -267,6 +268,47 @@ instance Arbitrary NgramsTable where
   arbitrary = pure mockTable
 
 instance ToSchema NgramsTable
+
+------------------------------------------------------------------------
+-- Searching in a Ngram Table
+
+data OrderBy = TermAsc | TermDesc | ScoreAsc | ScoreDesc
+             deriving (Generic, Enum, Bounded, Read, Show)
+
+instance FromHttpApiData OrderBy
+  where
+    parseUrlPiece "TermAsc"   = pure TermAsc
+    parseUrlPiece "TermDesc"  = pure TermDesc
+    parseUrlPiece "ScoreAsc"  = pure ScoreAsc
+    parseUrlPiece "ScoreDesc" = pure ScoreDesc
+    parseUrlPiece _           = Left "Unexpected value of OrderBy"
+
+instance ToHttpApiData OrderBy where
+  toUrlPiece = pack . show
+
+instance ToParamSchema OrderBy
+instance FromJSON  OrderBy
+instance ToJSON    OrderBy
+instance ToSchema  OrderBy
+instance Arbitrary OrderBy
+  where
+    arbitrary = elements [minBound..maxBound]
+
+
+-- | A query on a 'NgramsTable'.
+data NgramsSearchQuery = NgramsSearchQuery
+  { _nsq_nodeType    :: !NodeType
+  , _nsq_nodeId      :: !NodeId
+  , _nsq_tabType     :: !TabType
+  , _nsq_listId      :: !ListId
+  , _nsq_limit       :: !Limit
+  , _nsq_offset      :: !(Maybe Offset)
+  , _nsq_listType    :: !(Maybe ListType)
+  , _nsq_minSize     :: !(Maybe MinSize)
+  , _nsq_maxSize     :: !(Maybe MaxSize)
+  , _nsq_orderBy     :: !(Maybe OrderBy)
+  , _nsq_searchQuery :: !(NgramsTerm -> Bool)
+  }
 
 ------------------------------------------------------------------------
 type NgramsTableMap = Map NgramsTerm NgramsRepoElement

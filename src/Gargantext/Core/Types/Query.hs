@@ -28,3 +28,12 @@ newtype Offset = Offset { getOffset :: Int }
                    , Servant.FromHttpApiData, Servant.ToHttpApiData
                    , Swagger.ToParamSchema, Swagger.ToSchema)
 type IsTrash  = Bool
+
+newtype MinSize = MinSize { getMinSize :: Int }
+  deriving newtype ( Show, Eq, Num
+                   , Servant.FromHttpApiData, Servant.ToHttpApiData
+                   , Swagger.ToParamSchema, Swagger.ToSchema)
+newtype MaxSize = MaxSize { getMaxSize :: Int }
+  deriving newtype ( Show, Eq, Num
+                   , Servant.FromHttpApiData, Servant.ToHttpApiData
+                   , Swagger.ToParamSchema, Swagger.ToSchema)
