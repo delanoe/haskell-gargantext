@@ -296,11 +296,8 @@ instance Arbitrary OrderBy
 
 
 -- | A query on a 'NgramsTable'.
-data NgramsSearchQuery = NgramsSearchQuery
-  { _nsq_nodeType    :: !NodeType
-  , _nsq_nodeId      :: !NodeId
-  , _nsq_tabType     :: !TabType
-  , _nsq_listId      :: !ListId
+data NgramsSearchQuery m = NgramsSearchQuery
+  { _nsq_listId      :: !ListId
   , _nsq_limit       :: !Limit
   , _nsq_offset      :: !(Maybe Offset)
   , _nsq_listType    :: !(Maybe ListType)

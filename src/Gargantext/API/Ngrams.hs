@@ -520,37 +520,33 @@ dumpJsonTableMap fpath nodeId ngramsType = do
 -- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
 -- TODO: should take only one ListId
 
-
-getTableNgrams :: forall env err m.
-                  (HasNodeStory env err m, HasNodeError err, CmdCommon env)
-               => NodeType -> NodeId -> TabType
-               -> ListId   -> Limit  -> Maybe Offset
-               -> Maybe ListType
-               -> Maybe MinSize -> Maybe MaxSize
-               -> Maybe OrderBy
-               -> (NgramsTerm -> Bool)
-               -> m (VersionedWithCount NgramsTable)
-getTableNgrams _nType nId tabType listId limit_ offset
-               listType minSize maxSize orderBy searchQuery = do
-
-  t0 <- getTime
+-- | /pure/ function to query a 'Map NgramsTerm NgramsElement',
+-- according to a search function. Returns a /versioned/ 'NgramsTable'
+-- which is paginated and sorted according to the input
+-- 'NgramsSearchQuery', together with the occurrences of the
+-- elements.
+searchTableNgrams :: Versioned (Map NgramsTerm NgramsElement)
+                  -> NgramsSearchQuery
+                  -- ^ The search query on the retrieved data
+                  -> VersionedWithCount NgramsTable
+searchTableNgrams versionedTableMap NgramsSearchQuery{..} =
   -- lIds <- selectNodesWithUsername NodeList userMaster
   let
-    ngramsType = ngramsTypeFromTabType tabType
-    offset'  = getOffset $ maybe 0 identity offset
-    listType' = maybe (const True) (==) listType
-    minSize'  = maybe (const True) (<=) (getMinSize <$> minSize)
-    maxSize'  = maybe (const True) (>=) (getMaxSize <$> maxSize)
+    ngramsType = ngramsTypeFromTabType _nsq_tabType
+    offset'  = getOffset $ maybe 0 identity _nsq_offset
+    listType' = maybe (const True) (==) _nsq_listType
+    minSize'  = maybe (const True) (<=) (getMinSize <$> _nsq_minSize)
+    maxSize'  = maybe (const True) (>=) (getMaxSize <$> _nsq_maxSize)
 
     rootOf tableMap ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
                                     (tableMap ^. at r)
                                   )
                          (ne ^. ne_root)
 
-    selected_node n = minSize'     s
-                   && maxSize'     s
-                   && searchQuery  (n ^. ne_ngrams)
-                   && listType'    (n ^. ne_list)
+    selected_node n = minSize'         s
+                   && maxSize'         s
+                   && _nsq_searchQuery (n ^. ne_ngrams)
+                   && listType'        (n ^. ne_list)
       where
         s = n ^. ne_size
 
@@ -586,40 +582,36 @@ getTableNgrams _nType nId tabType listId limit_ offset
 
     -- | Paginate the results
     sortAndPaginate :: Set NgramsElement -> [NgramsElement]
-    sortAndPaginate =   take (getLimit limit_)
+    sortAndPaginate =   take (getLimit _nsq_limit)
                       . drop offset'
-                      . sortOnOrder orderBy
+                      . sortOnOrder _nsq_orderBy
                       . Set.toList
 
     ---------------------------------------
 
-  let scoresNeeded = needsScores orderBy
-  t1 <- getTime
+    scoresNeeded = needsScores _nsq_orderBy
 
-  versionedTableMap <- getNgramsTable' nId listId ngramsType :: m (Versioned (Map NgramsTerm NgramsElement))
+    tableMap = versionedTableMap ^. v_data
+    filteredData = filteredNodes tableMap
 
-  let tableMap = versionedTableMap ^. v_data
-  let filteredData = filteredNodes tableMap
+    fltrCount = Set.size filteredData
 
-  let fltrCount = Set.size filteredData
+    tableMapSorted = versionedTableMap
+                   & v_data .~ (NgramsTable . sortAndPaginate . withInners tableMap $ filteredData)
 
-  t2 <- getTime
-  let tableMapSorted = versionedTableMap
-                     & v_data .~ (NgramsTable . sortAndPaginate . withInners tableMap $ filteredData)
-  t3 <- getTime
-  --printDebug "[getTableNgrams] tableMapSorted" tableMapSorted
-  liftBase $ do
-    hprint stderr
-      ("getTableNgrams total=" % hasTime
-        % " map1=" % hasTime
-        % " map2=" % hasTime
-        % " map3=" % hasTime
-        % " sql="  % (if scoresNeeded then "map2" else "map3")
-        % "\n"
-      ) t0 t3 t0 t1 t1 t2 t2 t3
+    in toVersionedWithCount fltrCount tableMapSorted
 
-    -- printDebug "[getTableNgrams] tableMapSorted" $ show tableMapSorted
-  pure $ toVersionedWithCount fltrCount tableMapSorted
+getTableNgrams :: forall env err m.
+                  (HasNodeStory env err m, HasNodeError err, CmdCommon env)
+               => NodeType
+               -> NodeId
+               -> TabType
+               -> NgramsSearchQuery
+               -> m (VersionedWithCount NgramsTable)
+getTableNgrams nodeType nodeId tabType searchQuery = do
+  let ngramsType = ngramsTypeFromTabType tabType
+  versionedInput <- getNgramsTable' nodeType nodeId ngramsType
+  searchTableNgrams versionedInput searchQuery
 
 
 -- | Helper function to get the ngrams table with scores.
@@ -742,9 +734,20 @@ getTableNgramsCorpus :: (HasNodeStory env err m, HasNodeError err, CmdCommon env
                -> Maybe Text -- full text search
                -> m (VersionedWithCount NgramsTable)
 getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy mt =
-  getTableNgrams NodeCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
+  getTableNgrams NodeCorpus nId tabType searchQuery
     where
-      searchQuery (NgramsTerm nt) = maybe (const True) isInfixOf (toLower <$> mt) (toLower nt)
+      searchQueryFn (NgramsTerm nt) = maybe (const True) isInfixOf (toLower <$> mt) (toLower nt)
+      searchQuery = NgramsSearchQuery {
+                    _nsq_listId      = listId
+                  , _nsq_limit       = limit_
+                  , _nsq_offset      = offset
+                  , _nsq_listType    = listType
+                  , _nsq_minSize     = minSize
+                  , _nsq_maxSize     = maxSize
+                  , _nsq_orderBy     = orderBy
+                  , _nsq_searchQuery = searchQueryFn
+                  }
+
 
 
 
@@ -776,9 +779,18 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
   ns <- selectNodesWithUsername NodeList userMaster
   let ngramsType = ngramsTypeFromTabType tabType
   ngs <- selectNgramsByDoc (ns <> [listId]) dId ngramsType
-  let searchQuery (NgramsTerm nt) = flip Set.member (Set.fromList ngs) nt
-  getTableNgrams NodeDocument dId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
-
+  let searchQueryFn (NgramsTerm nt) = flip Set.member (Set.fromList ngs) nt
+      searchQuery = NgramsSearchQuery {
+                    _nsq_listId      = listId
+                  , _nsq_limit       = limit_
+                  , _nsq_offset      = offset
+                  , _nsq_listType    = listType
+                  , _nsq_minSize     = minSize
+                  , _nsq_maxSize     = maxSize
+                  , _nsq_orderBy     = orderBy
+                  , _nsq_searchQuery = searchQueryFn
+                  }
+  getTableNgrams NodeDocument dId tabType searchQuery
 
 
 apiNgramsTableCorpus :: NodeId -> ServerT TableNgramsApi (GargM Env GargError)
