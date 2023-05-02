@@ -28,6 +28,7 @@ module Gargantext.API.Ngrams
   , TableNgramsApiGet
   , TableNgramsApiPut
 
+  , searchTableNgrams
   , getTableNgrams
   , getTableNgramsCorpus
   , setListNgrams
@@ -532,14 +533,13 @@ searchTableNgrams :: Versioned (Map NgramsTerm NgramsElement)
 searchTableNgrams versionedTableMap NgramsSearchQuery{..} =
   -- lIds <- selectNodesWithUsername NodeList userMaster
   let
-    ngramsType = ngramsTypeFromTabType _nsq_tabType
     offset'  = getOffset $ maybe 0 identity _nsq_offset
     listType' = maybe (const True) (==) _nsq_listType
     minSize'  = maybe (const True) (<=) (getMinSize <$> _nsq_minSize)
     maxSize'  = maybe (const True) (>=) (getMaxSize <$> _nsq_maxSize)
 
-    rootOf tableMap ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
-                                    (tableMap ^. at r)
+    rootOf tblMap ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
+                                    (tblMap ^. at r)
                                   )
                          (ne ^. ne_root)
 
@@ -560,23 +560,23 @@ searchTableNgrams versionedTableMap NgramsSearchQuery{..} =
     ---------------------------------------
     -- | Filter the given `tableMap` with the search criteria.
     filteredNodes :: Map NgramsTerm NgramsElement -> Set NgramsElement
-    filteredNodes tableMap = roots
+    filteredNodes tblMap = roots
       where
-        list = Set.fromList $ Map.elems tableMap
+        list = Set.fromList $ Map.elems tblMap
         selected_nodes = list & Set.filter selected_node
-        roots = Set.map (rootOf tableMap) selected_nodes
+        roots = Set.map (rootOf tblMap) selected_nodes
 
     -- | For each input root, extends its occurrence count with
     -- the information found in the subitems.
     withInners :: Map NgramsTerm NgramsElement -> Set NgramsElement -> Set NgramsElement
-    withInners tableMap roots = Set.map addSubitemsOccurrences roots
+    withInners tblMap roots = Set.map addSubitemsOccurrences roots
       where
         addSubitemsOccurrences :: NgramsElement -> NgramsElement
         addSubitemsOccurrences e =
           e { _ne_occurrences = foldl' alterOccurrences (e ^. ne_occurrences) (e ^. ne_children) }
 
         alterOccurrences :: Set ContextId -> NgramsTerm -> Set ContextId
-        alterOccurrences occs t = case Map.lookup t tableMap of
+        alterOccurrences occs t = case Map.lookup t tblMap of
           Nothing -> occs
           Just e' -> occs <> e' ^. ne_occurrences
 
@@ -588,8 +588,6 @@ searchTableNgrams versionedTableMap NgramsSearchQuery{..} =
                       . Set.toList
 
     ---------------------------------------
-
-    scoresNeeded = needsScores _nsq_orderBy
 
     tableMap = versionedTableMap ^. v_data
     filteredData = filteredNodes tableMap
@@ -603,15 +601,15 @@ searchTableNgrams versionedTableMap NgramsSearchQuery{..} =
 
 getTableNgrams :: forall env err m.
                   (HasNodeStory env err m, HasNodeError err, CmdCommon env)
-               => NodeType
-               -> NodeId
+               => NodeId
+               -> ListId
                -> TabType
                -> NgramsSearchQuery
                -> m (VersionedWithCount NgramsTable)
-getTableNgrams nodeType nodeId tabType searchQuery = do
+getTableNgrams nodeId listId tabType searchQuery = do
   let ngramsType = ngramsTypeFromTabType tabType
-  versionedInput <- getNgramsTable' nodeType nodeId ngramsType
-  searchTableNgrams versionedInput searchQuery
+  versionedInput <- getNgramsTable' nodeId listId ngramsType
+  pure $ searchTableNgrams versionedInput searchQuery
 
 
 -- | Helper function to get the ngrams table with scores.
@@ -734,12 +732,11 @@ getTableNgramsCorpus :: (HasNodeStory env err m, HasNodeError err, CmdCommon env
                -> Maybe Text -- full text search
                -> m (VersionedWithCount NgramsTable)
 getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy mt =
-  getTableNgrams NodeCorpus nId tabType searchQuery
+  getTableNgrams nId listId tabType searchQuery
     where
       searchQueryFn (NgramsTerm nt) = maybe (const True) isInfixOf (toLower <$> mt) (toLower nt)
       searchQuery = NgramsSearchQuery {
-                    _nsq_listId      = listId
-                  , _nsq_limit       = limit_
+                    _nsq_limit       = limit_
                   , _nsq_offset      = offset
                   , _nsq_listType    = listType
                   , _nsq_minSize     = minSize
@@ -781,8 +778,7 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
   ngs <- selectNgramsByDoc (ns <> [listId]) dId ngramsType
   let searchQueryFn (NgramsTerm nt) = flip Set.member (Set.fromList ngs) nt
       searchQuery = NgramsSearchQuery {
-                    _nsq_listId      = listId
-                  , _nsq_limit       = limit_
+                    _nsq_limit       = limit_
                   , _nsq_offset      = offset
                   , _nsq_listType    = listType
                   , _nsq_minSize     = minSize
@@ -790,7 +786,7 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
                   , _nsq_orderBy     = orderBy
                   , _nsq_searchQuery = searchQueryFn
                   }
-  getTableNgrams NodeDocument dId tabType searchQuery
+  getTableNgrams dId listId tabType searchQuery
 
 
 apiNgramsTableCorpus :: NodeId -> ServerT TableNgramsApi (GargM Env GargError)

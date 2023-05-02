@@ -504,6 +504,7 @@ tests:
      - -with-rtsopts=-N
      dependencies:
      - base
+     - containers
      - gargantext
      - gargantext-prelude
      - hspec
@@ -512,6 +513,8 @@ tests:
      - time
      - parsec
      - duckling
+     - tasty
+     - tasty-hunit
      - text
      - unordered-containers
    jobqueue-test:

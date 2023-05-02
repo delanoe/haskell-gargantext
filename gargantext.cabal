@@ -848,6 +848,7 @@ test-suite garg-test
       Ngrams.Lang.Occurrences
       Ngrams.Metrics
       Ngrams.NLP
+      Ngrams.Query
       Parsers.Date
       Parsers.Types
       Parsers.WOS
@@ -882,6 +883,7 @@ test-suite garg-test
   build-depends:
       QuickCheck
     , base
+    , containers
     , duckling
     , extra
     , gargantext
@@ -889,6 +891,8 @@ test-suite garg-test
     , hspec
     , parsec
     , quickcheck-instances
+    , tasty
+    , tasty-hunit
     , text
     , time
     , unordered-containers

@@ -40,7 +40,7 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField, fromJSONField
 import Database.PostgreSQL.Simple.ToField (ToField, toJSONField, toField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Text (size)
-import Gargantext.Core.Types (ListType(..), ListId, NodeId, NodeType, TODO)
+import Gargantext.Core.Types (ListType(..), ListId, NodeId, TODO)
 import Gargantext.Core.Types.Query (Limit, Offset, MaxSize, MinSize)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Admin.Types.Node (ContextId)
@@ -296,9 +296,8 @@ instance Arbitrary OrderBy
 
 
 -- | A query on a 'NgramsTable'.
-data NgramsSearchQuery m = NgramsSearchQuery
-  { _nsq_listId      :: !ListId
-  , _nsq_limit       :: !Limit
+data NgramsSearchQuery = NgramsSearchQuery
+  { _nsq_limit       :: !Limit
   , _nsq_offset      :: !(Maybe Offset)
   , _nsq_listType    :: !(Maybe ListType)
   , _nsq_minSize     :: !(Maybe MinSize)
