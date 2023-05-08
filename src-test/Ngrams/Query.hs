@@ -11,6 +11,7 @@ import           Data.Map.Strict (Map)
 import           Gargantext.Core.Types.Query
 import           Gargantext.Core.Types.Main
 
+import Ngrams.Query.PaginationCorpus
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -47,6 +48,9 @@ unitTests = testGroup "Query tests"
   , testCase "Simple query (listType = StopTerm)" testFlat04
     -- Full text search
   , testCase "Simple query (search with match)" testFlat05
+    -- Pagination
+  , testCase "Simple pagination on MapTerm" test_pagination01
+  , testCase "Simple pagination on MapTerm (limit < total terms)" test_pagination02
   ]
 
 -- Let's test that if we request elements sorted in
@@ -131,4 +135,38 @@ testFlat05 = do
                , _nsq_maxSize     = Nothing
                , _nsq_orderBy     = Just TermDesc
                , _nsq_searchQuery = mockQueryFn (Just "curry")
+               }
+
+-- Pagination tests
+
+-- In this test, I'm asking for 5 /map terms/, and as the
+-- corpus has only 2, that's what I should get back.
+test_pagination01 :: Assertion
+test_pagination01 = do
+  let res = searchTableNgrams paginationCorpus searchQuery
+  res @?= VersionedWithCount 0 4 ( NgramsTable [implementationElem, languagesElem, termsElem, proofElem] )
+  where
+   searchQuery = NgramsSearchQuery {
+                 _nsq_limit       = Limit 5
+               , _nsq_offset      = Nothing
+               , _nsq_listType    = Just MapTerm
+               , _nsq_minSize     = Nothing
+               , _nsq_maxSize     = Nothing
+               , _nsq_orderBy     = Just ScoreDesc
+               , _nsq_searchQuery = mockQueryFn Nothing
+               }
+
+test_pagination02 :: Assertion
+test_pagination02 = do
+  let res = searchTableNgrams paginationCorpus searchQuery
+  res @?= VersionedWithCount 0 4 ( NgramsTable [implementationElem, languagesElem, termsElem] )
+  where
+   searchQuery = NgramsSearchQuery {
+                 _nsq_limit       = Limit 3
+               , _nsq_offset      = Nothing
+               , _nsq_listType    = Just MapTerm
+               , _nsq_minSize     = Nothing
+               , _nsq_maxSize     = Nothing
+               , _nsq_orderBy     = Just ScoreDesc
+               , _nsq_searchQuery = mockQueryFn Nothing
                }

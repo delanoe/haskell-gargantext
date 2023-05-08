@@ -10,15 +10,12 @@ Portability : POSIX
 
 
 import Gargantext.Prelude
-import Gargantext.Core (Lang(..))
 
 import qualified Core.Utils as Utils
 --import qualified Ngrams.Lang.Fr as Fr
 --import qualified Ngrams.Lang as Lang
-import qualified Ngrams.Lang.Occurrences as Occ
 import qualified Ngrams.NLP              as NLP
 import qualified Ngrams.Query            as NgramsQuery
-import qualified Ngrams.Metrics          as Metrics
 import qualified Parsers.Date            as PD
 -- import qualified Graph.Distance          as GD
 import qualified Graph.Clustering        as Graph
