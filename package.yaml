@@ -43,6 +43,7 @@ data-files:
   - ekg-assets/bootstrap-1.4.0.min.css
   - ekg-assets/chart_line_add.png
   - ekg-assets/cross.png
+  - test-data/ngrams/GarganText_NgramsTerms-QuantumComputing.json
 library:
   source-dirs: src
   ghc-options:
@@ -503,7 +504,9 @@ tests:
      - -rtsopts
      - -with-rtsopts=-N
      dependencies:
+     - aeson
      - base
+     - bytestring
      - containers
      - gargantext
      - gargantext-prelude

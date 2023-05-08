@@ -25,6 +25,7 @@ data-files:
     ekg-assets/bootstrap-1.4.0.min.css
     ekg-assets/chart_line_add.png
     ekg-assets/cross.png
+    test-data/ngrams/GarganText_NgramsTerms-QuantumComputing.json
 
 library
   exposed-modules:
@@ -883,7 +884,9 @@ test-suite garg-test
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
+    , aeson
     , base
+    , bytestring
     , containers
     , duckling
     , extra

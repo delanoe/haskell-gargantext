@@ -84,7 +84,7 @@ module Gargantext.API.Ngrams
   where
 
 import Control.Concurrent
-import Control.Lens ((.~), view, (^.), (^..), (+~), (%~), (.~), msumOf, at, _Just, Each(..), (%%~), mapped, ifolded, to, withIndex)
+import Control.Lens ((.~), view, (^.), (^..), (+~), (%~), (.~), msumOf, at, _Just, Each(..), (%%~), mapped, ifolded, to, withIndex, over)
 import Control.Monad.Reader
 import Data.Foldable
 import Data.Map.Strict (Map)
@@ -521,50 +521,66 @@ dumpJsonTableMap fpath nodeId ngramsType = do
 -- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
 -- TODO: should take only one ListId
 
--- | /pure/ function to query a 'Map NgramsTerm NgramsElement',
--- according to a search function. Returns a /versioned/ 'NgramsTable'
--- which is paginated and sorted according to the input
--- 'NgramsSearchQuery', together with the occurrences of the
--- elements.
+-- | /pure/ function to query a 'Map NgramsTerm NgramsElement', according to a
+-- search function. Returns a /versioned/ 'NgramsTable' which is paginated and
+-- sorted according to the input 'NgramsSearchQuery', together with the
+-- occurrences of the elements.
 searchTableNgrams :: Versioned (Map NgramsTerm NgramsElement)
                   -> NgramsSearchQuery
                   -- ^ The search query on the retrieved data
                   -> VersionedWithCount NgramsTable
 searchTableNgrams versionedTableMap NgramsSearchQuery{..} =
-  -- lIds <- selectNodesWithUsername NodeList userMaster
-  let
-    offset'  = getOffset $ maybe 0 identity _nsq_offset
-    listType' = maybe (const True) (==) _nsq_listType
-    minSize'  = maybe (const True) (<=) (getMinSize <$> _nsq_minSize)
-    maxSize'  = maybe (const True) (>=) (getMaxSize <$> _nsq_maxSize)
+  let tableMap     = versionedTableMap ^. v_data
+      filteredData = filterNodes tableMap
+      tableMapSorted = versionedTableMap
+                     & v_data .~ (NgramsTable . sortAndPaginate . withInners tableMap $ filteredData)
 
-    rootOf tblMap ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root")
-                                    (tblMap ^. at r)
-                                  )
-                         (ne ^. ne_root)
+  in toVersionedWithCount (Set.size filteredData) tableMapSorted
+  where
 
-    selected_node n = minSize'         s
-                   && maxSize'         s
-                   && _nsq_searchQuery (n ^. ne_ngrams)
-                   && listType'        (n ^. ne_list)
-      where
-        s = n ^. ne_size
+    -- | Returns the \"root\" of the 'NgramsElement', or it falls back to the input
+    -- 'NgramsElement' itself, if no root can be found.
+    -- /CAREFUL/: The root we select might /not/ have the same 'listType' we are
+    -- filtering for, in which case we have to change its type to match, if needed.
+    rootOf :: Map NgramsTerm NgramsElement -> NgramsElement -> NgramsElement
+    rootOf tblMap ne = case ne ^. ne_root of
+      Nothing -> ne
+      Just rootKey
+        | Just r <- tblMap ^. at rootKey
+        -- NOTE(adinapoli) It's unclear what is the correct behaviour here: should
+        -- we override the type or we filter out the node altogether?
+        -> over ne_list (\oldList -> fromMaybe oldList _nsq_listType) r
+        | otherwise
+        -> ne
 
-    ---------------------------------------
+    -- | Returns 'True' if the input 'NgramsElement' satisfies the search criteria
+    -- mandated by 'NgramsSearchQuery'.
+    matchingNode :: NgramsElement -> Bool
+    matchingNode inputNode =
+      let nodeSize        = inputNode ^. ne_size
+          matchesListType = maybe (const True) (==) _nsq_listType
+          respectsMinSize = maybe (const True) (<=) (getMinSize <$> _nsq_minSize)
+          respectsMaxSize = maybe (const True) (>=) (getMaxSize <$> _nsq_maxSize)
+
+      in    respectsMinSize nodeSize
+         && respectsMaxSize nodeSize
+         && _nsq_searchQuery (inputNode ^. ne_ngrams)
+         && matchesListType (inputNode ^. ne_list)
+
+    sortOnOrder :: Maybe OrderBy -> ([NgramsElement] -> [NgramsElement])
     sortOnOrder Nothing          = sortOnOrder (Just ScoreDesc)
     sortOnOrder (Just TermAsc)   = List.sortOn $ view ne_ngrams
     sortOnOrder (Just TermDesc)  = List.sortOn $ Down . view ne_ngrams
     sortOnOrder (Just ScoreAsc)  = List.sortOn $ view (ne_occurrences . to Set.size)
     sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view (ne_occurrences . to Set.size)
 
-    ---------------------------------------
-    -- | Filter the given `tableMap` with the search criteria.
-    filteredNodes :: Map NgramsTerm NgramsElement -> Set NgramsElement
-    filteredNodes tblMap = roots
+    -- | Filters the given `tableMap` with the search criteria. It returns
+    -- a set of 'NgramsElement' all matching the input 'NGramsSearchQuery'.
+    filterNodes :: Map NgramsTerm NgramsElement -> Set NgramsElement
+    filterNodes tblMap = Set.map (rootOf tblMap) selectedNodes
       where
-        list = Set.fromList $ Map.elems tblMap
-        selected_nodes = list & Set.filter selected_node
-        roots = Set.map (rootOf tblMap) selected_nodes
+        allNodes      = Set.fromList $ Map.elems tblMap
+        selectedNodes = Set.filter matchingNode allNodes
 
     -- | For each input root, extends its occurrence count with
     -- the information found in the subitems.
@@ -582,22 +598,14 @@ searchTableNgrams versionedTableMap NgramsSearchQuery{..} =
 
     -- | Paginate the results
     sortAndPaginate :: Set NgramsElement -> [NgramsElement]
-    sortAndPaginate =   take (getLimit _nsq_limit)
-                      . drop offset'
-                      . sortOnOrder _nsq_orderBy
-                      . Set.toList
+    sortAndPaginate xs =
+      let offset'  = getOffset $ maybe 0 identity _nsq_offset
+      in   take (getLimit _nsq_limit)
+         . drop offset'
+         . sortOnOrder _nsq_orderBy
+         . Set.toList
+         $ xs
 
-    ---------------------------------------
-
-    tableMap = versionedTableMap ^. v_data
-    filteredData = filteredNodes tableMap
-
-    fltrCount = Set.size filteredData
-
-    tableMapSorted = versionedTableMap
-                   & v_data .~ (NgramsTable . sortAndPaginate . withInners tableMap $ filteredData)
-
-    in toVersionedWithCount fltrCount tableMapSorted
 
 getTableNgrams :: forall env err m.
                   (HasNodeStory env err m, HasNodeError err, CmdCommon env)

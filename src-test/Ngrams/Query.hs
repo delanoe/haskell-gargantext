@@ -1,9 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications #-}
 module Ngrams.Query where
 
+import           Control.Monad
 import           Gargantext.Prelude
 import           Gargantext.API.Ngrams
 import           Gargantext.API.Ngrams.Types
+import           Data.Coerce
 import           Data.Monoid
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
@@ -43,14 +46,21 @@ unitTests = testGroup "Query tests"
   [ -- Sorting
     testCase "Simple query mockFlatCorpus" testFlat01
   , testCase "Simple query (desc sorting)" testFlat02
-    -- Filtering
+  --  -- Filtering
   , testCase "Simple query (listType = MapTerm)" testFlat03
   , testCase "Simple query (listType = StopTerm)" testFlat04
-    -- Full text search
+  --  -- Full text search
   , testCase "Simple query (search with match)" testFlat05
-    -- Pagination
+  --  -- Pagination
+  , testCase "Simple pagination on all terms" test_pagination_allTerms
   , testCase "Simple pagination on MapTerm" test_pagination01
-  , testCase "Simple pagination on MapTerm (limit < total terms)" test_pagination02
+  , testCase "Simple pagination on MapTerm  (limit < total terms)" test_pagination02
+  , testCase "Simple pagination on MapTerm  (offset works)" test_pagination02_offset
+  , testCase "Simple pagination on ListTerm (limit < total terms)" test_pagination03
+  , testCase "Simple pagination on ListTerm  (offset works)" test_pagination03_offset
+  , testCase "Simple pagination on CandidateTerm (limit < total terms)" test_pagination04
+  , testCase "paginating QuantumComputing corpus works (MapTerms)" test_paginationQuantum
+  , testCase "paginating QuantumComputing corpus works (CandidateTerm)" test_paginationQuantum_02
   ]
 
 -- Let's test that if we request elements sorted in
@@ -139,6 +149,29 @@ testFlat05 = do
 
 -- Pagination tests
 
+test_pagination_allTerms :: Assertion
+test_pagination_allTerms = do
+  let res = searchTableNgrams paginationCorpus searchQuery
+  res @?= VersionedWithCount 0 10 ( NgramsTable [ haskellElem
+                                                , sideEffectsElem
+                                                , concHaskellElem
+                                                , implementationElem
+                                                , ooElem
+                                                , languagesElem
+                                                , javaElem
+                                                , termsElem
+                                                ] )
+  where
+   searchQuery = NgramsSearchQuery {
+                 _nsq_limit       = Limit 8
+               , _nsq_offset      = Nothing
+               , _nsq_listType    = Nothing
+               , _nsq_minSize     = Nothing
+               , _nsq_maxSize     = Nothing
+               , _nsq_orderBy     = Nothing
+               , _nsq_searchQuery = mockQueryFn Nothing
+               }
+
 -- In this test, I'm asking for 5 /map terms/, and as the
 -- corpus has only 2, that's what I should get back.
 test_pagination01 :: Assertion
@@ -168,5 +201,99 @@ test_pagination02 = do
                , _nsq_minSize     = Nothing
                , _nsq_maxSize     = Nothing
                , _nsq_orderBy     = Just ScoreDesc
+               , _nsq_searchQuery = mockQueryFn Nothing
+               }
+
+test_pagination02_offset :: Assertion
+test_pagination02_offset = do
+  let res = searchTableNgrams paginationCorpus searchQuery
+  res @?= VersionedWithCount 0 4 ( NgramsTable [termsElem, proofElem] )
+  where
+   searchQuery = NgramsSearchQuery {
+                 _nsq_limit       = Limit 2
+               , _nsq_offset      = Just (Offset 2)
+               , _nsq_listType    = Just MapTerm
+               , _nsq_minSize     = Nothing
+               , _nsq_maxSize     = Nothing
+               , _nsq_orderBy     = Just ScoreDesc
+               , _nsq_searchQuery = mockQueryFn Nothing
+               }
+
+test_pagination03 :: Assertion
+test_pagination03 = do
+  let res = searchTableNgrams paginationCorpus searchQuery
+  res @?= VersionedWithCount 0 4 ( NgramsTable [sideEffectsElem, ooElem, javaElem] )
+  where
+   searchQuery = NgramsSearchQuery {
+                 _nsq_limit       = Limit 3
+               , _nsq_offset      = Nothing
+               , _nsq_listType    = Just StopTerm
+               , _nsq_minSize     = Nothing
+               , _nsq_maxSize     = Nothing
+               , _nsq_orderBy     = Just ScoreDesc
+               , _nsq_searchQuery = mockQueryFn Nothing
+               }
+
+test_pagination03_offset :: Assertion
+test_pagination03_offset = do
+  let res = searchTableNgrams paginationCorpus searchQuery
+  res @?= VersionedWithCount 0 4 ( NgramsTable [javaElem, pascalElem] )
+  where
+   searchQuery = NgramsSearchQuery {
+                 _nsq_limit       = Limit 2
+               , _nsq_offset      = Just (Offset 2)
+               , _nsq_listType    = Just StopTerm
+               , _nsq_minSize     = Nothing
+               , _nsq_maxSize     = Nothing
+               , _nsq_orderBy     = Just ScoreDesc
+               , _nsq_searchQuery = mockQueryFn Nothing
+               }
+
+test_pagination04 :: Assertion
+test_pagination04 = do
+  let res = searchTableNgrams paginationCorpus searchQuery
+  res @?= VersionedWithCount 0 2 ( NgramsTable [haskellElem] )
+  where
+   searchQuery = NgramsSearchQuery {
+                 _nsq_limit       = Limit 1
+               , _nsq_offset      = Nothing
+               , _nsq_listType    = Just CandidateTerm
+               , _nsq_minSize     = Nothing
+               , _nsq_maxSize     = Nothing
+               , _nsq_orderBy     = Just ScoreDesc
+               , _nsq_searchQuery = mockQueryFn Nothing
+               }
+
+test_paginationQuantum :: Assertion
+test_paginationQuantum = do
+  let res = searchTableNgrams quantumComputingCorpus searchQuery
+  let elems = coerce @NgramsTable @[NgramsElement] $ _vc_data res
+  length elems @?= 10
+  forM_ elems $ \term ->
+    assertBool ("found " <> show (_ne_list term) <> " in: " <> show elems) (_ne_list term == MapTerm)
+  where
+   searchQuery = NgramsSearchQuery {
+                 _nsq_limit       = Limit 10
+               , _nsq_offset      = Nothing
+               , _nsq_listType    = Just MapTerm
+               , _nsq_minSize     = Nothing
+               , _nsq_maxSize     = Nothing
+               , _nsq_orderBy     = Nothing
+               , _nsq_searchQuery = mockQueryFn Nothing
+               }
+
+test_paginationQuantum_02 :: Assertion
+test_paginationQuantum_02 = do
+  let res = searchTableNgrams quantumComputingCorpus searchQuery
+  let elems = coerce @NgramsTable @[NgramsElement] $ _vc_data res
+  assertBool ("found only " <> show (length elems) <> " in: " <> show elems) (length elems == 10)
+  where
+   searchQuery = NgramsSearchQuery {
+                 _nsq_limit       = Limit 10
+               , _nsq_offset      = Nothing
+               , _nsq_listType    = Just CandidateTerm
+               , _nsq_minSize     = Nothing
+               , _nsq_maxSize     = Nothing
+               , _nsq_orderBy     = Nothing
                , _nsq_searchQuery = mockQueryFn Nothing
                }

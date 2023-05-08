@@ -1,13 +1,20 @@
-
+{-# LANGUAGE ScopedTypeVariables #-}
 module Ngrams.Query.PaginationCorpus where
 
+import           Prelude
+
+import           Data.Aeson
 import           Data.Map.Strict (Map)
 import           Gargantext.API.Ngrams
+import           Gargantext.API.Ngrams.Types
 import           Gargantext.Core.Types.Main
 import           Gargantext.Database.Admin.Types.Node
-import           Gargantext.Prelude
+import           System.IO.Unsafe
+import qualified Data.ByteString as B
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
+
+import Paths_gargantext
 
 
 implementationElem :: NgramsElement
@@ -76,6 +83,28 @@ ooElem = NgramsElement {
   , _ne_children = mSetFromList [ "null pointer exception" ]
   }
 
+javaElem :: NgramsElement
+javaElem = NgramsElement {
+    _ne_ngrams = NgramsTerm {unNgramsTerm = "java"}
+  , _ne_size = 1
+  , _ne_list = StopTerm
+  , _ne_occurrences = Set.fromList [ NodeId 1, NodeId 2, NodeId 3 ]
+  , _ne_root = Nothing
+  , _ne_parent = Nothing
+  , _ne_children = mSetFromList [ "JVM" ]
+  }
+
+pascalElem :: NgramsElement
+pascalElem = NgramsElement {
+    _ne_ngrams = NgramsTerm {unNgramsTerm = "pascal"}
+  , _ne_size = 1
+  , _ne_list = StopTerm
+  , _ne_occurrences = Set.fromList [ NodeId 1, NodeId 2 ]
+  , _ne_root = Nothing
+  , _ne_parent = Nothing
+  , _ne_children = mSetFromList [ "turbo", "borland" ]
+  }
+
 haskellElem :: NgramsElement
 haskellElem = NgramsElement {
     _ne_ngrams = NgramsTerm {unNgramsTerm = "haskell"}
@@ -113,8 +142,20 @@ paginationCorpus = Versioned 0 $ Map.fromList [
     -- Stop terms
   , ("side effects", sideEffectsElem)
   , ("object oriented", ooElem)
+  , ("java", javaElem)
+  , ("pascal", pascalElem)
 
     -- Candidate terms
   , ("haskell", haskellElem)
   , ("concurrent haskell", concHaskellElem)
   ]
+
+quantumComputingCorpus :: Versioned (Map NgramsTerm NgramsElement)
+quantumComputingCorpus = unsafePerformIO $ do
+  pth      <- getDataFileName "test-data/ngrams/GarganText_NgramsTerms-QuantumComputing.json"
+  jsonBlob <- B.readFile pth
+  case eitherDecodeStrict' jsonBlob of
+    Left err    -> error err
+    Right (Versioned ver (mp :: Map NgramsTerm NgramsRepoElement)) ->
+      pure $ Versioned ver (Map.mapWithKey (\k -> ngramsElementFromRepo k) mp)
+{-# NOINLINE quantumComputingCorpus #-}
