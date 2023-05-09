@@ -1,3 +1,9 @@
+## Version 0.0.6.9.9.4.2
+
+* [BACK][FIX][[Node terms] Random slowness on loading a page list of terms (#199)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/199)
+* [FRONT][CLEAN] Removing API that do not fully work (yet)
+* [FRONT][FIX] Chat Link 
+
 ## Version 0.0.6.9.9.4.1
 
 
