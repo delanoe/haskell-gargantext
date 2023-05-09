@@ -9,5 +9,5 @@ LOGFILE=$FOLDER"/"$FILE
 
 mkdir -p $FOLDER
 
-env LANG=en_US.UTF-8 ~/.local/bin/gargantext-server --ini gargantext.ini --run Dev +RTS > $LOGFILE 2>&1 & tail -F $LOGFILE # -p
+env LANG=en_US.UTF-8 ~/.local/bin/gargantext-server --ini gargantext.ini --run Prod +RTS > $LOGFILE 2>&1 & tail -F $LOGFILE # -p
 #env LANG=en_US.UTF-8 stack --docker exec gargantext-server -- --ini gargantext.ini --run Dev +RTS > $LOGFILE 2>&1 & tail -F $LOGFILE # -p
