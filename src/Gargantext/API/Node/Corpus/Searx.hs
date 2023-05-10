@@ -21,9 +21,10 @@ import Gargantext.Database.Action.Flow.List (flowList_DbRepo)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Admin.Config (userMaster)
+import Gargantext.Database.Query.Table.Node (insertDefaultNodeIfNotExists)
 import Gargantext.Database.Admin.Types.Hyperdata.Corpus (HyperdataCorpus)
 import Gargantext.Database.Admin.Types.Hyperdata.Document (HyperdataDocument(..))
-import Gargantext.Database.Admin.Types.Node (CorpusId, ListId)
+import Gargantext.Database.Admin.Types.Node (CorpusId, ListId, NodeType(NodeTexts))
 import Gargantext.Database.Prelude (hasConfig)
 import Gargantext.Database.Query.Table.Node (defaultListMaybe, getOrMkList)
 import Gargantext.Database.Query.Tree.Root (getOrMk_RootWithCorpus)
@@ -154,6 +155,10 @@ triggerSearxSearch :: (MonadBase IO m, FlowCmdM env err m, MonadJobStatus m)
             -> JobHandle m
             -> m ()
 triggerSearxSearch user cId q l jobHandle = do
+  userId <- getUserId user
+
+  _tId <- insertDefaultNodeIfNotExists NodeTexts cId userId
+
   let numPages = 100
   markStarted numPages jobHandle
 
