@@ -1,3 +1,8 @@
+## Version 0.0.6.9.9.4.3
+
+* [FRONT][FIX][APi tab not shown (#540)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/540)
+* [BACK][FIX] SearX analysis needs its NodeTexts
+
 ## Version 0.0.6.9.9.4.2
 
 * [BACK][FIX][[Node terms] Random slowness on loading a page list of terms (#199)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/199)
@@ -5,7 +10,6 @@
 * [FRONT][FIX] Chat Link 
 
 ## Version 0.0.6.9.9.4.1
-
 
 * [FRONT][FIX][Doc annotation: space selected as ngrams issue (#458)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/458)
 * [BACK][ADM][API key / user (pubmed) (#201)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/201)
