@@ -1,3 +1,8 @@
+## Version 0.0.6.9.9.4.4
+
+* [FRONT][FIX/WIP][[Term table] Add term should not be suggested when term is already added (#544)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/544)
+* [FRONT][FIX] File Type vs Node Type
+
 ## Version 0.0.6.9.9.4.3
 
 * [FRONT][FIX][APi tab not shown (#540)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/540)
