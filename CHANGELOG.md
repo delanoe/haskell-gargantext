@@ -1,3 +1,9 @@
+## Version 0.0.6.9.9.4.6
+
+* [BACK][FEAT][Import Corpus Docs as Json (#203)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/203)
+* [BACK][OPTIM][[Node terms] Random slowness on loading a page list of terms (#199)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/199)
+    * Upgrade indications: run gargantext-upgrade gargantext.ini
+
 ## Version 0.0.6.9.9.4.5
 
 * [BACK][OPTIM][[Node terms] Random slowness on loading a page list of terms (#199)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/199)
