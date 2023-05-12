@@ -233,7 +233,7 @@ addToCorpusWithQuery user cid (WithQuery { _wq_query = q
           markProgress 1 jobHandle
 
           void $ flowDataText user txt (Multi l) cid (Just flw) jobHandle
--- printDebug "corpus id" cids
+          -- printDebug "corpus id" cids
           -- printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
           sendMail user
           -- TODO ...
@@ -270,6 +270,7 @@ addToCorpusWithForm user cid (NewWithForm ft ff d l _n sel) jobHandle = do
       WOS       -> Parser.parseFormatC Parser.WOS
       PresseRIS -> Parser.parseFormatC Parser.RisPresse
       Iramuteq  -> Parser.parseFormatC Parser.Iramuteq
+      JSON      -> Parser.parseFormatC Parser.JSON
 
   -- TODO granularity of the logStatus
   let data' = case ff of
