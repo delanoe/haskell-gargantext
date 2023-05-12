@@ -122,31 +122,29 @@ getOccByNgramsOnlyFast cId lId nt = do
            -> Cmd err [(Text, DPST.PGArray Int)]
       run cId' lId' nt' = runPGSQuery query
                 ( cId'
-                , cId'
                 , lId'
                 , ngramsTypeId nt'
                 )
 
       query :: DPS.Query
       query = [sql|
-              SELECT ng.terms
-                     , ARRAY(
-                         SELECT DISTINCT context_node_ngrams.context_id
-                         FROM context_node_ngrams
-                         JOIN nodes_contexts
-                           ON context_node_ngrams.context_id = nodes_contexts.context_id
-                         WHERE ng.id = context_node_ngrams.ngrams_id
-                         AND nodes_contexts.node_id = ?
-                         ) AS context_ids
-                FROM ngrams   ng
-                JOIN node_stories       ns  ON ng.id        = ns.ngrams_id
-                JOIN node_node_ngrams   nng ON ns.node_id   = nng.node2_id
-                WHERE nng.node1_id        = ?
-                      AND nng.node2_id    = ?
-                      AND nng.ngrams_type = ?
-                      AND nng.ngrams_id   = ng.id
-                      AND nng.ngrams_type = ns.ngrams_type_id
-                ORDER BY ng.id ASC;
+                WITH node_context_ids AS
+                  (select context_id, ngrams_id
+                  FROM context_node_ngrams_view
+                  WHERE node_id = ?
+                  ), ns AS
+                (select ngrams_id FROM node_stories
+                  WHERE node_id = ? AND ngrams_type_id = ?
+                )
+
+                SELECT ng.terms,
+                ARRAY ( SELECT DISTINCT context_id
+                          FROM node_context_ids
+                          WHERE ns.ngrams_id = node_context_ids.ngrams_id
+                      )
+                AS context_ids
+                FROM ngrams ng
+                JOIN ns ON ng.id = ns.ngrams_id
         |]
 
 
