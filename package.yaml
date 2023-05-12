@@ -330,15 +330,17 @@ executables:
     - -fprof-auto
     dependencies:
       - base
+      - cassava
       - containers
+      - cron
+      - full-text-search
       - gargantext
       - gargantext-prelude
-      - vector
-      - cassava
       - ini
       - optparse-generic
+      - postgresql-simple
       - unordered-containers
-      - full-text-search
+      - vector
 
   gargantext-cli:
     main: Main.hs
@@ -421,6 +423,7 @@ executables:
       - gargantext
       - gargantext-prelude
       - base
+      - cron
 
   gargantext-invitations:
     main: Main.hs
@@ -451,6 +454,7 @@ executables:
       - gargantext-prelude
       - base
       - postgresql-simple
+      - cron
 
   gargantext-admin:
     main: Main.hs

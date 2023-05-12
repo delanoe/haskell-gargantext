@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-version: 0.0.6.9.9.4.5
+version:        0.0.6.9.9.4.5
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
@@ -689,6 +689,7 @@ executable gargantext-init
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       base
+    , cron
     , extra
     , gargantext
     , gargantext-prelude
@@ -792,12 +793,14 @@ executable gargantext-server
       base
     , cassava
     , containers
+    , cron
     , extra
     , full-text-search
     , gargantext
     , gargantext-prelude
     , ini
     , optparse-generic
+    , postgresql-simple
     , text
     , unordered-containers
     , vector
@@ -826,6 +829,7 @@ executable gargantext-upgrade
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2 -Wmissing-signatures
   build-depends:
       base
+    , cron
     , extra
     , gargantext
     , gargantext-prelude
