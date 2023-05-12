@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Core.Text.Corpus.Parsers.CSV
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -378,7 +378,7 @@ instance ToNamedRecord CsvHal where
                 , "instStructId_i"     .= csvHal_instStructId_i
                 , "deptStructId_i"     .= csvHal_deptStructId_i
                 , "labStructId_i"      .= csvHal_labStructId_i
- 
+
                 , "rteamStructId_i"    .= csvHal_rteamStructId_i
                 , "docType_s"          .= csvHal_docType_s
                ]
@@ -472,7 +472,7 @@ parseCsvC bs = do
       Right res -> Right res
   case result of
     Left err -> Left err
-    Right r -> Right $ (Just $ Prelude.fromIntegral $ Prelude.length $ snd r, (yieldMany $ snd r) .| mapC csv2doc)
+    Right r -> Right (Just $ Prelude.fromIntegral $ Prelude.length $ snd r, (yieldMany $ snd r) .| mapC csv2doc)
 
 ------------------------------------------------------------------------
 -- Csv v3 weighted for phylo

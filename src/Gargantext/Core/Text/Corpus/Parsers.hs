@@ -42,6 +42,7 @@ import Data.Tuple.Extra (both, first, second)
 import Gargantext.API.Node.Corpus.New.Types (FileFormat(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text.Corpus.Parsers.CSV (parseHal, parseCsv, parseCsvC)
+import Gargantext.Core.Text.Corpus.Parsers.JSON (parseJSONC)
 import Gargantext.Core.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Database.Query.Table.Ngrams (NgramsType(..))
@@ -79,7 +80,8 @@ data FileType = WOS
               | CsvGargV3
               | CsvHal
               | Iramuteq
-  deriving (Show)
+              | JSON
+  deriving (Show, Eq)
 
 -- Implemented (ISI Format)
 --                | DOC        -- Not Implemented / import Pandoc
@@ -132,6 +134,12 @@ parseFormatC Iramuteq Plain bs = do
          )
               <$> eDocs
 
+parseFormatC JSON    Plain bs = do
+  let eParsedC = parseJSONC $ DBL.fromStrict bs
+  case eParsedC of
+    Left err -> pure $ Left err
+    Right (mLen, parsedC) -> pure $ Right (mLen, transPipe (pure . runIdentity) parsedC)
+
 parseFormatC ft ZIP bs = do
   path <- liftBase $ emptySystemTempFile "parsed-zip"
   liftBase $ DB.writeFile path bs
@@ -154,7 +162,7 @@ parseFormatC ft ZIP bs = do
           pure $ Right ( Just totalLength
                        , sequenceConduits contents' >> pure () ) -- .| mapM_C (printDebug "[parseFormatC] doc")
     _ -> pure $ Left $ unpack $ intercalate "\n" $ pack <$> errs
-  
+
 parseFormatC _ _ _ = undefined
 
 
@@ -211,7 +219,7 @@ parseFile WOS       Plain p = do
 parseFile Iramuteq       Plain p = do
   docs <- join $ mapM ((toDoc Iramuteq) . (map (second (Text.replace "_" " "))))
               <$> snd
-              <$> enrichWith Iramuteq 
+              <$> enrichWith Iramuteq
               <$> readFileWith Iramuteq p
   pure $ Right docs
 
@@ -226,7 +234,7 @@ toDoc ff d = do
       -- let abstract = lookup "abstract" d
       let lang = EN -- maybe EN identity (join $ detectLangDefault <$> (fmap (DT.take 50) abstract))
 
-      let dateToParse = DT.replace " " "" <$> lookup "PY" d  -- <> Just " " <> lookup "publication_date" d 
+      let dateToParse = DT.replace " " "" <$> lookup "PY" d  -- <> Just " " <> lookup "publication_date" d
       -- printDebug "[G.C.T.C.Parsers] dateToParse" dateToParse
       (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit lang dateToParse
 
@@ -314,9 +322,8 @@ clean txt = DBC.map clean' txt
     clean' ';' = '.'
     clean' c  = c
 
--- 
+--
 
 splitOn :: NgramsType -> Maybe Text -> Text -> [Text]
 splitOn Authors (Just "WOS") = (DT.splitOn "; ")
 splitOn _ _                  = (DT.splitOn ", ")
-
