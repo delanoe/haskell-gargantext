@@ -14,10 +14,12 @@ variables:
 
 stages:
   - deps
-  - docs
+  - cabal
   - test
+  - docs
 
 deps:
+  stage: deps
   cache:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
@@ -27,9 +29,10 @@ deps:
       - .stack-work/
       - target
   script:
-    - stack --nix build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast
+    - stack -v --nix build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast
 
 docs:
+  stage: docs
   cache:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
@@ -47,6 +50,7 @@ docs:
     expire_in: 1 week
 
 test:
+  stage: test
   cache:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
@@ -61,6 +65,7 @@ test:
       # TOOO
 
 cabal:
+  stage: cabal
   cache:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
@@ -68,6 +73,8 @@ cabal:
       - .stack
       - .stack-root/
       - .stack-work/
+      - .local/
+      - .cabal/
       - target
   script:
     - nix-shell && hpack && cabal v2-build --dry-run
