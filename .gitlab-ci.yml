@@ -2,8 +2,7 @@
 # https://vadosware.io/post/zero-to-continuous-integrated-testing-a-haskell-project-with-gitlab/
 #
 #
-image: cgenie/stack-build:lts-18.18-garg
-#image: cgenie/nixos-stack:latest
+image: adinapoli/gargantext:v1
 
 variables:
   STACK_ROOT: "${CI_PROJECT_DIR}/.stack-root"
@@ -28,7 +27,7 @@ deps:
       - .stack-work/
       - target
   script:
-    - stack build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast
+    - stack --nix build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast
 
 docs:
   cache:
@@ -40,7 +39,7 @@ docs:
       - .stack-work/
       - target
   script:
-    - stack build --no-terminal --haddock --no-haddock-deps --fast
+    - stack --nix build --no-terminal --haddock --no-haddock-deps --fast
     - cp -R "$(stack path --local-install-root)"/doc ./output
   artifacts:
     paths:
@@ -57,7 +56,19 @@ test:
       - .stack-work/
       - target
   script:
-    - stack test --no-terminal --fast
+    - stack --nix test --no-terminal --fast
 
       # TOOO
+
+cabal:
+  cache:
+    # cache per branch name
+    # key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .stack
+      - .stack-root/
+      - .stack-work/
+      - target
+  script:
+    - nix-shell && hpack && cabal v2-build --dry-run
 
