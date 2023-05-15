@@ -29,10 +29,8 @@ import GHC.IO.Exception (IOException)
 import Gargantext.API (startGargantext, Mode(..)) -- , startGargantextMock)
 import Gargantext.API.Admin.EnvTypes (DevEnv)
 import Gargantext.API.Dev (withDevEnv, runCmdDev)
-import Gargantext.Database.Prelude (Cmd'', Cmd, execPGSQuery)
 import Gargantext.Prelude
 import Options.Generic
-import System.Cron.Schedule
 import System.Exit (exitSuccess)
 import qualified Paths_gargantext as PG -- cabal magic build module
 
@@ -83,22 +81,3 @@ main = do
   putStrLn $ "Starting with " <> show myMode <> " mode."
   start
   ---------------------------------------------------------------
-
-  putStrLn $ "Starting Schedule Jobs"
-
-  withDevEnv (unpack myIniFile') $ \env -> do
-    tids <- execSchedule $ do
-           addJob (runCmdDev env refreshIndex) "5 * * * *"
-    putStrLn ("Refresh Index Cron Job started" <> show tids)
-
-
-
-
-refreshIndex :: Cmd'' DevEnv IOException ()
-refreshIndex = do
-  _ <- execPGSQuery [sql| refresh materialized view context_node_ngrams_view; |] ()
-  pure ()
-
-
-
-

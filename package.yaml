@@ -178,6 +178,7 @@ library:
   - crawlerISTEX
   - crawlerIsidore
   - crawlerPubMed
+  - cron
   - cryptohash
   - data-time-segment
   - deepseq
@@ -333,7 +334,6 @@ executables:
       - base
       - cassava
       - containers
-      - cron
       - full-text-search
       - gargantext
       - gargantext-prelude

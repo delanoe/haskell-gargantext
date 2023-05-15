@@ -12,17 +12,21 @@ TODO_2: quantitative tests (coded)
 
 -}
 
+{-# LANGUAGE QuasiQuotes #-}
+
 module Gargantext.Database.GargDB
   where
 
 import Control.Exception
 import Control.Lens (view)
+import Control.Monad (void)
 import Control.Monad.Reader (MonadReader)
+import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Data.Aeson (ToJSON, toJSON)
 import Data.Text (Text)
 import Data.Tuple.Extra (both)
 import GHC.IO (FilePath)
-import Gargantext.Database.Prelude (HasConfig(..))
+import Gargantext.Database.Prelude (HasConfig(..), Cmd, execPGSQuery)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config
 import Gargantext.Prelude.Crypto.Hash
@@ -205,3 +209,9 @@ onDisk_2 action fp1 fp2 = do
         | isDoesNotExistError e = return ()
         | otherwise = throwIO e
 ------------------------------------------------------------------------
+
+-- | Refreshes the \"context_node_ngrams_view\" materialized view. This
+-- function will be run periodically.
+refreshNgramsMaterializedView :: Cmd IOException ()
+refreshNgramsMaterializedView =
+  void $ execPGSQuery [sql| refresh materialized view context_node_ngrams_view; |] ()

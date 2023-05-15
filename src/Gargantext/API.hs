@@ -26,16 +26,20 @@ Pouillard (who mainly made it).
 
 -}
 
+{-# LANGUAGE BangPatterns         #-}
+{-# LANGUAGE NumericUnderscores   #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeOperators        #-}
 module Gargantext.API
       where
 
-import Control.Exception (catch, finally, SomeException)
+import Control.Concurrent
+import Control.Exception (catch, finally, SomeException, displayException)
 import Control.Lens
 import Control.Monad.Except
 import Control.Monad.Reader (runReaderT)
 import Data.Either
+import Data.Foldable (foldlM)
 import Data.List (lookup)
 import Data.Text (pack)
 import Data.Text.Encoding (encodeUtf8)
@@ -52,7 +56,7 @@ import Gargantext.API.Ngrams (saveNodeStoryImmediate)
 import Gargantext.API.Routes
 import Gargantext.API.Server (server)
 import Gargantext.Core.NodeStory
-import qualified Gargantext.Database.Prelude as DB
+import Gargantext.Database.GargDB (refreshNgramsMaterializedView)
 import Gargantext.Prelude hiding (putStrLn)
 import Network.HTTP.Types hiding (Query)
 import Network.Wai
@@ -62,6 +66,8 @@ import Network.Wai.Middleware.RequestLogger
 import Paths_gargantext (getDataDir)
 import Servant
 import System.FilePath
+import qualified Gargantext.Database.Prelude as DB
+import qualified System.Cron.Schedule as Cron
 
 data Mode = Dev | Mock | Prod
   deriving (Show, Read, Generic)
@@ -74,7 +80,8 @@ startGargantext mode port file = do
   portRouteInfo port
   app <- makeApp env
   mid <- makeDevMiddleware mode
-  run port (mid app) `finally` stopGargantext env
+  periodicActions <- schedulePeriodicActions env
+  run port (mid app) `finally` stopGargantext env periodicActions
 
   where runDbCheck env = do
           r <- runExceptT (runReaderT DB.dbCheck env) `catch`
@@ -91,9 +98,12 @@ portRouteInfo port = do
   putStrLn $ "http://localhost:" <> toUrlPiece port <> "/index.html"
   putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
 
+-- | Stops the gargantext server and cancels all the periodic actions
+-- scheduled to run up to that point.
 -- TODO clean this Monad condition (more generic) ?
-stopGargantext :: HasNodeStoryImmediateSaver env => env -> IO ()
-stopGargantext env = do
+stopGargantext :: HasNodeStoryImmediateSaver env => env -> [ThreadId] -> IO ()
+stopGargantext env scheduledPeriodicActions = do
+  forM_ scheduledPeriodicActions killThread
   putStrLn "----- Stopping gargantext -----"
   runReaderT saveNodeStoryImmediate env
 
@@ -104,6 +114,27 @@ startGargantextMock port = do
   application <- makeMockApp . MockEnv $ FireWall False
   run port application
 -}
+
+-- | Schedules all sorts of useful periodic actions to be run while
+-- the server is alive accepting requests.
+schedulePeriodicActions :: DB.CmdCommon env => env -> IO [ThreadId]
+schedulePeriodicActions env =
+  -- Add your scheduled actions here.
+  let actions = [
+          refreshDBViews
+        ]
+  in foldlM (\ !acc action -> (`mappend` acc) <$> Cron.execSchedule action) [] actions
+
+  where
+
+    refreshDBViews :: Cron.Schedule ()
+    refreshDBViews = do
+      let doRefresh = do
+            res <- DB.runCmd env refreshNgramsMaterializedView
+            case res of
+              Left e   -> liftIO $ putStrLn $ pack ("Refreshing Ngrams materialized view failed: " <> displayException e)
+              Right () -> pure ()
+      Cron.addJob doRefresh "5 * * * *"
 
 ----------------------------------------------------------------------
 
