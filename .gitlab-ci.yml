@@ -24,12 +24,14 @@ deps:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
+      - /nix
       - .stack
       - .stack-root/
       - .stack-work/
       - target
   script:
-    - stack -v --nix build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast
+    - echo "Building the project from '$CI_PROJECT_DIR'"
+    - nix-shell && stack -v build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast
 
 docs:
   stage: docs
@@ -37,6 +39,7 @@ docs:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
+      - /nix
       - .stack
       - .stack-root/
       - .stack-work/
@@ -55,6 +58,7 @@ test:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
+      - /nix
       - .stack
       - .stack-root/
       - .stack-work/
@@ -70,6 +74,7 @@ cabal:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
+      - /nix
       - .stack
       - .stack-root/
       - .stack-work/
