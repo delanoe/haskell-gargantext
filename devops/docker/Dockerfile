@@ -1,4 +1,4 @@
-FROM ubuntu:focal
+FROM ubuntu:jammy
 
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Rome
@@ -26,24 +26,26 @@ RUN apt-get update && \
       software-properties-common \
       sudo \
       wget \
+      vim \
       xz-utils \
       zlib1g-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     mkdir -m 0755 /nix && groupadd -r nixbld && chown root /nix && \
     for n in $(seq 1 10); do useradd -c "Nix build user $n" -d /var/empty -g nixbld -G nixbld -M -N -r -s "$(command -v nologin)" "nixbld$n"; done
-RUN gpg --batch --keyserver keys.openpgp.org     --recv-keys 7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C
-RUN gpg --batch --keyserver keyserver.ubuntu.com --recv-keys FE5AB6C91FEA597C3B31180B73EDE9E8CFBAEF01
+
+RUN gpg --batch --keyserver keys.openpgp.org     --recv-keys 7D1E8AFD1D4A16D71FADA2F2CCC85C0E40C06A8C && \
+    gpg --batch --keyserver keyserver.ubuntu.com --recv-keys FE5AB6C91FEA597C3B31180B73EDE9E8CFBAEF01
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN set -o pipefail && curl -L https://releases.nixos.org/nix/nix-2.11.0/install | bash
 
-# Fixes locale-related issues: https://gitlab.haskell.org/ghc/ghc/-/issues/8118
-RUN locale-gen en_US.UTF-8
+RUN set -o pipefail && \
+    bash <(curl -L https://releases.nixos.org/nix/nix-2.15.0/install) --no-daemon && \
+    locale-gen en_US.UTF-8
+
 ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
-
 ENV USER=root
 ENV SHELL /bin/bash
 RUN . "$HOME/.nix-profile/etc/profile.d/nix.sh" && \
-    mkdir "$HOME/gargantext/" && \
+    mkdir -p "/builds/gargantext/" && chmod 777 -R "/builds/gargantext" && \
     echo "source $HOME/.nix-profile/etc/profile.d/nix.sh" >> "$HOME/.bashrc" && \
     echo `which nix-env`
 
@@ -71,6 +73,6 @@ ENV PATH=/root/.local/bin:$PATH
 
 RUN ghcup set 8.10.7 && ghc --version
 
-RUN cabal v2-update && cabal v2-install hpack --overwrite-policy=always
+#RUN cabal v2-update && cabal v2-install hpack --overwrite-policy=always
 
-WORKDIR "$HOME/gargantext/"
+WORKDIR "/builds/gargantext/"
