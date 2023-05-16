@@ -38,6 +38,7 @@ import Gargantext.Core.Text.Terms.WithList (buildPatterns, termsInText)
 import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Database.Action.Flow (saveDocNgramsWith)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
+import Gargantext.Database.Action.Metrics.NgramsByContext (refreshNgramsMaterialized)
 import Gargantext.Database.Admin.Types.Hyperdata.Document
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getNode)
@@ -49,7 +50,6 @@ import Gargantext.Database.Types (Indexed(..))
 import Gargantext.Prelude
 import Gargantext.Utils.Jobs (serveJobsAPI, MonadJobStatus(..))
 import Servant
--- import Servant.Job.Async
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Csv as Csv
 import qualified Data.HashMap.Strict as HashMap
@@ -180,7 +180,7 @@ reIndexWith cId lId nt lts = do
 
   -- Saving the indexation in database
   _ <- mapM (saveDocNgramsWith lId) ngramsByDoc
-
+  _ <- refreshNgramsMaterialized
   pure ()
 
 toIndexedNgrams :: HashMap Text NgramsId -> Text -> Maybe (Indexed Int Ngrams)

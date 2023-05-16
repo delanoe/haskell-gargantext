@@ -18,6 +18,7 @@ module Gargantext.Database.Action.Metrics.NgramsByContext
 
 -- import Debug.Trace (trace)
 --import Data.Map.Strict.Patch (PatchMap, Replace, diff)
+import Control.Monad (void)
 import Data.HashMap.Strict (HashMap)
 import Data.Map.Strict (Map)
 import Data.Set (Set)
@@ -29,7 +30,7 @@ import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core
 import Gargantext.Data.HashMap.Strict.Utils as HM
 import Gargantext.Database.Admin.Types.Node (ListId, CorpusId, NodeId(..), ContextId, MasterCorpusId, NodeType(NodeDocument), UserCorpusId, DocId)
-import Gargantext.Database.Prelude (Cmd, runPGSQuery)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery, execPGSQuery)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict              as HM
@@ -217,12 +218,6 @@ queryNgramsOccurrencesOnlyByContextUser_withSample' = [sql|
       GROUP BY ng.id
   |]
 
-
-
-
-
-
-
 ------------------------------------------------------------------------
 getContextsByNgramsOnlyUser :: HasDBid NodeType
                          => CorpusId
@@ -397,3 +392,17 @@ queryNgramsByContextMaster' = [sql|
   SELECT m.id, m.terms FROM nodesByNgramsMaster m
     RIGHT JOIN contextsByNgramsUser u ON u.id = m.id
   |]
+
+-- | Refreshes the \"context_node_ngrams_view\" materialized view.
+-- This function will be run :
+--  - periodically
+--  - at reindex stage
+--  - at the end of each text flow
+
+refreshNgramsMaterialized :: Cmd err ()
+refreshNgramsMaterialized = void $ execPGSQuery refreshNgramsMaterializedQuery ()
+  where
+    refreshNgramsMaterializedQuery :: DPS.Query
+    refreshNgramsMaterializedQuery = [sql| refresh materialized view context_node_ngrams_view; |] 
+
+

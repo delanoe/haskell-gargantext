@@ -19,14 +19,12 @@ module Gargantext.Database.GargDB
 
 import Control.Exception
 import Control.Lens (view)
-import Control.Monad (void)
 import Control.Monad.Reader (MonadReader)
-import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Data.Aeson (ToJSON, toJSON)
 import Data.Text (Text)
 import Data.Tuple.Extra (both)
 import GHC.IO (FilePath)
-import Gargantext.Database.Prelude (HasConfig(..), Cmd, execPGSQuery)
+import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config
 import Gargantext.Prelude.Crypto.Hash
@@ -145,11 +143,11 @@ writeFile a = do
 
 -- | Example to read a file with Type
 readGargFile :: ( MonadReader  env m
-            , HasConfig    env
-            , MonadBase IO     m
-            , ReadFile         a
-            )
-         => FilePath -> m a
+                , HasConfig    env
+                , MonadBase IO     m
+                , ReadFile         a
+                )
+                 => FilePath -> m a
 readGargFile fp = do
   dataPath <- view $ hasConfig . gc_datafilepath
   liftBase $ readFile' $ toFilePath dataPath fp
@@ -157,9 +155,9 @@ readGargFile fp = do
 ---
 
 rmFile :: ( MonadReader env m
-              , MonadBase IO m
-              , HasConfig env
-              )
+          , MonadBase IO m
+          , HasConfig env
+          )
            => FilePath -> m ()
 rmFile = onDisk_1 SD.removeFile
 
@@ -169,8 +167,11 @@ cpFile = onDisk_2 SD.copyFile
 
 ---
 
-mvFile :: (MonadReader env m, MonadBase IO m, HasConfig env)
-       => FilePath -> FilePath -> m ()
+mvFile :: ( MonadReader env m
+          , MonadBase IO m
+          , HasConfig env
+          )
+           => FilePath -> FilePath -> m ()
 mvFile fp1 fp2 = do
   cpFile fp1 fp2
   rmFile fp1
@@ -178,10 +179,10 @@ mvFile fp1 fp2 = do
 
 ------------------------------------------------------------------------
 onDisk_1 :: ( MonadReader env m
-              , MonadBase IO m
-              , HasConfig env
-              )
-        => (FilePath -> IO ()) -> FilePath -> m ()
+            , MonadBase IO m
+            , HasConfig env
+            )
+             => (FilePath -> IO ()) -> FilePath -> m ()
 onDisk_1 action fp = do
   dataPath <- view $ hasConfig . gc_datafilepath
   liftBase $ action (toFilePath dataPath fp) `catch` handleExists
@@ -209,9 +210,3 @@ onDisk_2 action fp1 fp2 = do
         | isDoesNotExistError e = return ()
         | otherwise = throwIO e
 ------------------------------------------------------------------------
-
--- | Refreshes the \"context_node_ngrams_view\" materialized view. This
--- function will be run periodically.
-refreshNgramsMaterializedView :: Cmd IOException ()
-refreshNgramsMaterializedView =
-  void $ execPGSQuery [sql| refresh materialized view context_node_ngrams_view; |] ()

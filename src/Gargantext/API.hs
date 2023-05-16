@@ -34,7 +34,7 @@ module Gargantext.API
       where
 
 import Control.Concurrent
-import Control.Exception (catch, finally, SomeException, displayException)
+import Control.Exception (catch, finally, SomeException, displayException, IOException)
 import Control.Lens
 import Control.Monad.Except
 import Control.Monad.Reader (runReaderT)
@@ -56,7 +56,8 @@ import Gargantext.API.Ngrams (saveNodeStoryImmediate)
 import Gargantext.API.Routes
 import Gargantext.API.Server (server)
 import Gargantext.Core.NodeStory
-import Gargantext.Database.GargDB (refreshNgramsMaterializedView)
+import Gargantext.Database.Prelude (Cmd)
+import Gargantext.Database.Action.Metrics.NgramsByContext (refreshNgramsMaterialized)
 import Gargantext.Prelude hiding (putStrLn)
 import Network.HTTP.Types hiding (Query)
 import Network.Wai
@@ -130,11 +131,13 @@ schedulePeriodicActions env =
     refreshDBViews :: Cron.Schedule ()
     refreshDBViews = do
       let doRefresh = do
-            res <- DB.runCmd env refreshNgramsMaterializedView
+            res <- DB.runCmd env (refreshNgramsMaterialized :: Cmd IOException ())
             case res of
               Left e   -> liftIO $ putStrLn $ pack ("Refreshing Ngrams materialized view failed: " <> displayException e)
-              Right () -> pure ()
-      Cron.addJob doRefresh "5 * * * *"
+              Right () ->  do
+                _ <- liftIO $ putStrLn $ pack "Refresh Index Database done"
+                pure ()
+      Cron.addJob doRefresh "* 2 * * *"
 
 ----------------------------------------------------------------------
 
