@@ -1,6 +1,13 @@
 FROM ubuntu:jammy
 
 ARG DEBIAN_FRONTEND=noninteractive
+ARG GHC=8.10.7
+ARG STACK=2.7.3
+ARG CABAL=3.10.1.0
+COPY ./shell.nix            /builds/gargantext/shell.nix
+COPY ./nix/pkgs.nix         /builds/gargantext/nix/pkgs.nix
+COPY ./nix/pinned-22.05.nix /builds/gargantext/nix/pinned-22.05.nix
+
 ENV TZ=Europe/Rome
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
@@ -56,14 +63,7 @@ RUN . $HOME/.bashrc && nix-env --version
 RUN \
 curl https://downloads.haskell.org/~ghcup/x86_64-linux-ghcup > /usr/bin/ghcup && \
     chmod +x /usr/bin/ghcup && \
-    ghcup config set gpg-setting GPGLax
-
-ARG GHC=8.10.7
-ARG STACK=2.7.3
-ARG CABAL=3.10.1.0
-
-# install GHC, stack and cabal
-RUN \
+    ghcup config set gpg-setting GPGLax && \
     ghcup -v install ghc --force ${GHC} && \
     ghcup -v install cabal --force ${CABAL} && \
     ghcup -v install stack --force ${STACK}
@@ -71,8 +71,8 @@ RUN \
 ENV PATH=/root/.ghcup/bin:$PATH
 ENV PATH=/root/.local/bin:$PATH
 
-RUN ghcup set 8.10.7 && ghc --version
 
-#RUN cabal v2-update && cabal v2-install hpack --overwrite-policy=always
+RUN cd /builds/gargantext && nix-shell
+RUN ghcup set 8.10.7 && cabal v2-update && cabal v2-install hpack --overwrite-policy=always
 
 WORKDIR "/builds/gargantext/"

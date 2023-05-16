@@ -31,7 +31,7 @@ deps:
       - target
   script:
     - echo "Building the project from '$CI_PROJECT_DIR'"
-    - nix-shell && stack -v build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast
+    - nix-shell && export LC_ALL=C.UTF-8 && stack -v build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast
 
 docs:
   stage: docs
@@ -45,7 +45,7 @@ docs:
       - .stack-work/
       - target
   script:
-    - stack --nix build --no-terminal --haddock --no-haddock-deps --fast
+    - nix-shell && export LC_ALL=C.UTF-8 && stack build --no-terminal --haddock --no-haddock-deps --fast
     - cp -R "$(stack path --local-install-root)"/doc ./output
   artifacts:
     paths:
@@ -64,7 +64,7 @@ test:
       - .stack-work/
       - target
   script:
-    - stack --nix test --no-terminal --fast
+    - nix-shell && export LC_ALL=C.UTF-8 && stack test --no-terminal --fast
 
       # TOOO
 
@@ -82,5 +82,5 @@ cabal:
       - .cabal/
       - target
   script:
-    - nix-shell && hpack && cabal v2-build --dry-run
+    - nix-shell && export LC_ALL=C.UTF-8 && hpack && cabal v2-build --dry-run
 
