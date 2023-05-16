@@ -14,32 +14,38 @@ variables:
 
 stages:
   - deps
-  - docs
+  - cabal
   - test
+  - docs
 
 deps:
+  stage: deps
   cache:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
+      - /nix
       - .stack
       - .stack-root/
       - .stack-work/
       - target
   script:
-    - stack --nix build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast
+    - echo "Building the project from '$CI_PROJECT_DIR'"
+    - nix-shell && export LC_ALL=C.UTF-8 && stack -v build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast
 
 docs:
+  stage: docs
   cache:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
+      - /nix
       - .stack
       - .stack-root/
       - .stack-work/
       - target
   script:
-    - stack --nix build --no-terminal --haddock --no-haddock-deps --fast
+    - nix-shell && export LC_ALL=C.UTF-8 && stack build --no-terminal --haddock --no-haddock-deps --fast
     - cp -R "$(stack path --local-install-root)"/doc ./output
   artifacts:
     paths:
@@ -47,28 +53,34 @@ docs:
     expire_in: 1 week
 
 test:
+  stage: test
   cache:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
+      - /nix
       - .stack
       - .stack-root/
       - .stack-work/
       - target
   script:
-    - stack --nix test --no-terminal --fast
+    - nix-shell && export LC_ALL=C.UTF-8 && stack test --no-terminal --fast
 
       # TOOO
 
 cabal:
+  stage: cabal
   cache:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
+      - /nix
       - .stack
       - .stack-root/
       - .stack-work/
+      - .local/
+      - .cabal/
       - target
   script:
-    - nix-shell && hpack && cabal v2-build --dry-run
+    - nix-shell && export LC_ALL=C.UTF-8 && hpack && cabal v2-build --dry-run
 
