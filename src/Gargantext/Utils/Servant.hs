@@ -4,6 +4,7 @@ import qualified Data.ByteString.Lazy.Char8 as BSC
 import Data.Csv (defaultEncodeOptions, encodeByNameWith, encodeDefaultOrderedByName, header, namedRecord, (.=), DefaultOrdered, EncodeOptions(..), NamedRecord, Quoting(QuoteNone), ToNamedRecord)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import Gargantext.API.Ngrams.Types (mSetToList, NgramsRepoElement(..), NgramsTableMap, NgramsTerm(..), unNgramsTerm)
 import Gargantext.Core.Types.Main (ListType(..))
 import Network.HTTP.Media ((//), (/:))
@@ -18,7 +19,10 @@ instance Accept CSV where
   contentType _ = "text" // "csv" /: ("charset", "utf-8")
 
 instance (DefaultOrdered a, ToNamedRecord a) => MimeRender CSV [a] where
-  mimeRender _ val = encodeDefaultOrderedByName val
+  mimeRender _ = encodeDefaultOrderedByName
+
+instance MimeRender CSV T.Text where
+  mimeRender _ = BSC.fromStrict . TE.encodeUtf8
 
 -- CSV:
 -- header: status\tlabel\tforms
@@ -49,3 +53,16 @@ instance Read a => MimeUnrender CSV a where
 
 --instance ToNamedRecord a => MimeRender CSV [a] where
 --  mimeRender _ val = encode val
+
+----------------------------
+
+data Markdown = Markdown
+
+instance Accept Markdown where
+  contentType _ = "text" // "markdown"
+
+instance MimeRender Markdown T.Text where
+  mimeRender _ = BSC.fromStrict . TE.encodeUtf8
+
+instance MimeUnrender Markdown T.Text where
+  mimeUnrender _ = Right . TE.decodeUtf8 . BSC.toStrict
