@@ -1,3 +1,9 @@
+## Version 0.0.6.9.9.5.1
+
+* [BACK][FEAT][fonction to post to either Write or Calc (#205)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/205)
+* [FRONT][FIX][[Term table] Add term should not be suggested when term is already added (#544)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/544)
+* Enabling Isidore API connection for tests
+
 ## Version 0.0.6.9.9.5
 
 * [BACK][OPTIM][[Node terms] Random slowness on loading a page list of terms (#199)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/199) Refresh index for textflow, reindex of terms list and schedule job
