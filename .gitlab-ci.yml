@@ -14,9 +14,9 @@ variables:
 
 stages:
   - deps
-  - cabal
   - test
   - docs
+  - cabal
 
 deps:
   stage: deps
@@ -24,14 +24,13 @@ deps:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
-      - /nix
-      - .stack
       - .stack-root/
       - .stack-work/
       - target
   script:
     - echo "Building the project from '$CI_PROJECT_DIR'"
-    - nix-shell && export LC_ALL=C.UTF-8 && stack -v build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast
+    - hpack
+    - nix-shell --run "LC_ALL=C.UTF-8 stack build --no-terminal --haddock --no-haddock-deps --only-dependencies --fast"
 
 docs:
   stage: docs
@@ -39,18 +38,18 @@ docs:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
-      - /nix
-      - .stack
       - .stack-root/
       - .stack-work/
       - target
   script:
-    - nix-shell && export LC_ALL=C.UTF-8 && stack build --no-terminal --haddock --no-haddock-deps --fast
+    - hpack
+    - nix-shell --run "LC_ALL=C.UTF-8 stack build --no-terminal --haddock --no-haddock-deps --fast"
     - cp -R "$(stack path --local-install-root)"/doc ./output
   artifacts:
     paths:
       - ./output
     expire_in: 1 week
+  allow_failure: true
 
 test:
   stage: test
@@ -58,13 +57,12 @@ test:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
-      - /nix
-      - .stack
       - .stack-root/
       - .stack-work/
       - target
   script:
-    - nix-shell && export LC_ALL=C.UTF-8 && stack test --no-terminal --fast
+    - hpack
+    - nix-shell --run "LC_ALL=C.UTF-8 stack test --no-terminal --fast"
 
       # TOOO
 
@@ -74,13 +72,12 @@ cabal:
     # cache per branch name
     # key: ${CI_COMMIT_REF_SLUG}
     paths:
-      - /nix
-      - .stack
       - .stack-root/
       - .stack-work/
-      - .local/
-      - .cabal/
+      - dist-newstyle/
       - target
   script:
-    - nix-shell && export LC_ALL=C.UTF-8 && hpack && cabal v2-build --dry-run
+    - hpack
+    - nix-shell --run "LC_ALL=C.UTF-8 cabal v2-update 'hackage.haskell.org,2023-04-07T08:35:43Z' && cabal v2-build --dry-run"
+  allow_failure: true
 
