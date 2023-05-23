@@ -375,8 +375,8 @@ processSort sort' elev export = case sort' of
     ByBirthDate o -> sortByBirthDate o export
     ByHierarchy _ -> case elev of
             Constante  s s' ->  export & export_branches .~ (branchToIso' s s' $ sortByHierarchy 0 (export ^. export_branches))
-            Adaptative _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches)) 
-            Evolving   _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches)) 
+            Adaptative _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches))
+            Evolving   _ ->  export & export_branches .~ (branchToIso $ sortByHierarchy 0 (export ^. export_branches))
 
 -----------------
 -- | Metrics | --
@@ -568,7 +568,7 @@ toDynamics n elders g m =
         isNew :: Bool
         isNew = not $ elem n $ concat $ map _phylo_groupNgrams elders
 
-type FdtId = Int 
+type FdtId = Int
 processDynamics :: [PhyloGroup] -> [PhyloGroup]
 processDynamics groups =
     map (\g ->
@@ -652,7 +652,7 @@ toHorizon phylo =
             Adaptative _ -> 0
             Evolving   _ -> 0
        -- in headsToAncestors nbDocs diago Similarity heads groups []
-       in map (\ego -> toAncestor nbDocs diago sim step noHeads ego)
+       in map (toAncestor nbDocs diago sim step noHeads)
         $ headsToAncestors nbDocs diago sim step heads []
       ) periods
     -- | 3) process this task concurrently
@@ -684,17 +684,18 @@ toPhyloExport phylo = exportToDot phylo
                       let seaLvl = (g ^. phylo_groupMeta) ! "seaLevels"
                           breaks = (g ^. phylo_groupMeta) ! "breaks"
                           canonId = take (round $ (last' "export" breaks) + 2) (snd $ g ^. phylo_groupBranchId)
-                       in PhyloBranch (g ^. phylo_groupBranchId)
-                                      canonId
-                                      seaLvl
-                                      0
-                                      (last' "export" (take (round $ (last' "export" breaks) + 1) seaLvl))
-                                      0
-                                      0
-                                      "" empty)
-                  $ map (\gs -> head' "export" gs)
+                       in PhyloBranch { _branch_id = g ^. phylo_groupBranchId
+                                      , _branch_canonId = canonId
+                                      , _branch_seaLevel = seaLvl
+                                      , _branch_x = 0
+                                      , _branch_y = last' "export" $ take (round $ (last' "export" breaks) + 1) seaLvl
+                                      , _branch_w = 0
+                                      , _branch_t = 0
+                                      , _branch_label = ""
+                                      , _branch_meta = empty })
+                  $ map (head' "export")
                   $ groupBy (\g g' -> g ^. phylo_groupBranchId == g' ^. phylo_groupBranchId)
-                  $ sortOn (\g -> g ^. phylo_groupBranchId) groups
+                  $ sortOn (^. phylo_groupBranchId) groups
         --------------------------------------
         groups :: [PhyloGroup]
         groups = traceExportGroups
@@ -724,4 +725,3 @@ traceExportGroups groups = trace ("\n" <> "-- | Export "
     <> show(length groups) <> " groups and "
     <> show(length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) groups) <> " terms"
   ) groups
-
