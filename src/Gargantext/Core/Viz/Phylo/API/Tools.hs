@@ -78,7 +78,6 @@ phylo2dot2json phylo = do
 
     -- parsing a file can be done with:
     -- runParser' (Data.GraphViz.Parsing.parse :: Parse (Data.GraphViz.DotGraph Text)) $ TL.fromStrict f
-
     Shell.callProcess "dot" ["-Tdot", "-o", fileDot, fileFrom]
     Shell.callProcess "dot" ["-Txdot_json", "-o", fileToJson, fileDot]
 
