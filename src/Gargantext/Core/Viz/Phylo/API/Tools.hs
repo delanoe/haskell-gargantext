@@ -76,15 +76,11 @@ phylo2dot2json phylo = do
 
     dotToFile fileFrom (toPhyloExport phylo)
 
+    -- parsing a file can be done with:
+    -- runParser' (Data.GraphViz.Parsing.parse :: Parse (Data.GraphViz.DotGraph Text)) $ TL.fromStrict f
+
     Shell.callProcess "dot" ["-Tdot", "-o", fileDot, fileFrom]
     Shell.callProcess "dot" ["-Txdot_json", "-o", fileToJson, fileDot]
-
-    ffrom <- readFile fileFrom
-    writeFile "/tmp/fileFrom.json" ffrom
-    fdot <- readFile fileDot
-    writeFile "/tmp/file.dot" fdot
-    fto <- readFile fileToJson
-    writeFile "/tmp/fileTo.json" fto
 
     maybeValue <- decodeFileStrict fileToJson
     print maybeValue
