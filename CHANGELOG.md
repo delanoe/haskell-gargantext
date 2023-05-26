@@ -1,3 +1,7 @@
+## Version 0.0.6.9.9.5.2
+
+* [FRONT][FIX][Doc View, ngrams selected: children of grouped terms are not shown (#551)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/551)
+
 ## Version 0.0.6.9.9.5.1
 
 * [BACK][FEAT][fonction to post to either Write or Calc (#205)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/205)
