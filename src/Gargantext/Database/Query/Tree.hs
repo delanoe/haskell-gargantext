@@ -44,6 +44,7 @@ import Control.Lens (view, toListOf, at, each, _Just, to, set, makeLenses)
 import Control.Monad.Error.Class (MonadError())
 import Data.List (tail, concat, nub)
 import qualified Data.List as List
+import qualified Data.Text as Text
 import Data.Map.Strict (Map, fromListWith, lookup)
 -- import Data.Monoid (mconcat)
 import Data.Proxy
@@ -148,12 +149,16 @@ tree_first_level r nodeTypes = do
 tree_flat :: (HasTreeError err, HasNodeError err)
           => RootId
           -> [NodeType]
+          -> Maybe Text
           -> Cmd err [NodeTree]
-tree_flat r nodeTypes = do
+tree_flat r nodeTypes q = do
   mainRoot <- findNodes r Private nodeTypes
   publicRoots <- findNodes r PublicDirect nodeTypes
   sharedRoots <- findNodes r SharedDirect nodeTypes
-  pure $ map toNodeTree (mainRoot <> sharedRoots <> publicRoots)
+  let ret = map toNodeTree (mainRoot <> sharedRoots <> publicRoots)
+  case q of
+    Just v -> pure $ filter (\(NodeTree {_nt_name}) -> Text.isInfixOf (Text.toLower v) (Text.toLower _nt_name)) ret
+    Nothing -> pure $ ret
 
 
 ------------------------------------------------------------------------

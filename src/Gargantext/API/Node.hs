@@ -337,6 +337,7 @@ treeAPI id = tree TreeAdvanced id
         :<|> tree TreeFirstLevel id
 
 type TreeFlatAPI = QueryParams "type" NodeType
+                    :> QueryParam "query" Text
                     :> Get '[JSON] [NodeTree]
 
 treeFlatAPI :: NodeId -> GargServer TreeFlatAPI
