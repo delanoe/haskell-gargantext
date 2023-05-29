@@ -12,15 +12,16 @@ module Gargantext.Database.Query.Table.Node.Error where
 
 import Control.Lens (Prism', (#), (^?))
 import Control.Monad.Except (MonadError(..))
-import Data.Text (Text)
+import Data.Aeson
+import Data.Text (Text, pack)
 
 import Prelude hiding (null, id, map, sum)
 
-import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Database.Admin.Types.Node (ListId, NodeId(..))
 import Gargantext.Prelude hiding (sum, head)
 
 ------------------------------------------------------------------------
-data NodeError = NoListFound
+data NodeError = NoListFound { listId :: ListId }
                | NoRootFound
                | NoCorpusFound
                | NoUserFound
@@ -37,7 +38,7 @@ data NodeError = NoListFound
 
 instance Show NodeError
   where
-    show NoListFound   = "No list   found"
+    show (NoListFound {})   = "No list   found"
     show NoRootFound   = "No Root   found"
     show NoCorpusFound = "No Corpus found"
     show NoUserFound   = "No user   found"
@@ -52,6 +53,13 @@ instance Show NodeError
     show (DoesNotExist n)   = "Node does not exist (" <> show n <> ")"
     show NeedsConfiguration = "Needs configuration"
     show (NodeError e)      = "NodeError: " <> cs e
+
+instance ToJSON NodeError where
+  toJSON (NoListFound { listId = NodeId listId }) =
+    object [ ( "error", "No list found" )
+           , ( "listId", Number $ fromIntegral listId ) ]
+  toJSON err =
+    object [ ( "error", String $ pack $ show err ) ]
 
 class HasNodeError e where
   _NodeError :: Prism' e NodeError

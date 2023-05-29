@@ -17,7 +17,8 @@ module Gargantext.API.Server where
 import Control.Lens ((^.))
 import Control.Monad.Except (withExceptT)
 import Control.Monad.Reader (runReaderT)
-import Data.Text (Text)
+import qualified Data.Aeson as Aeson
+import Data.Text (Text, pack)
 import Data.Version (showVersion)
 import Servant
 import Servant.Swagger.UI (swaggerSchemaUIServer)
@@ -63,24 +64,35 @@ server env = do
      :<|> hoistServerWithContext
             (Proxy :: Proxy GargAPI)
             (Proxy :: Proxy AuthContext)
-            transform
+            transformJSON
             (serverGargAPI (env ^. hasConfig . gc_url_backend_api))
      :<|> hoistServerWithContext
             (Proxy :: Proxy GraphQL.API)
             (Proxy :: Proxy AuthContext)
-            transform
+            transformJSON
             GraphQL.api
      :<|> frontEndServer
   where
-    transform :: forall a. GargM Env GargError a -> Handler a
-    transform = Handler . withExceptT showAsServantErr . (`runReaderT` env)
+    -- transform :: forall a. GargM Env GargError a -> Handler a
+    -- transform = Handler . withExceptT showAsServantErr . (`runReaderT` env)
+    transformJSON :: forall a. GargM Env GargError a -> Handler a
+    transformJSON = Handler . withExceptT showAsServantJSONErr . (`runReaderT` env)
 
 
 showAsServantErr :: GargError -> ServerError
-showAsServantErr (GargNodeError err@NoListFound) = err404 { errBody = BL8.pack $ show err }
+showAsServantErr (GargNodeError err@(NoListFound {})) = err404 { errBody = BL8.pack $ show err }
 showAsServantErr (GargNodeError err@NoRootFound) = err404 { errBody = BL8.pack $ show err }
 showAsServantErr (GargNodeError err@NoCorpusFound) = err404 { errBody = BL8.pack $ show err }
 showAsServantErr (GargNodeError err@NoUserFound) = err404 { errBody = BL8.pack $ show err }
-showAsServantErr (GargNodeError err@(DoesNotExist _)) = err404 { errBody = BL8.pack $ show err }
+showAsServantErr (GargNodeError err@(DoesNotExist {})) = err404 { errBody = BL8.pack $ show err }
 showAsServantErr (GargServerError err) = err
 showAsServantErr a = err500 { errBody = BL8.pack $ show a }
+
+showAsServantJSONErr :: GargError -> ServerError
+showAsServantJSONErr (GargNodeError err@(NoListFound {})) = err404 { errBody = Aeson.encode err }
+showAsServantJSONErr (GargNodeError err@NoRootFound) = err404 { errBody = Aeson.encode err }
+showAsServantJSONErr (GargNodeError err@NoCorpusFound) = err404 { errBody = Aeson.encode err }
+showAsServantJSONErr (GargNodeError err@NoUserFound) = err404 { errBody = Aeson.encode err }
+showAsServantJSONErr (GargNodeError err@(DoesNotExist {})) = err404 { errBody = Aeson.encode err }
+showAsServantJSONErr (GargServerError err) = err
+showAsServantJSONErr a = err500 { errBody = Aeson.encode $ Aeson.object [ ( "error", Aeson.String $ pack $ show a ) ] }
