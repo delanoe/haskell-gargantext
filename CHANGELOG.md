@@ -1,3 +1,9 @@
+## Version 0.0.6.9.9.5.3
+
+* [BACK][ADM/CI][Docker image with nix (#188)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/188)
+* [FRONT][FEAT/ERGO][[Home instances blocks] Add a log out action and picto in each instance block header (same action that is in the log in/log out modal) (#552)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/552)
+* [FRONT][FIX/REVERT][[Term table] Add term should not be suggested when term is already added (#544)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/544)
+
 ## Version 0.0.6.9.9.5.2
 
 * [FRONT][FIX][Doc View, ngrams selected: children of grouped terms are not shown (#551)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/551)
