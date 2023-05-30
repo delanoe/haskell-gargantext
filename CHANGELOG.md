@@ -1,3 +1,7 @@
+## Version 0.0.6.9.9.5.4
+
+* [BACK][FIX][Ngrams Status change (#217)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/217)
+
 ## Version 0.0.6.9.9.5.3
 
 * [BACK][ADM/CI][Docker image with nix (#188)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/188)
