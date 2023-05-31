@@ -31,6 +31,7 @@ RUN apt-get update && \
       locales \
       lsb-release \
       software-properties-common \
+      strace \
       sudo \
       wget \
       vim \
@@ -46,7 +47,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN set -o pipefail && \
     bash <(curl -L https://releases.nixos.org/nix/nix-2.15.0/install) --no-daemon && \
-    locale-gen en_US.UTF-8
+    locale-gen en_US.UTF-8 && chown root -R /nix
 
 ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
 ENV USER=root
