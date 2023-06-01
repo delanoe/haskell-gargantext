@@ -1,3 +1,9 @@
+## Version 0.0.6.9.9.5.5
+
+* [FRONT][FEAT][Search in the Tree (#506)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/506)
+* [BACK][FIX][NodeUser json parse error (#213)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/213)
+* [BACK][FET][Book functions (WIP)] Used to analyze Rabelais' masterpices
+
 ## Version 0.0.6.9.9.5.4
 
 * [BACK][FIX][Ngrams Status change (#217)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/217)
