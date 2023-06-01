@@ -62,7 +62,7 @@ import Gargantext.Database.Query.Table.Node.Update (Update(..), update)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.NodeContext (nodeContextsCategory, nodeContextsScore)
 import Gargantext.Database.Query.Table.NodeNode
-import Gargantext.Database.Query.Tree (tree, TreeMode(..))
+import Gargantext.Database.Query.Tree (tree, tree_flat, TreeMode(..))
 import Gargantext.Prelude
 import Servant
 import Test.QuickCheck (elements)
@@ -335,6 +335,13 @@ type TreeAPI   = QueryParams "type" NodeType
 treeAPI :: NodeId -> GargServer TreeAPI
 treeAPI id = tree TreeAdvanced id
         :<|> tree TreeFirstLevel id
+
+type TreeFlatAPI = QueryParams "type" NodeType
+                    :> QueryParam "query" Text
+                    :> Get '[JSON] [NodeTree]
+
+treeFlatAPI :: NodeId -> GargServer TreeFlatAPI
+treeFlatAPI = tree_flat
 
 ------------------------------------------------------------------------
 -- | TODO Check if the name is less than 255 char

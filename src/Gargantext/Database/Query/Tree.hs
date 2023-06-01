@@ -22,6 +22,7 @@ module Gargantext.Database.Query.Tree
   , isDescendantOf
   , isIn
   , tree
+  , tree_flat
   , TreeMode(..)
   , findNodesId
   , DbTreeNode(..)
@@ -43,6 +44,7 @@ import Control.Lens (view, toListOf, at, each, _Just, to, set, makeLenses)
 import Control.Monad.Error.Class (MonadError())
 import Data.List (tail, concat, nub)
 import qualified Data.List as List
+import qualified Data.Text as Text
 import Data.Map.Strict (Map, fromListWith, lookup)
 -- import Data.Monoid (mconcat)
 import Data.Proxy
@@ -95,7 +97,6 @@ tree TreeFirstLevel = tree_first_level
 -- (without shared folders)
 -- keeping this for teaching purpose only
 tree_basic :: (HasTreeError err, HasNodeError err)
-
            => RootId
            -> [NodeType]
            -> Cmd err (Tree NodeTree)
@@ -143,6 +144,22 @@ tree_first_level r nodeTypes = do
   ret <- toTree $ toSubtreeParent r (mainRoot <> sharedRoots <> publicRoots)
   -- printDebug (rPrefix "tree") ret
   pure ret
+
+-- | Fetch tree in a flattened form
+tree_flat :: (HasTreeError err, HasNodeError err)
+          => RootId
+          -> [NodeType]
+          -> Maybe Text
+          -> Cmd err [NodeTree]
+tree_flat r nodeTypes q = do
+  mainRoot <- findNodes r Private nodeTypes
+  publicRoots <- findNodes r PublicDirect nodeTypes
+  sharedRoots <- findNodes r SharedDirect nodeTypes
+  let ret = map toNodeTree (mainRoot <> sharedRoots <> publicRoots)
+  case q of
+    Just v -> pure $ filter (\(NodeTree {_nt_name}) -> Text.isInfixOf (Text.toLower v) (Text.toLower _nt_name)) ret
+    Nothing -> pure $ ret
+
 
 ------------------------------------------------------------------------
 data NodeMode = Private | Shared | Public | SharedDirect | PublicDirect
@@ -263,9 +280,9 @@ toTree m =
             -- m' ^.. at (Just $ _dt_nodeId root) . _Just . each . to (toTree' m')
             toListOf (at (Just $ _dt_nodeId root) . _Just . each . to (toTree' m')) m'
 
-        toNodeTree :: DbTreeNode
-                   -> NodeTree
-        toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
+toNodeTree :: DbTreeNode
+            -> NodeTree
+toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
 
 ------------------------------------------------------------------------
 toTreeParent :: [DbTreeNode]

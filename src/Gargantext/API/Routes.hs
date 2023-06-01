@@ -162,6 +162,10 @@ type GargPrivateAPI' =
            :<|> "tree"    :> Summary "Tree endpoint"
                           :> Capture "tree_id" NodeId
                           :> TreeAPI
+           -- Flat tree endpoint
+           :<|> "treeflat" :> Summary "Flat tree endpoint"
+                           :> Capture "tree_id" NodeId
+                           :> TreeFlatAPI
 
            :<|> "members" :> Summary "Team node members"
                           :> MembersAPI
@@ -251,6 +255,9 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
 
      :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid
           <$> PathNode <*> treeAPI
+
+     :<|> withAccess (Proxy :: Proxy TreeFlatAPI)    Proxy uid
+          <$> PathNode <*> treeFlatAPI
 
      :<|> members uid
      -- TODO access
