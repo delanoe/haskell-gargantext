@@ -216,6 +216,9 @@ getContextNgrams contextId listId = do
 -- and list_id that match the search tsvector.
 -- NOTE This is poor man's tokenization that is used as a hint for the
 -- frontend highlighter.
+-- NOTE We prefer `plainto_tsquery` over `phraseto_tsquery` as it is
+-- more permissive (i.e. ignores word ordering). See
+-- https://www.peterullrich.com/complete-guide-to-full-text-search-with-postgres-and-ecto
 getContextNgramsMatchingFTS :: HasNodeError err
                             => NodeId
                             -> NodeId
@@ -232,7 +235,7 @@ getContextNgramsMatchingFTS contextId listId = do
                 CROSS JOIN contexts
                 WHERE contexts.id = ?
                 AND node_ngrams.node_id = ?
-                AND contexts.search @@ phraseto_tsquery(ngrams.terms) |]
+                AND contexts.search @@ plainto_tsquery(ngrams.terms) |]
 ------------------------------------------------------------------------
 insertNodeContext :: [NodeContext] -> Cmd err Int
 insertNodeContext ns = mkCmd $ \conn -> fromIntegral <$> (runInsert_ conn
