@@ -20,7 +20,7 @@ import Gargantext.Core.Types.Search (HyperdataRow(..), toHyperdataRow)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument)
 import Gargantext.Database.Admin.Types.Node (ContextTitle, NodeId(..), NodeTypeId, UserId, unNodeId)
 import Gargantext.Database.Prelude (CmdCommon)
-import Gargantext.Database.Query.Table.NodeContext (getNodeContext, getContextsForNgramsTerms, ContextForNgramsTerms(..))
+import Gargantext.Database.Query.Table.NodeContext (getNodeContext, getContextsForNgramsTerms, ContextForNgramsTerms(..), getContextNgrams)
 import qualified Gargantext.Database.Query.Table.NodeContext as DNC
 import Gargantext.Database.Schema.NodeContext (NodeContext, NodeContextPoly(..))
 import Gargantext.Prelude
@@ -94,6 +94,12 @@ data NodeContextCategoryMArgs = NodeContextCategoryMArgs
   , category   :: Int
   } deriving (Generic, GQLType)
 
+data ContextNgramsArgs
+  = ContextNgramsArgs
+    { context_id  :: Int
+    , list_id     :: Int }
+    deriving (Generic, GQLType)
+
 type GqlM e env = Resolver QUERY e (GargM env GargError)
 type GqlM' e env a = ResolverM e (GargM env GargError) a
 
@@ -111,6 +117,12 @@ resolveContextsForNgrams
   => ContextsForNgramsArgs -> GqlM e env [ContextGQL]
 resolveContextsForNgrams ContextsForNgramsArgs { corpus_id, ngrams_terms } =
   dbContextForNgrams corpus_id ngrams_terms
+
+resolveContextNgrams
+  :: (CmdCommon env)
+  => ContextNgramsArgs -> GqlM e env [Text]
+resolveContextNgrams ContextNgramsArgs { context_id, list_id } =
+  dbContextNgrams context_id list_id
 
 -- DB
 
@@ -133,6 +145,12 @@ dbContextForNgrams node_id ngrams_terms = do
   contextsForNgramsTerms <- lift $ getContextsForNgramsTerms (NodeId node_id) ngrams_terms
   --lift $ printDebug "[dbContextForNgrams] contextsForNgramsTerms" contextsForNgramsTerms
   pure $ toContextGQL <$> contextsForNgramsTerms
+
+dbContextNgrams
+  :: (CmdCommon env)
+  => Int -> Int -> GqlM e env [Text]
+dbContextNgrams context_id list_id = do
+  lift $ getContextNgrams (NodeId context_id) (NodeId list_id)
 
 -- Conversion functions
 

@@ -33,6 +33,7 @@ module Gargantext.Database.Query.Table.NodeContext
   , getContextsForNgrams
   , ContextForNgrams(..)
   , getContextsForNgramsTerms
+  , getContextNgrams
   , ContextForNgramsTerms(..)
   , insertNodeContext
   , deleteNodeContext
@@ -188,6 +189,23 @@ getContextsForNgramsTerms cId ngramsTerms = do
                      AND ngrams.terms IN ?) t
                    ORDER BY t.doc_count DESC |]
 
+
+
+getContextNgrams :: HasNodeError err
+                 => NodeId
+                 -> NodeId
+                 -> Cmd err [Text]
+getContextNgrams contextId listId = do
+  res <- runPGSQuery query (contextId, listId)
+  pure $ (\(PGS.Only term) -> term) <$> res
+
+  where
+    query :: PGS.Query
+    query = [sql| SELECT ngrams.terms
+                FROM context_node_ngrams
+                JOIN ngrams ON ngrams.id = ngrams_id
+                WHERE context_id = ?
+                AND node_id = ? |]
 ------------------------------------------------------------------------
 insertNodeContext :: [NodeContext] -> Cmd err Int
 insertNodeContext ns = mkCmd $ \conn -> fromIntegral <$> (runInsert_ conn

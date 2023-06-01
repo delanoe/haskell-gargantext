@@ -31,6 +31,7 @@ import Data.Morpheus.Types
   , Undefined(..)
   )
 import Data.Proxy
+import Data.Text (Text)
 import Gargantext.API.Admin.Auth.Types (AuthenticatedUser)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog)
 import Gargantext.API.Prelude (HasJobEnv')
@@ -68,6 +69,7 @@ import Gargantext.API.Admin.Types (HasSettings)
 data Query m
   = Query
     { annuaire_contacts   :: GQLA.AnnuaireContactArgs -> m [GQLA.AnnuaireContact]
+    , context_ngrams      :: GQLCTX.ContextNgramsArgs -> m [Text]
     , contexts            :: GQLCTX.NodeContextArgs -> m [GQLCTX.NodeContextGQL]
     , contexts_for_ngrams :: GQLCTX.ContextsForNgramsArgs -> m [GQLCTX.ContextGQL]
     , imt_schools         :: GQLIMT.SchoolsArgs -> m [GQLIMT.School]
@@ -112,6 +114,7 @@ rootResolver
 rootResolver =
   RootResolver
     { queryResolver = Query { annuaire_contacts   = GQLA.resolveAnnuaireContacts
+                            , context_ngrams      = GQLCTX.resolveContextNgrams
                             , contexts            = GQLCTX.resolveNodeContext
                             , contexts_for_ngrams = GQLCTX.resolveContextsForNgrams
                             , imt_schools         = GQLIMT.resolveSchools
