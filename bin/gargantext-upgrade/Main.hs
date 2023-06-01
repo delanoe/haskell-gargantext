@@ -79,7 +79,7 @@ main = do
 
 refreshIndex :: Cmd'' DevEnv IOException ()
 refreshIndex = do
-  _ <- execPGSQuery [sql| refresh materialized view context_node_ngrams_view; |] ()
+  _ <- execPGSQuery [sql| REFRESH MATERIALIZED VIEW context_node_ngrams_view; |] ()
   pure ()
 
 addIndex :: Cmd'' DevEnv IOException Int64
@@ -99,5 +99,3 @@ addIndex = do
         create index if not exists context_node_ngrams_view_node_id_idx on context_node_ngrams_view(node_id);
         create index if not exists node_stories_ngrams_id_idx on node_stories(ngrams_id);
   |]
-
-

@@ -403,6 +403,5 @@ refreshNgramsMaterialized :: Cmd err ()
 refreshNgramsMaterialized = void $ execPGSQuery refreshNgramsMaterializedQuery ()
   where
     refreshNgramsMaterializedQuery :: DPS.Query
-    refreshNgramsMaterializedQuery = [sql| refresh materialized view context_node_ngrams_view; |] 
-
-
+    refreshNgramsMaterializedQuery =
+      [sql| REFRESH MATERIALIZED VIEW CONCURRENTLY context_node_ngrams_view; |]
