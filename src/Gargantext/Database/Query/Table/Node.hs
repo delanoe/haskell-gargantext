@@ -419,7 +419,7 @@ getOrMkList pId uId =
 -- | TODO remove defaultList
 defaultList :: (HasNodeError err, HasDBid NodeType) => CorpusId -> Cmd err ListId
 defaultList cId =
-  maybe (nodeError NoListFound) (pure . view node_id) . headMay =<< getListsWithParentId cId
+  maybe (nodeError (NoListFound cId)) (pure . view node_id) . headMay =<< getListsWithParentId cId
 
 defaultListMaybe :: (HasNodeError err, HasDBid NodeType) => CorpusId -> Cmd err (Maybe NodeId)
 defaultListMaybe cId = headMay <$> map (view node_id ) <$> getListsWithParentId cId

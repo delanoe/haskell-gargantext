@@ -58,7 +58,6 @@ import Gargantext.Prelude
 
 type TableApi = Summary "Table API"
               :> QueryParam "tabType" TabType
-              :> QueryParam "list" ListId
               :> QueryParam "limit" Limit
               :> QueryParam "offset" Offset
               :> QueryParam "orderBy" OrderBy
@@ -105,14 +104,13 @@ tableApi id' = getTableApi id'
 getTableApi :: HasNodeError err
             => NodeId
             -> Maybe TabType
-            -> Maybe ListId
             -> Maybe Limit
             -> Maybe Offset
             -> Maybe OrderBy
             -> Maybe Text
             -> Maybe Text
             -> Cmd err (HashedResponse FacetTableResult)
-getTableApi cId tabType _mListId mLimit mOffset mOrderBy mQuery mYear = do
+getTableApi cId tabType mLimit mOffset mOrderBy mQuery mYear = do
   -- printDebug "[getTableApi] mQuery" mQuery
   -- printDebug "[getTableApi] mYear" mYear
   t <- getTable cId tabType mOffset mLimit mOrderBy mQuery mYear
@@ -129,7 +127,7 @@ postTableApi cId (TableQuery o l order ft q) = case ft of
 getTableHashApi :: HasNodeError err
                 => NodeId -> Maybe TabType -> Cmd err Text
 getTableHashApi cId tabType = do
-  HashedResponse { hash = h } <- getTableApi cId tabType Nothing Nothing Nothing Nothing Nothing Nothing
+  HashedResponse { hash = h } <- getTableApi cId tabType Nothing Nothing Nothing Nothing Nothing
   pure h
 
 searchInCorpus' :: CorpusId
