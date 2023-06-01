@@ -33,6 +33,8 @@ module Gargantext.Database.Query.Table.NodeContext
   , getContextsForNgrams
   , ContextForNgrams(..)
   , getContextsForNgramsTerms
+  , getContextNgrams
+  , getContextNgramsMatchingFTS
   , ContextForNgramsTerms(..)
   , insertNodeContext
   , deleteNodeContext
@@ -188,6 +190,52 @@ getContextsForNgramsTerms cId ngramsTerms = do
                      AND ngrams.terms IN ?) t
                    ORDER BY t.doc_count DESC |]
 
+
+
+-- | Query the `context_node_ngrams` table and return ngrams for given
+-- `context_id` and `list_id`.
+-- WARNING: `context_node_ngrams` can be outdated.
+getContextNgrams :: HasNodeError err
+                 => NodeId
+                 -> NodeId
+                 -> Cmd err [Text]
+getContextNgrams contextId listId = do
+  res <- runPGSQuery query (contextId, listId)
+  pure $ (\(PGS.Only term) -> term) <$> res
+
+  where
+    query :: PGS.Query
+    query = [sql| SELECT ngrams.terms
+                FROM context_node_ngrams
+                JOIN ngrams ON ngrams.id = ngrams_id
+                WHERE context_id = ?
+                AND node_id = ? |]
+
+
+-- | Query the `contexts` table and return ngrams for given context_id
+-- and list_id that match the search tsvector.
+-- NOTE This is poor man's tokenization that is used as a hint for the
+-- frontend highlighter.
+-- NOTE We prefer `plainto_tsquery` over `phraseto_tsquery` as it is
+-- more permissive (i.e. ignores word ordering). See
+-- https://www.peterullrich.com/complete-guide-to-full-text-search-with-postgres-and-ecto
+getContextNgramsMatchingFTS :: HasNodeError err
+                            => NodeId
+                            -> NodeId
+                            -> Cmd err [Text]
+getContextNgramsMatchingFTS contextId listId = do
+  res <- runPGSQuery query (contextId, listId)
+  pure $ (\(PGS.Only term) -> term) <$> res
+
+  where
+    query :: PGS.Query
+    query = [sql| SELECT ngrams.terms
+                FROM ngrams
+                JOIN node_ngrams ON node_ngrams.ngrams_id = ngrams.id
+                CROSS JOIN contexts
+                WHERE contexts.id = ?
+                AND node_ngrams.node_id = ?
+                AND contexts.search @@ plainto_tsquery(ngrams.terms) |]
 ------------------------------------------------------------------------
 insertNodeContext :: [NodeContext] -> Cmd err Int
 insertNodeContext ns = mkCmd $ \conn -> fromIntegral <$> (runInsert_ conn
