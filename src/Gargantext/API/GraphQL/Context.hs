@@ -20,7 +20,7 @@ import Gargantext.Core.Types.Search (HyperdataRow(..), toHyperdataRow)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument)
 import Gargantext.Database.Admin.Types.Node (ContextTitle, NodeId(..), NodeTypeId, UserId, unNodeId)
 import Gargantext.Database.Prelude (CmdCommon)
-import Gargantext.Database.Query.Table.NodeContext (getNodeContext, getContextsForNgramsTerms, ContextForNgramsTerms(..), getContextNgrams)
+import Gargantext.Database.Query.Table.NodeContext (getNodeContext, getContextsForNgramsTerms, ContextForNgramsTerms(..), {- getContextNgrams, -} getContextNgramsMatchingFTS)
 import qualified Gargantext.Database.Query.Table.NodeContext as DNC
 import Gargantext.Database.Schema.NodeContext (NodeContext, NodeContextPoly(..))
 import Gargantext.Prelude
@@ -150,7 +150,7 @@ dbContextNgrams
   :: (CmdCommon env)
   => Int -> Int -> GqlM e env [Text]
 dbContextNgrams context_id list_id = do
-  lift $ getContextNgrams (NodeId context_id) (NodeId list_id)
+  lift $ getContextNgramsMatchingFTS (NodeId context_id) (NodeId list_id)
 
 -- Conversion functions
 
