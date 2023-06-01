@@ -38,11 +38,17 @@ type NLP_API = Lang -> Text -> IO PosSentences
 -------------------------------------------------------------------
 multiterms :: NLPServerConfig -> Lang -> Text -> IO [TermsWithCount]
 multiterms nsc l txt = do
-  ret <- multiterms' tokenTag2terms l $ cleanTextForNLP txt
-  pure $ groupWithCounts ret
-  where
-    multiterms' :: (TokenTag -> a) -> Lang -> Text -> IO [a]
-    multiterms' f lang txt' = concat
+  let txt' = cleanTextForNLP txt
+  if txt' == ""
+     then do
+       printDebug "[G.C.T.Terms.Multi] becomes empty after cleanTextForNLP" txt
+       pure []
+     else do
+       ret <- multiterms' tokenTag2terms l txt'
+       pure $ groupWithCounts ret
+    where
+      multiterms' :: (TokenTag -> a) -> Lang -> Text -> IO [a]
+      multiterms' f lang txt' = concat
                        <$> map (map f)
                        <$> map (filter (\t -> _my_token_pos t == Just NP))
                        <$> tokenTags nsc lang txt'
@@ -53,7 +59,9 @@ tokenTag2terms (TokenTag ws t _ _) =  Terms ws t
 
 tokenTags :: NLPServerConfig -> Lang -> Text -> IO [[TokenTag]]
 tokenTags (NLPServerConfig { server = CoreNLP, url }) EN txt = tokenTagsWith EN txt $ corenlp url
-tokenTags (NLPServerConfig { server = Spacy, url }) l txt = tokenTagsWith l txt $ SpacyNLP.nlp url
+tokenTags (NLPServerConfig { server = Spacy, url }) l txt = do
+  -- printDebug "NLP Debug" txt
+  tokenTagsWith l txt $ SpacyNLP.nlp url
 -- tokenTags FR txt = do
 --   -- printDebug "[Spacy Debug]" txt
 --   if txt == ""

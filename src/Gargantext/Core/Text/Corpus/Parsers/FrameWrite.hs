@@ -249,7 +249,7 @@ text2titleParagraphs n = catMaybes
     n' = n + (round $ (fromIntegral n) / (2 :: Double))
 
 doTitle :: [Text] -> Maybe (Text, Text)
-doTitle (t:ts) = Just (t, DT.concat ts)
+doTitle (t:ts) = Just (t, DT.intercalate " " ts)
 doTitle [] = Nothing
 
 
