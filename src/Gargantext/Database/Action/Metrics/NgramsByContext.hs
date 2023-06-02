@@ -129,9 +129,15 @@ getOccByNgramsOnlyFast cId lId nt = do
 
       query :: DPS.Query
       query = [sql|
-                WITH node_context_ids AS
+                WITH cnnv AS
+                ( SELECT DISTINCT context_node_ngrams.context_id,
+                    context_node_ngrams.ngrams_id,
+                    nodes_contexts.node_id
+                  FROM nodes_contexts
+                  JOIN context_node_ngrams ON context_node_ngrams.context_id = nodes_contexts.context_id
+                ), node_context_ids AS
                   (SELECT context_id, ngrams_id, terms
-                  FROM context_node_ngrams_view
+                  FROM cnnv
                   JOIN ngrams ON context_node_ngrams_view.ngrams_id = ngrams.id
                   WHERE node_id = ?
                   ), ns AS
