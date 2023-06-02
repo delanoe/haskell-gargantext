@@ -138,7 +138,7 @@ getOccByNgramsOnlyFast cId lId nt = do
                 ), node_context_ids AS
                   (SELECT context_id, ngrams_id, terms
                   FROM cnnv
-                  JOIN ngrams ON context_node_ngrams_view.ngrams_id = ngrams.id
+                  JOIN ngrams ON cnnv.ngrams_id = ngrams.id
                   WHERE node_id = ?
                   ), ns AS
                 (SELECT ngrams_id FROM node_stories
