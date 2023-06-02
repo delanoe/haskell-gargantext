@@ -135,20 +135,27 @@ getOccByNgramsOnlyFast cId lId nt = do
                     nodes_contexts.node_id
                   FROM nodes_contexts
                   JOIN context_node_ngrams ON context_node_ngrams.context_id = nodes_contexts.context_id
-                ), node_context_ids AS
+                ),
+                node_context_ids AS
                   (SELECT context_id, ngrams_id, terms
                   FROM cnnv
                   JOIN ngrams ON cnnv.ngrams_id = ngrams.id
                   WHERE node_id = ?
-                  ), ns AS
-                (SELECT ngrams_id FROM node_stories
-                  WHERE node_id = ? AND ngrams_type_id = ?
-                )
+                  ),
+                ncids_agg AS
+                  (SELECT ngrams_id, terms, array_agg(DISTINCT context_id) AS agg
+                    FROM node_context_ids
+                    GROUP BY (ngrams_id, terms)),
+                ns AS
+                  (SELECT ngrams_id, terms
+                    FROM node_stories
+                    JOIN ngrams ON ngrams_id = ngrams.id
+                    WHERE node_id = ? AND ngrams_type_id = ?
+                  )
 
-                SELECT terms, array_agg(DISTINCT context_id)
+                SELECT ns.terms, CASE WHEN agg IS NULL THEN '{}' ELSE agg END
                 FROM ns
-                JOIN node_context_ids ON ns.ngrams_id = node_context_ids.ngrams_id
-                GROUP BY terms
+                LEFT JOIN ncids_agg ON ns.ngrams_id = ncids_agg.ngrams_id
         |]
       -- query = [sql|
       --           WITH node_context_ids AS
