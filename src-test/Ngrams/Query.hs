@@ -3,16 +3,19 @@
 module Ngrams.Query where
 
 import           Control.Monad
-import           Gargantext.Prelude
+import           Data.Coerce
+import           Data.Map.Strict (Map)
+import           Data.Monoid
+import           Gargantext.API.Ngrams.Types (mSetFromList)
 import           Gargantext.API.Ngrams
 import           Gargantext.API.Ngrams.Types
-import           Data.Coerce
-import           Data.Monoid
-import qualified Data.Text as T
-import qualified Data.Map.Strict as Map
-import           Data.Map.Strict (Map)
-import           Gargantext.Core.Types.Query
 import           Gargantext.Core.Types.Main
+import           Gargantext.Core.Types.Query
+import           Gargantext.Prelude
+import qualified Data.Map.Strict as Map
+import qualified Data.Patch.Class as Patch
+import qualified Data.Validity    as Validity
+import qualified Data.Text as T
 
 import Ngrams.Query.PaginationCorpus
 import Test.Tasty
@@ -61,6 +64,8 @@ unitTests = testGroup "Query tests"
   , testCase "Simple pagination on CandidateTerm (limit < total terms)" test_pagination04
   , testCase "paginating QuantumComputing corpus works (MapTerms)" test_paginationQuantum
   , testCase "paginating QuantumComputing corpus works (CandidateTerm)" test_paginationQuantum_02
+  --  -- Patching
+  , testCase "I can apply a patch to term mapTerms to stopTerms (issue #217)" test_217
   ]
 
 -- Let's test that if we request elements sorted in
@@ -297,3 +302,32 @@ test_paginationQuantum_02 = do
                , _nsq_orderBy     = Nothing
                , _nsq_searchQuery = mockQueryFn Nothing
                }
+
+issue217Corpus :: NgramsTableMap
+issue217Corpus = Map.fromList [
+    ( "advantages", NgramsRepoElement 1 MapTerm Nothing Nothing (mSetFromList ["advantage"]))
+  , ( "advantage" , NgramsRepoElement 1 MapTerm (Just "advantages") (Just "advantages") mempty)
+  ]
+
+patched217Corpus :: NgramsTableMap
+patched217Corpus = Map.fromList [
+    ( "advantages", NgramsRepoElement 1 StopTerm Nothing Nothing (mSetFromList ["advantage"]))
+  , ( "advantage" , NgramsRepoElement 1 StopTerm (Just "advantages") (Just "advantages") mempty)
+  ]
+
+-- In this patch we simulate turning the subtree composed by 'advantages' and 'advantage'
+-- from map terms to stop terms.
+patch217 :: NgramsTablePatch
+patch217 = mkNgramsTablePatch $ Map.fromList [
+                                 (NgramsTerm "advantages", NgramsPatch
+                                    { _patch_children = mempty
+                                    , _patch_list     = Patch.Replace MapTerm StopTerm
+                                    }
+                                 )
+                              ]
+
+test_217 :: Assertion
+test_217 = do
+  -- Check the patch is applicable
+  Validity.validationIsValid (Patch.applicable patch217 (Just issue217Corpus)) @?= True
+  Patch.act patch217 (Just issue217Corpus) @?= Just patched217Corpus

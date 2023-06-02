@@ -555,6 +555,9 @@ instance Action NgramsPatch (Maybe NgramsRepoElement) where
 newtype NgramsTablePatch = NgramsTablePatch (PatchMap NgramsTerm NgramsPatch)
   deriving (Eq, Show, Generic, ToJSON, FromJSON, Semigroup, Monoid, Validity, Transformable)
 
+mkNgramsTablePatch :: Map NgramsTerm NgramsPatch -> NgramsTablePatch
+mkNgramsTablePatch = NgramsTablePatch . PM.fromMap
+
 instance Serialise NgramsTablePatch
 instance Serialise (PatchMap NgramsTerm NgramsPatch)
 

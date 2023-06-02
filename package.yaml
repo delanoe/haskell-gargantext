@@ -520,11 +520,13 @@ tests:
      - quickcheck-instances
      - time
      - parsec
+     - patches-class
      - duckling
      - tasty
      - tasty-hunit
      - text
      - unordered-containers
+     - validity
    jobqueue-test:
      main: Main.hs
      source-dirs: tests/queue
