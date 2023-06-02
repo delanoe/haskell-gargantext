@@ -337,14 +337,23 @@ CREATE OR REPLACE function node_pos(int, int) returns bigint
 --create index node_by_pos on nodes using btree(node_pos(id,typename));
 
 -- Optimization for Ngrams Table View
-create materialized view if  not exists context_node_ngrams_view as
-select context_node_ngrams.context_id, ngrams_id, nodes_contexts.node_id
-from nodes_contexts
-join context_node_ngrams
-on context_node_ngrams.context_id = nodes_contexts.context_id;
+CREATE MATERIALIZED VIEW IF NOT EXISTS context_node_ngrams_view AS
+  SELECT DISTINCT context_node_ngrams.context_id, ngrams_id, nodes_contexts.node_id
+  FROM nodes_contexts
+  JOIN context_node_ngrams
+  ON context_node_ngrams.context_id = nodes_contexts.context_id;
 
-create index if not exists context_node_ngrams_context_id_ngrams_id_idx on context_node_ngrams(context_id, ngrams_id);
-create index if not exists context_node_ngrams_view_context_id_idx on context_node_ngrams_view(context_id);
-create index if not exists context_node_ngrams_view_ngrams_id_idx on context_node_ngrams_view(ngrams_id);
-create index if not exists context_node_ngrams_view_node_id_idx on context_node_ngrams_view(node_id);
-create index if not exists node_stories_ngrams_id_idx on node_stories(ngrams_id);
+CREATE INDEX IF NOT EXISTS context_node_ngrams_context_id_ngrams_id_idx
+  ON context_node_ngrams(context_id, ngrams_id);
+
+CREATE INDEX IF NOT EXISTS context_node_ngrams_view_context_id_idx
+  ON context_node_ngrams_view(context_id);
+CREATE INDEX IF NOT EXISTS context_node_ngrams_view_ngrams_id_idx
+  ON context_node_ngrams_view(ngrams_id);
+CREATE INDEX IF NOT EXISTS context_node_ngrams_view_node_id_idx
+  ON context_node_ngrams_view(node_id);
+CREATE UNIQUE INDEX IF NOT EXISTS context_node_ngrams_view_context_ngrams_node_uniq_idx
+  ON context_node_ngrams_view (context_id, ngrams_id, node_id);
+
+CREATE INDEX IF NOT EXISTS node_stories_ngrams_id_idx
+  ON node_stories(ngrams_id);
