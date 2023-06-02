@@ -129,24 +129,53 @@ getOccByNgramsOnlyFast cId lId nt = do
 
       query :: DPS.Query
       query = [sql|
-                WITH node_context_ids AS
-                  (select context_id, ngrams_id
-                  FROM context_node_ngrams_view
+                WITH cnnv AS
+                ( SELECT DISTINCT context_node_ngrams.context_id,
+                    context_node_ngrams.ngrams_id,
+                    nodes_contexts.node_id
+                  FROM nodes_contexts
+                  JOIN context_node_ngrams ON context_node_ngrams.context_id = nodes_contexts.context_id
+                ),
+                node_context_ids AS
+                  (SELECT context_id, ngrams_id, terms
+                  FROM cnnv
+                  JOIN ngrams ON cnnv.ngrams_id = ngrams.id
                   WHERE node_id = ?
-                  ), ns AS
-                (select ngrams_id FROM node_stories
-                  WHERE node_id = ? AND ngrams_type_id = ?
-                )
+                  ),
+                ncids_agg AS
+                  (SELECT ngrams_id, terms, array_agg(DISTINCT context_id) AS agg
+                    FROM node_context_ids
+                    GROUP BY (ngrams_id, terms)),
+                ns AS
+                  (SELECT ngrams_id, terms
+                    FROM node_stories
+                    JOIN ngrams ON ngrams_id = ngrams.id
+                    WHERE node_id = ? AND ngrams_type_id = ?
+                  )
 
-                SELECT ng.terms,
-                ARRAY ( SELECT DISTINCT context_id
-                          FROM node_context_ids
-                          WHERE ns.ngrams_id = node_context_ids.ngrams_id
-                      )
-                AS context_ids
-                FROM ngrams ng
-                JOIN ns ON ng.id = ns.ngrams_id
+                SELECT ns.terms, CASE WHEN agg IS NULL THEN '{}' ELSE agg END
+                FROM ns
+                LEFT JOIN ncids_agg ON ns.ngrams_id = ncids_agg.ngrams_id
         |]
+      -- query = [sql|
+      --           WITH node_context_ids AS
+      --             (select context_id, ngrams_id
+      --             FROM context_node_ngrams_view
+      --             WHERE node_id = ?
+      --             ), ns AS
+      --           (select ngrams_id FROM node_stories
+      --             WHERE node_id = ? AND ngrams_type_id = ?
+      --           )
+
+      --           SELECT ng.terms,
+      --           ARRAY ( SELECT DISTINCT context_id
+      --                     FROM node_context_ids
+      --                     WHERE ns.ngrams_id = node_context_ids.ngrams_id
+      --                 )
+      --           AS context_ids
+      --           FROM ngrams ng
+      --           JOIN ns ON ng.id = ns.ngrams_id
+      --   |]
 
 
 selectNgramsOccurrencesOnlyByContextUser_withSample :: HasDBid NodeType
@@ -403,6 +432,5 @@ refreshNgramsMaterialized :: Cmd err ()
 refreshNgramsMaterialized = void $ execPGSQuery refreshNgramsMaterializedQuery ()
   where
     refreshNgramsMaterializedQuery :: DPS.Query
-    refreshNgramsMaterializedQuery = [sql| refresh materialized view context_node_ngrams_view; |] 
-
-
+    refreshNgramsMaterializedQuery =
+      [sql| REFRESH MATERIALIZED VIEW CONCURRENTLY context_node_ngrams_view; |]
