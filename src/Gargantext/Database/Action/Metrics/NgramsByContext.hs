@@ -130,23 +130,39 @@ getOccByNgramsOnlyFast cId lId nt = do
       query :: DPS.Query
       query = [sql|
                 WITH node_context_ids AS
-                  (select context_id, ngrams_id
+                  (SELECT context_id, ngrams_id, terms
                   FROM context_node_ngrams_view
+                  JOIN ngrams ON context_node_ngrams_view.ngrams_id = ngrams.id
                   WHERE node_id = ?
                   ), ns AS
-                (select ngrams_id FROM node_stories
+                (SELECT ngrams_id FROM node_stories
                   WHERE node_id = ? AND ngrams_type_id = ?
                 )
 
-                SELECT ng.terms,
-                ARRAY ( SELECT DISTINCT context_id
-                          FROM node_context_ids
-                          WHERE ns.ngrams_id = node_context_ids.ngrams_id
-                      )
-                AS context_ids
-                FROM ngrams ng
-                JOIN ns ON ng.id = ns.ngrams_id
+                SELECT terms, array_agg(DISTINCT context_id)
+                FROM ns
+                JOIN node_context_ids ON ns.ngrams_id = node_context_ids.ngrams_id
+                GROUP BY terms
         |]
+      -- query = [sql|
+      --           WITH node_context_ids AS
+      --             (select context_id, ngrams_id
+      --             FROM context_node_ngrams_view
+      --             WHERE node_id = ?
+      --             ), ns AS
+      --           (select ngrams_id FROM node_stories
+      --             WHERE node_id = ? AND ngrams_type_id = ?
+      --           )
+
+      --           SELECT ng.terms,
+      --           ARRAY ( SELECT DISTINCT context_id
+      --                     FROM node_context_ids
+      --                     WHERE ns.ngrams_id = node_context_ids.ngrams_id
+      --                 )
+      --           AS context_ids
+      --           FROM ngrams ng
+      --           JOIN ns ON ng.id = ns.ngrams_id
+      --   |]
 
 
 selectNgramsOccurrencesOnlyByContextUser_withSample :: HasDBid NodeType
