@@ -115,7 +115,7 @@ defaultHyperdata NodeGraph          = DefaultGraph     defaultHyperdataGraph
 defaultHyperdata NodePhylo          = DefaultPhylo     defaultHyperdataPhylo
 defaultHyperdata NodeDashboard      = DefaultDashboard defaultHyperdataDashboard
 
-defaultHyperdata NodeFrameWrite     = DefaultFrameWrite defaultHyperdataFrame
+defaultHyperdata Notes     = DefaultFrameWrite defaultHyperdataFrame
 defaultHyperdata NodeFrameCalc      = DefaultFrameCalc  defaultHyperdataFrame
 defaultHyperdata NodeFrameVisio     = DefaultFrameVisio defaultHyperdataFrame
 defaultHyperdata NodeFrameNotebook      = DefaultFrameCalc  defaultHyperdataFrame
