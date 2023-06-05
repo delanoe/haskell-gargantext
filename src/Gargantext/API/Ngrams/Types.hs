@@ -630,25 +630,25 @@ ngramsElementFromRepo
                 -}
                 }
 
-reRootChildren :: NgramsTerm -> ReParent NgramsTerm
+reRootChildren :: NgramsTerm -> NgramsTerm -> State NgramsTableMap ()
 reRootChildren root ngram = do
   nre <- use $ at ngram
   forOf_ (_Just . nre_children . folded) nre $ \child -> do
     at child . _Just . nre_root ?= root
     reRootChildren root child
 
-reParent :: Maybe RootParent -> ReParent NgramsTerm
+reParent :: Maybe RootParent -> NgramsTerm -> State NgramsTableMap ()
 reParent rp child = do
   at child . _Just %= ( (nre_parent .~ (_rp_parent <$> rp))
                       . (nre_root   .~ (_rp_root   <$> rp))
                       )
   reRootChildren (fromMaybe child (rp ^? _Just . rp_root)) child
 
-reParentAddRem :: RootParent -> NgramsTerm -> ReParent AddRem
+reParentAddRem :: RootParent -> NgramsTerm -> AddRem -> State NgramsTableMap ()
 reParentAddRem rp child p =
   reParent (if isRem p then Nothing else Just rp) child
 
-reParentNgramsPatch :: NgramsTerm -> ReParent NgramsPatch
+reParentNgramsPatch :: NgramsTerm -> NgramsPatch -> State NgramsTableMap ()
 reParentNgramsPatch parent ngramsPatch = do
   root_of_parent <- use (at parent . _Just . nre_root)
   let
@@ -657,7 +657,7 @@ reParentNgramsPatch parent ngramsPatch = do
   itraverse_ (reParentAddRem rp) (ngramsPatch ^. patch_children . _PatchMSet . _PatchMap)
   -- TODO FoldableWithIndex/TraversableWithIndex for PatchMap
 
-reParentNgramsTablePatch :: ReParent NgramsTablePatch
+reParentNgramsTablePatch :: NgramsTablePatch -> State NgramsTableMap ()
 reParentNgramsTablePatch p = itraverse_ reParentNgramsPatch (p ^. _NgramsTablePatch. _PatchMap)
   -- TODO FoldableWithIndex/TraversableWithIndex for PatchMap
 
@@ -674,8 +674,6 @@ instance Arbitrary NgramsTablePatch where
 -- Should it be less than an Lens' to preserve PatchMap's abstraction.
 -- ntp_ngrams_patches :: Lens' NgramsTablePatch (Map NgramsTerm NgramsPatch)
 -- ntp_ngrams_patches = _NgramsTablePatch .  undefined
-
-type ReParent a = forall m. MonadState NgramsTableMap m => a -> m ()
 
 ------------------------------------------------------------------------
 type Version = Int
