@@ -1,3 +1,8 @@
+## Version 0.0.6.9.9.5.8
+
+- [BACK/FRONT][FIX] Reverting Notes / NodeWrite and Calc / NodeCalc change
+* [FRONT][DOC][Change waiting message when selecting nodes (#557)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/557)
+
 ## Version 0.0.6.9.9.5.7
 
 * [BACK][OPTIM/FIX][[Node terms] Random slowness on loading a page list of terms (#199)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/199)

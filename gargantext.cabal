@@ -5,11 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-<<<<<<< HEAD
-version:        0.0.6.9.9.5.7
-=======
-version: 0.0.6.9.9.5.6
->>>>>>> parent of b002b07b ([DOC] NodeFrameWrite -> Notes)
+version: 0.0.6.9.9.5.8
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
