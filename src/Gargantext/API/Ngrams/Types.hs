@@ -20,7 +20,7 @@ module Gargantext.API.Ngrams.Types where
 import Codec.Serialise (Serialise())
 import Control.Category ((>>>))
 import Control.DeepSeq (NFData)
-import Control.Lens (makeLenses, makePrisms, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~))
+import Control.Lens (makeLenses, makePrisms, Iso', iso, from, (.~), (.=), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~), over)
 import Control.Monad.State
 import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
@@ -552,6 +552,10 @@ instance Applicable NgramsPatch (Maybe NgramsRepoElement) where
 instance Action NgramsPatch (Maybe NgramsRepoElement) where
   act p = act (p ^. _NgramsPatch)
 
+instance Action (Replace ListType) NgramsRepoElement where
+  -- Rely on the already-defined instance 'Action (Replace a) a'.
+  act replaceP = over nre_list (act replaceP)
+
 newtype NgramsTablePatch = NgramsTablePatch (PatchMap NgramsTerm NgramsPatch)
   deriving (Eq, Show, Generic, ToJSON, FromJSON, Semigroup, Monoid, Validity, Transformable)
 
@@ -648,12 +652,37 @@ reParentAddRem :: RootParent -> NgramsTerm -> AddRem -> State NgramsTableMap ()
 reParentAddRem rp child p =
   reParent (if isRem p then Nothing else Just rp) child
 
-reParentNgramsPatch :: NgramsTerm -> NgramsPatch -> State NgramsTableMap ()
+-- | For each (k,v) of the 'PatchMap', transform the input 'NgramsTableMap'.
+reParentNgramsPatch :: NgramsTerm
+                    -- ^ The 'k' which is the target of the transformation.
+                    -> NgramsPatch
+                    -- ^ The patch to be applied to 'k'.
+                    -> State NgramsTableMap ()
 reParentNgramsPatch parent ngramsPatch = do
   root_of_parent <- use (at parent . _Just . nre_root)
+  children       <- use (at parent . _Just . nre_children)
   let
-    root = fromMaybe parent root_of_parent
-    rp   = RootParent { _rp_root = root, _rp_parent = parent }
+    root     = fromMaybe parent root_of_parent
+    rp       = RootParent { _rp_root = root, _rp_parent = parent }
+
+  -- Apply whichever transformation has being applied to the parent also to its children.
+  -- This is /not/ the same as applying 'patch_children' as in the 'itraverse_' below,
+  -- because that modifies the tree by adding or removing children, and it will be triggered
+  -- only if we have a non-empty set for 'patch_children'.
+  forM_ children $ \childTerm -> do
+    child <- use (at childTerm)
+    case child of
+      Nothing -> pure ()
+      Just c
+        -- We don't need to check if the patch is applicable, because we would be calling
+        -- 'Applicable (Replace ListType) NgramsRepoElement' which is /always/ satisfied
+        -- being 'ListType' a field of 'NgramsRepoElement'.
+        | NgramsPatch{_patch_list} <- ngramsPatch
+        -> at childTerm . _Just .= act _patch_list c
+        | otherwise
+        -> pure () -- ignore the patch and carry on.
+
+  -- Finally, add or remove children according to the patch.
   itraverse_ (reParentAddRem rp) (ngramsPatch ^. patch_children . _PatchMSet . _PatchMap)
   -- TODO FoldableWithIndex/TraversableWithIndex for PatchMap
 
