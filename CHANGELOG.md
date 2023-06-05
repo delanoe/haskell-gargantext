@@ -1,6 +1,12 @@
+## Version 0.0.6.9.9.6
+
+* [RELEASE CANDIDATE]
+* [FRONT][FIX][Doc View, ngrams selected: children of grouped terms are not shown (#551)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/551)
+* Removing cron jobs 
+
 ## Version 0.0.6.9.9.5.8
 
-- [BACK/FRONT][FIX] Reverting Notes / NodeWrite and Calc / NodeCalc change
+* [BACK/FRONT][FIX] Reverting Notes / NodeWrite and Calc / NodeCalc change
 * [FRONT][DOC][Change waiting message when selecting nodes (#557)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/557)
 
 ## Version 0.0.6.9.9.5.7
