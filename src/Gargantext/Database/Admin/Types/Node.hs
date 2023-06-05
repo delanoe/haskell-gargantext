@@ -355,7 +355,7 @@ data NodeType = NodeUser
 -}
 
               -- Optional Nodes
-              | Notes | Calc | NodeFrameVisio | NodeFrameNotebook
+              | Notes | NodeFrameCalc | NodeFrameVisio | NodeFrameNotebook
               | NodeFile
 
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
@@ -406,7 +406,7 @@ defaultName NodeGraph         = "Graph"
 defaultName NodePhylo         = "Phylo"
 
 defaultName Notes    = "Note"
-defaultName Calc     = "Calc"
+defaultName NodeFrameCalc     = "Calc"
 defaultName NodeFrameVisio    = "Visio"
 defaultName NodeFrameNotebook = "Code"
 
