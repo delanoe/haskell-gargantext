@@ -90,7 +90,7 @@ documentsFromWriteNodes uId nId Params { selection, lang, paragraphs } jobHandle
       markFailed (Just msg) jobHandle
       panic msg
 
-  frameWriteIds <- getChildrenByType nId Notes
+  frameWriteIds <- getChildrenByType nId NodeFrameWrite
 
   -- https://write.frame.gargantext.org/<frame_id>/download
   frameWrites <- mapM (\id -> getNodeWith id (Proxy :: Proxy HyperdataFrame)) frameWriteIds
