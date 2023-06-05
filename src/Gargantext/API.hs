@@ -34,7 +34,7 @@ module Gargantext.API
       where
 
 import Control.Concurrent
-import Control.Exception (catch, finally, SomeException, displayException, IOException)
+import Control.Exception (catch, finally, SomeException{-, displayException, IOException-})
 import Control.Lens
 import Control.Monad.Except
 import Control.Monad.Reader (runReaderT)
@@ -56,8 +56,8 @@ import Gargantext.API.Ngrams (saveNodeStoryImmediate)
 import Gargantext.API.Routes
 import Gargantext.API.Server (server)
 import Gargantext.Core.NodeStory
-import Gargantext.Database.Prelude (Cmd)
-import Gargantext.Database.Action.Metrics.NgramsByContext (refreshNgramsMaterialized)
+-- import Gargantext.Database.Prelude (Cmd)
+-- import Gargantext.Database.Action.Metrics.NgramsByContext (refreshNgramsMaterialized)
 import Gargantext.Prelude hiding (putStrLn)
 import Network.HTTP.Types hiding (Query)
 import Network.Wai
@@ -119,13 +119,14 @@ startGargantextMock port = do
 -- | Schedules all sorts of useful periodic actions to be run while
 -- the server is alive accepting requests.
 schedulePeriodicActions :: DB.CmdCommon env => env -> IO [ThreadId]
-schedulePeriodicActions env =
+schedulePeriodicActions _env =
   -- Add your scheduled actions here.
   let actions = [
-          refreshDBViews
+          -- refreshDBViews
         ]
   in foldlM (\ !acc action -> (`mappend` acc) <$> Cron.execSchedule action) [] actions
 
+{-
   where
 
     refreshDBViews :: Cron.Schedule ()
@@ -138,6 +139,7 @@ schedulePeriodicActions env =
                 _ <- liftIO $ putStrLn $ pack "Refresh Index Database done"
                 pure ()
       Cron.addJob doRefresh "* 2 * * *"
+-}
 
 ----------------------------------------------------------------------
 
