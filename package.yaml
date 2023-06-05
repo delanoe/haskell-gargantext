@@ -521,6 +521,7 @@ tests:
      - time
      - parsec
      - patches-class
+     - patches-map
      - duckling
      - tasty
      - tasty-hunit

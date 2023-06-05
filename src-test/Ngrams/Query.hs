@@ -6,7 +6,6 @@ import           Control.Monad
 import           Data.Coerce
 import           Data.Map.Strict (Map)
 import           Data.Monoid
-import           Gargantext.API.Ngrams.Types (mSetFromList)
 import           Gargantext.API.Ngrams
 import           Gargantext.API.Ngrams.Types
 import           Gargantext.Core.Types.Main

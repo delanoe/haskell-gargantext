@@ -902,6 +902,7 @@ test-suite garg-test
     , hspec
     , parsec
     , patches-class
+    , patches-map
     , quickcheck-instances
     , tasty
     , tasty-hunit
