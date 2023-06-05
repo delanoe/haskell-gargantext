@@ -35,7 +35,7 @@ import Gargantext.Core.Types.Query (Limit(..))
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Metrics.NgramsByContext (getContextsByNgramsOnlyUser{-, getTficfWith-})
 import Gargantext.Database.Admin.Config (userMaster)
-import Gargantext.Database.Action.Metrics.NgramsByContext (refreshNgramsMaterialized)
+-- import Gargantext.Database.Action.Metrics.NgramsByContext (refreshNgramsMaterialized)
 import Gargantext.Database.Admin.Types.Node (ListId, CorpusId)
 import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node.Select
@@ -129,7 +129,7 @@ updateNgramsOccurrences' cId maybeListId maybeLimit tabType = do
   res <- map (\(Only a) -> a) <$> runPGSQuery queryInsert (Only $ Values fields toInsert)
 
   -- _ <- map (\(Only a) -> a) <$> runPGSQuery [sql|refresh materialized view context_node_ngrams_view;|] ()
-  _ <- refreshNgramsMaterialized
+  -- _ <- refreshNgramsMaterialized
   pure res
 
 
