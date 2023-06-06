@@ -138,7 +138,7 @@ filterListWithRootHashMap lt m = snd <$> HM.filter isMapTerm m
     isMapTerm (l, maybeRoot) = case maybeRoot of
       Nothing -> l == lt
       Just  r -> case HM.lookup r m of
-        Nothing -> panic $ "[Garg.API.Ngrams.Tools] filterWithRoot, unknown key: " <> unNgramsTerm r
+        Nothing -> panic $ "[Garg.API.Ngrams.Tools] filterListWithRootHashMap, unknown key: " <> unNgramsTerm r
         Just  (l',_) -> l' == lt
 
 filterListWithRoot :: [ListType]
@@ -149,7 +149,7 @@ filterListWithRoot lt m = snd <$> HM.filter isMapTerm m
     isMapTerm (l, maybeRoot) = case maybeRoot of
       Nothing -> elem l lt
       Just  r -> case HM.lookup r m of
-        Nothing -> panic $ "[Garg.API.Ngrams.Tools] filterWithRoot, unknown key: " <> unNgramsTerm r
+        Nothing -> panic $ "[Garg.API.Ngrams.Tools] filterListWithRoot, unknown key: " <> unNgramsTerm r
         Just  (l',_) -> elem l' lt
 
 groupNodesByNgrams :: ( At root_map

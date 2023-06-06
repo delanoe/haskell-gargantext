@@ -68,8 +68,8 @@ main = do
   let _secret = _gc_secretkey cfg
 
   withDevEnv iniPath $ \env -> do
-    _ <- runCmdDev env addIndex
-    _ <- runCmdDev env refreshIndex
+    -- _ <- runCmdDev env addIndex
+    -- _ <- runCmdDev env refreshIndex
 
 
     ___
@@ -77,34 +77,34 @@ main = do
     ___
     pure ()
 
-refreshIndex :: Cmd'' DevEnv IOException ()
-refreshIndex = do
-  _ <- execPGSQuery [sql| REFRESH MATERIALIZED VIEW CONCURRENTLY context_node_ngrams_view; |] ()
-  pure ()
+-- refreshIndex :: Cmd'' DevEnv IOException ()
+-- refreshIndex = do
+--   _ <- execPGSQuery [sql| REFRESH MATERIALIZED VIEW CONCURRENTLY context_node_ngrams_view; |] ()
+--   pure ()
 
-addIndex :: Cmd'' DevEnv IOException Int64
-addIndex = do
-  execPGSQuery query ()
-    where
-      query = [sql|
-        CREATE MATERIALIZED VIEW IF NOT EXISTS context_node_ngrams_view AS
-          SELECT DISTINCT context_node_ngrams.context_id, ngrams_id, nodes_contexts.node_id
-          FROM nodes_contexts
-          JOIN context_node_ngrams
-          ON context_node_ngrams.context_id = nodes_contexts.context_id;
+-- addIndex :: Cmd'' DevEnv IOException Int64
+-- addIndex = do
+--   execPGSQuery query ()
+--     where
+--       query = [sql|
+--         CREATE MATERIALIZED VIEW IF NOT EXISTS context_node_ngrams_view AS
+--           SELECT DISTINCT context_node_ngrams.context_id, ngrams_id, nodes_contexts.node_id
+--           FROM nodes_contexts
+--           JOIN context_node_ngrams
+--           ON context_node_ngrams.context_id = nodes_contexts.context_id;
 
-        CREATE INDEX IF NOT EXISTS context_node_ngrams_context_id_ngrams_id_idx
-          ON context_node_ngrams(context_id, ngrams_id);
+--         CREATE INDEX IF NOT EXISTS context_node_ngrams_context_id_ngrams_id_idx
+--           ON context_node_ngrams(context_id, ngrams_id);
 
-        CREATE INDEX IF NOT EXISTS context_node_ngrams_view_context_id_idx
-          ON context_node_ngrams_view(context_id);
-        CREATE INDEX IF NOT EXISTS context_node_ngrams_view_ngrams_id_idx
-          ON context_node_ngrams_view(ngrams_id);
-        CREATE INDEX IF NOT EXISTS context_node_ngrams_view_node_id_idx
-          ON context_node_ngrams_view(node_id);
-        CREATE UNIQUE INDEX IF NOT EXISTS context_node_ngrams_view_context_ngrams_node_uniq_idx
-          ON context_node_ngrams_view (context_id, ngrams_id, node_id);
+--         CREATE INDEX IF NOT EXISTS context_node_ngrams_view_context_id_idx
+--           ON context_node_ngrams_view(context_id);
+--         CREATE INDEX IF NOT EXISTS context_node_ngrams_view_ngrams_id_idx
+--           ON context_node_ngrams_view(ngrams_id);
+--         CREATE INDEX IF NOT EXISTS context_node_ngrams_view_node_id_idx
+--           ON context_node_ngrams_view(node_id);
+--         CREATE UNIQUE INDEX IF NOT EXISTS context_node_ngrams_view_context_ngrams_node_uniq_idx
+--           ON context_node_ngrams_view (context_id, ngrams_id, node_id);
 
-        CREATE INDEX IF NOT EXISTS node_stories_ngrams_id_idx
-          ON node_stories(ngrams_id);
-  |]
+--         CREATE INDEX IF NOT EXISTS node_stories_ngrams_id_idx
+--           ON node_stories(ngrams_id);
+--   |]

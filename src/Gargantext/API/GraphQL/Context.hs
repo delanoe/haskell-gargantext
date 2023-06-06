@@ -138,6 +138,7 @@ dbNodeContext context_id node_id = do
   c <- lift $ getNodeContext (NodeId context_id) (NodeId node_id)
   pure $ toNodeContextGQL <$> [c]
 
+-- | Returns list of `ContextGQL` for given ngrams in given corpus id.
 dbContextForNgrams
   :: (CmdCommon env)
   => Int -> [Text] -> GqlM e env [ContextGQL]
@@ -146,6 +147,7 @@ dbContextForNgrams node_id ngrams_terms = do
   --lift $ printDebug "[dbContextForNgrams] contextsForNgramsTerms" contextsForNgramsTerms
   pure $ toContextGQL <$> contextsForNgramsTerms
 
+-- | Fetch ngrams matching given context in a given list id.
 dbContextNgrams
   :: (CmdCommon env)
   => Int -> Int -> GqlM e env [Text]

@@ -18,7 +18,7 @@ module Gargantext.Database.Action.Metrics.NgramsByContext
 
 -- import Debug.Trace (trace)
 --import Data.Map.Strict.Patch (PatchMap, Replace, diff)
-import Control.Monad (void)
+-- import Control.Monad (void)
 import Data.HashMap.Strict (HashMap)
 import Data.Map.Strict (Map)
 import Data.Set (Set)
@@ -30,7 +30,7 @@ import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core
 import Gargantext.Data.HashMap.Strict.Utils as HM
 import Gargantext.Database.Admin.Types.Node (ListId, CorpusId, NodeId(..), ContextId, MasterCorpusId, NodeType(NodeDocument), UserCorpusId, DocId)
-import Gargantext.Database.Prelude (Cmd, runPGSQuery, execPGSQuery)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery)  -- , execPGSQuery)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict              as HM
@@ -428,9 +428,9 @@ queryNgramsByContextMaster' = [sql|
 --  - at reindex stage
 --  - at the end of each text flow
 
-refreshNgramsMaterialized :: Cmd err ()
-refreshNgramsMaterialized = void $ execPGSQuery refreshNgramsMaterializedQuery ()
-  where
-    refreshNgramsMaterializedQuery :: DPS.Query
-    refreshNgramsMaterializedQuery =
-      [sql| REFRESH MATERIALIZED VIEW CONCURRENTLY context_node_ngrams_view; |]
+-- refreshNgramsMaterialized :: Cmd err ()
+-- refreshNgramsMaterialized = void $ execPGSQuery refreshNgramsMaterializedQuery ()
+--   where
+--     refreshNgramsMaterializedQuery :: DPS.Query
+--     refreshNgramsMaterializedQuery =
+--       [sql| REFRESH MATERIALIZED VIEW CONCURRENTLY context_node_ngrams_view; |]
