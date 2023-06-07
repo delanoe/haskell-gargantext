@@ -357,7 +357,7 @@ library
       RankNTypes
       RecordWildCards
       StrictData
-  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wmissing-signatures -Wunused-binds -Wunused-imports -Werror -freduction-depth=300
+  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wmissing-signatures -Wunused-binds -Wunused-imports -Werror -freduction-depth=300 -fplugin=Clippy
   build-depends:
       HSvm
     , KMP
@@ -416,6 +416,7 @@ library
     , fullstop
     , gargantext-graph >=0.1.0.0
     , gargantext-prelude
+    , ghc-clippy-plugin
     , graphviz
     , hashable
     , haskell-igraph

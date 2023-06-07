@@ -16,7 +16,8 @@ copyright:
     - ! 'Copyright: (c) 2017-Present: see git logs and README'
 license: AGPL-3
 homepage: https://gargantext.org
-ghc-options: -Wall
+ghc-options:
+  - -Wall
 dependencies:
   - extra
   - text
@@ -54,6 +55,7 @@ library:
   - -Wunused-imports
   - -Werror
   - -freduction-depth=300
+  - -fplugin=Clippy
   exposed-modules:
   - Gargantext
   - Gargantext.API
@@ -169,6 +171,7 @@ library:
   - cassava
   - cereal     # (IGraph)
   - cborg
+  - ghc-clippy-plugin
   - conduit
   - conduit-extra
   - containers

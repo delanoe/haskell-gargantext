@@ -32,8 +32,8 @@ import qualified Data.Text as DT
 
 type FileOut = FilePath
 
-publi2csv :: Int -> FileDir -> FileOut -> IO ()
-publi2csv n f_in f_out = do
+book2csv :: Int -> FileDir -> FileOut -> IO ()
+book2csv n f_in f_out = do
   files <- filesOf f_in
   texts <- readPublis f_in files
   let publis = List.concat $ map (file2publi n) texts

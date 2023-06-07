@@ -36,8 +36,9 @@ extra-deps:
 - hstatistics-0.3.1
 - HSvm-0.1.1.3.22
 - hsparql-0.3.8
+- ghc-clippy-plugin-0.0.0.1
 
-#- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
+  #- git: https://gitlab.iscpif.fr/gargantext/haskell-gargantext-prelude.git
 #  commit: 791c2a7046a3760f8ae5fabdbd708f61caa63741
 - git: https://gitlab.iscpif.fr/cgenie/haskell-gargantext-prelude
   commit: 8f97fef4dfd941d773914ad058d8e02ce2bb1a3e  # e250af8a495191b4bd06c9f465656b87bea7bf7f
