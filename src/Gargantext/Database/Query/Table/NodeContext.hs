@@ -194,7 +194,10 @@ getContextsForNgramsTerms cId ngramsTerms = do
 
 -- | Query the `context_node_ngrams` table and return ngrams for given
 -- `context_id` and `list_id`.
--- WARNING: `context_node_ngrams` can be outdated.
+-- WARNING: `context_node_ngrams` can be outdated. This is because it
+-- is expensive to keep all ngrams matching a given context and if
+-- someone adds an ngram, we need to recompute its m2m relation to all
+-- existing documents.
 getContextNgrams :: HasNodeError err
                  => NodeId
                  -> NodeId
