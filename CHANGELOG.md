@@ -1,3 +1,11 @@
+## Version 0.0.6.9.9.6.1
+
+* [FRONT][FIX] Default Node List name
+* [FRONT][DESIGN][Design, improve the position of the icons (#554)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/554)
+* [FRONT][DESIGN][Not Found</title>](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/559)
+* [FRONT|BACKEND][FIX][Doc View, ngrams selected: children of grouped terms are not shown (#551)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/551)
+* [BACK][FIX] Removing cron job
+
 ## Version 0.0.6.9.9.6
 
 * [RELEASE CANDIDATE]
