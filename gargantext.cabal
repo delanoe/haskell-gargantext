@@ -902,12 +902,15 @@ test-suite garg-test
     , gargantext-prelude
     , hspec
     , parsec
+    , patches-class
+    , patches-map
     , quickcheck-instances
     , tasty
     , tasty-hunit
     , text
     , time
     , unordered-containers
+    , validity
   default-language: Haskell2010
 
 test-suite jobqueue-test
