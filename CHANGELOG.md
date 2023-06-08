@@ -1,3 +1,9 @@
+## Version 0.0.6.9.9.6.2
+
+* [BACK][FIX][Ngrams Status change (#217)](https://gitlab.iscpif.fr/gargantext/haskell-gargantext/issues/217)
+* [FRONT][FEAT][Ngrams Context (#547)](https://gitlab.iscpif.fr/gargantext/purescript-gargantext/issues/547)
+* [BACK|FRONT][DOC] Renaming NodeFrame(Write|Calc) -> Notes|Calc
+
 ## Version 0.0.6.9.9.6.1
 
 * [FRONT][FIX] Default Node List name
