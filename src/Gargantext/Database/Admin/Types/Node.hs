@@ -355,10 +355,11 @@ data NodeType = NodeUser
 -}
 
               -- Optional Nodes
-              | NodeFrameWrite | NodeFrameCalc | NodeFrameVisio | NodeFrameNotebook
+              | Notes | Calc | NodeFrameVisio | NodeFrameNotebook
               | NodeFile
 
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
+
 
 instance GQLType NodeType
 instance FromJSON NodeType
@@ -404,8 +405,8 @@ defaultName NodeDashboard     = "Board"
 defaultName NodeGraph         = "Graph"
 defaultName NodePhylo         = "Phylo"
 
-defaultName NodeFrameWrite    = "Note"
-defaultName NodeFrameCalc     = "Calc"
+defaultName Notes    = "Note"
+defaultName Calc     = "Calc"
 defaultName NodeFrameVisio    = "Visio"
 defaultName NodeFrameNotebook = "Code"
 

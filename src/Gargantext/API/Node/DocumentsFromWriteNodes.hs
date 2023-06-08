@@ -90,7 +90,7 @@ documentsFromWriteNodes uId nId Params { selection, lang, paragraphs } jobHandle
       markFailed (Just msg) jobHandle
       panic msg
 
-  frameWriteIds <- getChildrenByType nId NodeFrameWrite
+  frameWriteIds <- getChildrenByType nId Notes
 
   -- https://write.frame.gargantext.org/<frame_id>/download
   frameWrites <- mapM (\id -> getNodeWith id (Proxy :: Proxy HyperdataFrame)) frameWriteIds
@@ -142,7 +142,7 @@ hyperdataDocumentFromFrameWrite lang paragraphSize (node, contents) =
           day' = maybe Defaults.day (\(Date { day }) -> fromIntegral day) date
 --}
           in
-      Right (List.map (\(t, ctxt) ->  HyperdataDocument { _hd_bdd = Just "FrameWrite"
+      Right (List.map (\(t, ctxt) ->  HyperdataDocument { _hd_bdd = Just $ cs $ show Notes
                               , _hd_doi = Nothing
                               , _hd_url = Nothing
                               , _hd_uniqId = Nothing
