@@ -227,18 +227,27 @@ getContextNgramsMatchingFTS :: HasNodeError err
                             -> NodeId
                             -> Cmd err [Text]
 getContextNgramsMatchingFTS contextId listId = do
-  res <- runPGSQuery query (contextId, listId)
+  res <- runPGSQuery query (listId, listId, contextId)
   pure $ (\(PGS.Only term) -> term) <$> res
 
   where
     query :: PGS.Query
-    query = [sql| SELECT ngrams.terms
+    query = [sql| WITH ngrams_ids AS
+                (SELECT ngrams_id
+                 FROM node_stories
+                 WHERE node_id = ?
+                 UNION SELECT ngrams_id
+                 FROM node_ngrams
+                 WHERE node_id = ?)
+                SELECT DISTINCT ngrams.terms
                 FROM ngrams
-                JOIN node_ngrams ON node_ngrams.ngrams_id = ngrams.id
+                JOIN ngrams_ids ON ngrams_ids.ngrams_id = ngrams.id
+                -- JOIN node_ngrams ON node_ngrams.ngrams_id = ngrams.id
                 CROSS JOIN contexts
                 WHERE contexts.id = ?
-                AND node_ngrams.node_id = ?
-                AND contexts.search @@ plainto_tsquery(ngrams.terms) |]
+                -- AND node_ngrams.node_id = ?
+                AND (contexts.search @@ plainto_tsquery(ngrams.terms)
+                  OR contexts.search @@ plainto_tsquery('french', ngrams.terms)) |]
 ------------------------------------------------------------------------
 insertNodeContext :: [NodeContext] -> Cmd err Int
 insertNodeContext ns = mkCmd $ \conn -> fromIntegral <$> (runInsert_ conn

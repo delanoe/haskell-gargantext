@@ -48,6 +48,8 @@ services:
       - postgres
     links:
       - postgres
+    volumes:
+      - pgadmin:/var/lib/pgadmin
 
   corenlp:
     image: 'cgenie/corenlp-garg'
@@ -65,3 +67,4 @@ volumes:
   #garg-pgdata:
   garg-pgdata14:
   js-cache:
+  pgadmin:
