@@ -12,6 +12,9 @@ All Database related stuff here.
 Target: just import this module and nothing else to work with
 Gargantext's database.
 
+Database Schema:
+https://dl.gargantext.org/2023-06-09-gargantext-db-graph.svg
+
 -}
 
 
