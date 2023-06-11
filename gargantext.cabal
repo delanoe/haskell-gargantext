@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           gargantext
-version: 0.0.6.9.9.6.2
+version:        0.0.6.9.9.6.2
 synopsis:       Search, map, share
 description:    Please see README.md
 category:       Data
@@ -194,6 +194,7 @@ library
       Gargantext.Core.Text.Corpus.Parsers.Date
       Gargantext.Core.Text.Corpus.Parsers.Date.Attoparsec
       Gargantext.Core.Text.Corpus.Parsers.FrameWrite
+      Gargantext.Core.Text.Corpus.Parsers.Gitlab
       Gargantext.Core.Text.Corpus.Parsers.GrandDebat
       Gargantext.Core.Text.Corpus.Parsers.Iramuteq
       Gargantext.Core.Text.Corpus.Parsers.Isidore
